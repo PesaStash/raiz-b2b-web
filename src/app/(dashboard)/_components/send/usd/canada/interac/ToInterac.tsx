@@ -55,8 +55,8 @@ const ToInterac = ({ close }: Props) => {
     queryFn: () =>
       GetTransactionFeeApi(
         Number(amount),
-        currency as "USD" | "NGN" | "WIRE"
-        // usdBeneficiary?.usd_beneficiary_id || ""
+        currency as "USD" | "NGN" | "WIRE",
+        usdBeneficiary?.usd_beneficiary_id || ""
       ),
     enabled: !!amount,
   });

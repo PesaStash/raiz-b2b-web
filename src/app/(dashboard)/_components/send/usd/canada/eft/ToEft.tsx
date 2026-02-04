@@ -63,8 +63,8 @@ const ToEft = ({}: Props) => {
     queryFn: () =>
       GetTransactionFeeApi(
         Number(amount),
-        "USD"
-        // usdBeneficiary?.usd_beneficiary_id || ""
+        "USD",
+        usdBeneficiary?.usd_beneficiary_id || ""
       ),
     enabled: !!amount,
   });
