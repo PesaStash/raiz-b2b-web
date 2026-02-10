@@ -1,0 +1,68 @@
+name: Enforce Branch Validation Convention
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  branch-name-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check branch name
+        run: |
+          BRANCH_NAME="${{ github.head_ref }}"
+
+          FEATURE_REGEX="^features\/RAZ-[0-9]+_[a-z0-9-]+$"
+          BUG_REGEX="^bugs\/RAZ-[0-9]+_[a-z0-9-]+$"
+          DEV_BRANCH="^dev$"
+
+          if [[ "$BRANCH_NAME" =~ $FEATURE_REGEX ]] || \
+             [[ "$BRANCH_NAME" =~ $BUG_REGEX ]] || \
+             [[ "$BRANCH_NAME" =~ $DEV_BRANCH ]]; then
+            echo "✅ Branch name is valid"
+          else
+            echo "❌ Invalid branch name: $BRANCH_NAME"
+            echo "Allowed formats:"
+            echo "features/RAZ-123_short-description"
+            echo "bugs/RAZ-123_short-description"
+            echo "dev"
+            exit 1
+          fi
+      - name: Check PR title format
+        run: |
+          TITLE="${{ github.event.pull_request.title }}"
+          TITLE_REGEX="^#RAZ-[0-9]+: .+"
+
+          if [[ "$TITLE" =~ $TITLE_REGEX ]]; then
+            echo "✅ PR title is valid"
+          else
+            echo "❌ Invalid PR title"
+            echo "Expected format: #RAZ-123: Short description"
+            exit 1
+          fi
+      - name: Enforce allowed source branches to staging
+        if: github.base_ref == 'staging'
+        run: |
+          SOURCE_BRANCH="${{ github.head_ref }}"
+
+          FEATURE_REGEX="^features\/RAZ-[0-9]+_[a-z0-9-]+$"
+          DEV_BRANCH="^dev$"
+
+          if [[ "$SOURCE_BRANCH" =~ $FEATURE_REGEX ]] || \
+             [[ "$SOURCE_BRANCH" =~ $DEV_BRANCH ]]; then
+            echo "✅ Allowed source branch"
+          else
+            echo "❌ staging only accepts PRs from dev or features/* branches"
+            exit 1
+          fi
+      - name: Enforce main only accepts staging
+        if: github.base_ref == 'main'
+        run: |
+          SOURCE_BRANCH="${{ github.head_ref }}"
+
+          if [[ "$SOURCE_BRANCH" == "staging" ]]; then
+            echo "✅ main can accept from staging"
+          else
+            echo "❌ main only accepts PRs from staging"
+            exit 1
+          fi
