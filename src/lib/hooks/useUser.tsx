@@ -8,7 +8,8 @@ import { AxiosError } from "axios";
 import { useEffect } from "react";
 
 export const useUser = () => {
-  const { user, setUser, clearUser, updateUser } = useUserStore();
+  const { user, setUser, clearUser, updateUser, showBalance, setShowBalance } =
+    useUserStore();
   // const token = GetItemFromCookie("access_token");
 
   const {
@@ -18,6 +19,7 @@ export const useUser = () => {
     isSuccess,
     isError,
     refetch,
+    isRefetching,
   } = useQuery<IUser, AxiosError>({
     queryKey: ["user"],
     queryFn: FetchUserApi,
@@ -46,6 +48,9 @@ export const useUser = () => {
     updateUser,
     clearUser,
     refetch,
+    isRefetching,
+    showBalance,
+    setShowBalance,
   };
 };
 

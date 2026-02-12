@@ -13,12 +13,13 @@ export interface IRegisterPayload {
   first_name: string;
   last_name: string;
   country_id: string;
-  referral_code: string;
+  referral_code: string | null;
 }
 
 export interface IResetPasswordPayload {
   password: string;
   otp: string;
+  email: string;
 }
 
 export async function CountriesApi() {
@@ -31,7 +32,10 @@ export const SignupApi = async (data: IRegisterPayload) => {
   return response?.data;
 };
 
-export const SignupVerifyOtpApi = async (data: { otp: string }) => {
+export const SignupVerifyOtpApi = async (data: {
+  otp: string;
+  email: string;
+}) => {
   const response = await PublicAxios.post("/business/auth/verify-otp/", data, {
     params: {
       medium: "email",
@@ -54,7 +58,7 @@ export async function LoginApi(data: ILoginPayload) {
   return response.data;
 }
 
-export const LoginOtpApi = async (data: { otp: string }) => {
+export const LoginOtpApi = async (data: { email: string; otp: string }) => {
   const response = await PublicAxios.post("/business/auth/login/otp/", data, {
     params: {
       medium: "email",

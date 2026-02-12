@@ -40,7 +40,9 @@ const Settingspage = () => {
   } = useQuery({
     queryKey: ["country", user?.business_account?.entity?.country_id],
     queryFn: () =>
-      FetchCountriesWithIdApi(user?.business_account?.entity?.country_id || ""),
+      FetchCountriesWithIdApi(
+        user?.business_account?.entity?.country_id || null
+      ),
     enabled: !!user?.business_account?.entity?.country_id,
   });
 
@@ -116,10 +118,11 @@ const Settingspage = () => {
           {...formik.getFieldProps("business_name")}
         />
         <InputField
+          key={focus}
           label="Raiz Tag"
           placeholder="@username"
           icon="/icons/pen.svg"
-          autoFocus={focus === "raiz-tag" ? true : false}
+          autoFocus={focus === "raiz-tag"}
           {...formik.getFieldProps("raiz_tag")}
           className="!text-raiz-gray-400"
           errorMessage={formik.touched.raiz_tag && formik.errors.raiz_tag}

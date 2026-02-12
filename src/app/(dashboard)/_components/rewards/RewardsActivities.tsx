@@ -61,9 +61,9 @@ const RewardsActivities = () => {
           }
         >
           {activities.length > 0 ? (
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-6 ">
               {activities.map((each, index) => (
-                <div key={index} className="flex justify-between">
+                <div key={index} className="flex justify-between ">
                   <div className="flex gap-2.5 items-center">
                     <Image
                       className="h-12 w-12 rounded-[48px]"

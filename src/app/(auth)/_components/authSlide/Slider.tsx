@@ -11,9 +11,9 @@ import { Autoplay, EffectFade, Navigation, Pagination } from "swiper/modules";
 import { RegisterSlidesData } from "@/constants/RegisterSlidesData";
 import Slide from "./Slide";
 
-const Slider = () => {
+const Slider = ({className}:{className?: string}) => {
   return (
-    <div className="relative hidden md:block w-[50%] xl:w-[54%] h-full ">
+    <div className={`relative hidden md:block w-[50%] xl:w-[54%] h-full ${className}`}>
       <Swiper
         spaceBetween={30}
         effect={"fade"}

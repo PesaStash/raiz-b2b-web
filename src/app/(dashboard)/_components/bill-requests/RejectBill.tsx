@@ -48,6 +48,7 @@ const RejectBill = ({ close, request }: Props) => {
         </div>
         <div className="flex flex-col gap-3 mt-5 w-full">
           <Button
+            disabled={DeclineRquestMutation.isPending || !reason}
             loading={DeclineRquestMutation.isPending}
             onClick={DeclineRquestMutation.mutate}
             className="bg-pink-600 "

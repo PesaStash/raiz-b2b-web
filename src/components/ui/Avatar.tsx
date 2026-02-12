@@ -28,6 +28,13 @@ const Avatar: React.FC<AvatarProps> = ({
       .toUpperCase();
   };
 
+  const showDefaultImage =
+    (!name || name.trim() === "" || name === "User") &&
+    (!src || src.trim() === "" || imageError);
+  const showInitials =
+    name && (!src || src.trim() === "" || imageError) && !showDefaultImage;
+  const showImage = src && !imageError && !showDefaultImage;
+
   return (
     <div
       className={`relative flex items-center justify-center overflow-hidden rounded-full  text-white ${
@@ -35,7 +42,7 @@ const Avatar: React.FC<AvatarProps> = ({
       } ${className} `}
       style={{ width: size, height: size, fontSize: size / 3 }}
     >
-      {src && !imageError ? (
+      {showImage ? (
         <Image
           src={src}
           alt={name}
@@ -44,8 +51,16 @@ const Avatar: React.FC<AvatarProps> = ({
           height={size}
           onError={() => setImageError(true)}
         />
-      ) : (
+      ) : showInitials ? (
         <span>{getInitials(name)}</span>
+      ) : (
+        <Image
+          src="/images/default-pfp.svg"
+          alt="Default Avatar"
+          className="rounded-full object-cover"
+          width={size}
+          height={size}
+        />
       )}
     </div>
   );

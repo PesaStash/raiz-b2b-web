@@ -1,12 +1,12 @@
 "use client";
 import NumberKeypad from "@/components/ui/NumberKeyPad";
 import Overlay from "@/components/ui/Overlay";
-import { useCurrentWallet } from "@/lib/hooks/useCurrentWallet";
 import { useUser } from "@/lib/hooks/useUser";
 import { AcceptRequestApi } from "@/services/transactions";
+import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { IP2pTransferResponse } from "@/types/services";
 import { IBillRequest, PaymentStatusType } from "@/types/transactions";
-import { passwordHash } from "@/utils/helpers";
+import { findWalletByCurrency, passwordHash } from "@/utils/helpers";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 
@@ -29,7 +29,19 @@ const PayBill = ({
   setTransactionDetail,
 }: Props) => {
   const { user } = useUser();
-  const currentWallet = useCurrentWallet(user);
+  const { selectedCurrency } = useCurrencyStore();
+  const NGNAcct = findWalletByCurrency(user, "NGN");
+  const USDAcct = findWalletByCurrency(user, "USD");
+
+  const getCurrentWallet = () => {
+    if (selectedCurrency.name === "NGN") {
+      return NGNAcct;
+    } else if (selectedCurrency.name === "USD") {
+      return USDAcct;
+    }
+  };
+
+  const currentWallet = getCurrentWallet();
   const [pin, setPin] = useState<string>("");
 
   const qc = useQueryClient();

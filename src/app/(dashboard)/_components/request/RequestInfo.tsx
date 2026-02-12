@@ -7,6 +7,10 @@ import Avatar from "@/components/ui/Avatar";
 import { useUser } from "@/lib/hooks/useUser";
 import dayjs from "dayjs";
 
+import advancedFormat from "dayjs/plugin/advancedFormat";
+
+dayjs.extend(advancedFormat);
+
 interface Props extends RequestStepsProps {
   request: IBillRequest;
 }
@@ -86,7 +90,7 @@ const RequestInfo = ({ setStep, request }: Props) => {
               Request Sent Date
             </span>
             <span className="text-zinc-900 text-sm font-semibold font-brSonoma leading-tight">
-              {dayjs(request.created_at).format("Do MMMM YYYY")}
+              {dayjs(request.created_at).format("Do MMM YYYY")}
             </span>
           </div>
 

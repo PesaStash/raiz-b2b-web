@@ -65,6 +65,7 @@ const RegisterOtp = ({ goBack, formik }: RegisterFormProps) => {
           onResend={() =>
             resendOtpMutation.mutate({ email: formik.values.email })
           }
+          length={6}
         />
       </div>
       <p className="text-raiz-gray-600 text-[13px] font-normal leading-tight">

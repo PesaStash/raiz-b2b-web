@@ -48,7 +48,7 @@ const monzoSans = localFont({
       style: "normal",
     },
   ],
-  variable: "--",
+  variable: "--monzo",
 });
 
 const brSonoma = localFont({
@@ -93,9 +93,16 @@ const brSonoma = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Raiz B2B",
+  title: "Raiz Business",
   description:
     "Seamless banking, global transactions, and spending—all in one place.",
+  icons: {
+    icon: [
+      { url: "/favicon/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: "/favicon/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({
@@ -141,6 +148,7 @@ export default function RootLayout({
                   success: "bg-[#5ca512] ",
                   warning: "bg-yellow-400",
                   info: "bg-[#488ee8]",
+                  loading: "bg-[#475467]",
                 },
               }}
               icons={{

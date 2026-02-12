@@ -5,12 +5,16 @@ import { useCurrentWallet } from "@/lib/hooks/useCurrentWallet";
 import { useUser } from "@/lib/hooks/useUser";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { ITransactionParams } from "@/types/services";
-import { FetchTransactionReportApi } from "@/services/transactions";
+import {
+  FetchTransactionCategoriesApi,
+  FetchTransactionReportApi,
+} from "@/services/transactions";
 import { ITransaction } from "@/types/transactions";
 import TxnReceipt from "./TxnReceipt";
 import FilterHistory from "./FilterHistory";
 import { useQuery } from "@tanstack/react-query";
 import { GetTransactionClasses } from "@/services/transactions";
+import { FilterParams } from "../TransactionTable";
 
 export type customDateType = {
   day: string;
@@ -27,13 +31,17 @@ const TxnHistory = ({ close }: Props) => {
   const { user } = useUser();
   const [screen, setScreen] = useState<ScreenType>("all");
   const [selectedTxn, setSelectedTxn] = useState<ITransaction | null>(null);
-  const [filterParams, setFilterParams] = useState({
+  const [filterParams, setFilterParams] = useState<FilterParams>({
     transaction_class_id: 0,
     start_date: "",
     end_date: "",
+    transaction_category_id: 0,
+    transaction_status_id: 0,
   });
   const [activity, setActivity] = useState(0);
+  const [category, setCategory] = useState(0);
   const [period, setPeriod] = useState("");
+  const [status, setStatus] = useState({ label: "", id: 0 });
   const [customStartDate, setCustomStartDate] = useState<customDateType>({
     day: "",
     month: "",
@@ -51,6 +59,11 @@ const TxnHistory = ({ close }: Props) => {
     queryFn: GetTransactionClasses,
   });
 
+  const { data: categories } = useQuery({
+    queryKey: ["transactions-category"],
+    queryFn: FetchTransactionCategoriesApi,
+  });
+
   const { data, fetchNextPage, hasNextPage, isLoading } = useInfiniteQuery({
     queryKey: [
       "transactions-history",
@@ -66,6 +79,12 @@ const TxnHistory = ({ close }: Props) => {
         }),
         ...(filterParams.start_date && { start_date: filterParams.start_date }),
         ...(filterParams.end_date && { end_date: filterParams.end_date }),
+        ...(filterParams.transaction_category_id && {
+          transaction_category_id: filterParams.transaction_category_id,
+        }),
+        ...(filterParams.transaction_status_id && {
+          transaction_status_id: filterParams.transaction_status_id,
+        }),
       };
       return FetchTransactionReportApi(params);
     },
@@ -81,6 +100,8 @@ const TxnHistory = ({ close }: Props) => {
       transaction_class_id: 0,
       start_date: "",
       end_date: "",
+      transaction_category_id: 0,
+      transaction_status_id: 0,
     });
   };
   const allTransactions =
@@ -127,6 +148,11 @@ const TxnHistory = ({ close }: Props) => {
             setCustomEndDate={setCustomEndDate}
             setPeriod={setPeriod}
             clearAll={clearFilters}
+            status={status}
+            setStatus={setStatus}
+            category={category}
+            setCategory={setCategory}
+            categories={categories || []}
           />
         );
       default:

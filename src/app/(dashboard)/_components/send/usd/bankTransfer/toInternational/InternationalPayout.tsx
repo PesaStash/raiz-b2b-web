@@ -1,10 +1,10 @@
 import EnterPin from "@/components/transactions/EnterPin";
-import { useCurrentWallet } from "@/lib/hooks/useCurrentWallet";
 import { useUser } from "@/lib/hooks/useUser";
 import { SendIntBeneficiariesApi } from "@/services/transactions";
 import { useSendStore } from "@/store/Send";
+import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { IIntSendPayload } from "@/types/services";
-import { passwordHash } from "@/utils/helpers";
+import { findWalletByCurrency, passwordHash } from "@/utils/helpers";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 
@@ -24,7 +24,19 @@ const InternationPayout = ({
   const [pin, setPin] = useState<string>("");
   const { purpose, category, actions } = useSendStore();
   const { user } = useUser();
-  const currentWallet = useCurrentWallet(user);
+  const NGNAcct = findWalletByCurrency(user, "NGN");
+  const USDAcct = findWalletByCurrency(user, "USD");
+
+  const { selectedCurrency } = useCurrencyStore();
+  const getCurrentWallet = () => {
+    if (selectedCurrency.name === "NGN") {
+      return NGNAcct;
+    } else if (selectedCurrency.name === "USD") {
+      return USDAcct;
+    }
+  };
+
+  const currentWallet = getCurrentWallet();
   const qc = useQueryClient();
   const SendMoneyMutation = useMutation({
     mutationFn: (data: IIntSendPayload) => SendIntBeneficiariesApi(data),
@@ -57,7 +69,7 @@ const InternationPayout = ({
   const handleSend = () => {
     const payload: IIntSendPayload = {
       payout_initiation_id: paymentInitiationId,
-      wallet_id: currentWallet?.wallet_id || "",
+      wallet_id: currentWallet?.wallet_id || null,
       transaction_category_id: category?.transaction_category_id || 0,
       transaction_description: purpose,
       data: {

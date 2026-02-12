@@ -15,10 +15,21 @@ import { toast } from "sonner";
 import CryptoSend from "../send/CryptoSend";
 import CryptoSwap from "../swap/CryptoSwap";
 import { useCryptoSwapStore } from "@/store/CryptoSwap";
+import SelectAccount from "../../SelectAccount";
+import CreateNgnAcct from "../../createNgnAcct/CreateNgnAcct";
+import CreateCryptoWallet from "./CreateCryptoWallet";
+import { AnimatePresence } from "motion/react";
+import SideModalWrapper from "../../SideModalWrapper";
 
 const CryptoDashboardSummary = () => {
   const [openModal, setOpenModal] = useState<
-    "send" | "request" | "swap" | null
+    | "send"
+    | "request"
+    | "swap"
+    | "selectAcct"
+    | "createNGN"
+    | "createCrypto"
+    | null
   >(null);
   const pathName = usePathname();
   const { actions } = useCryptoSwapStore();
@@ -53,13 +64,54 @@ const CryptoDashboardSummary = () => {
   useEffect(() => {
     refetch();
   }, [pathName, refetch]);
+
+  const openNGNModal = () => {
+    setOpenModal("createNGN");
+  };
+
+  const openCryptoModal = () => {
+    setOpenModal("createCrypto");
+  };
+
+  const displayScreen = () => {
+    switch (openModal) {
+      case "createNGN":
+        return (
+          <CreateNgnAcct
+            close={closeModal}
+            // openBvnModal={() => setShowBvnModal(true)}
+          />
+        );
+      case "createCrypto":
+        return <CreateCryptoWallet close={closeModal} />;
+      default:
+        break;
+    }
+  };
+
   return (
     <div className="pt-5">
+      <div className="flex items-center justify-between mb-6">
+        <p className="text-text-terttiary-600   font-normal font-inter leading-normal">
+          Total Assets
+        </p>
+        <button
+          onClick={() => setOpenModal("selectAcct")}
+          className="px-3 py-1 bg-violet-100/60 rounded-3xl inline-flex justify-center items-center gap-2"
+        >
+          <span className=" text-zinc-700 text-xs font-medium font-brSonoma leading-tight">
+            Switch Account
+          </span>
+          <Image
+            src={"/icons/arrow-down.svg"}
+            width={18}
+            height={18}
+            alt="arrow down"
+          />
+        </button>
+      </div>
       <div className="flex justify-between items-center gap-4 mb-6">
-        <div className="">
-          <p className="text-text-terttiary-600   font-normal font-inter leading-normal">
-            Total Assets
-          </p>
+        <div className="w-full">
           <div className="flex gap-2 items-center">
             <p className="text-raiz-gray-950 text-[2rem] font-semibold  leading-[38.40px]">
               {showBalance
@@ -137,18 +189,31 @@ const CryptoDashboardSummary = () => {
         </div>
       </div>
 
-      {/* <AnimatePresence>
-        {openModal && openModal !== "send" ? (
+      <AnimatePresence>
+        {openModal === "createNGN" || openModal === "createCrypto" ? (
           <SideModalWrapper
             close={closeModal}
-            wrapperStyle={openModal === "request" ? "!p-0" : ""}
+            wrapperStyle={
+              openModal === "createNGN"
+                ? "!bg-primary2"
+                : openModal === "createCrypto"
+                ? "!bg-raiz-crypto-primary"
+                : ""
+            }
           >
             {displayScreen()}
           </SideModalWrapper>
         ) : null}
-      </AnimatePresence> */}
+      </AnimatePresence>
       {openModal === "send" && <CryptoSend close={closeModal} />}
       {openModal === "swap" && <CryptoSwap close={closeSwapModal} />}
+      {openModal === "selectAcct" && (
+        <SelectAccount
+          close={() => setOpenModal(null)}
+          openNgnModal={openNGNModal}
+          openCryptoModal={openCryptoModal}
+        />
+      )}
     </div>
   );
 };

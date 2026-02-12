@@ -34,6 +34,7 @@ const CryptoSwapDetail = ({
     swapToCurrency,
     swapFromWallet,
     swapToWallet,
+    swapFromCurrency,
     coinType,
   } = useCryptoSwapStore();
   const [showCurrency, setShowCurrency] = useState(false);
@@ -81,11 +82,11 @@ const CryptoSwapDetail = ({
   };
   const displayValue = () => {
     if (isFocused || !amount)
-      return amount ? `${getCurrencySymbol(coinType || "")}${rawAmount}` : "";
+      return amount ? `${getCurrencySymbol(swapFromCurrency)}${rawAmount}` : "";
     const num = parseFloat(rawAmount);
     return isNaN(num)
       ? ""
-      : `${getCurrencySymbol(coinType || "")}${num.toFixed(2)}`;
+      : `${getCurrencySymbol(swapFromCurrency)}${num.toFixed(2)}`;
   };
 
   return (
@@ -104,7 +105,7 @@ const CryptoSwapDetail = ({
             <div className="flex flex-col  items-center">
               <input
                 autoFocus
-                className="outline-none h-[91px] bg-transparent w-fit xl:mx-auto text-center text-zinc-900 placeholder:text-zinc-900 text-3xl font-semibold leading-10"
+                className="outline-none h-[91px] bg-transparent w-full xl:mx-auto text-center text-zinc-900 placeholder:text-zinc-900 text-3xl font-semibold leading-10"
                 placeholder="0.00"
                 value={displayValue()}
                 onChange={handleAmountChange}
@@ -118,7 +119,7 @@ const CryptoSwapDetail = ({
                 <span className="text-zinc-900 text-xs font-bold leading-tight">
                   ${swapFromWallet?.account_balance.toLocaleString()}{" "}
                 </span>
-                <span>({selectedCurrency.name})</span>
+                <span>({swapFromCurrency})</span>
               </p>
             </div>
           </div>

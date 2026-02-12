@@ -83,7 +83,7 @@ const Categories = ({ goBack, goNext, loading }: Props) => {
                 >
                   <Image
                     className="w-12 h-12"
-                    src={each?.category_emoji}
+                    src={each?.category_emoji || "/icons/notif-general.svg"}
                     // src={"/icons/notif-general.svg"}
                     alt={each?.transaction_category}
                     width={64}

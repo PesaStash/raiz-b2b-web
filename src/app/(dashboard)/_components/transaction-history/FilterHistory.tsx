@@ -2,13 +2,12 @@ import SideWrapperHeader from "@/components/SideWrapperHeader";
 import Button from "@/components/ui/Button";
 import InputField from "@/components/ui/InputField";
 import InputLabel from "@/components/ui/InputLabel";
-import ModalTrigger from "@/components/ui/ModalTrigger";
 import { convertField } from "@/utils/helpers";
 import React, { Dispatch, SetStateAction, useState } from "react";
 import Image from "next/image";
-import { ITransactionClass } from "@/types/transactions";
+import { ITransactionCategory, ITransactionClass } from "@/types/transactions";
 import dayjs from "dayjs";
-import MonthModal from "./MonthModal";
+
 import { z } from "zod";
 import ErrorMessage from "@/components/ui/ErrorMessage";
 import { toast } from "sonner";
@@ -16,25 +15,27 @@ import { customDateType } from "./TxnHistory";
 import { useCurrentWallet } from "@/lib/hooks/useCurrentWallet";
 import { useUser } from "@/lib/hooks/useUser";
 import { GenerateStatementApi } from "@/services/transactions";
+import SelectField from "@/components/ui/SelectField";
+import { monthsData } from "@/constants/misc";
+import { FilterParams } from "../TransactionTable";
 
 interface Props {
   close: () => void;
   period: string;
   activity: number;
+  status: { label: string; id: number };
+  category: number;
   customStartDate: customDateType;
   customEndDate: customDateType;
   setActivity: Dispatch<SetStateAction<number>>;
   setPeriod: Dispatch<SetStateAction<string>>;
+  setStatus: Dispatch<SetStateAction<{ label: string; id: number }>>;
+  setCategory: Dispatch<SetStateAction<number>>;
   setCustomStartDate: Dispatch<SetStateAction<customDateType>>;
   setCustomEndDate: Dispatch<SetStateAction<customDateType>>;
   activities: ITransactionClass[];
-  setParams: Dispatch<
-    SetStateAction<{
-      transaction_class_id: number;
-      start_date: string;
-      end_date: string;
-    }>
-  >;
+  categories: ITransactionCategory[];
+  setParams: Dispatch<SetStateAction<FilterParams>>;
   clearAll: () => void;
 }
 
@@ -68,7 +69,7 @@ const dateOutputSchema = z
 
 const FilterHistory = ({
   close,
-  activities,
+  // activities,
   setParams,
   customEndDate,
   customStartDate,
@@ -78,12 +79,31 @@ const FilterHistory = ({
   setPeriod,
   setCustomEndDate,
   setCustomStartDate,
+  status,
+  setStatus,
   clearAll,
+  category,
+  categories,
+  setCategory,
 }: Props) => {
-  const [modal, setModal] = useState<"start" | "end" | null>(null);
+  // const [modal, setModal] = useState<"start" | "end" | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const periods = ["Custom", "Current week", "Last week", "Current month"];
+  const statuses = [
+    {
+      label: "Completed",
+      id: 2,
+    },
+    {
+      label: "Pending",
+      id: 1,
+    },
+    {
+      label: "Failed",
+      id: 3,
+    },
+  ];
 
   const validateCustomDate = (date: typeof customStartDate, prefix: string) => {
     try {
@@ -113,7 +133,8 @@ const FilterHistory = ({
 
   const getPeriodDates = () => {
     const today = dayjs();
-    let startDate, endDate;
+    let startDate: dayjs.Dayjs | undefined;
+    let endDate: dayjs.Dayjs | undefined;
 
     switch (period) {
       case "Current week":
@@ -129,12 +150,20 @@ const FilterHistory = ({
         endDate = today.endOf("month");
         break;
       case "Custom":
+        const startFilled =
+          customStartDate.day && customStartDate.month && customStartDate.year;
+        const endFilled =
+          customEndDate.day && customEndDate.month && customEndDate.year;
+
+        if (!startFilled || !endFilled) return undefined;
+
         const startFormatted = `${
           customStartDate.year
         }-${customStartDate.month.padStart(
           2,
           "0"
         )}-${customStartDate.day.padStart(2, "0")}`;
+
         const endFormatted = `${
           customEndDate.year
         }-${customEndDate.month.padStart(2, "0")}-${customEndDate.day.padStart(
@@ -142,42 +171,26 @@ const FilterHistory = ({
           "0"
         )}`;
 
-        startDate =
-          customStartDate.day && customStartDate.month && customStartDate.year
-            ? dayjs(startFormatted)
-            : today.startOf("month");
+        startDate = dayjs(startFormatted);
+        endDate = dayjs(endFormatted);
 
-        endDate =
-          customEndDate.day && customEndDate.month && customEndDate.year
-            ? dayjs(endFormatted)
-            : today;
+        if (!startDate.isValid() || !endDate.isValid()) return undefined;
         break;
       default:
-        startDate = today.startOf("month");
-        endDate = today;
+        return undefined;
     }
 
-    const dates = {
-      start: startDate.format("YYYY-MM-DD"),
-      end: endDate.format("YYYY-MM-DD"),
+    return {
+      start: startDate?.format("YYYY-MM-DD"),
+      end: endDate?.format("YYYY-MM-DD"),
     };
-
-    try {
-      dateOutputSchema.parse(dates);
-      return dates;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      toast.error(error?.message);
-      return {
-        start: today.startOf("month").format("YYYY-MM-DD"),
-        end: today.format("YYYY-MM-DD"),
-      };
-    }
   };
 
   const clearFilter = () => {
     setActivity(0);
     setPeriod("");
+    setCategory(0);
+    setStatus({ label: "", id: 0 });
     setCustomStartDate({ day: "", month: "", year: "" });
     setCustomEndDate({ day: "", month: "", year: "" });
     setErrors({});
@@ -186,18 +199,43 @@ const FilterHistory = ({
 
   const dates = getPeriodDates();
   const handleApply = () => {
+    // If Custom is selected, validate custom dates first
     if (period === "Custom") {
-      const startValid = validateCustomDate(customStartDate, "start");
-      const endValid = validateCustomDate(customEndDate, "end");
-      if (!startValid || !endValid) return;
+      const isStartValid = validateCustomDate(customStartDate, "start");
+      const isEndValid = validateCustomDate(customEndDate, "end");
+
+      if (!isStartValid || !isEndValid) {
+        toast.error("Please enter valid custom dates.");
+        return;
+      }
     }
-    setParams({
+
+    // Try to get dates (may be undefined)
+    const dates = getPeriodDates();
+
+    // Start forming payload
+    const paramPayload: FilterParams = {
       transaction_class_id: activity,
-      start_date: new Date(dates.start).toISOString(),
-      end_date: new Date(dates.end).toISOString(),
-    });
+      transaction_category_id: category,
+      transaction_status_id: status.id,
+    };
+
+    // Add dates if valid
+    if (dates) {
+      const parsed = dateOutputSchema.safeParse(dates);
+      if (parsed.success) {
+        paramPayload.start_date = new Date(parsed.data.start).toISOString();
+        paramPayload.end_date = new Date(parsed.data.end).toISOString();
+      } else {
+        toast.error("Invalid date range. Please fix your custom date.");
+        return;
+      }
+    }
+
+    setParams(paramPayload);
     close();
   };
+
   const { user } = useUser();
   const currentWallet = useCurrentWallet(user);
   const handleDownloadStatement = async () => {
@@ -205,6 +243,12 @@ const FilterHistory = ({
       toast.error("No wallet");
       return;
     }
+
+    if (!dates) {
+      toast.error("Please select a valid date range");
+      return;
+    }
+
     setDownloading(true);
     const params = {
       wallet_id: currentWallet.wallet_id,
@@ -227,6 +271,12 @@ const FilterHistory = ({
       setDownloading(false);
     }
   };
+
+  const monthsOpts = monthsData.map((a) => ({
+    label: a.value,
+    value: a.id,
+  }));
+
   return (
     <div className="flex flex-col h-full">
       <SideWrapperHeader
@@ -237,7 +287,7 @@ const FilterHistory = ({
       <div className="flex flex-col justify-between h-full">
         <div>
           {/* activity */}
-          <div className="">
+          {/* <div className="">
             <h4 className="text-zinc-900 text-xs font-bold leading-tight mb-[9px]">
               Activity
             </h4>
@@ -253,6 +303,48 @@ const FilterHistory = ({
                   key={index}
                 >
                   {convertField(each.transaction_class)}
+                </button>
+              ))}
+            </div>
+          </div> */}
+          {/* Categoty */}
+          <div className="">
+            <h4 className="text-zinc-900 text-xs font-bold leading-tight mb-[9px]">
+              Category
+            </h4>
+            <div className="flex items-center gap-4 overflow-x-scroll no-scrollbar">
+              {categories.map((each, index) => (
+                <button
+                  onClick={() => setCategory(each.transaction_category_id)}
+                  className={`p-2 rounded-lg whitespace-nowrap  border-[0.5px] leading-tight text-xs ${
+                    each.transaction_category_id === category
+                      ? "border-indigo-900 text-indigo-900 bg-indigo-100/60 "
+                      : "border-zinc-400 text-zinc-800   "
+                  } `}
+                  key={index}
+                >
+                  {convertField(each.transaction_category)}
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* Statuses */}
+          <div className="mt-[30px]">
+            <h4 className="text-zinc-900 text-xs font-bold leading-tight mb-[9px]">
+              Status
+            </h4>
+            <div className="flex items-center gap-4 overflow-x-scroll no-scrollbar">
+              {statuses.map((each, index) => (
+                <button
+                  onClick={() => setStatus(each)}
+                  className={`p-2 rounded-lg whitespace-nowrap  border-[0.5px] leading-tight text-xs ${
+                    each.id === status.id
+                      ? "border-indigo-900 text-indigo-900 bg-indigo-100/60 "
+                      : "border-zinc-400 text-zinc-800   "
+                  } `}
+                  key={index}
+                >
+                  {each.label}
                 </button>
               ))}
             </div>
@@ -278,84 +370,126 @@ const FilterHistory = ({
               ))}
             </div>
             {/* Custom */}
-            <div
-              className={`${
-                period === "Custom" ? "h-auto opacity-100" : "h-0 opacity-0"
-              } transition-all ease-in-out mt-5`}
-            >
-              <InputLabel content="Start Date" labelClass=" !text-xs" />
-              <div className="grid grid-cols-3 gap-[15px] mt-2 mb-4">
-                <InputField
-                  name="startDay"
-                  placeholder="Day"
-                  value={customStartDate.day}
-                  onChange={(e) =>
-                    setCustomStartDate({
-                      ...customStartDate,
-                      day: e.target.value,
-                    })
-                  }
-                />
-                <ModalTrigger
-                  onClick={() => setModal("start")}
-                  placeholder="Month"
-                  value={convertField(customStartDate.month || "")}
-                />
-                <InputField
-                  name="startYear"
-                  placeholder="Year"
-                  value={customStartDate.year}
-                  onChange={(e) =>
-                    setCustomStartDate({
-                      ...customStartDate,
-                      year: e.target.value,
-                    })
-                  }
-                />
-              </div>
-              {errors.startDate && <ErrorMessage message={errors.startDate} />}
-
-              <InputLabel content="End Date" labelClass=" !text-xs" />
-              <div className="grid grid-cols-3 gap-[15px] mt-2  mb-4">
-                <InputField
-                  name="endDay"
-                  placeholder="Day"
-                  value={customEndDate.day}
-                  onChange={(e) =>
-                    setCustomEndDate({ ...customEndDate, day: e.target.value })
-                  }
-                />
-                <ModalTrigger
-                  onClick={() => setModal("end")}
-                  placeholder="Month"
-                  value={convertField(customEndDate?.month || "")}
-                />
-                <InputField
-                  name="endYear"
-                  placeholder="Year"
-                  value={customEndDate.year}
-                  onChange={(e) =>
-                    setCustomEndDate({ ...customEndDate, year: e.target.value })
-                  }
-                />
-              </div>
-              {errors.endDate && <ErrorMessage message={errors.endDate} />}
-
-              <Button
-                loading={downloading}
-                onClick={handleDownloadStatement}
-                variant="tertiary"
-                className="!border-[#6F5B86] gap-2"
+            {period === "Custom" && (
+              <div
+                className={`${
+                  period === "Custom" ? "h-auto opacity-100" : "h-0 opacity-0"
+                } transition-all ease-in-out mt-5`}
               >
-                <Image
-                  src={"/icons/docs-download.svg"}
-                  alt="download"
-                  width={16}
-                  height={16}
-                />
-                {downloading ? "Downlloading..." : "Bank Statement"}
-              </Button>
-            </div>
+                <InputLabel content="Start Date" labelClass=" !text-xs" />
+                <div className="grid grid-cols-3 gap-[15px] mt-2 mb-4">
+                  <InputField
+                    name="startDay"
+                    placeholder="Day"
+                    value={customStartDate.day}
+                    onChange={(e) =>
+                      setCustomStartDate({
+                        ...customStartDate,
+                        day: e.target.value,
+                      })
+                    }
+                  />
+                  <SelectField
+                    name="startMonth"
+                    options={monthsOpts}
+                    onChange={(i) =>
+                      setCustomStartDate((prev) => ({
+                        ...prev,
+                        month: i?.value as string,
+                      }))
+                    }
+                    value={
+                      customStartDate.month
+                        ? monthsOpts.find(
+                            (o) => o.value === customStartDate.month
+                          )
+                        : null
+                    }
+                    placeholder="Month"
+                    controlPadding="0 5px"
+                  />
+                  <InputField
+                    name="startYear"
+                    placeholder="Year"
+                    value={customStartDate.year}
+                    onChange={(e) =>
+                      setCustomStartDate({
+                        ...customStartDate,
+                        year: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                {errors.startDate && (
+                  <ErrorMessage message={errors.startDate} />
+                )}
+
+                <InputLabel content="End Date" labelClass=" !text-xs" />
+                <div className="grid grid-cols-3 gap-[15px] mt-2  mb-4">
+                  <InputField
+                    name="endDay"
+                    placeholder="Day"
+                    value={customEndDate.day}
+                    onChange={(e) =>
+                      setCustomEndDate({
+                        ...customEndDate,
+                        day: e.target.value,
+                      })
+                    }
+                  />
+                  <SelectField
+                    name="endMonth"
+                    options={monthsData.map((a) => ({
+                      label: a.value,
+                      value: a.id,
+                    }))}
+                    onChange={(i) =>
+                      setCustomEndDate((prev) => ({
+                        ...prev,
+                        month: i?.value as string,
+                      }))
+                    }
+                    value={
+                      customStartDate.month
+                        ? monthsOpts.find(
+                            (o) => o.value === customEndDate.month
+                          )
+                        : null
+                    }
+                    placeholder="Month"
+                    controlPadding="0 5px"
+                  />
+                  <InputField
+                    name="endYear"
+                    placeholder="Year"
+                    value={customEndDate.year}
+                    onChange={(e) =>
+                      setCustomEndDate({
+                        ...customEndDate,
+                        year: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                {errors.endDate && <ErrorMessage message={errors.endDate} />}
+
+                <Button
+                  type="button"
+                  loading={downloading}
+                  onClick={handleDownloadStatement}
+                  variant="tertiary"
+                  className="!border-[#6F5B86] gap-2"
+                >
+                  <Image
+                    src={"/icons/docs-download.svg"}
+                    alt="download"
+                    width={16}
+                    height={16}
+                  />
+                  {downloading ? "Downlloading..." : "Bank Statement"}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
         <div className="flex flex-col gap-[15px]">
@@ -365,17 +499,6 @@ const FilterHistory = ({
           </Button>
         </div>
       </div>
-
-      {modal === "start" && (
-        <MonthModal
-          setMonth={setCustomStartDate}
-          close={() => setModal(null)}
-        />
-      )}
-
-      {modal === "end" && (
-        <MonthModal setMonth={setCustomEndDate} close={() => setModal(null)} />
-      )}
     </div>
   );
 };

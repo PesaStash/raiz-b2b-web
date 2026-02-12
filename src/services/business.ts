@@ -16,6 +16,7 @@ import {
 import { IChain } from "@/types/misc";
 import { PublicAxios } from "@/lib/publicAxios";
 import { GuestPayStatusType } from "@/types/transactions";
+import { IKYBLinksStatus } from "@/types/user";
 
 export const FreezeDebitApi = async (data: ITransactionPinPayload) => {
   const response = await AuthAxios.patch(
@@ -57,7 +58,8 @@ export const FetchNotificationsApi = async (
 ): Promise<INotificationResponse> => {
   const response = await AuthAxios.get(`/business/entities/notifications/`, {
     params,
-  });
+    silent: true,
+  } as CustomAxiosRequestConfig);
   return response?.data;
 };
 
@@ -96,7 +98,7 @@ export const FetchTransactionReportCategoryApi = async (
 export const FetchPaymentInfoApi = async (
   userName: string
 ): Promise<IBusinessPaymentData> => {
-  const response = await AuthAxios.get(
+  const response = await PublicAxios.get(
     `/admin/account_user/payment-information/${userName}/`
   );
   return response?.data;
@@ -116,7 +118,7 @@ export const GetAfricaPayinCountriesApi = async (): Promise<
 };
 
 export const GetAfricaPayinChannelsApi = async (
-  country_code: string
+  country_code: string | null
 ): Promise<IPaymentChannel[]> => {
   const response = await PublicAxios.get(
     `business/transactions/payins/africa/channels/?country_code=${country_code}`
@@ -125,8 +127,8 @@ export const GetAfricaPayinChannelsApi = async (
 };
 
 export const GetAfricaPayinNetworksApi = async (
-  country_code: string,
-  channel_id: string
+  country_code: string | null,
+  channel_id: string | null
 ): Promise<IPaymentNetwork[]> => {
   const response = await PublicAxios.get(
     `business/transactions/payins/africa/networks/?country_code=${country_code}&channel_id=${channel_id}`
@@ -159,6 +161,23 @@ export const GetAfricaPayinStatus = async (
 ): Promise<GuestPayStatusType> => {
   const response = await PublicAxios.get(
     `/business/transactions/payins/africa/status/${payin_id}/`
+  );
+  return response?.data;
+};
+
+export const CheckBrigdeVerificationStatusApi = async () => {
+  const response = await AuthAxios.patch(
+    "/business/account_user/verifications/update/bridge/"
+  );
+  return response?.data;
+};
+
+export const GetKYBLinksApi = async (): Promise<IKYBLinksStatus> => {
+  const response = await AuthAxios.get(
+    "/business/account_user/verifications/link/",
+    {
+      silent: true,
+    } as CustomAxiosRequestConfig
   );
   return response?.data;
 };

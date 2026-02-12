@@ -60,7 +60,12 @@ const ToEft = ({}: Props) => {
 
   const { data: fee } = useQuery({
     queryKey: ["transactions-fee", amount],
-    queryFn: () => GetTransactionFeeApi(Number(amount), "USD"),
+    queryFn: () =>
+      GetTransactionFeeApi(
+        Number(amount),
+        "USD",
+        usdBeneficiary?.usd_beneficiary_id || ""
+      ),
     enabled: !!amount,
   });
 

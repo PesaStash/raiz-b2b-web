@@ -1,4 +1,4 @@
-import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 // import BankTypeModal from "./BankTypeModal";
 // import SendOptions from "../SendOptions";
 import AddBeneficiary from "./AddBeneficiary";
@@ -25,7 +25,6 @@ export type ToUsdBanksStepsType =
 interface Props {
   close: () => void;
   bankType: bankTypeProp;
-  setBankType: Dispatch<SetStateAction<bankTypeProp | undefined>>;
 }
 
 const ToUsdBanks = ({ close, bankType }: Props) => {
@@ -48,7 +47,11 @@ const ToUsdBanks = ({ close, bankType }: Props) => {
   const { data: fee } = useQuery({
     queryKey: ["transactions-fee", amount, currency],
     queryFn: () =>
-      GetTransactionFeeApi(Number(amount), currency as "USD" | "NGN" | "WIRE"),
+      GetTransactionFeeApi(
+        Number(amount),
+        currency as "USD" | "NGN" | "WIRE",
+        usdBeneficiary?.usd_beneficiary_id || ""
+      ),
     enabled: !!amount,
   });
 

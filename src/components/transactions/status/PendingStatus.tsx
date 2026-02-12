@@ -11,6 +11,61 @@ interface Props {
 
 const PendingStatus = ({ close }: Props) => {
   const { transactionDetail } = useSendStore();
+
+  // Function to handle support click with fallback
+  const handleSupportClick = () => {
+    if (!transactionDetail) {
+      alert(
+        "Transaction details are unavailable. Please contact support at support@raiz.app or visit https://raiz.app/support."
+      );
+      return;
+    }
+
+    const emailSubject = encodeURIComponent(
+      `Payment Issue - Transaction ${
+        transactionDetail.transaction_reference || "Unknown"
+      }`
+    );
+    const emailBody = encodeURIComponent(
+      `Hello Support Team,\n\nI'm having an issue with a payment. Here are the details:\n` +
+        `Reference No: ${transactionDetail.transaction_reference || "N/A"}\n` +
+        `Amount: ${
+          transactionDetail.currency
+            ? `${getCurrencySymbol(transactionDetail.currency)}${
+                transactionDetail.transaction_amount?.toFixed(2) || "N/A"
+              }`
+            : "N/A"
+        }\n` +
+        `Date: ${
+          transactionDetail.transaction_date_time
+            ? dayjs(
+                convertTime(transactionDetail.transaction_date_time)
+              ).format("MMM DD, YYYY")
+            : "N/A"
+        }\n` +
+        `Status: ${
+          transactionDetail.transaction_status?.transaction_status || "Pending"
+        }\n\n` +
+        `Please assist me with this matter.\nThank you!`
+    );
+    const mailtoLink = `mailto:support@raiz.app?subject=${emailSubject}&body=${emailBody}`;
+
+    // Attempt to open the mailto link
+    const newWindow = window.open(mailtoLink, "_blank");
+
+    // Fallback if the email client doesn't open
+    setTimeout(() => {
+      if (
+        !newWindow ||
+        newWindow.closed ||
+        typeof newWindow.closed === "undefined"
+      ) {
+        alert(
+          "It seems your email client is not configured. Please contact support at support@raiz.app or visit our support page at https://raiz.app/contact-us ."
+        );
+      }
+    }, 1000);
+  };
   return (
     <div className="w-full h-full bg-gradient-to-l from-indigo-900 to-violet-600 rounded-[36px]  shadow-[0px_1px_2px_0px_rgba(0,0,0,0.30)] inline-flex flex-col justify-center items-center">
       <div className="flex flex-col justify-between gap-6 h-full pt-[88px] p-[30px] items-center">
@@ -30,27 +85,13 @@ const PendingStatus = ({ close }: Props) => {
           </p>
         </div>
         <div className="flex justify-between w-full gap-[15px]">
-          <a
-            className="w-1/2"
-            href={`mailto:support@raiz.app?subject=${encodeURIComponent(
-              `Payment Issue - Transaction ${transactionDetail?.transaction_reference}`
-            )}&body=${encodeURIComponent(
-              `Hello Support Team,\n\nI'm having an issue with a payment. Here are the details:\n` +
-                `Reference No: ${transactionDetail?.transaction_reference}\n` +
-                `Amount: ${getCurrencySymbol(
-                  transactionDetail?.currency || ""
-                )}${transactionDetail?.transaction_amount.toFixed(2)}\n` +
-                `Date: ${dayjs(
-                  convertTime(transactionDetail?.transaction_date_time || "")
-                ).format("MMM DD, YYYY")}\n` +
-                `Status: ${transactionDetail?.transaction_status.transaction_status}\n\n` +
-                `Please assist me with this matter.\nThank you!`
-            )}`}
+          <Button
+            onClick={handleSupportClick}
+            className="bg-zinc-200 text-zinc-900  whitespace-nowrap"
           >
-            <Button className="bg-zinc-200 text-zinc-900  whitespace-nowrap">
-              Contact Support
-            </Button>
-          </a>
+            Contact Support
+          </Button>
+
           <Button onClick={close} className="bg-indigo-900 w-1/2">
             Done
           </Button>

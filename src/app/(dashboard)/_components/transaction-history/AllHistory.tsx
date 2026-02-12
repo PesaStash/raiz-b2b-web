@@ -17,6 +17,7 @@ import React, { Dispatch, SetStateAction, useState } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import "@/styles/misc.css";
 import EmptyList from "@/components/ui/EmptyList";
+import { FilterParams } from "../TransactionTable";
 
 interface Props {
   close: () => void;
@@ -27,11 +28,7 @@ interface Props {
   isLoading?: boolean;
   fetchNextPage: () => void;
   hasNextPage?: boolean;
-  filterParams: {
-    transaction_class_id: number;
-    start_date: string;
-    end_date: string;
-  };
+  filterParams: FilterParams;
   clearFilters: () => void;
 }
 

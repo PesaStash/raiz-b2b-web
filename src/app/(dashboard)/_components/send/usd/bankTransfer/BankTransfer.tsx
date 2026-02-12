@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import ToUsdBanks from "./toBanks/ToUsdBanks";
-import ToInternational from "./toInternational/ToInternational";
+// import ToInternational from "./toInternational/ToInternational";
 import BankTypeModal from "./toBanks/BankTypeModal";
 import SendOptions from "../SendOptions";
 import ToGlobal from "./toGlobal/ToGlobal";
@@ -29,25 +29,11 @@ const BankTransfer = ({ close }: Props) => {
           </>
         );
       case "us":
-        return (
-          bankType && (
-            <ToUsdBanks
-              close={close}
-              bankType={bankType}
-              setBankType={setBankType}
-            />
-          )
-        );
-      case "int":
-        return <ToInternational close={close} bankType={bankType} />;
+        return bankType && <ToUsdBanks close={close} bankType={bankType} />;
+      // case "int":
+      //   return <ToInternational close={close} bankType={bankType} />;
       case "global":
-        return (
-          <ToGlobal
-            close={close}
-            bankType={bankType}
-            setBankType={setBankType}
-          />
-        );
+        return <ToGlobal close={close} bankType={bankType} />;
       default:
         break;
     }

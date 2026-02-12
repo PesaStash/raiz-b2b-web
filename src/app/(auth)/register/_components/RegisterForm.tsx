@@ -24,6 +24,7 @@ import {
 import { AnimatePresence } from "motion/react";
 import Checkbox from "@/components/ui/Checkbox";
 import { passwordHash } from "@/utils/helpers";
+import { encryptData } from "@/lib/headerEncryption";
 
 const RegisterForm = () => {
   const router = useRouter();
@@ -71,14 +72,11 @@ const RegisterForm = () => {
       console.log("Signup successful:", response);
       handleNavigate("next");
     },
-    onError: (error) => {
-      console.log("Signup failed:", error);
-      formik.setErrors({ confirmPassword: "Signup failed. Please try again." });
-    },
   });
 
   const verifyOtpMutation = useMutation({
-    mutationFn: (data: { otp: string }) => SignupVerifyOtpApi(data),
+    mutationFn: (data: { otp: string; email: string }) =>
+      SignupVerifyOtpApi(data),
     onSuccess: (response) => {
       console.log("Signup successful:", response);
       handleNavigate("next");
@@ -147,11 +145,14 @@ const RegisterForm = () => {
           first_name: formik.values.firstName,
           last_name: formik.values.lastName,
           country_id: formik.values.country_id,
-          referral_code: formik.values.referral_code || "",
+          referral_code: formik.values.referral_code || null,
         };
         signupMutation.mutate(payload);
       } else if (currentStep === 4) {
-        verifyOtpMutation.mutate({ otp: formik.values.otp });
+        verifyOtpMutation.mutate({
+          otp: encryptData(formik.values.otp),
+          email: formik.values.email,
+        });
       } else if (currentStep === steps.length) {
         router.push("/login");
       }
@@ -201,7 +202,7 @@ const RegisterForm = () => {
                 By continuing, you agree to Raiz&#39;s{" "}
                 <Link
                   className="text-raiz-gray-800 font-bold leading-[18.20px] hover:underline"
-                  href={"https://www.raiz.app/terms-of-use.php"}
+                  href={"https://www.raiz.app/terms"}
                   target="_blank"
                 >
                   Term of Service
@@ -209,7 +210,7 @@ const RegisterForm = () => {
                 and acknowledge our{" "}
                 <Link
                   className="text-raiz-gray-800 font-bold leading-[18.20px] hover:underline"
-                  href={"https://www.raiz.app/privacy-policy.php"}
+                  href={"https://www.raiz.app/privacy-policy"}
                   target="_blank"
                 >
                   Privacy Policy

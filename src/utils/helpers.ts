@@ -1,11 +1,14 @@
 import { months, tiers } from "@/constants/misc";
 import { toast } from "sonner";
 import * as CryptoJS from "crypto-js";
-import { ICurrencyName } from "@/types/misc";
-import { IUser } from "@/types/user";
+import { ICurrencyName, SwapPairResult } from "@/types/misc";
+import { IUser, IWallet } from "@/types/user";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import axios from "axios";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
+import { CurrencyTypeKey } from "@/store/Swap/swapSlice.types";
 
 dayjs.extend(utc);
 
@@ -28,7 +31,7 @@ export const formatTime = (seconds: number) => {
 };
 
 export const truncateString = (str: string, length: number): string => {
-  return str.length > length ? `${str.substring(0, length - 2)}...` : str;
+  return str?.length > length ? `${str?.substring(0, length - 2)}...` : str;
 };
 
 export const copyToClipboard = (value: string) => {
@@ -315,7 +318,311 @@ export const fetchPublicIP = async (): Promise<string | null> => {
   try {
     const response = await axios.get("https://api.ipify.org?format=json");
     return response.data.ip;
-  } catch {
+  } catch (err) {
+    console.log("ip ERRRROR IP", err);
     return null;
+  }
+};
+
+export const formatAmount = (
+  value: number,
+  options?: {
+    currency?: string;
+  } & Intl.NumberFormatOptions
+): string => {
+  const { currency, ...restOptions } = options ?? {};
+
+  const formatterOptions: Intl.NumberFormatOptions = {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+    ...restOptions,
+  };
+
+  // Only add currency-related options if currency is provided
+  if (currency) {
+    formatterOptions.style = "currency";
+    formatterOptions.currency = currency.toUpperCase();
+  }
+
+  return value?.toLocaleString("en-US", formatterOptions);
+};
+
+export const downloadInvoice = async (
+  elementRef: React.RefObject<HTMLDivElement | null>,
+  invoiceNumber: string,
+  format: "png" | "pdf" = "pdf"
+) => {
+  if (!elementRef.current) return;
+
+  try {
+    const canvas = await html2canvas(elementRef.current, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+    });
+
+    const imgData = canvas.toDataURL("image/png");
+
+    if (format === "png") {
+      const link = document.createElement("a");
+      link.href = imgData;
+      link.download = `${invoiceNumber}.png`;
+      link.click();
+      link.remove();
+    } else {
+      const pdf = new jsPDF("p", "mm", "a4");
+      const imgWidth = 210; // A4 width
+      const pageHeight = 297; // A4 height
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save(`${invoiceNumber}.pdf`);
+    }
+  } catch (err) {
+    console.error("Failed to download invoice:", err);
+    alert("Failed to download invoice. Please try again.");
+  }
+};
+
+export const generateInvoicePDFBlob = async (
+  elementRef: React.RefObject<HTMLDivElement | null>
+): Promise<Blob | null> => {
+  if (!elementRef.current) return null;
+
+  const canvas = await html2canvas(elementRef.current, {
+    scale: 1.5, // Reduced from 2 to 1.5 for smaller file size (still good quality)
+    useCORS: true,
+    backgroundColor: "#ffffff",
+    logging: false,
+    imageTimeout: 0,
+  });
+  const imgData = canvas.toDataURL("image/jpeg", 0.85); // 85% quality JPEG
+
+  const pdf = new jsPDF("p", "mm", "a4");
+  const imgWidth = 210;
+  const pageHeight = 297;
+  const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+  let heightLeft = imgHeight;
+  let position = 0;
+
+  // Use JPEG instead of PNG for smaller file size
+  pdf.addImage(
+    imgData,
+    "JPEG",
+    0,
+    position,
+    imgWidth,
+    imgHeight,
+    undefined,
+    "FAST"
+  );
+  heightLeft -= pageHeight;
+
+  while (heightLeft > 0) {
+    position = heightLeft - imgHeight;
+    pdf.addPage();
+    pdf.addImage(
+      imgData,
+      "JPEG",
+      0,
+      position,
+      imgWidth,
+      imgHeight,
+      undefined,
+      "FAST"
+    );
+    heightLeft -= pageHeight;
+  }
+
+  const blob = pdf.output("blob");
+  return blob;
+};
+
+export const uploadPDF = async (file: Blob, fileName: string) => {
+  const formData = new FormData();
+  formData.append("file", file, fileName);
+
+  const response = await fetch("/api/upload", {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Upload failed: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data.url as string;
+};
+
+export const blobToBase64 = (blob: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === "string") {
+        const base64 = reader.result.split(",")[1];
+        resolve(base64);
+      } else {
+        reject(new Error("Failed to convert blob to base64"));
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
+
+export const sanitizeAddressField = (value: string): string => {
+  if (!value) return value;
+  // Normalize accented characters (é → e, à → a, etc.)
+  const normalized = value.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  // Keep only allowed characters: a-zA-Z0-9\s\-'&.,#/
+  const sanitized = normalized.replace(/[^a-zA-Z0-9\s\-'&.,#/]/g, "");
+  // Clean up multiple spaces
+  return sanitized.replace(/\s+/g, " ").trim();
+};
+
+export const toMinorUnitWithDecimals = (value: number, decimals = 2) => {
+  const factor = 10 ** decimals;
+  return Math.round((value + Number.EPSILON) * factor);
+};
+
+const currencyMinorUnits: Record<string, number> = {
+  USD: 2,
+  EUR: 2,
+  GBP: 2,
+  NGN: 2,
+  JPY: 0,
+  KWD: 3,
+};
+
+export const toMinorUnitByCurrency = (
+  value: number,
+  currency: string,
+  fallbackDecimals = 2
+) => {
+  const dec = currencyMinorUnits[currency?.toUpperCase()] ?? fallbackDecimals;
+  return toMinorUnitWithDecimals(value, dec);
+};
+
+export const toMinorUnit = (value: number) => toMinorUnitWithDecimals(value, 2);
+
+export const determineSwapPair = (
+  currentCurrency: CurrencyTypeKey,
+  wallets: IWallet[]
+): SwapPairResult => {
+  const availableCurrencies = wallets.map((w) => w.wallet_type.currency);
+
+  // Check what wallets the user has
+  const hasUSD = availableCurrencies.includes("USD");
+  const hasNGN = availableCurrencies.includes("NGN");
+  const hasSBC = availableCurrencies.includes("SBC");
+
+  switch (currentCurrency) {
+    case "USD":
+      // USD can swap to NGN or SBC (prioritize NGN if both exist)
+      if (hasNGN) {
+        return {
+          fromCurrency: "USD",
+          toCurrency: "NGN",
+          isValid: true,
+        };
+      } else if (hasSBC) {
+        return {
+          fromCurrency: "USD",
+          toCurrency: "SBC",
+          isValid: true,
+        };
+      }
+      return {
+        fromCurrency: "USD",
+        toCurrency: "NGN",
+        isValid: false,
+        message: "You need an NGN or SBC wallet to swap from USD",
+      };
+
+    case "NGN" as CurrencyTypeKey:
+      // NGN can only swap to USD
+      if (hasUSD) {
+        return {
+          fromCurrency: "NGN",
+          toCurrency: "USD",
+          isValid: true,
+        };
+      }
+      return {
+        fromCurrency: "NGN",
+        toCurrency: "USD",
+        isValid: false,
+        message: "You need a USD wallet to swap from NGN",
+      };
+
+    case "SBC":
+      // SBC can only swap to USD (NOT to NGN)
+      if (hasUSD) {
+        return {
+          fromCurrency: "SBC",
+          toCurrency: "USD",
+          isValid: true,
+        };
+      }
+      return {
+        fromCurrency: "SBC",
+        toCurrency: "USD",
+        isValid: false,
+        message: "You need a USD wallet to swap from SBC",
+      };
+
+    default:
+      return {
+        fromCurrency: currentCurrency,
+        toCurrency: "USD",
+        isValid: false,
+        message: "Invalid currency selected",
+      };
+  }
+};
+
+export const getAvailableSwapDestinations = (
+  fromCurrency: CurrencyTypeKey,
+  wallets: IWallet[]
+): CurrencyTypeKey[] => {
+  const availableCurrencies = wallets.map(
+    (w) => w.wallet_type.currency as CurrencyTypeKey
+  );
+
+  switch (fromCurrency) {
+    case "USD":
+      // USD can swap to both NGN and SBC
+      return availableCurrencies.filter(
+        (c): c is CurrencyTypeKey => c === "NGN" || c === "SBC"
+      );
+
+    case "NGN":
+      // NGN can only swap to USD
+      return availableCurrencies.filter(
+        (c): c is CurrencyTypeKey => c === "USD"
+      );
+
+    case "SBC":
+      // SBC can only swap to USD (not NGN)
+      return availableCurrencies.filter(
+        (c): c is CurrencyTypeKey => c === "USD"
+      );
+
+    default:
+      return [];
   }
 };

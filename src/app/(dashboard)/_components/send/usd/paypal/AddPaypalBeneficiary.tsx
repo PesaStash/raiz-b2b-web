@@ -4,7 +4,7 @@ import Button from "@/components/ui/Button";
 import EmptyList from "@/components/ui/EmptyList";
 import InputField from "@/components/ui/InputField";
 import {
-  CreateUsBeneficiary,
+  // CreateUsBeneficiary,
   FetchUsBeneficiariesApi,
   GetUSBeneficiaryFormFields,
 } from "@/services/transactions";
@@ -12,13 +12,13 @@ import { useSendStore } from "@/store/Send";
 import {
   FormField,
   IUsBeneficiariesParams,
-  IUsBeneficiaryPayload,
+  // IUsBeneficiaryPayload,
 } from "@/types/services";
 import { truncateString } from "@/utils/helpers";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useFormik } from "formik";
 import React from "react";
-import { toast } from "sonner";
+// import { toast } from "sonner";
 import { z } from "zod";
 import { toFormikValidationSchema } from "zod-formik-adapter";
 
@@ -50,14 +50,14 @@ const AddPaypalBeneficiary = ({ close }: Props) => {
   const beneficiaries = data?.beneficiaries || [];
   const fields: FormField[] = fieldsData?.paypal || [];
 
-  const qc = useQueryClient();
-  const AddBeneficiaryMutation = useMutation({
-    mutationFn: (data: IUsBeneficiaryPayload) => CreateUsBeneficiary(data),
-    onSuccess: () => {
-      toast.success("Beneficiary added!");
-      qc.invalidateQueries({ queryKey: ["us-paypal-beneficiaries"] });
-    },
-  });
+  // const qc = useQueryClient();
+  // const AddBeneficiaryMutation = useMutation({
+  //   mutationFn: (data: IUsBeneficiaryPayload) => CreateUsBeneficiary(data),
+  //   onSuccess: () => {
+  //     toast.success("Beneficiary added!");
+  //     qc.invalidateQueries({ queryKey: ["us-paypal-beneficiaries"] });
+  //   },
+  // });
   const validationSchema = z.object({
     label: z
       .string()
@@ -73,7 +73,7 @@ const AddPaypalBeneficiary = ({ close }: Props) => {
     validationSchema: toFormikValidationSchema(validationSchema),
     onSubmit: async (values, { resetForm, setSubmitting }) => {
       try {
-        const payload: IUsBeneficiaryPayload = {
+        const payload = {
           data: {
             // email: values.email,
             username: values.email,
@@ -81,8 +81,8 @@ const AddPaypalBeneficiary = ({ close }: Props) => {
           label: values.label,
           optionType: "paypal",
         };
-
-        await AddBeneficiaryMutation.mutateAsync(payload);
+        console.log(payload);
+        // await AddBeneficiaryMutation.mutateAsync(payload);
         resetForm();
       } catch (error) {
         console.log("Submission error:", error);

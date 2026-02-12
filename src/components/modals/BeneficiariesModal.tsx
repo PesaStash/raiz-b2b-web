@@ -19,7 +19,7 @@ const BeneficiariesModal = ({ users, setUser, close }: Props) => {
 
   const filteredUsers: IExternalAccount[] = useMemo(() => {
     return users.filter((user) =>
-      user?.bank_account_name.toLowerCase().includes(search.toLowerCase())
+      user?.bank_account_name?.toLowerCase().includes(search.toLowerCase())
     );
   }, [search, users]);
   const handleSelect = (user: IExternalAccount) => {
@@ -58,7 +58,7 @@ const BeneficiariesModal = ({ users, setUser, close }: Props) => {
                 className="flex gap-2 hover:bg-slate-100 p-3 rounded-xl"
               >
                 <div className="relative">
-                  <Avatar src={""} name={user?.bank_name} />
+                  <Avatar src={""} name={user?.bank_name || ""} />
                 </div>
                 <div className="flex flex-col items-start gap-1">
                   <p className="text-raiz-gray-950 text-sm font-semibold text-left">

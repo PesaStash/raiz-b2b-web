@@ -21,7 +21,7 @@ const SideWrapperHeader = ({
   return (
     <div className=" flex justify-between items-center mb-[30px] w-full">
       {backArrow && (
-        <button onClick={close}>
+        <button type="button" onClick={close}>
           {titleColor ? (
             <svg
               width="19"
@@ -46,9 +46,8 @@ const SideWrapperHeader = ({
         </button>
       )}
       <h5
-        className={`text-center ${
-          titleColor ? titleColor : "text-raiz-gray-50 "
-        }  font-bold  leading-tight `}
+        className={`text-sm w-full md:w-auto md:text-base text-center ${titleColor ? titleColor : "text-raiz-gray-50 "
+          }  font-bold  leading-tight `}
       >
         {title}
       </h5>

@@ -14,11 +14,29 @@
   }
 }
 
+@supports (-webkit-touch-callout: none) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+  
+  /* Target react-select specifically */
+  [class*="css-"][class*="-control"] input,
+  [class*="css-"][class*="-singleValue"],
+  [class*="css-"][class*="-placeholder"],
+  [class*="css-"][class*="-Input"] {
+    font-size: 16px !important;
+  }
+}
+
 body {
-  font-family: var(--font-monzo);
+  font-family: var(--monzo);
 }
 
 .persona-widget__iframe {
   height: 100%;
+  width: 100%;
+}
+
+.StripeElement {
   width: 100%;
 }

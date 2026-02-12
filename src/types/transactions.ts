@@ -1,3 +1,4 @@
+import { IntCurrencyCode } from "./services";
 import { ISearchedUser } from "./user";
 
 export interface ITransactionType {
@@ -116,3 +117,18 @@ export type GuestPayStatusType =
   | "process"
   | "failed"
   | null;
+
+
+export type IRate = {
+  currency: IntCurrencyCode | string,
+  buy_rate: number,
+  sell_rate: number,
+  country_name: string
+}
+
+export interface INgnTempPaymentLinkPayload {
+  ngn_amount: string
+  wallet_id: string
+  transaction_purpose: string
+  sender_name: string
+}

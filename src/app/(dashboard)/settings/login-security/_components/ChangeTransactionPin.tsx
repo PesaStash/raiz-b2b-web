@@ -14,8 +14,11 @@ import { IResetPinPayload } from "@/types/services";
 import { ResetTransactionPinApi } from "@/services/auth";
 import { toast } from "sonner";
 import { passwordHash } from "@/utils/helpers";
+import { encryptData } from "@/lib/headerEncryption";
+import { useUser } from "@/lib/hooks/useUser";
 
 const ChangeTransactionPin = ({ setPart }: PartChildProps) => {
+  const { user } = useUser();
   const [step, setStep] = useState(1);
   const ChangePinMutation = useMutation({
     mutationFn: (data: IResetPinPayload) => ResetTransactionPinApi(data),
@@ -37,7 +40,8 @@ const ChangeTransactionPin = ({ setPart }: PartChildProps) => {
     onSubmit: (values) => {
       ChangePinMutation.mutate({
         password: passwordHash(values.pin),
-        otp: otpFormik.values.otp,
+        otp: encryptData(otpFormik.values.otp),
+        email: user?.email || null,
       });
     },
   });

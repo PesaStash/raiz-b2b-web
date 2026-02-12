@@ -9,8 +9,9 @@ import { useQuery } from "@tanstack/react-query";
 import { SearchAllUsersApi } from "@/services/user";
 import { IUserSearchParams } from "@/types/services";
 import { useUser } from "@/lib/hooks/useUser";
-import { useCurrentWallet } from "@/lib/hooks/useCurrentWallet";
 import Avatar from "../ui/Avatar";
+import { findWalletByCurrency } from "@/utils/helpers";
+import { useCurrencyStore } from "@/store/useCurrencyStore";
 
 interface Props {
   recentUsers: ISearchedUser[];
@@ -53,7 +54,20 @@ const FindRecipients = ({
   emptyStateTitle = "You haven't Sent Money to any Raizers",
 }: Props) => {
   const { user } = useUser();
-  const currentWallet = useCurrentWallet(user);
+  const NGNAcct = findWalletByCurrency(user, "NGN");
+  const USDAcct = findWalletByCurrency(user, "USD");
+
+  const { selectedCurrency } = useCurrencyStore();
+
+  const getCurrentWallet = () => {
+    if (selectedCurrency.name === "NGN") {
+      return NGNAcct;
+    } else if (selectedCurrency.name === "USD") {
+      return USDAcct;
+    }
+  };
+
+  const currentWallet = getCurrentWallet();
   const [searchTerm, setSearchTerm] = useState("");
   const [queryTerm, setQueryTerm] = useState("");
 

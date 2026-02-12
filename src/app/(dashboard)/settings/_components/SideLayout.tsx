@@ -306,7 +306,7 @@ const SideLayout = () => {
           Funds are managed by Palmpay Inc, a CBN licensed institution
         </p>
         <p className="opacity-50 text-raiz-gray-800 text-[13px] leading-tight mt-6">
-          Raiz v2.0.0
+          Raiz v1.0.0
         </p>
       </div>
       {showLevels && <LevelsModal close={closeLevelsModal} />}

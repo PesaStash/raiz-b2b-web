@@ -39,11 +39,10 @@ const SideModalWrapper = ({ children, close, wrapperStyle }: Props) => {
           ease: "easeInOut",
         }}
         key="modal"
-        className={`p-[25px] xl:p-[30px] bg-raiz-gray-50 no-scrollbar rounded-tl-[36px] md:rounded-bl-[36px] rounded-tr-[36px] md:rounded-tr-0 justify-start gap-2 inline-flex fixed right-0 md:top-0 bottom-0 w-full md:w-[50%] lg:w-[31%] xl:w-[28.57%] ${
-          isMobile
-            ? "max-h-[60vh] overflow-y-auto"
+        className={`p-[25px] xl:p-[30px] bg-raiz-gray-50 no-scrollbar  justify-start gap-2 inline-flex fixed right-0 md:top-0 bottom-0 w-full md:w-[50%] lg:w-[31%] xl:w-[28.57%] ${isMobile
+            ? "max-h-[70vh] overflow-y-auto"
             : "md:h-screen overflow-y-scroll"
-        } ${wrapperStyle}`}
+          } ${wrapperStyle}`}
       >
         <div className="w-full flex flex-col">{children}</div>
       </motion.div>
