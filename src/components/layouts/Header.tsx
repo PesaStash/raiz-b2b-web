@@ -253,7 +253,7 @@ const Header = () => {
         </AnimatePresence>
       </div>
 
-      <div className="relative">
+      {/* <div className="relative">
         <button
           onClick={() => setShowActionOpts(!showActionOpts)}
           className="flex justify-between items-center gap-3 min-w-[175px] xl:min-w-[220px] px-4 h-12 bg-raiz-gray-50 rounded-[20px] transition-all duration-200"
@@ -302,7 +302,7 @@ const Header = () => {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </div> */}
 
       {pathName.includes("invoice") && (
         <div className="flex items-center gap-1 xl:gap-2.5 ">
