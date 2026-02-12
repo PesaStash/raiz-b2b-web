@@ -16,6 +16,9 @@ import { FetchUserRewardsApi } from "@/services/user";
 import { useNotifications } from "@/lib/hooks/useNotifications";
 import * as motion from "motion/react-client";
 import CreateCryptoWallet from "@/app/(dashboard)/_components/crypto/dashboard/CreateCryptoWallet";
+import { getTierInfo } from "@/utils/helpers";
+import SelectField, { Option } from "../ui/SelectField";
+import { useOutsideClick } from "@/lib/hooks/useOutsideClick";
 
 const searchItems = [
   { name: "Dashboard", type: "route", path: "/" },
@@ -65,6 +68,8 @@ const Header = () => {
   const [searchResults, setSearchResults] = useState<typeof searchItems>([]);
   const [isFocused, setIsFocused] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
+  const [selectedAction, setSelectedAction] = useState("send");
+  const [showActionOpts, setShowActionOpts] = useState(false);
   const router = useRouter();
   const params = useParams();
   const invoiceNo = params?.invoiceNo as string | undefined;
@@ -76,6 +81,7 @@ const Header = () => {
   //     (wallet) => wallet.wallet_type.currency === selectedCurrency.name
   //   );
   // }, [user, selectedCurrency]);
+  const { currentTier } = getTierInfo(pointsData?.point || 0);
 
   useEffect(() => {
     if (!searchTerm) {
@@ -84,7 +90,7 @@ const Header = () => {
     }
 
     const results = searchItems.filter((item) =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase())
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()),
     );
     setSearchResults(results);
   }, [searchTerm]);
@@ -123,7 +129,7 @@ const Header = () => {
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setFocusedIndex((prev) =>
-        prev <= 0 ? searchResults.length - 1 : prev - 1
+        prev <= 0 ? searchResults.length - 1 : prev - 1,
       );
     } else if (e.key === "Enter" && focusedIndex >= 0) {
       e.preventDefault();
@@ -147,7 +153,7 @@ const Header = () => {
   const { data, refetch } = useNotifications(15);
   const notifications = data?.pages[0]?.notifications || [];
   const hasUnreadNotif = notifications.some(
-    (notification) => !notification.read
+    (notification) => !notification.read,
   );
 
   useEffect(() => {
@@ -173,85 +179,19 @@ const Header = () => {
         break;
     }
   };
+
+  const actionOpts = [
+    { title: "Move Money", value: "send" },
+    { title: "Top Up", value: "topUp" },
+    { title: "Swap funds", value: "swap" },
+    { title: "Request funds", value: "request" },
+  ];
+
+  const actionDropdownRef = useOutsideClick(() => {
+    setShowActionOpts(false);
+  });
   return (
     <div className="flex  justify-between pb-5 gap-2">
-      {pathName === "/" && (
-        <div className="flex items-center gap-1 xl:gap-2.5 ">
-          <Link
-            className="px-2 py-1 text-raiz-gray-900 text-sm font-semibold font-brSonoma leading-tight "
-            href={"#"}
-          >
-            Overview
-          </Link>
-          {/* <Image
-            src={"/icons/forward.svg"}
-            alt="forward"
-            width={16}
-            height={16}
-          />
-          <Link
-            className="px-2 py-1 text-raiz-gray-700 text-sm font-medium font-brSonoma leading-tight "
-            href={"#"}
-          >
-            Top up
-          </Link>
-          <Image
-            src={"/icons/forward.svg"}
-            alt="forward"
-            width={16}
-            height={16}
-          />
-          <Link
-            className="px-2 py-1 text-raiz-gray-700 text-sm font-medium font-brSonoma leading-tight "
-            href={"#"}
-          >
-            Send
-          </Link> */}
-        </div>
-      )}
-      {pathName.includes("invoice") && (
-        <div className="flex items-center gap-1 xl:gap-2.5 ">
-          <Link
-            className={`px-2 py-1 ${
-              pathName.endsWith("invoice")
-                ? "text-raiz-gray-900 font-semibold"
-                : "text-raiz-gray-700 font-medium"
-            }  text-sm  font-brSonoma leading-tight `}
-            href={"/invoice"}
-          >
-            Invoices
-          </Link>
-          <Image
-            src={"/icons/forward.svg"}
-            alt="forward"
-            width={16}
-            height={16}
-          />
-          {invoiceNo ? (
-            <Link
-              className={`px-2 py-1 ${
-                pathName.endsWith(invoiceNo)
-                  ? "text-raiz-gray-900 font-semibold"
-                  : "text-raiz-gray-700 font-medium"
-              }  text-sm font-medium font-brSonoma leading-tight `}
-              href={`/invoice/${invoiceNo}`}
-            >
-              {invoiceNo}
-            </Link>
-          ) : (
-            <Link
-              className={`px-2 py-1 ${
-                pathName.endsWith("create-new")
-                  ? "text-raiz-gray-900 font-semibold"
-                  : "text-raiz-gray-700 font-medium"
-              }  text-sm font-medium font-brSonoma leading-tight `}
-              href={"/invoice/create-new"}
-            >
-              New Invoice
-            </Link>
-          )}
-        </div>
-      )}
       <div className="relative h-12 w-[285px] xl:w-[312px] ">
         <Image
           className="absolute top-3.5 left-3"
@@ -262,7 +202,7 @@ const Header = () => {
         />
         <input
           placeholder="Search..."
-          className="pl-10 h-full bg-raiz-gray-50 rounded-[20px] border border-raiz-gray-200 justify-start items-center gap-2 inline-flex w-full outline-none"
+          className="pl-10 h-full bg-raiz-gray-50 rounded-[20px] text-sm placeholder:text-raiz-gray-500 border border-raiz-gray-200 justify-start items-center gap-2 inline-flex w-full outline-none"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           onFocus={() => setIsFocused(true)}
@@ -312,63 +252,170 @@ const Header = () => {
           )}
         </AnimatePresence>
       </div>
-      <div className="flex gap-4 items-center">
-        {/* <button
-          onClick={() => setShowModal("selectAcct")}
-          className="flex gap-2 items-center "
+
+      {/* <div className="relative">
+        <button
+          onClick={() => setShowActionOpts(!showActionOpts)}
+          className="flex justify-between items-center gap-3 min-w-[175px] xl:min-w-[220px] px-4 h-12 bg-raiz-gray-50 rounded-[20px] transition-all duration-200"
         >
+          <span className="text-sm font-medium text-raiz-gray-800">
+            {actionOpts.find((each) => each.value === selectedAction)?.title}
+          </span>
+          <motion.div
+            animate={{ rotate: showActionOpts ? 180 : 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Image
+              src={"/icons/arrow-down.svg"}
+              alt="arrow down"
+              width={20}
+              height={20}
+            />
+          </motion.div>
+        </button>
+        <AnimatePresence>
+          {showActionOpts && (
+            <motion.div
+              ref={actionDropdownRef}
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="flex flex-col absolute top-full right-0 mt-2 w-full bg-white border border-gray-200 shadow-xl rounded-2xl z-50 overflow-hidden py-1"
+            >
+              {actionOpts.map((each) => (
+                <button
+                  key={each.value}
+                  onClick={() => {
+                    setSelectedAction(each.value);
+                    setShowActionOpts(false);
+                  }}
+                  className={`text-sm text-left px-4 py-3 hover:bg-raiz-gray-50 transition-colors duration-200 w-full ${
+                    selectedAction === each.value
+                      ? "font-semibold text-raiz-gray-900 bg-raiz-gray-50/50"
+                      : "font-normal text-raiz-gray-800"
+                  }`}
+                >
+                  {each.title}
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div> */}
+
+      {pathName.includes("invoice") && (
+        <div className="flex items-center gap-1 xl:gap-2.5 ">
+          <Link
+            className={`px-2 py-1 ${
+              pathName.endsWith("invoice")
+                ? "text-raiz-gray-900 font-semibold"
+                : "text-raiz-gray-700 font-medium"
+            }  text-sm  font-brSonoma leading-tight `}
+            href={"/invoice"}
+          >
+            Invoices
+          </Link>
           <Image
-            className="w-10 h-10 rounded-full object-cover"
-            src={userPfp}
-            alt="profile"
-            width={40}
-            height={40}
-            onError={() => setUserPfp("/images/default-pfp.svg")}
+            src={"/icons/forward.svg"}
+            alt="forward"
+            width={16}
+            height={16}
           />
-          <div className="flex items-start flex-col gap-1 text-sm font-semibold">
-            <p className="text-gray-700 text-sm  font-semibold ">
-              {currentWallet
-                ? `${currentWallet?.wallet_type.currency} Account`
-                : "Get Accounts"}
-            </p>
-            <p className="text-gray-600 text-xs xl:text-sm  font-normal">
-              {currentWallet?.account_number ?? ""}
-            </p>
-          </div>
-          <Image src={"/icons/arrow-down.svg"} alt="" width={20} height={20} />
-        </button> */}
-        {/* <button
+          {invoiceNo ? (
+            <Link
+              className={`px-2 py-1 ${
+                pathName.endsWith(invoiceNo)
+                  ? "text-raiz-gray-900 font-semibold"
+                  : "text-raiz-gray-700 font-medium"
+              }  text-sm font-medium font-brSonoma leading-tight `}
+              href={`/invoice/${invoiceNo}`}
+            >
+              {invoiceNo}
+            </Link>
+          ) : (
+            <Link
+              className={`px-2 py-1 ${
+                pathName.endsWith("create-new")
+                  ? "text-raiz-gray-900 font-semibold"
+                  : "text-raiz-gray-700 font-medium"
+              }  text-sm font-medium font-brSonoma leading-tight `}
+              href={"/invoice/create-new"}
+            >
+              New Invoice
+            </Link>
+          )}
+        </div>
+      )}
+
+      <div className="flex gap-4 items-center">
+        <button
           onClick={() => setShowModal("rewards")}
-          className="pl-2 pr-2.5 py-1.5 bg-[#f8eebb] rounded-3xl justify-center items-center gap-0.5 inline-flex"
+          className="py-2 px-5 bg-raiz-gray-50 hover:bg-raiz-gray-200 transition-colors duration-300 group h-12  rounded-[20px] justify-center items-center gap-2 inline-flex"
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 20 20"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            className="transition-transform duration-300 group-hover:scale-110"
+          >
             <path
-              d="M8.00016 1.33325C4.31816 1.33325 1.3335 4.31792 1.3335 7.99992C1.3335 11.6819 4.31816 14.6666 8.00016 14.6666C11.6822 14.6666 14.6668 11.6819 14.6668 7.99992C14.6668 4.31792 11.6822 1.33325 8.00016 1.33325ZM11.4415 7.52458L10.3982 8.53858C10.2408 8.69125 10.1688 8.91192 10.2055 9.12858L10.4488 10.5633C10.5415 11.1079 9.96883 11.5226 9.48016 11.2646L8.1935 10.5853C7.9995 10.4826 7.7675 10.4826 7.57283 10.5839L6.28416 11.2586C5.79483 11.5146 5.2235 11.0986 5.31816 10.5539L5.56683 9.12058C5.60416 8.90458 5.53283 8.68325 5.37616 8.52992L4.33616 7.51259C3.94016 7.12592 4.16016 6.45392 4.70683 6.37592L6.14683 6.16925C6.36416 6.13792 6.55216 6.00192 6.6495 5.80525L7.2955 4.50192C7.54083 4.00658 8.2475 4.00792 8.4915 4.50392L9.13283 5.80992C9.2295 6.00659 9.41683 6.14325 9.63416 6.17525L11.0735 6.38658C11.6202 6.46725 11.8375 7.13925 11.4415 7.52458Z"
+              d="M10 0C4.477 0 0 4.477 0 10C0 15.523 4.477 20 10 20C15.523 20 20 15.523 20 10C20 4.477 15.523 0 10 0ZM15.162 9.287L13.597 10.808C13.361 11.037 13.253 11.368 13.308 11.693L13.673 13.845C13.812 14.662 12.953 15.284 12.22 14.897L10.29 13.878C9.999 13.724 9.651 13.724 9.359 13.876L7.426 14.888C6.692 15.272 5.835 14.648 5.977 13.831L6.35 11.681C6.406 11.357 6.299 11.025 6.064 10.795L4.504 9.269C3.91 8.689 4.24 7.681 5.06 7.564L7.22 7.254C7.546 7.207 7.828 7.003 7.974 6.708L8.943 4.753C9.311 4.01 10.371 4.012 10.737 4.756L11.699 6.715C11.844 7.01 12.125 7.215 12.451 7.263L14.61 7.58C15.43 7.701 15.756 8.709 15.162 9.287Z"
               fill="#FBB756"
             />
-            <path
-              d="M9.6338 6.17543L11.0731 6.38677C11.6198 6.46743 11.8371 7.13943 11.4405 7.52477L10.3971 8.53876C10.2398 8.69143 10.1678 8.9121 10.2045 9.12877L10.4478 10.5634C10.5405 11.1081 9.9678 11.5228 9.47913 11.2648L8.19246 10.5854C7.99846 10.4828 7.76646 10.4828 7.5718 10.5841L6.28313 11.2588C5.7938 11.5148 5.22246 11.0988 5.31713 10.5541L5.5658 9.12077C5.60313 8.90477 5.5318 8.6841 5.37513 8.5301L4.33513 7.51277C3.9398 7.1261 4.1598 6.4541 4.70646 6.3761L6.14646 6.16943C6.3638 6.1381 6.5518 6.0021 6.64913 5.80543L7.29513 4.5021C7.54046 4.00677 8.24713 4.0081 8.49046 4.5041L9.1318 5.8101C9.22913 6.00677 9.41713 6.14343 9.6338 6.17543Z"
-              fill="#FCF2E3"
-            />
           </svg>
-          <span className="text-raiz-gray-950 text-[13px] font-normal  leading-[18.20px]">
+          <span className="text-raiz-gray-900 text-sm font-semibold  leading-[20px]">
             {pointsData?.point || 0}
           </span>
-        </button> */}
+          <span className="size-1.5 bg-raiz-gray-200 group-hover:bg-raiz-gray-300 transition-colors duration-300 rounded-full" />
+          <span className="text-raiz-gray-900 text-sm font-semibold  leading-[20px]">
+            {currentTier?.level || ""}
+          </span>
+        </button>
         <div className="relative">
-          <button onClick={() => setShowModal("notifications")}>
-            <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+          <button
+            className="bg-raiz-gray-50 hover:bg-raiz-gray-200 transition-colors duration-300 group size-12 rounded-full flex items-center justify-center"
+            onClick={() => setShowModal("notifications")}
+          >
+            <svg
+              width="15"
+              height="17"
+              viewBox="0 0 15 17"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className="transition-transform duration-300 group-hover:scale-110"
+            >
               <path
-                d="M25.157 23.5791H6.84372C6.08266 23.5791 5.38477 23.1958 4.9774 22.5528C4.57003 21.9099 4.51951 21.116 4.84351 20.4275L6.52667 17.041V13.0829C6.52667 7.87933 10.4873 3.61744 15.5437 3.37934C18.1654 3.2606 20.6469 4.18207 22.5385 5.98649C24.4319 7.79218 25.474 10.2269 25.474 12.8423V17.041L27.1477 20.4092C27.4806 21.116 27.4307 21.9105 27.0233 22.5534C26.6159 23.1964 25.918 23.5791 25.157 23.5791ZM12.2677 24.8423C12.5696 26.6315 14.1258 28.0002 16.0003 28.0002C17.8749 28.0002 19.4305 26.6315 19.733 24.8423H12.2677Z"
-                fill="#2C2435"
+                d="M13.551 13.3429H1.46031C0.957856 13.3429 0.497097 13.0898 0.228147 12.6653C-0.0408029 12.2408 -0.074161 11.7167 0.139748 11.2622L1.25099 9.02635V6.41316C1.25099 2.97769 3.86585 0.163931 7.20416 0.00673055C8.93503 -0.071661 10.5733 0.536708 11.8222 1.72801C13.0723 2.92015 13.7603 4.52759 13.7603 6.25429V9.02635L14.8653 11.2501C15.085 11.7167 15.0521 12.2412 14.7831 12.6657C14.5142 13.0902 14.0534 13.3429 13.551 13.3429ZM5.04131 14.1768C5.24062 15.3581 6.26805 16.2617 7.50564 16.2617C8.74322 16.2617 9.77024 15.3581 9.96997 14.1768H5.04131Z"
+                fill="#19151E"
               />
             </svg>
           </button>
           {hasUnreadNotif && (
-            <span className="w-2.5 h-2.5 bg-red-600 rounded-full absolute top-0 -right-0" />
+            <span className="w-1.5 h-1.5 bg-[#A12121] rounded-full absolute top-3.5 right-4" />
           )}
         </div>
+        <Link href={"/settings"}>
+          <button className="bg-raiz-gray-50 hover:bg-raiz-gray-200 transition-colors duration-300 group size-12 rounded-full flex items-center justify-center">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 18 18"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className="transition-transform duration-300 group-hover:scale-110"
+            >
+              <path
+                d="M15.075 6.91507C13.7175 6.91507 13.1625 5.95507 13.8375 4.77757C14.2275 4.09507 13.995 3.22507 13.3125 2.83507L12.015 2.09257C11.4225 1.74007 10.6575 1.95007 10.305 2.54257L10.2225 2.68507C9.5475 3.86257 8.4375 3.86257 7.755 2.68507L7.6725 2.54257C7.335 1.95007 6.57 1.74007 5.9775 2.09257L4.68 2.83507C3.9975 3.22507 3.765 4.10257 4.155 4.78507C4.8375 5.95507 4.2825 6.91507 2.925 6.91507C2.145 6.91507 1.5 7.55257 1.5 8.34007V9.66007C1.5 10.4401 2.1375 11.0851 2.925 11.0851C4.2825 11.0851 4.8375 12.0451 4.155 13.2226C3.765 13.9051 3.9975 14.7751 4.68 15.1651L5.9775 15.9076C6.57 16.2601 7.335 16.0501 7.6875 15.4576L7.77 15.3151C8.445 14.1376 9.555 14.1376 10.2375 15.3151L10.32 15.4576C10.6725 16.0501 11.4375 16.2601 12.03 15.9076L13.3275 15.1651C14.01 14.7751 14.2425 13.8976 13.8525 13.2226C13.17 12.0451 13.725 11.0851 15.0825 11.0851C15.8625 11.0851 16.5075 10.4476 16.5075 9.66007V8.34007C16.5 7.56007 15.8625 6.91507 15.075 6.91507ZM9 11.4376C7.6575 11.4376 6.5625 10.3426 6.5625 9.00007C6.5625 7.65757 7.6575 6.56257 9 6.56257C10.3425 6.56257 11.4375 7.65757 11.4375 9.00007C11.4375 10.3426 10.3425 11.4376 9 11.4376Z"
+                fill="#19151E"
+              />
+            </svg>
+          </button>
+        </Link>
       </div>
+
       <AnimatePresence>
         {showModal !== null && showModal !== "selectAcct" && (
           <SideModalWrapper
@@ -377,8 +424,8 @@ const Header = () => {
               showModal === "createNGN"
                 ? "!bg-primary2"
                 : showModal === "createCrypto"
-                ? "!bg-raiz-crypto-primary"
-                : ""
+                  ? "!bg-raiz-crypto-primary"
+                  : ""
             }
           >
             {displayModal()}

@@ -151,7 +151,7 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
             }`}
           >
             {`${isDebit ? "-" : "+"} ${getCurrencySymbol(
-              info.row.original?.currency
+              info.row.original?.currency,
             )}${Math.abs(info?.getValue())?.toLocaleString(undefined, {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
@@ -190,8 +190,8 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
           status === "completed"
             ? "bg-green-500"
             : status === "pending"
-            ? "bg-yellow-500"
-            : "bg-red-500";
+              ? "bg-yellow-500"
+              : "bg-red-500";
 
         return (
           <div className="w-fit flex items-center px-1.5 py-0.5 gap-1 text-xs font-brSonoma border border-raiz-gray-200 rounded-md">
@@ -302,7 +302,7 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
   const handleSendButton = () => {
     if (!currentWallet) {
       toast.warning(
-        "You do not have a wallet for this currency. Create one first!"
+        "You do not have a wallet for this currency. Create one first!",
       );
     } else {
       setShowSend(true);
@@ -311,17 +311,18 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
   return (
     <section className="w-full mt-8">
       <div className="flex justify-between items-center mb-6">
-        <h3 className="text-lg font-bold  leading-snug text-raiz-gray-900">
-          Transaction history
-        </h3>
-        {topRightOpts === "link" ? (
-          <Link
-            className="text-raiz-gray-700 text-sm font-bold py-2 px-3.5  border border-[#E4E0EA] shadow rounded-md"
-            href={"/transactions"}
-          >
-            See more
-          </Link>
-        ) : (
+        {topRightOpts === "opts" && (
+          <h3 className="text-lg font-bold  leading-snug text-raiz-gray-900">
+            Transaction history
+          </h3>
+        )}
+        {topRightOpts ===
+        "link" ? //   className="text-raiz-gray-700 text-sm font-bold py-2 px-3.5  border border-[#E4E0EA] shadow rounded-md" // <Link
+        //   href={"/transactions"}
+        // >
+        //   See more
+        // </Link>
+        null : (
           <div className="flex gap-3 items-center">
             {/* dates */}
             <div className="relative">
@@ -339,7 +340,7 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
                   {dateRange.startDate && dateRange.endDate
                     ? `${format(dateRange.startDate, "dd MMM")} - ${format(
                         dateRange.endDate,
-                        "dd MMM"
+                        "dd MMM",
                       )}`
                     : "Select dates"}
                 </span>
@@ -407,16 +408,17 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
                     >
                       {flexRender(
                         header.column.columnDef.header,
-                        header.getContext()
+                        header.getContext(),
                       )}
                     </th>
                   ))}
                 </tr>
               ))}
+              <tr />
             </thead>
             <tbody className="divide-y">
               <tr>
-                <td colSpan={5}>
+                <td colSpan={6}>
                   <Skeleton count={4} className="mb-3" height={48} />
                 </td>
               </tr>
@@ -437,7 +439,7 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
                       >
                         {flexRender(
                           header.column.columnDef.header,
-                          header.getContext()
+                          header.getContext(),
                         )}
                       </th>
                     ))}
@@ -454,7 +456,7 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
                       <td key={cell.id} className="px-4 py-3 ">
                         {flexRender(
                           cell.column.columnDef.cell,
-                          cell.getContext()
+                          cell.getContext(),
                         )}
                       </td>
                     ))}
