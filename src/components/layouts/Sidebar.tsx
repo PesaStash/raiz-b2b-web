@@ -56,7 +56,7 @@ const Sidebar = () => {
   const [showPaymentLinkModal, setShowPaymentLinkModal] = useState(false);
   const [showFeedbacks, setShowFeedbacks] = useState(false);
   const [userPfp, setUserPfp] = useState(
-    user?.business_account?.business_image || "/images/default-pfp.svg"
+    user?.business_account?.business_image || "/images/default-pfp.svg",
   );
   const isXLarge = useMediaQuery("(min-width: 1280px)");
 
@@ -221,7 +221,7 @@ const Sidebar = () => {
         <div className=" w-full">
           <button
             onClick={() => setShowModal("acctSetup")}
-            className="px-6 py-2.5 w-full flex items-center gap-3 justify-center  bg-white border-2 border-[#F8F7FA] text-[#3C2875] font-bold rounded-3xl text-sm hover:bg-gray-50 transition-colors  disabled:opacity-50"
+            className="group px-6 py-2.5 w-full flex items-center gap-3 justify-center  bg-white border-2 border-[#F8F7FA] text-[#3C2875] font-bold rounded-3xl text-sm hover:bg-gray-50 transition-colors  disabled:opacity-50"
           >
             <span>Get Started</span>
             <Image
@@ -229,6 +229,7 @@ const Sidebar = () => {
               alt="right"
               width={20}
               height={20}
+              className="group-hover:translate-x-1 transition-transform"
             />
           </button>
         </div>
@@ -273,7 +274,7 @@ const Sidebar = () => {
             <button
               onClick={handleAcceptTOS}
               disabled={tosApproved || !data?.tos_status}
-              className="px-4 xl:px-0 py-2.5 w-full flex items-center gap-3 justify-center  bg-white border-2 border-[#F8F7FA] text-[#3C2875] font-bold rounded-3xl  hover:bg-gray-50 transition-colors  disabled:opacity-50"
+              className="group px-4 xl:px-0 py-2.5 w-full flex items-center gap-3 justify-center  bg-white border-2 border-[#F8F7FA] text-[#3C2875] font-bold rounded-3xl  hover:bg-gray-50 transition-colors  disabled:opacity-50"
             >
               <span className="text-xs xl:text-sm">
                 {tosApproved ? "Accepted" : "Review & Accept"}
@@ -283,7 +284,7 @@ const Sidebar = () => {
                 alt="right"
                 width={20}
                 height={20}
-                className="hidden xl:block"
+                className="hidden xl:block group-hover:translate-x-1 transition-transform"
               />
             </button>
           )}
@@ -292,7 +293,7 @@ const Sidebar = () => {
             <button
               onClick={() => window.open(data?.kyc_link)}
               disabled={!tosApproved || !kycNotStarted}
-              className="px-6 py-2.5 w-full flex items-center gap-3 justify-center  bg-white border-2 border-[#F8F7FA] text-[#3C2875] font-bold rounded-3xl text-sm hover:bg-gray-50 transition-colors  disabled:opacity-50"
+              className="group px-6 py-2.5 w-full flex items-center gap-3 justify-center  bg-white border-2 border-[#F8F7FA] text-[#3C2875] font-bold rounded-3xl text-sm hover:bg-gray-50 transition-colors  disabled:opacity-50"
             >
               {kycAwaitingUbo ? "Awaiting UBOs" : "Start KYB"}
               <Image
@@ -300,6 +301,7 @@ const Sidebar = () => {
                 alt="right"
                 width={20}
                 height={20}
+                className="group-hover:translate-x-1 transition-transform"
               />
             </button>
           )}
@@ -349,9 +351,16 @@ const Sidebar = () => {
       action: (
         <button
           onClick={() => setShowModal("set-pin")}
-          className="text-primary2 text-xs xl:text-sm font-bold"
+          className="group text-primary2 bg-white flex py-4 px-8 rounded-3xl gap-3 h-[52px] hover:underline border-2 border-[#F8F7FA] text-xs xl:text-sm font-bold"
         >
           Set Up
+          <Image
+            src={"/icons/long-arrow-right.svg"}
+            alt=""
+            width={20}
+            height={20}
+            className="group-hover:translate-x-1 transition-transform"
+          />
         </button>
       ),
       bg: "bg-[#eaecff]/40",
@@ -502,7 +511,9 @@ const Sidebar = () => {
           {!verificationStatus
             ? null
             : statuses.map((status, index) =>
-                status.condition ? <StatusCard key={index} {...status} /> : null
+                status.condition ? (
+                  <StatusCard key={index} {...status} />
+                ) : null,
               )}
           <div className="flex gap-2 items-center mt-6">
             <button

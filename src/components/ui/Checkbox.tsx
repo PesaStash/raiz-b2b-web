@@ -16,9 +16,9 @@ const Checkbox: React.FC<CheckboxProps> = ({
   checked,
   onChange,
   className = "",
-  bgStyle = "bg-black border-black",
+  bgStyle = "bg-[#5BC88A]/30 border-transparent",
   label,
-  checkMarkColor = "#ffffff",
+  checkMarkColor = "#5ac88a",
   labelClass,
 }) => {
   const checkboxId = id || Math.random().toString(36).substr(2, 9);
@@ -34,7 +34,7 @@ const Checkbox: React.FC<CheckboxProps> = ({
       />
       <label
         htmlFor={checkboxId}
-        className={`flex items-center justify-center w-5 h-5 border-2 rounded-md cursor-pointer transition-colors duration-200 ease-in-out ${
+        className={`flex items-center justify-center w-[18px] h-[18px] border-2 rounded-md cursor-pointer transition-colors duration-200 ease-in-out ${
           checked ? bgStyle : "bg-white border-gray-300"
         }`}
         style={{

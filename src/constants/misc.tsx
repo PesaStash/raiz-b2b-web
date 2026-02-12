@@ -56,9 +56,9 @@ export const nigeriaStates = [
 ];
 
 export const ACCOUNT_CURRENCIES = {
-  USD: { name: "USD", sign: "$" } as const,
-  NGN: { name: "NGN", sign: "₦" } as const,
-  SBC: { name: "SBC", sign: "$" } as const,
+  USD: { name: "USD", sign: "$", logo: "/icons/flag-us.webp" } as const,
+  NGN: { name: "NGN", sign: "₦", logo: "/icons/flag-ng.png" } as const,
+  SBC: { name: "SBC", sign: "$", logo: "/icons/sbc.svg" } as const,
 } as const;
 
 export const SWAP_ACCOUNT_CURRENCIES = {
@@ -125,6 +125,4 @@ export const WALLET_TYPES = {
   3: "Crypto Holding Wallet",
   4: "Naira virtual wallet",
   5: "USD Holding Wallet",
-}
-
-
+};

@@ -23,24 +23,18 @@ export default function Home() {
     user?.business_account?.business_verifications?.[0]?.verification_status;
 
   return (
-    <section>
-      <DashboardSummary />
-      {verificationStatus === "completed" && (
-        <>
-          <BillRequests />
-          <TransactionTable topRightOpts="link" />
-        </>
-      )}
-
-      {/* <section className="grid grid-cols-12 mt-8 gap-6 xl:gap-12">
-        <div className="col-span-8 flex flex-col gap-[2rem]">
-          <QuickLinks />
-          {currentWallet && <Transactions currentWallet={currentWallet} />}
-        </div>
-        <div className="col-span-4">
-          <BillRequests />
-        </div>
-      </section> */}
-    </section>
+    <>
+      <section className="p-8 bg-raiz-gray-50 w-full items-center rounded-[20px] inline-flex flex-col justify-start  gap-8">
+        <DashboardSummary />
+      </section>
+      <section className="p-8 mt-10 bg-raiz-gray-50 w-full items-center rounded-[20px] inline-flex flex-col justify-start  gap-8">
+        {verificationStatus === "completed" && (
+          <>
+            {/* <BillRequests /> */}
+            <TransactionTable topRightOpts="link" />
+          </>
+        )}
+      </section>
+    </>
   );
 }
