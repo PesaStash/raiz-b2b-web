@@ -13,6 +13,8 @@ import RaizReceipt from "@/components/transactions/RaizReceipt";
 import { useP2PBeneficiaries } from "@/lib/hooks/useP2pBeneficiaries";
 import { findWalletByCurrency } from "@/utils/helpers";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
+import { AnimatePresence } from "motion/react";
+import * as motion from "motion/react-client";
 
 const NgnToRaizers = () => {
   const {
@@ -55,9 +57,17 @@ const NgnToRaizers = () => {
     setStep("select-user");
   };
 
+  const stepInitial = { opacity: 0, scale: 0.95, y: 20 };
+
+  const stepAnimate = { opacity: 1, scale: 1, y: 0 };
+
+  const stepExit = { opacity: 0, scale: 0.95, y: 20 };
+  const shouldAnimate = !["status", "pay"].includes(step);
+
   const handleDone = () => {
     actions.reset("NGN");
     actions.selectNGNSendOption("to Raizer");
+    setStep("select-user");
     close();
   };
 
@@ -97,28 +107,42 @@ const NgnToRaizers = () => {
         );
       case "pay":
         return (
-          <Payout
-            goNext={() => setStep("status")}
-            close={() => setStep("summary")}
-            setPaymentError={setPaymentError}
-            fee={0}
-          />
+          <>
+            <SendSummary
+              goBack={() => setStep("category")}
+              goNext={() => setStep("pay")}
+              fee={0}
+            />
+            <Payout
+              goNext={() => setStep("status")}
+              close={() => setStep("summary")}
+              setPaymentError={setPaymentError}
+              fee={0}
+            />
+          </>
         );
       case "status":
         return (
           currency &&
           selectedUser && (
-            <PaymentStatusModal
-              status={status}
-              amount={parseFloat(amount)}
-              currency={currency}
-              user={selectedUser}
-              close={handleDone}
-              error={paymentError}
-              tryAgain={() => setStep("summary")}
-              viewReceipt={() => setStep("receipt")}
-              type="p2p"
-            />
+            <>
+              <SendSummary
+                goBack={() => setStep("category")}
+                goNext={() => setStep("pay")}
+                fee={0}
+              />
+              <PaymentStatusModal
+                status={status}
+                amount={parseFloat(amount)}
+                currency={currency}
+                user={selectedUser}
+                close={handleDone}
+                error={paymentError}
+                tryAgain={() => setStep("summary")}
+                viewReceipt={() => setStep("receipt")}
+                type="p2p"
+              />
+            </>
           )
         );
       case "receipt":
@@ -132,7 +156,28 @@ const NgnToRaizers = () => {
     }
   };
 
-  return <>{displayStep()}</>;
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={step}
+        initial={shouldAnimate ? stepInitial : false}
+        animate={stepAnimate}
+        exit={shouldAnimate ? stepExit : {}}
+        transition={
+          shouldAnimate
+            ? {
+                type: "spring",
+                stiffness: 260,
+                damping: 30,
+              }
+            : { duration: 0 }
+        }
+        className="w-full h-full"
+      >
+        {displayStep()}
+      </motion.div>
+    </AnimatePresence>
+  );
 };
 
 export default NgnToRaizers;

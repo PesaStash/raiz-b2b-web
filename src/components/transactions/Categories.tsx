@@ -8,6 +8,7 @@ import { FetchTransactionCategoriesApi } from "@/services/transactions";
 import { ITransactionCategory } from "@/types/transactions";
 import Button from "../ui/Button";
 import Spinner from "../ui/Spinner";
+import CenterModalHeader from "../layouts/CenterModalHeader";
 
 interface Props {
   goBack: () => void;
@@ -56,14 +57,17 @@ const Categories = ({ goBack, goNext, loading }: Props) => {
   }
   return (
     <div className="flex flex-col h-full">
-      <SideWrapperHeader
-        close={goBack}
-        title="Select category"
-        titleColor="text-zinc-900"
-        // rightComponent={<SkipButton />}
-      />
+      <CenterModalHeader close={goBack} />
+      <div className="flex flex-col gap-1  mb-10">
+        <h5 className="text-raiz-gray-950 text-[22px] font-semibold leading-tight">
+          Choose Categories
+        </h5>
+        <p className=" text-raiz-gray-700 text-sm font-normal leading-tight">
+          Select your preferred category
+        </p>
+      </div>
       <div className="flex flex-col h-full justify-between items-center">
-        <div className="grid grid-cols-4 gap-y-5 gap-x-3 w-full justify-center items-center">
+        <div className="grid grid-cols-4 gap-y-5 gap-x-3 w-full justify-center items-center rounded-[20px] bg-raiz-gray-50 p-6 overflow-y-auto mb-6 no-scrollbar">
           {data?.map((each, index) => {
             return (
               <div key={index} className="relative w-full ">
