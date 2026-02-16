@@ -29,7 +29,7 @@ const SelectUser = () => {
   const { actions } = useSendStore();
   const { user } = useUser();
   const [showModal, setShowModal] = useState<"bank" | "beneficiary" | null>(
-    null
+    null,
   );
   const [bank, setBank] = useState<IBank>();
   const [acctNo, setAccountNo] = useState("");
@@ -68,7 +68,7 @@ const SelectUser = () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const [_, params] = queryKey as [
         string,
-        { account_number: string; bank_code: string }
+        { account_number: string; bank_code: string },
       ];
       return await FetchNgnAcctDetailsApi(params);
     },

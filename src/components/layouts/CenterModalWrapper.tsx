@@ -59,15 +59,7 @@ const CenterModalWrapper = ({ children, close, wrapperStyle }: Props) => {
             : "md:h-screen overflow-y-scroll"
         } ${wrapperStyle}`}
       >
-        <button onClick={close} className="mb-4">
-          <Image
-            src={"/icons/arrow-left.svg"}
-            width={18}
-            height={18}
-            alt="back"
-          />
-        </button>
-        <div className="w-full flex flex-col">{children}</div>
+        <div className="w-full flex flex-col h-full">{children}</div>
       </motion.div>
     </motion.div>
   );
