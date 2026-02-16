@@ -12,7 +12,7 @@ import {
   TooltipItem,
 } from "chart.js";
 import { IoIosArrowDown } from "react-icons/io";
-import { DateOption } from "@/app/(dashboard)/_components/quick-links/analytics/page";
+import { DateOption } from "@/app/(dashboard)/_components/analytics/page";
 import dayjs from "dayjs";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import Skeleton from "react-loading-skeleton";
@@ -85,6 +85,7 @@ const AnalyticsChart = ({
 
   const options = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         display: false,
@@ -105,9 +106,44 @@ const AnalyticsChart = ({
     scales: {
       x: {
         display: false,
+        title: {
+          display: true,
+          text: "Month",
+          color: "#6B7280",
+          font: {
+            weight: 500,
+          },
+        },
+        ticks: {
+          color: "#6B7280",
+          autoSkip: false,
+          maxRotation: 0,
+          minRotation: 0,
+        },
+        grid: {
+          display: false,
+        },
       },
       y: {
-        display: false,
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: "USD $",
+          color: "#6B7280",
+          font: {
+            weight: 500,
+          },
+        },
+        ticks: {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          callback: (value: any) => {
+            return `${Number(value) / 1000}K`;
+          },
+          color: "#6B7280",
+        },
+        grid: {
+          color: "#F3F4F6",
+        },
       },
     },
   };
@@ -121,9 +157,9 @@ const AnalyticsChart = ({
   };
 
   return (
-    <div className="p-4 mt-[30px] bg-white rounded-2xl shadow-[0px_3.1904757022857666px_15.952378273010254px_0px_rgba(238,238,238,0.50)] border-[0.80px] border-gray-50">
-      <div className="flex justify-between w-full items-center">
-        <h5 className="text-indigo-950 text-xs font-bold leading-tight">
+    <div className="h-[370px] w-full p-4 mt-[30px] bg-white rounded-2xl shadow-[0px_3.1904757022857666px_15.952378273010254px_0px_rgba(238,238,238,0.50)] border-[0.80px] border-gray-50">
+      <div className="flex justify-between w-full items-center mb-4">
+        <h5 className="text-indigo-950 text-lg font-bold leading-tight">
           Analytic Report
         </h5>
         <button
@@ -139,7 +175,9 @@ const AnalyticsChart = ({
       {loading ? (
         <Skeleton height={150} />
       ) : (
-        <Line data={chartData} options={options} />
+        <div className="relative w-full ">
+          <Line data={chartData} options={options} />
+        </div>
       )}
 
       <div className="mt-4 flex justify-center items-center gap-8 border-t border-slate-100 pt-4">

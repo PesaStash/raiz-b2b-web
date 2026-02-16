@@ -112,14 +112,14 @@ const InternationalSendMoney = ({
     goNext();
   };
   return (
-    <div className="w-full">
+    <div className="w-full flex flex-col h-full">
       <SideWrapperHeader
         close={goBack}
         title="Send Money"
         titleColor="text-zinc-900"
       />
-      <div className="flex flex-col h-[85vh] justify-between items-center w-full">
-        <div className="w-full">
+      <div className="flex flex-col h-full justify-between items-center w-full">
+        <div className="w-full h-full">
           <div className="flex flex-col justify-center items-center">
             <div className="relative w-10 h-10">
               <Avatar src={""} name={selectedUser?.beneficiary_name || ""} />
@@ -222,7 +222,7 @@ const InternationalSendMoney = ({
             </div>
           </div>
         </div>
-        <div className="w-full ">
+        <div className="w-full py-6 ">
           {/* <div className=" p-3.5 mb-3 bg-grays-100 w-full rounded-lg outline outline-1 outline-offset-[-1px] outline-white inline-flex flex-col justify-center items-start gap-2"> */}
           {/* <div className="w-full flex justify-between items-center">
               <span className="text-cyan-700 text-xs font-normal font-brSonoma leading-normal">

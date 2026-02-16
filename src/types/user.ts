@@ -7,8 +7,21 @@ export interface IEntityType {
   entity_type_id: number;
 }
 
+interface Country {
+  country_name: string;
+  country_code: string;
+  currency: string;
+  is_supported: boolean;
+  country_flag: string;
+  area_code: string;
+  country_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface IEntity {
   entity_type_id: number;
+  country: Country;
   country_id: string;
   is_entity_blocked: boolean;
   is_entity_frozen: boolean;
@@ -138,4 +151,23 @@ export interface ISearchedUser {
   account_name: string;
   username: string;
   selfie_image: string | null;
+}
+
+export interface IKYBLinksStatus {
+  entity_id: string;
+  kyc_id: string;
+  customer_id: string;
+  tos_link: string;
+  kyc_link: string;
+  kyc_status:
+    | "not_started"
+    | "pending"
+    | "in_progress"
+    | "approved"
+    | "rejected"
+    | string;
+  tos_status: "pending" | "accepted" | "rejected" | string;
+  entity_kyc_id: string;
+  created_at: string; // ISO date string
+  updated_at: string; // ISO date string
 }

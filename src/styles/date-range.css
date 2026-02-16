@@ -1,0 +1,51 @@
+.rdrCalendarWrapper {
+  color: #1d2939;
+  font-family: inherit;
+}
+
+.rdrDefinedRangesWrapper {
+  border-right: solid 1px #d0d5dd;
+  width: 220px;
+}
+
+.rdrStaticRange {
+  border-bottom: solid 1px #d0d5dd;
+  background: transparent;
+}
+.rdrStaticRange:hover,
+.rdrStaticRange:focus {
+  background: #f9fafb;
+}
+
+.rdrStaticRangeLabel {
+  color: #344054;
+}
+
+.rdrDayNumber span {
+  color: #475467;
+}
+
+.rdrDayToday .rdrDayNumber span:after {
+  background: #4b0082;
+}
+
+.rdrDay:not(.rdrDayPassive) .rdrInRange ~ .rdrDayNumber span {
+  color: #4b0082;
+}
+.rdrDay:not(.rdrDayPassive) .rdrStartEdge ~ .rdrDayNumber span,
+.rdrDay:not(.rdrDayPassive) .rdrEndEdge ~ .rdrDayNumber span,
+.rdrDay:not(.rdrDayPassive) .rdrSelected ~ .rdrDayNumber span {
+  color: #ffffff;
+}
+
+.rdrInRange,
+.rdrStartEdge,
+.rdrEndEdge {
+  background: #f9f5ff;
+}
+
+.rdrSelected,
+.rdrStartEdge,
+.rdrEndEdge {
+  background: #4b0082;
+}

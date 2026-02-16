@@ -79,7 +79,7 @@ export const SettingsMenus = [
   },
   {
     name: "About",
-    link: "https://www.raiz.app/about-us.php",
+    link: "https://www.raiz.app/about",
     icon: () => (
       <svg
         width="40"
@@ -108,7 +108,7 @@ export const SettingsMenus = [
   },
   {
     name: "Legal",
-    link: "https://www.raiz.app/privacy-policy.php",
+    link: "https://www.raiz.app/privacy-policy",
     icon: () => (
       <svg
         width="40"
@@ -347,7 +347,7 @@ export const helpSupportData = [
         </defs>
       </svg>
     ),
-    link: "https://www.raiz.app/index.php",
+    link: "https://www.raiz.app/blog",
   },
   {
     name: "App rating",

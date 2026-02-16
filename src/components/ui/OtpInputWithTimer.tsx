@@ -10,7 +10,8 @@ type OtpInputWithTimerProps = {
   onChange: (val: string) => void;
   error?: string;
   touched?: boolean;
-  onResend: () => void;
+  onResend?: () => void;
+  length?: number;
 };
 
 const OtpInputWithTimer = ({
@@ -19,13 +20,14 @@ const OtpInputWithTimer = ({
   error,
   touched,
   onResend,
+  length = 4,
 }: OtpInputWithTimerProps) => {
   const [isTimerActive, setIsTimerActive] = useState(true);
   const { timeLeft } = useTimer(60, isTimerActive);
 
   const handleResend = () => {
     setIsTimerActive(false);
-    onResend();
+    onResend?.();
     setTimeout(() => setIsTimerActive(true), 1000); // Restart timer after resending
   };
 
@@ -34,7 +36,7 @@ const OtpInputWithTimer = ({
       <OTPInput
         value={value}
         onChange={onChange}
-        numInputs={4}
+        numInputs={length}
         renderSeparator={<span> </span>}
         renderInput={(props) => (
           <input
@@ -43,22 +45,24 @@ const OtpInputWithTimer = ({
           />
         )}
       />
-      <div className="mt-5">
-        {timeLeft > 0 ? (
-          <p className="text-sm text-raiz-gray-500 font-normal leading-normal">
-            We can send you another code in{" "}
-            <span className="text-raiz-gray-950">{formatTime(timeLeft)}</span>
-          </p>
-        ) : (
-          <button
-            type="button"
-            onClick={handleResend}
-            className="text-raiz-gray-600 text-[15px] font-semibold hover:underline"
-          >
-            Resend OTP
-          </button>
-        )}
-      </div>
+      {onResend && (
+        <div className="mt-5">
+          {timeLeft > 0 ? (
+            <p className="text-sm text-raiz-gray-500 font-normal leading-normal">
+              We can send you another code in{" "}
+              <span className="text-raiz-gray-950">{formatTime(timeLeft)}</span>
+            </p>
+          ) : (
+            <button
+              type="button"
+              onClick={handleResend}
+              className="text-raiz-gray-600 text-[15px] font-semibold hover:underline"
+            >
+              Resend OTP
+            </button>
+          )}
+        </div>
+      )}
       {touched && error && <ErrorMessage message={error} />}
     </div>
   );

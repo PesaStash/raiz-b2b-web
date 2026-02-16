@@ -45,8 +45,8 @@ export const registerFormSchemas = {
   4: z.object({
     otp: z
       .string()
-      .length(4, "OTP must be exactly 4 digits")
-      .regex(/^\d{4}$/, "OTP must only contain numbers"),
+      .length(6, "OTP must be exactly 6 characters")
+      .regex(/^[A-Za-z0-9]{6}$/, "OTP must only contain letters and numbers"),
   }),
   5: z.object({}),
 };
@@ -54,8 +54,8 @@ export const registerFormSchemas = {
 export const generalOTPFormSchema = z.object({
   otp: z
     .string()
-    .length(4, "OTP must be exactly 4 digits")
-    .regex(/^\d{4}$/, "OTP must only contain numbers"),
+    .length(6, "OTP must be exactly 6 characters")
+    .regex(/^[A-Za-z0-9]{6}$/, "OTP must only contain letters and numbers"),
 });
 
 // export const registerFormSchema = z.object({

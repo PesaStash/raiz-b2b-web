@@ -50,7 +50,7 @@ const UsdBankPay = ({ close, goNext, setPaymentError }: Props) => {
       transaction_pin: passwordHash(pin),
       transaction_category_id: category?.transaction_category_id || 0,
       amount: Number(amount),
-      usd_beneficiary_id: usdBeneficiary?.usd_beneficiary_id || "",
+      usd_beneficiary_id: usdBeneficiary?.usd_beneficiary_id || null,
     };
     SendMoneyMutation.mutate(payload);
   };

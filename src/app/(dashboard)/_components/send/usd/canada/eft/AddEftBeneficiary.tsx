@@ -6,7 +6,7 @@ import InputField from "@/components/ui/InputField";
 import InputLabel from "@/components/ui/InputLabel";
 import ModalTrigger from "@/components/ui/ModalTrigger";
 import {
-  CreateUsBeneficiary,
+  // CreateUsBeneficiary,
   FetchUsBeneficiariesApi,
   GetCanadianBanks,
   //   GetUSBeneficiaryFormFields,
@@ -15,13 +15,13 @@ import { useSendStore } from "@/store/Send";
 import {
   //   FormField,
   IUsBeneficiariesParams,
-  IUsBeneficiaryPayload,
+  // IUsBeneficiaryPayload,
 } from "@/types/services";
 import { truncateString } from "@/utils/helpers";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useFormik } from "formik";
 import React, { useState } from "react";
-import { toast } from "sonner";
+// import { toast } from "sonner";
 import { z } from "zod";
 import { toFormikValidationSchema } from "zod-formik-adapter";
 import CanadianBanksModal, { ICanadianBank } from "./CanadianBanksModal";
@@ -62,14 +62,14 @@ const AddEftBeneficiary = ({ close }: Props) => {
   });
   const beneficiaries = data?.beneficiaries || [];
   //   const fields: FormField[] = fieldsData?.eft || [];
-  const qc = useQueryClient();
-  const AddBeneficiaryMutation = useMutation({
-    mutationFn: (data: IUsBeneficiaryPayload) => CreateUsBeneficiary(data),
-    onSuccess: () => {
-      toast.success("Beneficiary added!");
-      qc.invalidateQueries({ queryKey: ["eft-beneficiaries"] });
-    },
-  });
+  // const qc = useQueryClient();
+  // const AddBeneficiaryMutation = useMutation({
+  //   mutationFn: (data: IUsBeneficiaryPayload) => CreateUsBeneficiary(data),
+  //   onSuccess: () => {
+  //     toast.success("Beneficiary added!");
+  //     qc.invalidateQueries({ queryKey: ["eft-beneficiaries"] });
+  //   },
+  // });
   const validationSchema = z.object({
     bankName: z.string().nonempty("Bank name is required"),
     accountNumber: z
@@ -98,7 +98,7 @@ const AddEftBeneficiary = ({ close }: Props) => {
     validationSchema: toFormikValidationSchema(validationSchema),
     onSubmit: async (values, { resetForm, setSubmitting }) => {
       try {
-        const payload: IUsBeneficiaryPayload = {
+        const payload = {
           data: {
             name: values.name,
             account: values.accountNumber,
@@ -108,8 +108,9 @@ const AddEftBeneficiary = ({ close }: Props) => {
           label: values.label,
           optionType: "eft",
         };
+        console.log(payload);
 
-        await AddBeneficiaryMutation.mutateAsync(payload);
+        // await AddBeneficiaryMutation.mutateAsync(payload);
         resetForm();
       } catch (error) {
         console.log("Submission error:", error);

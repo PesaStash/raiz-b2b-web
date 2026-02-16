@@ -1,10 +1,12 @@
 import { ACCOUNT_CURRENCIES } from "@/constants/misc";
+import { CurrencyTypeKey } from "@/store/Swap/swapSlice.types";
 import { ReactNode } from "react";
 
 export interface ISidebarMenuItem {
   name: string;
   link: string;
   icon: (isActive: boolean) => React.ReactNode;
+  locked?: boolean;
 }
 
 export interface IRegisterFormValues {
@@ -45,7 +47,8 @@ export interface AccountSetupProps {
 
 export type IUSDSendOptions =
   | "to Raizer"
-  | "bank transfer"
+  | "usBank"
+  | "internationalRemittance"
   | "to debit card"
   | "to paypal"
   | "to canada"
@@ -109,3 +112,10 @@ export interface IBank {
 }
 
 export type IChain = "tron" | "ethereum" | "polygon" | "bsc";
+
+export interface SwapPairResult {
+  fromCurrency: CurrencyTypeKey;
+  toCurrency: CurrencyTypeKey;
+  isValid: boolean;
+  message?: string;
+}

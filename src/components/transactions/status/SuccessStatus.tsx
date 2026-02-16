@@ -88,10 +88,10 @@ const SuccessStatus = ({
       });
     } else {
       const payload: IExternalBeneficiaryPayload = {
-        bank_short_code: beneficiary?.bank_short_code || "",
-        bank_account_number: beneficiary?.bank_account_number || "",
-        bank_account_name: beneficiary?.bank_account_name || "",
-        bank_name: beneficiary?.bank_name || "",
+        bank_short_code: beneficiary?.bank_short_code || null,
+        bank_account_number: beneficiary?.bank_account_number || null,
+        bank_account_name: beneficiary?.bank_account_name || null,
+        bank_name: beneficiary?.bank_name || null,
       };
 
       AddExternalBeneficiaryMutation.mutate(payload);

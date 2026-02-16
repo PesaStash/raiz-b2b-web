@@ -58,7 +58,7 @@ export const RequestMoney = ({ setStep }: RequestStepsProps) => {
   const qc = useQueryClient();
   const RequestFundsMutation = useMutation({
     mutationFn: (data: IRequestFundsPayload) =>
-      RequestFundsApi(currentWallet?.wallet_id || "", data),
+      RequestFundsApi(currentWallet?.wallet_id || null, data),
     onSuccess: (response) => {
       qc.refetchQueries({ queryKey: ["sent-requests"] });
       toast.success(response?.message);
@@ -74,7 +74,7 @@ export const RequestMoney = ({ setStep }: RequestStepsProps) => {
 
   const handleRequest = () => {
     const payload: IRequestFundsPayload = {
-      requestee_entity_id: selectedUser?.entity_id || "",
+      requestee_entity_id: selectedUser?.entity_id || null,
       transaction_amount: Number(amount),
       narration,
       transaction_category_id: category?.transaction_category_id || 0,

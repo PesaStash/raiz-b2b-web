@@ -7,7 +7,7 @@ import InputField from "@/components/ui/InputField";
 import Radio from "@/components/ui/Radio";
 import Spinner from "@/components/ui/Spinner";
 import {
-  CreateUsBeneficiary,
+  // CreateUsBeneficiary,
   FetchUsBeneficiariesApi,
   GetUSBeneficiaryFormFields,
 } from "@/services/transactions";
@@ -15,13 +15,13 @@ import { useSendStore } from "@/store/Send";
 import {
   FormField,
   IUsBeneficiariesParams,
-  IUsBeneficiaryPayload,
+  // IUsBeneficiaryPayload,
 } from "@/types/services";
 import { convertField, truncateString } from "@/utils/helpers";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Form, Formik, FormikProps } from "formik";
 import React, { useRef, useState } from "react";
-import { toast } from "sonner";
+// import { toast } from "sonner";
 import { z } from "zod";
 import { toFormikValidationSchema } from "zod-formik-adapter";
 import USBeneficiaryModal from "../toBanks/USBeneficiaryModal";
@@ -97,14 +97,14 @@ const InternationalBeneficiary = ({ close }: Props) => {
     formikRef?.current?.setFieldValue("country", country.country_name);
   };
 
-  const qc = useQueryClient();
-  const AddBeneficiaryMutation = useMutation({
-    mutationFn: (data: IUsBeneficiaryPayload) => CreateUsBeneficiary(data),
-    onSuccess: () => {
-      toast.success("Beneficiary added!");
-      qc.invalidateQueries({ queryKey: ["us-bank-beneficiaries"] });
-    },
-  });
+  // const qc = useQueryClient();
+  // const AddBeneficiaryMutation = useMutation({
+  //   mutationFn: (data: IUsBeneficiaryPayload) => CreateUsBeneficiary(data),
+  //   onSuccess: () => {
+  //     toast.success("Beneficiary added!");
+  //     qc.invalidateQueries({ queryKey: ["us-bank-beneficiaries"] });
+  //   },
+  // });
   const initialValues: FormValues = {
     label: "",
     ...fields.reduce<Record<string, string>>((acc, field) => {
@@ -122,14 +122,15 @@ const InternationalBeneficiary = ({ close }: Props) => {
   ) => {
     try {
       const { label, ...restValues } = values;
-      const payload: IUsBeneficiaryPayload = {
+      const payload = {
         data: {
           ...restValues,
         },
         label,
         optionType: "international_bank",
       };
-      await AddBeneficiaryMutation.mutateAsync(payload);
+      // await AddBeneficiaryMutation.mutateAsync(payload);
+      console.log(payload);
       resetForm();
     } catch (error) {
       console.log("Submission error:", error);

@@ -10,6 +10,9 @@ export default {
   ],
   theme: {
     extend: {
+      screens: {
+        desktop: "1350px",
+      },
       fontFamily: {
         inter: ["var(--font-inter)", ...fontFamily.sans],
         monzo: ["var(--monzo)", ...fontFamily.sans],

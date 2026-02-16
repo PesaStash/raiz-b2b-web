@@ -4,7 +4,7 @@ import EmptyList from "@/components/ui/EmptyList";
 import InputField from "@/components/ui/InputField";
 import { encryptData } from "@/lib/headerEncryption";
 import {
-  CreateUsBeneficiary,
+  // CreateUsBeneficiary,
   FetchUsBeneficiariesApi,
   GetUSBeneficiaryFormFields,
 } from "@/services/transactions";
@@ -12,13 +12,13 @@ import { useSendStore } from "@/store/Send";
 import {
   FormField,
   IUsBeneficiariesParams,
-  IUsBeneficiaryPayload,
+  // IUsBeneficiaryPayload,
 } from "@/types/services";
 import { formatCardNumber } from "@/utils/helpers";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useFormik } from "formik";
 import React from "react";
-import { toast } from "sonner";
+// import { toast } from "sonner";
 import { z } from "zod";
 import { toFormikValidationSchema } from "zod-formik-adapter";
 
@@ -89,14 +89,14 @@ const AddCardBeneficiary = ({ close }: Props) => {
         .regex(/^\d{3,4}$/, "Invalid CVV"),
     });
   };
-  const qc = useQueryClient();
-  const AddBeneficiaryMutation = useMutation({
-    mutationFn: (data: IUsBeneficiaryPayload) => CreateUsBeneficiary(data),
-    onSuccess: () => {
-      toast.success("Beneficiary added!");
-      qc.invalidateQueries({ queryKey: ["us-bank-beneficiaries"] });
-    },
-  });
+  // const qc = useQueryClient();
+  // const AddBeneficiaryMutation = useMutation({
+  //   mutationFn: (data: IUsBeneficiaryPayload) => CreateUsBeneficiary(data),
+  //   onSuccess: () => {
+  //     toast.success("Beneficiary added!");
+  //     qc.invalidateQueries({ queryKey: ["us-bank-beneficiaries"] });
+  //   },
+  // });
 
   const initialValues: FormValues = {
     label: "",
@@ -111,7 +111,7 @@ const AddCardBeneficiary = ({ close }: Props) => {
     validationSchema: toFormikValidationSchema(createValidationSchema()),
     onSubmit: async (values, { resetForm, setSubmitting }) => {
       try {
-        const payload: IUsBeneficiaryPayload = {
+        const payload = {
           data: {
             name: values.name,
             card_number: encryptData(values.card_number.replace(/\s/g, "")),
@@ -121,8 +121,8 @@ const AddCardBeneficiary = ({ close }: Props) => {
           label: values.label,
           optionType: "card",
         };
-
-        await AddBeneficiaryMutation.mutateAsync(payload);
+        console.log(payload);
+        // await AddBeneficiaryMutation.mutateAsync(payload);
         resetForm();
       } catch (error) {
         console.log("Submission error:", error);

@@ -5,7 +5,7 @@ import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CreateUSDWalletApi } from "@/services/business";
 import { toast } from "sonner";
-import { findWalletByCurrency } from "@/utils/helpers";
+import { findWalletByCurrency, truncateString } from "@/utils/helpers";
 import { useUser } from "@/lib/hooks/useUser";
 import { useSendStore } from "@/store/Send";
 
@@ -61,6 +61,10 @@ const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
     }
   };
 
+  const isNigerian =
+    user?.business_account?.entity?.country?.country_name?.toLowerCase() ===
+    "nigeria";
+
   return (
     <Overlay close={close} width="375px">
       <div className="flex flex-col  h-full py-8 px-5  text-raiz-gray-950">
@@ -106,34 +110,41 @@ const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
           </button>
 
           {/* NGN */}
-          <button
-            onClick={handleNgn}
-            className={`px-3 py-4  justify-between items-center gap-10 w-full rounded-[20px]  inline-flex ${
-              selectedCurrency.name === "NGN" && NGNAcct
-                ? "bg-[#eaecff]/60"
-                : "bg-white"
-            }`}
-          >
-            <div className="flex gap-3">
-              <Image src={"/icons/ngn.svg"} alt="NGN" width={40} height={40} />
-              <div className="flex flex-col items-start">
-                <p className="text-raiz-gray-900 text-base font-medium font-brSonoma leading-tight">
-                  {NGNAcct ? NGNAcct.account_number : "Get NGN Account"}
-                </p>
-                <p className="opacity-50 text-raiz-gray-950 text-[13px] font-normal  leading-tight">
-                  {NGNAcct?.wallet_type.wallet_type_name || "NGN Account"}
-                </p>
+          {isNigerian && (
+            <button
+              onClick={handleNgn}
+              className={`px-3 py-4  justify-between items-center gap-10 w-full rounded-[20px]  inline-flex ${
+                selectedCurrency.name === "NGN" && NGNAcct
+                  ? "bg-[#eaecff]/60"
+                  : "bg-white"
+              }`}
+            >
+              <div className="flex gap-3">
+                <Image
+                  src={"/icons/ngn.svg"}
+                  alt="NGN"
+                  width={40}
+                  height={40}
+                />
+                <div className="flex flex-col items-start">
+                  <p className="text-raiz-gray-900 text-base font-medium font-brSonoma leading-tight">
+                    {NGNAcct ? NGNAcct.account_number : "Get NGN Account"}
+                  </p>
+                  <p className="opacity-50 text-raiz-gray-950 text-[13px] font-normal  leading-tight">
+                    {NGNAcct?.wallet_type.wallet_type_name || "NGN Account"}
+                  </p>
+                </div>
               </div>
-            </div>
-            {selectedCurrency.name === "NGN" && NGNAcct && (
-              <Image
-                src={"/icons/tick-circle.svg"}
-                alt="USD"
-                width={24}
-                height={24}
-              />
-            )}
-          </button>
+              {selectedCurrency.name === "NGN" && NGNAcct && (
+                <Image
+                  src={"/icons/tick-circle.svg"}
+                  alt="USD"
+                  width={24}
+                  height={24}
+                />
+              )}
+            </button>
+          )}
           {/* Crypto */}
           <button
             onClick={handleCrypto}
@@ -152,7 +163,9 @@ const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
               />
               <div className="flex flex-col items-start">
                 <p className="text-raiz-gray-900 text-base font-medium font-brSonoma leading-tight">
-                  {CryptoAcct ? "USDC & USDT Wallet" : "Get USDC & USDT Wallet"}
+                  {CryptoAcct
+                    ? truncateString(CryptoAcct?.account_number, 20)
+                    : "Get USDC & USDT Wallet"}
                 </p>
                 <p className="opacity-50 text-raiz-gray-950 text-[13px] font-normal  leading-tight">
                   {CryptoAcct?.wallet_type.wallet_type_name || "Crypto Wallet"}

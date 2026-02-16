@@ -1,5 +1,5 @@
 "use client";
-import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ToUsdBanksStepsType } from "../toBanks/ToUsdBanks";
 import { bankTypeProp } from "../BankTransfer";
 import { useSendStore } from "@/store/Send";
@@ -15,13 +15,12 @@ import RaizReceipt from "@/components/transactions/RaizReceipt";
 import InternationalSendSummary from "@/components/transactions/InternationalSendSummary";
 import InternationalSendMoney from "@/components/transactions/InternationalSendMoney";
 import InternationPayout from "../toInternational/InternationalPayout";
-import { IInitialPayoutResponse, IntCurrrencyCode } from "@/types/services";
+import { IInitialPayoutResponse, IntCurrencyCode } from "@/types/services";
 import { toast } from "sonner";
 
 interface Props {
   close: () => void;
   bankType: bankTypeProp;
-  setBankType: Dispatch<SetStateAction<bankTypeProp | undefined>>;
 }
 
 const ToGlobal = ({ close, bankType }: Props) => {
@@ -75,7 +74,7 @@ const ToGlobal = ({ close, bankType }: Props) => {
       intBeneficiary?.foreign_payout_beneficiary?.beneficiary_currency,
     ],
     queryFn: ({ queryKey }) => {
-      const [, currencyCode] = queryKey as [string, IntCurrrencyCode];
+      const [, currencyCode] = queryKey as [string, IntCurrencyCode];
       return GetMinAmountApi(currencyCode);
     },
     enabled: !!intBeneficiary?.foreign_payout_beneficiary?.beneficiary_currency,
@@ -85,7 +84,7 @@ const ToGlobal = ({ close, bankType }: Props) => {
     mutationFn: () =>
       SendInternationalInitialPayout({
         foreign_payout_beneficiary_id:
-          intBeneficiary?.foreign_payout_beneficiary_id || "",
+          intBeneficiary?.foreign_payout_beneficiary_id || null,
         amount: parseFloat(amount),
       }),
     onSuccess: (response) => {

@@ -28,7 +28,7 @@ const CryptoDepositDetail = ({ close, wallet }: Props) => {
           <div className="flex flex-col w-full justify-center items-center gap-8">
             {/*Change this   wallet.qrcode */}
             <QRCode
-              value={wallet?.address}
+              value={wallet?.qr_code || wallet?.address || ""}
               size={231}
               className="p-[17px] bg-[#EAECFF99] rounded-[20px]"
             />

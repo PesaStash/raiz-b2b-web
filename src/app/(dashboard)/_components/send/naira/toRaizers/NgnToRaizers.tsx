@@ -10,8 +10,9 @@ import SendSummary from "@/components/transactions/SendSummary";
 import Payout from "../../usd/toRaizers/Payout";
 import PaymentStatusModal from "@/components/modals/PaymentStatusModal";
 import RaizReceipt from "@/components/transactions/RaizReceipt";
-import { useCurrentWallet } from "@/lib/hooks/useCurrentWallet";
 import { useP2PBeneficiaries } from "@/lib/hooks/useP2pBeneficiaries";
+import { findWalletByCurrency } from "@/utils/helpers";
+import { useCurrencyStore } from "@/store/useCurrencyStore";
 
 const NgnToRaizers = () => {
   const {
@@ -25,7 +26,18 @@ const NgnToRaizers = () => {
   const { user } = useUser();
   const [step, setStep] = useState<SendToRaizStepType>("select-user");
   const [paymentError, setPaymentError] = useState("");
-  const currentWallet = useCurrentWallet(user);
+  const { selectedCurrency } = useCurrencyStore();
+  const NGNAcct = findWalletByCurrency(user, "NGN");
+  const USDAcct = findWalletByCurrency(user, "USD");
+  const getCurrentWallet = () => {
+    if (selectedCurrency.name === "NGN") {
+      return NGNAcct;
+    } else if (selectedCurrency.name === "USD") {
+      return USDAcct;
+    }
+  };
+
+  const currentWallet = getCurrentWallet();
 
   const { favourites, recents } = useP2PBeneficiaries({
     walletId: currentWallet?.wallet_id,

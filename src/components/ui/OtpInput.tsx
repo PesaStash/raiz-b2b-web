@@ -8,6 +8,7 @@ type OtpInputProps = {
   onChange: (val: string) => void;
   error?: string;
   touched?: boolean;
+  length?: number;
 };
 
 const OtpInput: React.FC<OtpInputProps> = ({
@@ -15,13 +16,14 @@ const OtpInput: React.FC<OtpInputProps> = ({
   onChange,
   error,
   touched,
+  length = 4,
 }) => {
   return (
     <div>
       <OTPInput
         value={value}
         onChange={onChange}
-        numInputs={4}
+        numInputs={length}
         renderSeparator={<span> </span>}
         renderInput={(props) => (
           <input

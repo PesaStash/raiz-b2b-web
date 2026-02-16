@@ -29,7 +29,11 @@ const ToDebitCard = ({ close }: Props) => {
   const { data: fee } = useQuery({
     queryKey: ["transactions-fee", amount, currency],
     queryFn: () =>
-      GetTransactionFeeApi(Number(amount), currency as "USD" | "NGN" | "WIRE"),
+      GetTransactionFeeApi(
+        Number(amount),
+        currency as "USD" | "NGN" | "WIRE",
+        usdBeneficiary?.usd_beneficiary_id || ""
+      ),
     enabled: !!amount,
   });
   const goBackToStep1 = () => {

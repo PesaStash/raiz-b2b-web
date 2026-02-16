@@ -1,10 +1,10 @@
 import EnterPin from "@/components/transactions/EnterPin";
-import { useCurrentWallet } from "@/lib/hooks/useCurrentWallet";
 import { useUser } from "@/lib/hooks/useUser";
 import { ExternalNGNDebitApi } from "@/services/transactions";
 import { useSendStore } from "@/store/Send";
+import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { IExternalTransferPayload } from "@/types/services";
-import { passwordHash } from "@/utils/helpers";
+import { findWalletByCurrency, passwordHash } from "@/utils/helpers";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 
@@ -20,7 +20,19 @@ const ExternalPayout = ({ close, goNext, setPaymentError }: Props) => {
   const { externalUser, purpose, category, amount, actions } = useSendStore();
   const qc = useQueryClient();
   const { user } = useUser();
-  const currentWallet = useCurrentWallet(user);
+  const { selectedCurrency } = useCurrencyStore();
+  const NGNAcct = findWalletByCurrency(user, "NGN");
+  const USDAcct = findWalletByCurrency(user, "USD");
+
+  const getCurrentWallet = () => {
+    if (selectedCurrency.name === "NGN") {
+      return NGNAcct;
+    } else if (selectedCurrency.name === "USD") {
+      return USDAcct;
+    }
+  };
+
+  const currentWallet = getCurrentWallet();
 
   const SendMoneyMutation = useMutation({
     mutationFn: (data: IExternalTransferPayload) =>
@@ -62,12 +74,12 @@ const ExternalPayout = ({ close, goNext, setPaymentError }: Props) => {
     const payload: IExternalTransferPayload = {
       wallet_id: currentWallet?.wallet_id || "",
       data: {
-        beneficiary_account_name: externalUser?.bank_account_name || "",
-        beneficiary_account_number: externalUser?.bank_account_number || "",
+        beneficiary_account_name: externalUser?.bank_account_name || null,
+        beneficiary_account_number: externalUser?.bank_account_number || null,
         transaction_amount: Number(amount),
         narration: purpose,
-        beneficiary_bank_code: externalUser?.bank_short_code || "",
-        beneficiary_bank_name: externalUser?.bank_name || "",
+        beneficiary_bank_code: externalUser?.bank_short_code || null,
+        beneficiary_bank_name: externalUser?.bank_name || null,
         transaction_category_id: category?.transaction_category_id || 0,
       },
       pin: {

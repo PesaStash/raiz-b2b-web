@@ -30,8 +30,11 @@ const ResetOtp = ({ email, setPage, setOtp }: Props) => {
       z.object({
         otp: z
           .string()
-          .length(4, "OTP must be exactly 4 digits")
-          .regex(/^\d{4}$/, "OTP must only contain numbers"),
+          .length(6, "OTP must be exactly 6 characters")
+          .regex(
+            /^[A-Za-z0-9]{6}$/,
+            "OTP must only contain letters and numbers"
+          ),
       })
     ),
     onSubmit: (val) => {
@@ -88,7 +91,7 @@ const ResetOtp = ({ email, setPage, setOtp }: Props) => {
           <OTPInput
             value={formik.values.otp}
             onChange={(val) => formik.setFieldValue("otp", val)}
-            numInputs={4}
+            numInputs={6}
             renderSeparator={<span> </span>}
             renderInput={(props) => (
               <input

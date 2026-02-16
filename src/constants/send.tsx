@@ -4,8 +4,9 @@ import BeneficiaryForm from "@/app/(dashboard)/_components/send/usd/bankTransfer
 import FrBeneficiaryForm from "@/app/(dashboard)/_components/send/usd/bankTransfer/toGlobal/FrBeneficiaryForm";
 // import GbBeneficiaryForm from "@/app/(dashboard)/_components/send/usd/bankTransfer/toGlobal/GbBeneficiaryForm";
 import { IUSDSendOptions } from "@/types/misc";
-import { FormField, IntCountryType } from "@/types/services";
+import { FormField, IntCountryType, IntCurrencyCode } from "@/types/services";
 import { ComponentType, ReactNode } from "react";
+import Image from "next/image";
 
 interface Options {
   title: string;
@@ -40,7 +41,7 @@ export interface IIntCountry {
   name: string;
   value: IntCountryType;
   logo: string;
-  currency?: string;
+  currency?: IntCurrencyCode;
 }
 
 export const usdSendOptions: Options[] = [
@@ -71,133 +72,135 @@ export const usdSendOptions: Options[] = [
     key: "to Raizer",
   },
   {
-    title: "Bank Transfer",
-    subtitle: "Send to a US bank or International bank",
+    title: "US Bank",
+    subtitle: "Send to a US bank",
     icon: (
-      <svg
-        width="30"
-        height="31"
-        viewBox="0 0 30 31"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          opacity="0.5"
-          d="M25.9737 17.9512L8.075 26.9012C6.0875 27.895 3.75 26.4499 3.75 24.2287L3.75 6.7337C3.75 4.51245 6.0875 3.06745 8.07375 4.0612L25.9725 13.0112C28.0087 14.0287 28.0087 16.9337 25.9737 17.9512Z"
-          fill="#62CFD6"
-        />
-        <path
-          d="M19.2812 16.3175L3.74996 19.23L2.18496 17.665C0.978711 16.4588 0.978711 14.5013 2.18496 13.295L3.74996 11.73L19.2812 14.6425C20.2087 14.8163 20.2087 16.1438 19.2812 16.3175Z"
-          fill="#5B3CB1"
-        />
-      </svg>
+      <Image
+        width={30}
+        height={30}
+        src={"/icons/us-bank.svg"}
+        alt="USA banks"
+      />
     ),
-    key: "bank transfer",
+    key: "usBank",
   },
   {
-    title: "Send to Debit Card",
-    subtitle: "Transfer funds to your debit cards.",
+    title: "International Remittance",
+    subtitle: "Send to an International bank",
     icon: (
-      <svg
-        width="30"
-        height="31"
-        viewBox="0 0 30 31"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          opacity="0.35"
-          d="M23.75 25.98H6.25C4.17875 25.98 2.5 24.3013 2.5 22.23V9.73001C2.5 7.65876 4.17875 5.98001 6.25 5.98001H23.75C25.8212 5.98001 27.5 7.65876 27.5 9.73001V22.23C27.5 24.3013 25.8212 25.98 23.75 25.98Z"
-          fill="#A033E3"
-        />
-        <path
-          d="M12.5 17.23C12.2675 17.23 7.7325 17.23 7.5 17.23C6.81 17.23 6.25 17.79 6.25 18.48C6.25 19.17 6.81 19.73 7.5 19.73C7.7325 19.73 12.2675 19.73 12.5 19.73C13.19 19.73 13.75 19.17 13.75 18.48C13.75 17.79 13.19 17.23 12.5 17.23Z"
-          fill="#26264F"
-        />
-        <path d="M27.5 10.98H2.5V14.73H27.5V10.98Z" fill="#26264F" />
-      </svg>
+      <Image
+        width={30}
+        height={30}
+        src={"/icons/glo-bank.svg"}
+        alt="International remittance"
+      />
     ),
-    key: "to debit card",
+    key: "internationalRemittance",
   },
-  {
-    title: "Send to Paypal",
-    subtitle: "Send money via our paypal feature",
-    icon: (
-      <svg
-        width="21"
-        height="26"
-        viewBox="0 0 21 26"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <g clipPath="url(#clip0_25532_23337)">
-          <path
-            d="M17.9117 6.22998C17.9117 9.32665 15.0195 12.98 10.6437 12.98H6.42859L6.22169 14.27L5.23834 20.48H0L3.15132 0.47998H11.6383C14.4961 0.47998 16.7445 2.05387 17.5726 4.24109C17.8115 4.87702 17.9265 5.55183 17.9117 6.22998Z"
-            fill="#002991"
-          />
-          <path
-            d="M20.9309 11.98C20.6513 13.6585 19.7763 15.184 18.4624 16.2833C17.1486 17.3827 15.4817 17.9841 13.7601 17.98H10.8331L9.61477 25.48H4.40454L5.23833 20.48L6.22224 14.27L6.42859 12.98H10.6437C15.0139 12.98 17.9117 9.32665 17.9117 6.22998C20.0622 7.32665 21.316 9.54276 20.9309 11.98Z"
-            fill="#60CDFF"
-          />
-          <path
-            d="M17.9118 6.22998C17.01 5.76387 15.9164 5.47998 14.7262 5.47998H7.61952L6.42871 12.98H10.6438C15.014 12.98 17.9118 9.32665 17.9118 6.22998Z"
-            fill="#008CFF"
-          />
-        </g>
-        <defs>
-          <clipPath id="clip0_25532_23337">
-            <rect
-              width="21"
-              height="25"
-              fill="white"
-              transform="translate(0 0.47998)"
-            />
-          </clipPath>
-        </defs>
-      </svg>
-    ),
-    key: "to paypal",
-  },
-  {
-    title: "Send to Canada",
-    subtitle: "Send money via different options",
-    icon: (
-      <svg
-        width="25"
-        height="26"
-        viewBox="0 0 25 26"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        xmlnsXlink="http://www.w3.org/1999/xlink"
-      >
-        <rect
-          y="0.47998"
-          width="25"
-          height="25"
-          rx="4"
-          fill="url(#pattern0_25665_9892)"
-        />
-        <defs>
-          <pattern
-            id="pattern0_25665_9892"
-            patternContentUnits="objectBoundingBox"
-            width="1"
-            height="1"
-          >
-            <use xlinkHref="#image0_25665_9892" transform="scale(0.00444444)" />
-          </pattern>
-          <image
-            id="image0_25665_9892"
-            width="225"
-            height="225"
-            preserveAspectRatio="none"
-            xlinkHref="data:image/png;base64,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"
-          />
-        </defs>
-      </svg>
-    ),
-    key: "to canada",
-  },
+  // {
+  //   title: "Send to Debit Card",
+  //   subtitle: "Transfer funds to your debit cards.",
+  //   icon: (
+  //     <svg
+  //       width="30"
+  //       height="31"
+  //       viewBox="0 0 30 31"
+  //       fill="none"
+  //       xmlns="http://www.w3.org/2000/svg"
+  //     >
+  //       <path
+  //         opacity="0.35"
+  //         d="M23.75 25.98H6.25C4.17875 25.98 2.5 24.3013 2.5 22.23V9.73001C2.5 7.65876 4.17875 5.98001 6.25 5.98001H23.75C25.8212 5.98001 27.5 7.65876 27.5 9.73001V22.23C27.5 24.3013 25.8212 25.98 23.75 25.98Z"
+  //         fill="#A033E3"
+  //       />
+  //       <path
+  //         d="M12.5 17.23C12.2675 17.23 7.7325 17.23 7.5 17.23C6.81 17.23 6.25 17.79 6.25 18.48C6.25 19.17 6.81 19.73 7.5 19.73C7.7325 19.73 12.2675 19.73 12.5 19.73C13.19 19.73 13.75 19.17 13.75 18.48C13.75 17.79 13.19 17.23 12.5 17.23Z"
+  //         fill="#26264F"
+  //       />
+  //       <path d="M27.5 10.98H2.5V14.73H27.5V10.98Z" fill="#26264F" />
+  //     </svg>
+  //   ),
+  //   key: "to debit card",
+  // },
+  // {
+  //   title: "Send to Paypal",
+  //   subtitle: "Send money via our paypal feature",
+  //   icon: (
+  //     <svg
+  //       width="21"
+  //       height="26"
+  //       viewBox="0 0 21 26"
+  //       fill="none"
+  //       xmlns="http://www.w3.org/2000/svg"
+  //     >
+  //       <g clipPath="url(#clip0_25532_23337)">
+  //         <path
+  //           d="M17.9117 6.22998C17.9117 9.32665 15.0195 12.98 10.6437 12.98H6.42859L6.22169 14.27L5.23834 20.48H0L3.15132 0.47998H11.6383C14.4961 0.47998 16.7445 2.05387 17.5726 4.24109C17.8115 4.87702 17.9265 5.55183 17.9117 6.22998Z"
+  //           fill="#002991"
+  //         />
+  //         <path
+  //           d="M20.9309 11.98C20.6513 13.6585 19.7763 15.184 18.4624 16.2833C17.1486 17.3827 15.4817 17.9841 13.7601 17.98H10.8331L9.61477 25.48H4.40454L5.23833 20.48L6.22224 14.27L6.42859 12.98H10.6437C15.0139 12.98 17.9117 9.32665 17.9117 6.22998C20.0622 7.32665 21.316 9.54276 20.9309 11.98Z"
+  //           fill="#60CDFF"
+  //         />
+  //         <path
+  //           d="M17.9118 6.22998C17.01 5.76387 15.9164 5.47998 14.7262 5.47998H7.61952L6.42871 12.98H10.6438C15.014 12.98 17.9118 9.32665 17.9118 6.22998Z"
+  //           fill="#008CFF"
+  //         />
+  //       </g>
+  //       <defs>
+  //         <clipPath id="clip0_25532_23337">
+  //           <rect
+  //             width="21"
+  //             height="25"
+  //             fill="white"
+  //             transform="translate(0 0.47998)"
+  //           />
+  //         </clipPath>
+  //       </defs>
+  //     </svg>
+  //   ),
+  //   key: "to paypal",
+  // },
+  // {
+  //   title: "Send to Canada",
+  //   subtitle: "Send money via different options",
+  //   icon: (
+  //     <svg
+  //       width="25"
+  //       height="26"
+  //       viewBox="0 0 25 26"
+  //       fill="none"
+  //       xmlns="http://www.w3.org/2000/svg"
+  //       xmlnsXlink="http://www.w3.org/1999/xlink"
+  //     >
+  //       <rect
+  //         y="0.47998"
+  //         width="25"
+  //         height="25"
+  //         rx="4"
+  //         fill="url(#pattern0_25665_9892)"
+  //       />
+  //       <defs>
+  //         <pattern
+  //           id="pattern0_25665_9892"
+  //           patternContentUnits="objectBoundingBox"
+  //           width="1"
+  //           height="1"
+  //         >
+  //           <use xlinkHref="#image0_25665_9892" transform="scale(0.00444444)" />
+  //         </pattern>
+  //         <image
+  //           id="image0_25665_9892"
+  //           width="225"
+  //           height="225"
+  //           preserveAspectRatio="none"
+  //           xlinkHref="data:image/png;base64,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"
+  //         />
+  //       </defs>
+  //     </svg>
+  //   ),
+  //   key: "to canada",
+  // },
   // {
   //   title: "Send to Zelle",
   //   subtitle: "Send money via our Zelle feature",

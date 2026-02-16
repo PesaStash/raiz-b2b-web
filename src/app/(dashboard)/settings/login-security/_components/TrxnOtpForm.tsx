@@ -60,6 +60,7 @@ const TrxnOtpForm = ({ setPart, formik }: Props) => {
             onChange={(val) => formik.setFieldValue("otp", val)}
             error={formik.errors.otp}
             touched={formik.touched.otp}
+            length={6}
             onResend={() =>
               // resendOtpMutation.mutate({ email: formik.values.email })
               console.log("resend")

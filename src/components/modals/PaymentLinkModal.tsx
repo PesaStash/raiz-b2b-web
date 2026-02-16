@@ -20,7 +20,7 @@ const PaymentLinkModal = ({ close }: Props) => {
   const username = user?.business_account?.username;
   const baseLink =
     typeof window !== "undefined" && username
-      ? `${window.location.origin}/${username}`
+      ? `${window.location.origin}/pay/${username}`
       : "";
 
   const link = amount

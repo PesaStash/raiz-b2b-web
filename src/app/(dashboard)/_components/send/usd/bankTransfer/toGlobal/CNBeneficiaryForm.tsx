@@ -260,7 +260,7 @@ const CNBeneficiaryForm = ({
         const data = type === "BANK" ? bankPayload : result;
         const finalPayload = {
           data: { ...data, type },
-          customer_email: user?.business_account?.business_email || "",
+          customer_email: user?.business_account?.business_email || null,
           country: countryCode as IntCountryType,
         };
 

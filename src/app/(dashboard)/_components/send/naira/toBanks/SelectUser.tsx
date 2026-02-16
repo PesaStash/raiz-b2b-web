@@ -76,10 +76,10 @@ const SelectUser = () => {
   });
 
   const userPayload = {
-    bank_account_name: data?.account_name || "",
+    bank_account_name: data?.account_name || null,
     bank_account_number: acctNo,
-    bank_name: bank?.bankName || "",
-    bank_short_code: bank?.bankCode || "",
+    bank_name: bank?.bankName || null,
+    bank_short_code: bank?.bankCode || null,
   };
 
   const handleNext = () => {

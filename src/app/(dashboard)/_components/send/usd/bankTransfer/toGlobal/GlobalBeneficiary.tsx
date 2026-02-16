@@ -154,7 +154,7 @@ const GlobalBeneficiary = ({ close }: Props) => {
         const { country, ...restValues } = values;
         const payload = {
           country: country?.value as IntCountryType,
-          customer_email: user?.business_account?.business_email || "",
+          customer_email: user?.business_account?.business_email || null,
           data: { ...restValues },
         };
         await AddBeneficiaryMutation.mutateAsync(payload);
@@ -275,7 +275,7 @@ const GlobalBeneficiary = ({ close }: Props) => {
   return (
     <div className="flex flex-col h-full">
       <SideWrapperHeader
-        title="Global Remittance"
+        title="International Remittance"
         close={close}
         titleColor="text-zincc-900"
       />

@@ -431,7 +431,7 @@ const FrBeneficiaryForm = ({ fields, countryCode, reset }: Props) => {
           account_name: values.account_name,
           remittance_purpose: remittancePurpose,
         },
-        customer_email: user?.business_account?.business_email || "",
+        customer_email: user?.business_account?.business_email || null,
         country: countryCode as IntCountryType,
       };
       console.log(JSON.stringify(data, null, 2));

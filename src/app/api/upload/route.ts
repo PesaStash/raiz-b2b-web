@@ -9,10 +9,10 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { extractObjectUrlFromSignedUrl } from "@/utils/helpers";
 
 const s3Client = new S3Client({
-  region: process.env.NEXT_PUBLIC_AWS_REGION! as string,
+  region: process.env.AWS_REGION! as string,
   credentials: {
-    accessKeyId: process.env.NEXT_PUBLIC_AWS_ACCESSKEY_ID as string,
-    secretAccessKey: process.env.NEXT_PUBLIC_AWS_ACCESSKEY_SECRET as string,
+    accessKeyId: process.env.AWS_ACCESSKEY_ID as string,
+    secretAccessKey: process.env.AWS_ACCESSKEY_SECRET as string,
   },
 });
 
@@ -22,7 +22,7 @@ async function uploadImageToS3(
   type: string
 ): Promise<string> {
   const params = {
-    Bucket: process.env.NEXT_PUBLIC_AWS_BUCKET_NAME as string,
+    Bucket: process.env.AWS_BUCKET_NAME as string,
     Key: `${Date.now()}-${fileName}`,
     Body: file,
     ContentType: type,

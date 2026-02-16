@@ -31,25 +31,37 @@ const ForgotPasswordPage = () => {
         return <ResetOtp email={email} setPage={setPage} setOtp={setOtp} />;
       case 3:
         return (
-          <CreateNewPassword setPage={setPage} otp={otp} setUser={setUser} />
+          <CreateNewPassword
+            setPage={setPage}
+            otp={otp}
+            setUser={setUser}
+            email={email}
+          />
         );
       case 4:
         return <WelcomeBack setPage={setPage} email={email} user={user} />;
       case 5:
-        return <LoginOtp from="welcome-back" setStep={setPage} />;
+        return <LoginOtp from="welcome-back" setStep={setPage} email={email} />;
       default:
         break;
     }
   };
   return (
-    <section className="p-6 md:p-12 h-[calc(100vh-2rem)] md:h-[100vh]">
-      <div className="flex flex-col  md:flex-row h-full gap-4">
+    <section className="p-6 md:p-12 lg:px-8 xl:px-12 h-[calc(100vh-2rem)] md:h-full min-h-[100vh]">
+      <div className="flex flex-col  md:flex-row h-full gap-12">
         <Slider />
         <AnimatedSection
           key="forgot-password"
           className="py-4 px-0 md:px-3 xl:px-8 lg:w-[50%] xl:w-[46%] h-full flex flex-col  justify-between gap-[60px]"
         >
-          <Image src={"/icons/Logo.svg"} width={91.78} height={32} alt="Logo" />
+          {page !== 5 && (
+            <Image
+              src={"/icons/Logo.svg"}
+              width={91.78}
+              height={32}
+              alt="Logo"
+            />
+          )}
           {displayPage()}
         </AnimatedSection>
       </div>

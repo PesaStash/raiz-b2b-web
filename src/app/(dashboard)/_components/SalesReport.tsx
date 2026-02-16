@@ -1,15 +1,19 @@
 "use client";
 import LineChart from "@/components/charts/LineChart";
 import { months } from "@/constants/misc";
-import { useCurrentWallet } from "@/lib/hooks/useCurrentWallet";
 import { useUser } from "@/lib/hooks/useUser";
 import { FetchTransactionReportChartApi } from "@/services/business";
 import { ITxnReportPayload } from "@/types/services";
-import { getDaysBetween, getLastThreeMonths } from "@/utils/helpers";
+import {
+  findWalletByCurrency,
+  getDaysBetween,
+  getLastThreeMonths,
+} from "@/utils/helpers";
 import { useQuery } from "@tanstack/react-query";
 import React, { useState } from "react";
 import dayjs from "dayjs";
-import Analytics from "./quick-links/analytics/page";
+import Analytics from "./analytics/page";
+import { useCurrencyStore } from "@/store/useCurrencyStore";
 
 export type PeriodTitle =
   | "12 months"
@@ -49,8 +53,20 @@ const SalesReport = () => {
   ];
   const [activePeriod, setActivePeriod] = useState(periodTabs[0]);
   const { user } = useUser();
-  const currentWallet = useCurrentWallet(user);
+  const { selectedCurrency } = useCurrencyStore();
 
+  const NGNAcct = findWalletByCurrency(user, "NGN");
+  const USDAcct = findWalletByCurrency(user, "USD");
+
+  const getCurrentWallet = () => {
+    if (selectedCurrency.name === "NGN") {
+      return NGNAcct;
+    } else if (selectedCurrency.name === "USD") {
+      return USDAcct;
+    }
+  };
+
+  const currentWallet = getCurrentWallet();
   const { data, isLoading } = useQuery({
     queryKey: [
       "sales-sreport",

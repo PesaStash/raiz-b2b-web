@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import Image from "next/image";
 import { groupByDate, truncateString } from "@/utils/helpers";
 import dayjs from "dayjs";
@@ -9,7 +9,6 @@ import { INotification } from "@/types/user";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { MarkAsReadApi } from "@/services/business";
 import { INotificationResponse } from "@/types/services";
-import InfiniteScroll from "react-infinite-scroll-component";
 import Spinner from "@/components/ui/Spinner";
 import "@/styles/misc.css";
 import { useNotifications } from "@/lib/hooks/useNotifications";
@@ -73,8 +72,9 @@ const Notifications = ({ close }: { close: () => void }) => {
     useState<INotification | null>(null);
   const qc = useQueryClient();
   const limit = 10;
+  const scrollDivRef = useRef<HTMLDivElement>(null);
 
-  const { data, fetchNextPage, hasNextPage, isLoading } =
+  const { data, fetchNextPage, hasNextPage, isLoading, isFetchingNextPage } =
     useNotifications(limit);
 
   const markAsReadMutation = useMutation({
@@ -120,6 +120,7 @@ const Notifications = ({ close }: { close: () => void }) => {
     notifications,
     "created_at"
   );
+
   const handleNotificationClick = (notification: INotification) => {
     if (!notification.read) {
       markAsReadMutation.mutate(notification.notification_id);
@@ -127,11 +128,22 @@ const Notifications = ({ close }: { close: () => void }) => {
     setSelectedNotification(notification);
   };
 
+  // Handle scroll event
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    const bottom =
+      target.scrollHeight - target.scrollTop <= target.clientHeight + 50;
+
+    if (bottom && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  };
+
   return (
     <>
-      <div className=" h-full overflow-hidden">
-        <div className="sticky bg-raiz-gray-50 w-full h-[49px] flex  items-center z-10 ">
-          <div className="flex  justify-between w-1/2 items-center ">
+      <div className="h-full overflow-hidden flex flex-col">
+        <div className="sticky bg-raiz-gray-50 w-full h-[49px] flex items-center z-10">
+          <div className="flex justify-between w-1/2 items-center">
             <button onClick={close}>
               <Image
                 src={"/icons/close.svg"}
@@ -140,69 +152,70 @@ const Notifications = ({ close }: { close: () => void }) => {
                 height={16}
               />
             </button>
-            <h5 className="text-center text-raiz-gray-950 text-base font-bold  leading-tight">
+            <h5 className="text-center text-raiz-gray-950 text-base font-bold leading-tight">
               Inbox
             </h5>
           </div>
         </div>
+
         {isLoading ? (
-          <div className="absolute inset-0 flex items-center justify-center ">
+          <div className="absolute inset-0 flex items-center justify-center">
             <Spinner />
           </div>
         ) : (
-          <InfiniteScroll
-            className="flex flex-col !h-full"
-            height=""
-            dataLength={notifications.length}
-            next={fetchNextPage}
-            hasMore={!!hasNextPage}
-            loader={
-              <p className="text-center text-raiz-gray-950 text-[13px]">
-                Loading more...
-              </p>
-            }
-            endMessage={
-              notifications.length > 0 && (
-                <p className="text-center text-raiz-gray-950 text-[13px]">
-                  You&#39;re caught up!
-                </p>
-              )
-            }
+          <div
+            ref={scrollDivRef}
+            onScroll={handleScroll}
+            className="flex-1 overflow-y-auto no-scrollbar"
           >
-            <div className="flex flex-col gap-[49px] mt-3 h-full overflow-y-scroll no-scrollbar pb-[100px]">
+            <div className="flex flex-col gap-[49px] mt-3 pb-[100px]">
               {Object.keys(groupedNotifications).length > 0 ? (
-                Object.keys(groupedNotifications).map((dateLabel) => (
-                  <div key={dateLabel}>
-                    <h4 className="text-raiz-gray-950 text-base font-medium font-brSonoma leading-tight">
-                      {dateLabel}
-                    </h4>
-                    <div className="flex flex-col gap-2 mt-2">
-                      {groupedNotifications[dateLabel].map(
-                        (notification, index) => (
-                          <button
-                            key={index}
-                            onClick={() =>
-                              handleNotificationClick(notification)
-                            }
-                            className="text-left w-full"
-                            aria-label={`View notification: ${notification.notification_title}`}
-                            role="button"
-                          >
-                            <NotificationItem
-                              {...notification}
-                              onMarkAsRead={() =>
-                                !notification.read &&
-                                markAsReadMutation.mutate(
-                                  notification.notification_id
-                                )
+                <>
+                  {Object.keys(groupedNotifications).map((dateLabel) => (
+                    <div key={dateLabel}>
+                      <h4 className="text-raiz-gray-950 text-base font-medium font-brSonoma leading-tight">
+                        {dateLabel}
+                      </h4>
+                      <div className="flex flex-col gap-2 mt-2">
+                        {groupedNotifications[dateLabel].map(
+                          (notification, index) => (
+                            <button
+                              key={index}
+                              onClick={() =>
+                                handleNotificationClick(notification)
                               }
-                            />
-                          </button>
-                        )
-                      )}
+                              className="text-left w-full"
+                              aria-label={`View notification: ${notification.notification_title}`}
+                              role="button"
+                            >
+                              <NotificationItem
+                                {...notification}
+                                onMarkAsRead={() =>
+                                  !notification.read &&
+                                  markAsReadMutation.mutate(
+                                    notification.notification_id
+                                  )
+                                }
+                              />
+                            </button>
+                          )
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))
+                  ))}
+
+                  {isFetchingNextPage && (
+                    <p className="text-center text-raiz-gray-950 text-[13px] py-4">
+                      Loading more...
+                    </p>
+                  )}
+
+                  {!hasNextPage && notifications.length > 0 && (
+                    <p className="text-center text-raiz-gray-950 text-[13px] py-4">
+                      You&#39;re caught up!
+                    </p>
+                  )}
+                </>
               ) : (
                 <div className="flex flex-col justify-center h-full items-center">
                   <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
@@ -227,18 +240,18 @@ const Notifications = ({ close }: { close: () => void }) => {
                   <h2 className="text-raiz-gray-950 text-lg font-bold mb-8 leading-snug">
                     You have no messages yet
                   </h2>
-                  <p className="text-center text-raiz-gray-950 text-sm font-normal  leading-tight">
+                  <p className="text-center text-raiz-gray-950 text-sm font-normal leading-tight">
                     If there were any new updates or important messages for you
                     they would appear here.
                   </p>
-                  <p className="text-center text-raiz-gray-950 text-sm font-normal  leading-tight mt-6">
+                  <p className="text-center text-raiz-gray-950 text-sm font-normal leading-tight mt-6">
                     Keep exploring and engaging with the app to stay connected
                     and receive timely notifcations
                   </p>
                 </div>
               )}
             </div>
-          </InfiniteScroll>
+          </div>
         )}
       </div>
       {selectedNotification ? (

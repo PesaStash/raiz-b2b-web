@@ -32,7 +32,7 @@ interface Props {
 
 const getAccountName = (user: BeneficiaryType): string => {
   if ("account_name" in user) return user.account_name;
-  if ("bank_account_name" in user) return user.bank_account_name;
+  if ("bank_account_name" in user) return user?.bank_account_name || "";
   return "Unknown Account";
 };
 

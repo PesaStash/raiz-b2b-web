@@ -4,11 +4,15 @@ import SwapDetail from "./SwapDetail";
 import SwapConfirmation from "./SwapConfirmation";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { GetExchangeRate } from "@/services/transactions";
+import {
+  GetExchangeRate,
+  GetIntTransactionFeeApi,
+} from "@/services/transactions";
 import { useSwapStore } from "@/store/Swap";
 import { ACCOUNT_CURRENCIES } from "@/constants/misc";
 import SwapPayment from "./SwapPayment";
 import SwapStatusModal from "./SwapStatusModal";
+import { formatAmount } from "@/utils/helpers";
 // import RaizReceipt from "@/components/transactions/RaizReceipt";
 
 export type SwapStep = "detail" | "confirmation" | "pay" | "status" | "receipt";
@@ -20,7 +24,8 @@ interface Props {
 const Swap = ({ close }: Props) => {
   const [step, setStep] = useState<SwapStep>("detail");
   const [timeLeft, setTimeLeft] = useState<number>(119);
-  const { amount, swapToCurrency, status, actions } = useSwapStore();
+  const { amount, swapToCurrency, status, actions, swapFromCurrency } =
+    useSwapStore();
   const [paymentError, setPaymentError] = useState("");
 
   const {
@@ -54,32 +59,66 @@ const Swap = ({ close }: Props) => {
     return () => clearInterval(timerId);
   }, [timeLeft, refetch]);
 
-  const rate =
-    swapToCurrency === ACCOUNT_CURRENCIES.NGN.name
-      ? exchangeRateData?.sell_rate || 0
-      : exchangeRateData?.buy_rate || 0;
+  const getRate = () => {
+    if (swapToCurrency === ACCOUNT_CURRENCIES.NGN.name) {
+      return exchangeRateData?.sell_rate || 0;
+    }
 
-  const recipientAmount = exchangeRateData
-    ? swapToCurrency === "NGN"
-      ? Number(
-          Number(amount || 0) * Number(exchangeRateData.buy_rate)
-        ).toLocaleString(undefined, {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        }) || "1.00"
-      : Number(Number(amount || 0) / exchangeRateData.sell_rate).toLocaleString(
+    if (swapToCurrency === ACCOUNT_CURRENCIES.USD.name) {
+      if (swapFromCurrency === ACCOUNT_CURRENCIES.SBC.name) {
+        return 1;
+      }
+      return exchangeRateData?.buy_rate || 0;
+    }
+  };
+
+  const rate = getRate();
+
+  const getRecipientAmount = () => {
+    if (!exchangeRateData) return "0.00";
+
+    const safeAmount = Number(amount || 0);
+
+    if (swapToCurrency === ACCOUNT_CURRENCIES.NGN.name) {
+      return (
+        Number(safeAmount * Number(exchangeRateData.buy_rate)).toLocaleString(
           undefined,
           {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           }
         ) || "1.00"
-    : "0.00";
+      );
+    }
+    if (swapToCurrency === ACCOUNT_CURRENCIES.USD.name) {
+      if (swapFromCurrency === ACCOUNT_CURRENCIES.SBC.name) {
+        return formatAmount(safeAmount * 1);
+      }
+      return (
+        Number(safeAmount / Number(exchangeRateData.sell_rate)).toLocaleString(
+          undefined,
+          {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }
+        ) || "1.00"
+      );
+    }
+    return formatAmount(safeAmount);
+  };
+
+  const recipientAmount = getRecipientAmount();
 
   const handleDone = () => {
     actions.reset();
     close();
   };
+
+  const { data: cryptoFee, isLoading: cryptoFeeLoading } = useQuery({
+    queryKey: ["transactions-fee", amount],
+    queryFn: () => GetIntTransactionFeeApi(Number(amount), "CRYPTO_SWAP"),
+    enabled: !!amount,
+  });
 
   const displayScreen = () => {
     switch (step) {
@@ -94,6 +133,7 @@ const Swap = ({ close }: Props) => {
             recipientAmount={recipientAmount}
             timeLeft={timeLeft}
             loading={isLoading || isFetching}
+            cryptoFee={cryptoFee}
           />
         );
       case "confirmation":
@@ -108,6 +148,7 @@ const Swap = ({ close }: Props) => {
               recipientAmount={recipientAmount}
               timeLeft={timeLeft}
               loading={isLoading}
+              cryptoFee={cryptoFee}
             />
             <SwapConfirmation
               goBack={() => setStep("detail")}
@@ -116,6 +157,7 @@ const Swap = ({ close }: Props) => {
               recipientAmount={recipientAmount}
               timeLeft={timeLeft}
               loading={isLoading}
+              cryptoFee={cryptoFee}
             />
           </>
         );

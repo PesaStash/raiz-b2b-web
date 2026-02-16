@@ -14,6 +14,7 @@ interface ButtonProps {
   icon?: string | ReactNode;
   iconPosition?: "left" | "right";
   iconLabel?: string;
+  iconClassName?: string;
 }
 
 const Button: React.FC<ButtonProps> = ({
@@ -28,23 +29,24 @@ const Button: React.FC<ButtonProps> = ({
   icon,
   iconPosition,
   iconLabel,
+  iconClassName,
 }) => {
   const { selectedCurrency } = useCurrencyStore();
   const baseStyles = `relative px-6 py-3.5 rounded-[100px] focus:outline-none transition ease-in-out duration-300 text-[15px]`;
-  const disabledStyles = `bg-raiz-gray-200 hover:cursor-not-allowed hover:bg-raiz-gray-200 text-raiz-gray-400`;
+  const disabledStyles = `bg-raiz-gray-200 hover:cursor-not-allowed  text-raiz-gray-400`;
 
   const getPrimaryStyles = () => {
     if (variant !== "primary") return "";
 
     switch (selectedCurrency.name.toLowerCase()) {
       case "usd":
-        return "bg-raiz-usd-primary text-[#f9f9f9] hover:bg-raiz-usd-primary/90";
+        return "bg-raiz-usd-primary text-[#f9f9f9] enabled:hover:bg-raiz-usd-primary/90";
       case "ngn":
-        return "bg-primary2 text-[#f9f9f9] hover:bg-primary2/90";
+        return "bg-primary2 text-[#f9f9f9] enabled:hover:bg-primary2/90";
       case "sbc":
-        return "bg-raiz-crypto-primary text-[#f9f9f9] hover:bg-raiz-crypto-primary/90";
+        return "bg-raiz-crypto-primary text-[#f9f9f9] enabled:hover:bg-raiz-crypto-primary/90";
       default:
-        return "bg-primary2 text-[#f9f9f9] hover:bg-primary2/90";
+        return "bg-primary2 text-[#f9f9f9] enabled:hover:bg-primary2/90";
     }
   };
 
@@ -89,7 +91,8 @@ const Button: React.FC<ButtonProps> = ({
         <div
           className={`${
             iconPosition === "right" ? "absolute right-4" : "absolute left-4"
-          }`}
+          } ${iconClassName}`}
+          onClick={onClick}
         >
           {typeof icon === "string" ? (
             <Image
@@ -98,7 +101,6 @@ const Button: React.FC<ButtonProps> = ({
               height={20}
               src={icon || ""}
               alt={iconLabel || ""}
-              onClick={onClick}
             />
           ) : (
             icon

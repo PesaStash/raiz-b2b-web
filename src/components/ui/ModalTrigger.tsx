@@ -8,16 +8,23 @@ type Props = {
   placeholder: string;
   value: string;
   label?: string;
+  className?: string;
 };
 
-const ModalTrigger = ({ onClick, placeholder, value, label }: Props) => {
+const ModalTrigger = ({
+  onClick,
+  placeholder,
+  value,
+  label,
+  className,
+}: Props) => {
   return (
     <div className="flex flex-col gap-3">
       {label && <InputLabel content={label} />}
       <button
         onClick={onClick}
         type="button"
-        className="flex justify-between w-full h-[50px] p-[15px] bg-raiz-gray-100 rounded-lg items-center text-left"
+        className={`flex justify-between w-full h-[50px] p-[15px] bg-raiz-gray-100 rounded-lg items-center text-left ${className}`}
       >
         <span
           className={`${
