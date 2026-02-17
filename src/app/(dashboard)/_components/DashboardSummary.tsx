@@ -32,6 +32,7 @@ import { CurrencyTypeKey } from "@/store/Swap/swapSlice.types";
 import AccountUpgrade from "./AccountUpgrade";
 import Loading from "@/app/loading";
 import ExchangeRateCard from "./exchangeRate/ExchangeRateCard";
+import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 // import NgnSuccessModal from "./createNgnAcct/NgnSuccessModal";
 
 const DashboardSummary = () => {
@@ -141,7 +142,7 @@ const DashboardSummary = () => {
     switch (openModal) {
       case "send":
         return currency === "NGN" ? (
-          <NgnSend />
+          <NgnSend close={closeModal} />
         ) : (
           <UsdSend close={closeModal} />
         );
@@ -407,7 +408,7 @@ const DashboardSummary = () => {
         {openModal !== null &&
         openModal !== "selectAcct" &&
         (openModal !== "topUp" || currency === "NGN") ? (
-          <SideModalWrapper
+          <CenterModalWrapper
             close={closeModal}
             wrapperStyle={
               openModal === "request"
@@ -420,7 +421,7 @@ const DashboardSummary = () => {
             }
           >
             {displayScreen()}
-          </SideModalWrapper>
+          </CenterModalWrapper>
         ) : null}
       </AnimatePresence>
       {openModal === "selectAcct" && (

@@ -31,7 +31,7 @@ const NgnBankTransfer = () => {
     queryFn: () =>
       GetIntTransactionFeeApi(
         Number(amount),
-        currency as "USD" | "NGN" | "WIRE"
+        currency as "USD" | "NGN" | "WIRE",
       ),
     enabled: !!amount,
   });
@@ -119,7 +119,11 @@ const NgnBankTransfer = () => {
         break;
     }
   };
-  return <>{displayStep()}</>;
+  return (
+    <div className="rounded-[20px] bg-white p-6 overflow-y-auto mb-6 h-full no-scrollbar">
+      {displayStep()}
+    </div>
+  );
 };
 
 export default NgnBankTransfer;
