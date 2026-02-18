@@ -316,9 +316,7 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
             Transaction history
           </h3>
         )}
-        {topRightOpts ===
-        "link" ? //   className="text-raiz-gray-700 text-sm font-bold py-2 px-3.5  border border-[#E4E0EA] shadow rounded-md" // <Link
-        //   href={"/transactions"}
+        {topRightOpts === "link" ? //   href={"/transactions"} //   className="text-raiz-gray-700 text-sm font-bold py-2 px-3.5  border border-[#E4E0EA] shadow rounded-md" // <Link
         // >
         //   See more
         // </Link>
@@ -538,7 +536,7 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
         {showSend ? (
           currency === "NGN" ? (
             <SideModalWrapper close={() => setShowSend(false)}>
-              <NgnSend />
+              <NgnSend close={() => setShowSend(false)} />
             </SideModalWrapper>
           ) : (
             <SideModalWrapper close={() => setShowSend(false)}>

@@ -158,7 +158,7 @@ const SendMoney = ({
         backArrow={false}
       />
       <div className="flex flex-col h-full justify-between rounded-[20px] overflow-y-scroll no-scrollbar items-center w-full bg-raiz-gray-50 p-6">
-        <div className="w-full h-full">
+        <div className="w-full h-full mb-3">
           <div className="flex flex-col justify-center items-center">
             <div className="relative w-10 h-10">
               <Avatar

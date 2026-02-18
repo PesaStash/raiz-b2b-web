@@ -59,7 +59,9 @@ const CenterModalWrapper = ({ children, close, wrapperStyle }: Props) => {
             : "md:h-screen overflow-y-scroll"
         } ${wrapperStyle}`}
       >
-        <div className="w-full flex flex-col h-full">{children}</div>
+        <div className="w-full flex flex-col h-full overflow-y-auto no-scrollbar">
+          {children}
+        </div>
       </motion.div>
     </motion.div>
   );

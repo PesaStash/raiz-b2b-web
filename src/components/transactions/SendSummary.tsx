@@ -21,7 +21,7 @@ const SendSummary = ({ goBack, goNext, fee }: Props) => {
   const totalPayable = fee ? parseFloat(amount) + fee : amount;
 
   return (
-    <div className="h-full flex flex-col overflow-auto">
+    <div className="h-full flex flex-col overflow-auto no-scrollbar pb-5">
       <CenterModalHeader close={goBack} />
       <h5 className=" text-raiz-gray-950 text-[22px] font-semibold leading-tight mb-10">
         Send Summary

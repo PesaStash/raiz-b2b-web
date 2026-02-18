@@ -16,7 +16,6 @@ const Beneficiaries = ({ users }: Props) => {
       <h5 className="text-raiz-gray-950 text-[13px] font-bold  leading-[18.20px] mb-[15px]">
         Beneficiary
       </h5>
-
       <div className="flex flex-col gap-4">
         {users.map((user, index) => {
           const isLastItem = index === users.length - 1;

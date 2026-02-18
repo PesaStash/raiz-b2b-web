@@ -34,7 +34,8 @@ const RecipientRow = ({
       className="p-2 hover:bg-gray-100 cursor-pointer rounded-2xl flex gap-2 items-center"
       onClick={() => setSelectedUser(user)}
     >
-      <Avatar src={user?.selfie_image} name={user?.account_name} />
+      {/* <Avatar src={user?.selfie_image} name={user?.account_name} /> */}
+      <Avatar src={""} name={user?.account_name} />
       <div>
         <p className="text-sm font-semibold">
           {user.account_name || "Unknown User"}
@@ -77,7 +78,7 @@ const FindRecipients = ({
       debounce((value: string) => {
         setQueryTerm(value);
       }, 500),
-    []
+    [],
   );
 
   const { data, isLoading } = useQuery({
@@ -110,7 +111,7 @@ const FindRecipients = ({
   //   console.log("userssss", suggestions);
 
   return (
-    <div className="">
+    <div className="overflow-y-scroll no-scrollbar pb-5">
       {header && (
         <div>
           <button onClick={goBack}>
@@ -190,7 +191,7 @@ const FindRecipients = ({
       {!searchTerm &&
         recentUsers.length === 0 &&
         beneficiaries.length === 0 && (
-          <div className="flex flex-col justify-center items-center text-center mt-28 text-zinc-900">
+          <div className="flex flex-col justify-center items-center text-center mt-10 text-zinc-900 rounded-[20px] bg-raiz-gray-50 py-20 px-6">
             <Image
               src={"/icons/send-3.svg"}
               alt="send"
@@ -202,24 +203,26 @@ const FindRecipients = ({
             </h4>
             <p className="  text-sm font-normal leading-tight">
               Tap the <span className="font-bold leading-none">search</span>{" "}
-              icon or Tap the{" "}
-              <span className="font-bold leading-none">QR Code</span> icon to
-              send today!
+              icon{" "}
+              {/* <span className="font-bold leading-none">QR Code</span> icon */}
+              to send today!
             </p>
           </div>
         )}
 
       {/* Recent Users and Beneficiaries */}
-      {!searchTerm && recentUsers.length > 0 && (
-        <RecentUsers
-          users={recentUsers}
-          setSelectedUser={setSelectedUser}
-          type="p2p"
-        />
-      )}
-      {!searchTerm && beneficiaries.length > 0 && (
-        <Beneficiaries users={beneficiaries} />
-      )}
+      <div className="mt-10 rounded-[20px] bg-raiz-gray-50 p-6 overflow-y-auto mb-6 no-scrollbar">
+        {!searchTerm && recentUsers.length > 0 && (
+          <RecentUsers
+            users={recentUsers}
+            setSelectedUser={setSelectedUser}
+            type="p2p"
+          />
+        )}
+        {!searchTerm && beneficiaries.length > 0 && (
+          <Beneficiaries users={beneficiaries} />
+        )}
+      </div>
     </div>
   );
 };
