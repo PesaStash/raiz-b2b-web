@@ -13,6 +13,7 @@ import StripePayment from "./StripePayment";
 import TopupSuccess from "./TopupSuccess";
 import { toast } from "sonner";
 import TopUp from "../TopUp";
+import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 
 interface Props {
   close: () => void;
@@ -28,7 +29,7 @@ export type UsdTopupType =
   | "success";
 
 const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISH_KEY || ""
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISH_KEY || "",
 );
 
 const UsdTopUp = ({ close }: Props) => {
@@ -69,7 +70,7 @@ const UsdTopUp = ({ close }: Props) => {
                 goNext={() => {
                   handleDone();
                   toast.success(
-                    "Zelle top-up submitted — funds will reflect once verified."
+                    "Zelle top-up submitted — funds will reflect once verified.",
                   );
                 }}
                 type="top-up"
@@ -103,7 +104,11 @@ const UsdTopUp = ({ close }: Props) => {
   };
 
   if (paymentOption === "bank-transfer") {
-    return <TopUp close={close} />;
+    return (
+      <CenterModalWrapper close={close}>
+        <TopUp close={close} />
+      </CenterModalWrapper>
+    );
   }
 
   return <>{displayScreen()}</>;

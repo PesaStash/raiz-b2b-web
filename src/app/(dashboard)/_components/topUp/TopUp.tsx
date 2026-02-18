@@ -27,6 +27,8 @@ const TopUp = ({ close }: Props) => {
     }
   };
 
+  const isUSD = selectedCurrency.name === "USD";
+
   const currentWallet = getCurrentWallet();
   return (
     <div className="pb-8 flex flex-col justify-between xl:h-[95vh]">
@@ -45,21 +47,31 @@ const TopUp = ({ close }: Props) => {
           </p>
           <div className="p-7 bg-violet-100/60 rounded-[20px] inline-flex flex-col justify-center items-center gap-5 w-full my-[30px]">
             {/* Bank details */}
-            <div className="w-full flex flex-col justify-center items-center">
-              <span className="text-center justify-start text-raiz-gray-600 text-[15px] font-normal leading-normal">
+            <div
+              className={`w-full flex   items-center ${isUSD ? "text-[15px] justify-between" : "flex-col justify-center"}`}
+            >
+              <span className="text-center justify-start text-raiz-gray-600  font-normal leading-normal">
                 Bank Name
               </span>
-              <p className="text-center justify-start text-raiz-gray-950 text-lg font-semibold  leading-normal">
+              <p
+                className={` justify-start text-raiz-gray-950 ${isUSD ? "text-right " : "text-lg text-center"} font-semibold  leading-normal`}
+              >
                 {currentWallet?.bank_name || ""}
               </p>
             </div>
             {/* Acct number */}
-            <div className="w-full flex flex-col justify-center items-center">
-              <span className="text-center justify-start text-raiz-gray-600 text-[15px] font-normal leading-normal">
+            <div
+              className={`w-full flex   items-center ${isUSD ? "text-[15px] justify-between" : "flex-col justify-center"}`}
+            >
+              <span
+                className={`text-center justify-start text-raiz-gray-600  font-normal leading-normal`}
+              >
                 Account Number
               </span>
               <div className="flex items-center gap-2">
-                <p className="text-center justify-start text-raiz-gray-950 text-lg font-semibold  leading-normal">
+                <p
+                  className={`${isUSD ? "text-right" : "text-center text-lg"} justify-start text-raiz-gray-950  font-semibold  leading-normal`}
+                >
                   {currentWallet?.account_number || ""}
                 </p>
                 <button
@@ -78,12 +90,12 @@ const TopUp = ({ close }: Props) => {
             </div>
             {/* Routing Number (ACH) */}
             {selectedCurrency.name === "USD" && (
-              <div className="w-full flex flex-col justify-center items-center">
-                <span className="text-center justify-start text-raiz-gray-600 text-[15px] font-normal leading-normal">
+              <div className="w-full flex  justify-between text-[15px] items-center">
+                <span className="text-center justify-start text-raiz-gray-600  font-normal leading-normal">
                   Routing Number (ACH)
                 </span>
                 <div className="flex items-center gap-2">
-                  <p className="text-center justify-start text-raiz-gray-950 text-lg font-semibold  leading-normal">
+                  <p className="text-center justify-start text-raiz-gray-950  font-semibold  leading-normal">
                     {
                       currentWallet?.routing?.find(
                         (route) => route.routing_type_name === "ACH",
@@ -111,12 +123,12 @@ const TopUp = ({ close }: Props) => {
             )}
             {/* Routing Number (WIRE) */}
             {selectedCurrency.name === "USD" && (
-              <div className="w-full flex flex-col justify-center items-center">
-                <span className="text-center justify-start text-raiz-gray-600 text-[15px] font-normal leading-normal">
+              <div className="w-full flex  justify-between text-[15px] items-center">
+                <span className="text-center justify-start text-raiz-gray-600  font-normal leading-normal">
                   Routing Number (WIRE)
                 </span>
                 <div className="flex items-center gap-2">
-                  <p className="text-center justify-start text-raiz-gray-950 text-lg font-semibold  leading-normal">
+                  <p className="text-center justify-start text-raiz-gray-950  font-semibold  leading-normal">
                     {
                       currentWallet?.routing?.find(
                         (route) => route.routing_type_name === "WIRE",
@@ -143,19 +155,19 @@ const TopUp = ({ close }: Props) => {
               </div>
             )}
             {/* Currency */}
-            <div className="w-full flex flex-col justify-center items-center">
-              <span className="text-center justify-start text-raiz-gray-600 text-[15px] font-normal leading-normal">
+            <div className="w-full flex  justify-between items-center text-[15px]">
+              <span className="text-center justify-start text-raiz-gray-600  font-normal leading-normal">
                 Currency
               </span>
-              <p className="text-center justify-start text-raiz-gray-950 text-lg font-semibold  leading-normal">
+              <p className="text-center justify-start text-raiz-gray-950  font-semibold  leading-normal">
                 {currentWallet?.wallet_type.currency || ""}
               </p>
             </div>
             {/*  Address */}
             {selectedCurrency.name === "USD" && (
-              <div className="w-full flex flex-col justify-center items-center">
+              <div className="w-full flex  justify-between items-center">
                 <div className="flex gap-2 items-center">
-                  <span className="text-center justify-start text-raiz-gray-600 text-[15px] font-normal leading-normal">
+                  <span className="text-left justify-start text-raiz-gray-600 text-[15px] font-normal leading-normal">
                     Address
                   </span>
                   <button
@@ -173,7 +185,7 @@ const TopUp = ({ close }: Props) => {
                 </div>
                 {/* Fix this */}
                 <div className="flex items-start gap-2">
-                  <p className="text-center justify-start  text-raiz-gray-950 text-lg font-semibold  leading-normal">
+                  <p className="text-right  text-raiz-gray-950 text-[15px] font-semibold  leading-normal">
                     1801 Main St., Kansas City, MO 64108
                   </p>
                 </div>
