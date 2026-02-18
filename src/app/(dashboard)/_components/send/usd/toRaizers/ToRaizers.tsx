@@ -94,29 +94,43 @@ const ToRaizers = ({ close }: { close: () => void }) => {
         );
       case "pay":
         return (
-          <Payout
-            goNext={() => setStep("status")}
-            close={() => setStep("summary")}
-            setPaymentError={setPaymentError}
-            fee={0}
-          />
+          <>
+            <SendSummary
+              goBack={() => setStep("category")}
+              goNext={() => setStep("pay")}
+              fee={0}
+            />
+            <Payout
+              goNext={() => setStep("status")}
+              close={() => setStep("summary")}
+              setPaymentError={setPaymentError}
+              fee={0}
+            />
+          </>
         );
 
       case "status":
         return (
           currency &&
           selectedUser && (
-            <PaymentStatusModal
-              status={status}
-              amount={parseFloat(amount)}
-              currency={currency}
-              user={selectedUser}
-              close={handleDone}
-              error={paymentError}
-              tryAgain={() => setStep("summary")}
-              viewReceipt={() => setStep("receipt")}
-              type="p2p"
-            />
+            <>
+              <SendSummary
+                goBack={() => setStep("category")}
+                goNext={() => setStep("pay")}
+                fee={0}
+              />
+              <PaymentStatusModal
+                status={status}
+                amount={parseFloat(amount)}
+                currency={currency}
+                user={selectedUser}
+                close={handleDone}
+                error={paymentError}
+                tryAgain={() => setStep("summary")}
+                viewReceipt={() => setStep("receipt")}
+                type="p2p"
+              />
+            </>
           )
         );
       case "receipt":

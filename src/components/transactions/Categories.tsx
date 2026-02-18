@@ -66,7 +66,7 @@ const Categories = ({ goBack, goNext, loading }: Props) => {
           Select your preferred category
         </p>
       </div>
-      <div className="flex flex-col h-full justify-between items-center">
+      <div className="flex flex-col h-full justify-between items-center pb-7">
         <div className="grid grid-cols-4 gap-y-5 gap-x-3 w-full justify-center items-center rounded-[20px] bg-raiz-gray-50 p-6 overflow-y-auto mb-6 no-scrollbar">
           {data?.map((each, index) => {
             return (

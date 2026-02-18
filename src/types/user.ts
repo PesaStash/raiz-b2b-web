@@ -19,6 +19,19 @@ interface Country {
   updated_at: string;
 }
 
+export interface IWalletTier {
+  wallet_tier_name: string;
+  wallet_tier_code: number;
+  wallet_tier_description: string;
+  dollar_limit: number;
+  naira_limit: number;
+  monthly_dollar_limit: number;
+  monthly_naira_limit: number;
+  wallet_tier_id: number;
+  created_at: string; // ISO datetime string
+  updated_at: string; // ISO datetime string
+}
+
 export interface IEntity {
   entity_type_id: number;
   country: Country;
@@ -34,6 +47,7 @@ export interface IEntity {
   created_at: string;
   updated_at: string;
   entity_address: IEntityAddress[];
+  wallet_tier: IWalletTier;
 }
 
 export interface IBusinessVerification {

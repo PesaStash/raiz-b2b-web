@@ -8,6 +8,7 @@ interface AvatarProps {
   src: string | null;
   size?: number;
   className?: string;
+  initialsClassName?: string;
 }
 
 const Avatar: React.FC<AvatarProps> = ({
@@ -15,6 +16,7 @@ const Avatar: React.FC<AvatarProps> = ({
   src,
   size = 48,
   className,
+  initialsClassName,
 }) => {
   const { selectedCurrency } = useCurrencyStore();
   const [imageError, setImageError] = useState(false);
@@ -37,22 +39,28 @@ const Avatar: React.FC<AvatarProps> = ({
 
   return (
     <div
-      className={`relative flex items-center justify-center overflow-hidden rounded-full  text-white ${
-        selectedCurrency.name === "USD" ? "bg-raiz-usd-primary" : "bg-primary"
-      } ${className} `}
+      className={`relative group flex items-center justify-center overflow-hidden 
+        rounded-full text-white 
+        ${selectedCurrency.name === "USD" ? "bg-raiz-usd-primary" : "bg-primary"}
+        ${className ?? ""}
+      `}
       style={{ width: size, height: size, fontSize: size / 3 }}
     >
       {showImage ? (
         <Image
           src={src}
           alt={name}
-          className="rounded-full object-cover"
+          className="rounded-full object-cover group-hover:scale-110 transition-all duration-300"
           width={size}
           height={size}
           onError={() => setImageError(true)}
         />
       ) : showInitials ? (
-        <span>{getInitials(name)}</span>
+        <span
+          className={`group-hover:scale-110 transition-all duration-300 ${initialsClassName ?? ""}`}
+        >
+          {getInitials(name)}
+        </span>
       ) : (
         <Image
           src="/images/default-pfp.svg"

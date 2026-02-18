@@ -22,7 +22,7 @@ const RecentUsers = ({ users, setSelectedUser, type = "p2p" }: Props) => {
   // Render function for P2P users
   const renderP2PUser = (
     user: ISearchedUser,
-    setUser: (arg: ISearchedUser) => void
+    setUser: (arg: ISearchedUser) => void,
   ) => {
     const avatarSrc = user.selfie_image;
     const accountName = user.account_name;
@@ -35,12 +35,18 @@ const RecentUsers = ({ users, setSelectedUser, type = "p2p" }: Props) => {
         onClick={() => setUser(user)}
       >
         <Avatar src={avatarSrc} name={accountName || "Unknown"} />
-        <p className="text-center text-raiz-gray-950 text-[13px] font-semibold leading-none">
+        <p
+          title={accountName || ""}
+          className="text-center text-raiz-gray-950 text-[13px] font-semibold leading-none"
+        >
           {truncateString(accountName || "", 25)}
         </p>
         {username && (
-          <p className="text-center text-raiz-gray-700 text-xs leading-[18px]">
-            @{username}
+          <p
+            title={username || ""}
+            className="text-center text-raiz-gray-700 text-xs leading-[18px]"
+          >
+            @{truncateString(username, 14)}
           </p>
         )}
       </button>
@@ -50,7 +56,7 @@ const RecentUsers = ({ users, setSelectedUser, type = "p2p" }: Props) => {
   // Render function for External users
   const renderExternalUser = (
     user: IExternalAccount,
-    setUser: (arg: IExternalAccount) => void
+    setUser: (arg: IExternalAccount) => void,
   ) => {
     const avatarSrc = "";
     const accountName = user.bank_account_name;
@@ -59,23 +65,29 @@ const RecentUsers = ({ users, setSelectedUser, type = "p2p" }: Props) => {
     return (
       <button
         key={user?.bank_account_number}
-        className="flex flex-col justify-center items-center gap-0.5 px-2 flex-shrink-0"
+        className="flex flex-col  justify-center items-center gap-0.5 px-2 flex-shrink-0"
         onClick={() => setUser(user)}
       >
         <Avatar src={avatarSrc} name={accountName || "Unknown"} />
-        <p className="text-center text-raiz-gray-950 text-[13px] font-semibold leading-none">
+        <p
+          title={accountName || ""}
+          className="text-center text-raiz-gray-950 text-[13px] font-semibold leading-none"
+        >
           {truncateString(accountName || "", 25)}
         </p>
         {username && (
-          <p className="text-center text-raiz-gray-700 text-xs leading-[18px]">
-            {username}
+          <p
+            title={username || ""}
+            className="text-center text-raiz-gray-700 text-xs leading-[18px]"
+          >
+            {truncateString(username || "", 20)}
           </p>
         )}
       </button>
     );
   };
   return (
-    <div className="w-full  mt-[28px]">
+    <div className="w-full">
       <h5 className="text-raiz-gray-950 text-sm font-bold  leading-[16.80px] mb-[15px]">
         Recents
       </h5>
@@ -84,14 +96,14 @@ const RecentUsers = ({ users, setSelectedUser, type = "p2p" }: Props) => {
           ? users.map((user) =>
               renderP2PUser(
                 user as ISearchedUser,
-                setSelectedUser as (arg: ISearchedUser) => void
-              )
+                setSelectedUser as (arg: ISearchedUser) => void,
+              ),
             )
           : users.map((user) =>
               renderExternalUser(
                 user as IExternalAccount,
-                setSelectedUser as (arg: IExternalAccount) => void
-              )
+                setSelectedUser as (arg: IExternalAccount) => void,
+              ),
             )}
       </div>
     </div>
