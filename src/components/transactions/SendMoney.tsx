@@ -282,7 +282,7 @@ const SendMoney = ({
             ) : null}
           </div>
           <Button
-            disabled={!!error || !purpose || !amount}
+            disabled={!!error || !purpose || !amount || loading}
             loading={loading}
             onClick={handleNext}
           >

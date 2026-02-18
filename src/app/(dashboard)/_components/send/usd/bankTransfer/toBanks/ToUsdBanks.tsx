@@ -44,13 +44,13 @@ const ToUsdBanks = ({ close, bankType }: Props) => {
     }
   }, [bankType]);
 
-  const { data: fee } = useQuery({
+  const { data: fee, isLoading: feeLoading } = useQuery({
     queryKey: ["transactions-fee", amount, currency],
     queryFn: () =>
       GetTransactionFeeApi(
         Number(amount),
         currency as "USD" | "NGN" | "WIRE",
-        usdBeneficiary?.usd_beneficiary_id || ""
+        usdBeneficiary?.usd_beneficiary_id || "",
       ),
     enabled: !!amount,
   });
@@ -82,6 +82,7 @@ const ToUsdBanks = ({ close, bankType }: Props) => {
             goBack={goBackToStep2}
             goNext={() => setStep("category")}
             fee={fee || 0}
+            loading={feeLoading}
           />
         );
       case "category":
@@ -102,28 +103,42 @@ const ToUsdBanks = ({ close, bankType }: Props) => {
         );
       case "pay":
         return (
-          <UsdBankPay
-            goNext={() => setStep("status")}
-            close={() => setStep("summary")}
-            setPaymentError={setPaymentError}
-            fee={fee || 0}
-          />
+          <>
+            <SendSummary
+              goBack={() => setStep("category")}
+              goNext={() => setStep("pay")}
+              fee={fee || 0}
+            />
+            <UsdBankPay
+              goNext={() => setStep("status")}
+              close={() => setStep("summary")}
+              setPaymentError={setPaymentError}
+              fee={fee || 0}
+            />
+          </>
         );
       case "status":
         return (
           currency &&
           usdBeneficiary && (
-            <PaymentStatusModal
-              status={status}
-              amount={parseFloat(amount)}
-              currency={currency}
-              user={usdBeneficiary}
-              close={handleDone}
-              error={paymentError}
-              tryAgain={() => setStep("summary")}
-              viewReceipt={() => setStep("receipt")}
-              type="external"
-            />
+            <>
+              <SendSummary
+                goBack={() => setStep("category")}
+                goNext={() => setStep("pay")}
+                fee={fee || 0}
+              />
+              <PaymentStatusModal
+                status={status}
+                amount={parseFloat(amount)}
+                currency={currency}
+                user={usdBeneficiary}
+                close={handleDone}
+                error={paymentError}
+                tryAgain={() => setStep("summary")}
+                viewReceipt={() => setStep("receipt")}
+                type="external"
+              />
+            </>
           )
         );
       case "receipt":
