@@ -24,7 +24,7 @@ export default function Home() {
 
   return (
     <>
-      <section className="p-8 bg-raiz-gray-50 w-full items-center rounded-[20px] inline-flex flex-col justify-start  gap-8">
+      <section className="p-5 xl:p-8 bg-raiz-gray-50 w-full items-center rounded-[20px] inline-flex flex-col justify-start  gap-8">
         <DashboardSummary />
       </section>
       <section className="p-8 mt-10 bg-raiz-gray-50 w-full items-center rounded-[20px] inline-flex flex-col justify-start  gap-8">
