@@ -26,6 +26,9 @@ const UsdBankPay = ({ close, goNext, setPaymentError }: Props) => {
       qc.refetchQueries({ queryKey: ["user"] });
       qc.invalidateQueries({ queryKey: ["user"] });
       qc.invalidateQueries({ queryKey: ["transactions-report"] });
+      qc.invalidateQueries({ queryKey: ["income-expense-chart"] });
+      qc.invalidateQueries({ queryKey: ["transaction-report-categories"] });
+      qc.invalidateQueries({ queryKey: ["today-outflow"] });
       if (response?.transaction_status?.transaction_status === "completed") {
         actions.setStatus("success");
       } else if (
