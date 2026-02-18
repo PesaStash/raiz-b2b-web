@@ -51,7 +51,7 @@ const renderField = (
   countryName: string,
   selectedBank: IBeneficiaryBank,
   bankDetailsFieldNames: string[],
-  handleOpenModal: (value: string[] | Bank[] | undefined, name: string) => void
+  handleOpenModal: (value: string[] | Bank[] | undefined, name: string) => void,
 ) => {
   if (bankDetailsFieldNames.includes(field.name)) {
     return null;
@@ -144,7 +144,7 @@ const renderField = (
             formikProps.setFieldValue(field.name, e.target.value);
             formikProps.setFieldValue(
               "beneficiary_account_name",
-              e.target.value
+              e.target.value,
             );
           }}
           onBlur={formikProps.handleBlur}
@@ -334,7 +334,7 @@ const renderField = (
   }
   if (field.name === "sender_account_name") {
     return (
-      <div className="mt-[15px]">
+      <div key={field.name} className="mt-[15px]">
         <InputField
           key={field.name}
           label={convertField(field.name)}
@@ -361,7 +361,7 @@ const renderField = (
 
   if (field.name === "beneficiary_country") {
     return (
-      <div className="mt-[15px]">
+      <div key={field.name} className="mt-[15px]">
         <InputField
           key={field.name}
           label={convertField(field.name)}
@@ -453,7 +453,7 @@ export const renderNestedFields = (
   bankDetailsFieldNames: string[],
   handleOpenModal: (value: string[] | Bank[] | undefined, name: string) => void,
   fields?: FormField[],
-  bankDetailsFields?: { name: string; label: string; pattern?: string }[]
+  bankDetailsFields?: { name: string; label: string; pattern?: string }[],
 ) =>
   fields?.map((field) => {
     if (field.type === "object" && field.fields) {
@@ -476,7 +476,7 @@ export const renderNestedFields = (
             bankDetailsFieldNames,
             handleOpenModal,
             field.fields,
-            bankDetailsFields
+            bankDetailsFields,
           )}
         </div>
       );
@@ -499,7 +499,7 @@ export const renderNestedFields = (
       countryName,
       selectedBank,
       bankDetailsFieldNames,
-      handleOpenModal
+      handleOpenModal,
     );
   });
 
@@ -542,7 +542,7 @@ const BeneficiaryForm = ({
             nestedField.type === "string" ? "" : undefined;
           return nestedAcc;
         },
-        {}
+        {},
       );
     } else if (field.const) {
       acc[field.name] = field.const;
@@ -572,14 +572,14 @@ const BeneficiaryForm = ({
     (entity && entity.entity_address && entity.entity_address[0]?.state) || "";
 
   const remittanceFields = fields.find(
-    (item) => item.name === "remittance_purpose"
+    (item) => item.name === "remittance_purpose",
   );
   const benFields = ["BUSINESS", "INDIVIDUAL"];
   const bankDetailsFieldNames = bankDetailsFields.map((field) => field.name);
 
   const createValidationSchema = (
     fields: FormField[],
-    bankDetailsFields: { name: string; label: string; pattern?: string }[]
+    bankDetailsFields: { name: string; label: string; pattern?: string }[],
   ) => {
     const schemaShape: Record<string, z.ZodTypeAny> = {
       country: z.any().refine((val) => val !== "", "Country is required"),
@@ -594,7 +594,7 @@ const BeneficiaryForm = ({
       if (field.required) {
         fieldSchema = fieldSchema.min(
           1,
-          `${convertField(field.name)} is required`
+          `${convertField(field.name)} is required`,
         );
       }
 
@@ -603,13 +603,13 @@ const BeneficiaryForm = ({
           const regex = new RegExp(field.pattern);
           const readableMessage = getReadablePatternMessage(
             field.pattern,
-            field.name
+            field.name,
           );
           fieldSchema = fieldSchema.regex(regex, readableMessage);
         } catch (error) {
           console.error(
             `Invalid regex pattern for ${field.name}: ${field.pattern}`,
-            error
+            error,
           );
         }
       }
@@ -633,13 +633,13 @@ const BeneficiaryForm = ({
           const regex = new RegExp(bankField.pattern);
           const readableMessage = getReadablePatternMessage(
             bankField.pattern,
-            bankField.name
+            bankField.name,
           );
           bankFieldSchema = bankFieldSchema.regex(regex, readableMessage);
         } catch (error) {
           console.error(
             `Invalid regex pattern for ${bankField.name}: ${bankField.pattern}`,
-            error
+            error,
           );
         }
       }
@@ -652,7 +652,7 @@ const BeneficiaryForm = ({
   const formik = useFormik({
     initialValues,
     validationSchema: toFormikValidationSchema(
-      createValidationSchema(fields, bankDetailsFields)
+      createValidationSchema(fields, bankDetailsFields),
     ),
     onSubmit: (values) => {
       let sendObject = {};
@@ -680,10 +680,13 @@ const BeneficiaryForm = ({
         };
       }
 
-      const bankDetails = bankDetailsFields.reduce((acc, field) => {
-        acc[field.name] = values[field.name];
-        return acc;
-      }, {} as Record<string, string>);
+      const bankDetails = bankDetailsFields.reduce(
+        (acc, field) => {
+          acc[field.name] = values[field.name];
+          return acc;
+        },
+        {} as Record<string, string>,
+      );
 
       const data = {
         data: {
@@ -718,7 +721,7 @@ const BeneficiaryForm = ({
 
   const handleOpenModal = (
     value: string[] | Bank[] | undefined,
-    name: string
+    name: string,
   ) => {
     if (name === "remittance_purpose") setOpenModal("purpose");
     if (name === "beneficiary_type") setOpenModal("ben");
@@ -802,7 +805,7 @@ const BeneficiaryForm = ({
                   bankDetailsFieldNames,
                   handleOpenModal,
                   field?.fields,
-                  bankDetailsFields
+                  bankDetailsFields,
                 )}
                 {/* <p className="text-raiz-gray-950 text-sm font-medium mt-3 -mb-3">
                   Bank Details
@@ -850,7 +853,7 @@ const BeneficiaryForm = ({
                         pattern={bankField.pattern}
                       />
                     </div>
-                  )
+                  ),
                 )}
               </div>
             );
@@ -887,7 +890,7 @@ const BeneficiaryForm = ({
                   bankDetailsFieldNames,
                   handleOpenModal,
                   field.fields,
-                  bankDetailsFields
+                  bankDetailsFields,
                 )}
               </div>
             );
@@ -913,7 +916,7 @@ const BeneficiaryForm = ({
               countryName,
               selectedBank,
               bankDetailsFieldNames,
-              handleOpenModal
+              handleOpenModal,
             );
           }
           return null;
