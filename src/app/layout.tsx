@@ -153,7 +153,13 @@ export default function RootLayout({
               }}
               icons={{
                 success: (
-                  <svg width="21" height="22" viewBox="0 0 21 22" fill="none">
+                  <svg
+                    key="toast-success"
+                    width="21"
+                    height="22"
+                    viewBox="0 0 21 22"
+                    fill="none"
+                  >
                     <g clipPath="url(#clip0_23792_6377)">
                       <path
                         d="M21 11C21 16.7986 16.2986 21.5 10.5 21.5C4.70137 21.5 0 16.7986 0 11C0 5.20137 4.70137 0.5 10.5 0.5C16.2986 0.5 21 5.20137 21 11Z"
@@ -177,7 +183,13 @@ export default function RootLayout({
                   </svg>
                 ),
                 info: (
-                  <svg width="21" height="22" viewBox="0 0 21 22" fill="none">
+                  <svg
+                    key="toast-info"
+                    width="21"
+                    height="22"
+                    viewBox="0 0 21 22"
+                    fill="none"
+                  >
                     <path
                       d="M10.5 19.75C15.3325 19.75 19.25 15.8325 19.25 11C19.25 6.16751 15.3325 2.25 10.5 2.25C5.66751 2.25 1.75 6.16751 1.75 11C1.75 15.8325 5.66751 19.75 10.5 19.75Z"
                       fill="#C5DDF5"
@@ -193,7 +205,13 @@ export default function RootLayout({
                   </svg>
                 ),
                 error: (
-                  <svg width="21" height="22" viewBox="0 0 21 22" fill="none">
+                  <svg
+                    key="toast-error"
+                    width="21"
+                    height="22"
+                    viewBox="0 0 21 22"
+                    fill="none"
+                  >
                     <path
                       d="M21 11C21 16.7981 16.2981 21.5 10.5 21.5C4.7019 21.5 0 16.7981 0 11C0 5.2019 4.7019 0.5 10.5 0.5C16.2981 0.5 21 5.2019 21 11Z"
                       fill="url(#paint0_linear_23792_6392)"

@@ -44,6 +44,7 @@ import Image from "next/image";
 import GbBeneficiaryForm from "./GbBeneficiaryForm";
 import DynamicBeneficiaryForm from "./DynamicBeneficiaryForm";
 import CNBeneficiaryForm from "./CNBeneficiaryForm";
+import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 
 interface FormValues {
   country: IIntCountry | null;
@@ -119,14 +120,14 @@ const GlobalBeneficiary = ({ close }: Props) => {
           const regex = new RegExp(field.pattern);
           const readableMessage = getReadablePatternMessage(
             field.pattern,
-            field.name
+            field.name,
           );
 
           fieldSchema = fieldSchema.regex(regex, readableMessage);
         } catch (error) {
           console.log(
             `Invalid regex pattern for ${field.name}: ${field.pattern}`,
-            error
+            error,
           );
         }
       }
@@ -210,7 +211,7 @@ const GlobalBeneficiary = ({ close }: Props) => {
       formik.setFormikState((prev) => ({
         ...prev,
         validationSchema: toFormikValidationSchema(
-          createValidationSchema(newFields)
+          createValidationSchema(newFields),
         ),
       }));
       const newValues: FormValues = {
@@ -220,7 +221,7 @@ const GlobalBeneficiary = ({ close }: Props) => {
             acc[field.name] = formik.values[field.name] || "";
             return acc;
           },
-          {}
+          {},
         ),
       };
       formik.setValues(newValues);
@@ -256,7 +257,7 @@ const GlobalBeneficiary = ({ close }: Props) => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const [_, params] = queryKey as [
         string,
-        { account_number: string; bank_code: string }
+        { account_number: string; bank_code: string },
       ];
       return await FetchNgnAcctDetailsApi(params);
     },
@@ -274,164 +275,170 @@ const GlobalBeneficiary = ({ close }: Props) => {
 
   return (
     <div className="flex flex-col h-full">
-      <SideWrapperHeader
-        title="International Remittance"
-        close={close}
-        titleColor="text-zincc-900"
-      />
-      <div className="mb-11">
-        <h5 className="text-raiz-gray-950 text-sm font-bold  leading-[16.80px] mb-[15px]">
-          Beneficiary
-        </h5>
-        {isLoading ? (
-          <div>Loading beneficiaries...</div>
-        ) : beneficiaries?.length > 0 ? (
-          <div className="flex gap-2 overflow-x-scroll no-scrollbar">
-            {beneficiaries?.map((user, index) => (
+      <CenterModalHeader close={close} />
+      <h2 className="text-xl font-bold text-raiz-gray-950 mb-10">
+        International Remittance
+      </h2>
+      <div className="flex-1  flex flex-col justify-between gap-4 h-[65vh] xl:h-[70vh]">
+        <div className="bg-raiz-gray-50 p-6 overflow-y-auto rounded-[20px]">
+          <div className="mb-11">
+            <h5 className="text-raiz-gray-950 text-sm font-bold  leading-[16.80px] mb-[15px]">
+              Beneficiary
+            </h5>
+            {isLoading ? (
+              <div>Loading beneficiaries...</div>
+            ) : beneficiaries?.length > 0 ? (
+              <div className="flex gap-2 overflow-x-scroll no-scrollbar">
+                {beneficiaries?.map((user, index) => (
+                  <button
+                    key={index}
+                    className="flex flex-col justify-center items-center gap-1 px-2 flex-shrink-0"
+                    onClick={() => actions.selectIntBeneficiary(user)}
+                  >
+                    <div className="flex relative">
+                      <Avatar
+                        src={""}
+                        name={
+                          user?.foreign_payout_beneficiary?.beneficiary_name
+                        }
+                      />
+                      {user?.foreign_payout_beneficiary
+                        ?.beneficiary_country && (
+                        <Image
+                          className="absolute bottom-0 -right-3 w-7 h-5"
+                          src={`/icons/flag-${user.foreign_payout_beneficiary.beneficiary_country.toLowerCase()}.png`}
+                          width={30}
+                          height={20}
+                          alt={user.foreign_payout_beneficiary.beneficiary_country.toLowerCase()}
+                        />
+                      )}
+                    </div>
+
+                    <p className="text-center text-raiz-gray-950 text-[13px] font-semibold leading-none">
+                      {truncateString(
+                        user?.foreign_payout_beneficiary?.beneficiary_name ||
+                          "",
+                        15,
+                      )}
+                    </p>
+                    <p className="text-center text-raiz-gray-700 text-xs leading-[18px]">
+                      {truncateString(
+                        user?.foreign_payout_beneficiary
+                          ?.beneficiary_account_number || "",
+                        15,
+                      )}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <EmptyList text={"No beneficiary yet"} />
+            )}
+          </div>
+          <div className="flex justify-between w-full mb-[15px]">
+            <h4 className="text-zinc-900 text-sm font-bold leading-none">
+              Add Beneficiary
+            </h4>
+            {beneficiaries?.length > 0 && (
               <button
-                key={index}
-                className="flex flex-col justify-center items-center gap-1 px-2 flex-shrink-0"
-                onClick={() => actions.selectIntBeneficiary(user)}
+                type="button"
+                onClick={() => setShowModal("beneficiary")}
+                className="text-indigo-900 text-xs font-bold leading-tight"
               >
-                <div className="flex relative">
-                  <Avatar
-                    src={""}
-                    name={user?.foreign_payout_beneficiary?.beneficiary_name}
+                Choose Beneficiary
+              </button>
+            )}
+          </div>
+          <ModalTrigger
+            onClick={() => setShowModal("country")}
+            placeholder="Enter country"
+            value={
+              typeof formik.values.country === "string"
+                ? formik.values.country
+                : formik.values.country?.name || ""
+            }
+          />
+
+          {fields.length > 0 && formik.values.country?.value === "NG" && (
+            <form
+              onSubmit={NgFormik.handleSubmit}
+              className="flex flex-col gap-[15px] justify-between h-[60vh] lg:h-[65vh] pb-7"
+            >
+              <div className="flex flex-col gap-[15px]">
+                <div className="mt-[15px]">
+                  <InputLabel content={"Bank Name"} />
+                  <ModalTrigger
+                    onClick={() => setShowModal("bank")}
+                    placeholder="Enter bank name"
+                    value={bank?.bankName || ""}
                   />
-                  {user?.foreign_payout_beneficiary?.beneficiary_country && (
-                    <Image
-                      className="absolute bottom-0 -right-3 w-7 h-5"
-                      src={`/icons/flag-${user.foreign_payout_beneficiary.beneficiary_country.toLowerCase()}.png`}
-                      width={30}
-                      height={20}
-                      alt={user.foreign_payout_beneficiary.beneficiary_country.toLowerCase()}
-                    />
+                </div>
+                <InputField
+                  label="Account Number"
+                  {...NgFormik.getFieldProps("account_number")}
+                  placeholder="Enter account number"
+                  errorMessage={error ? error : undefined}
+                  onChange={handleAccountChange}
+                />
+                <div className="flex gap-2 mt-2 items-center">
+                  {isFetching ? (
+                    <ImSpinner2 className="animate-spin w-4 h-4" />
+                  ) : (
+                    <span>{ngData?.account_name}</span>
                   )}
                 </div>
-
-                <p className="text-center text-raiz-gray-950 text-[13px] font-semibold leading-none">
-                  {truncateString(
-                    user?.foreign_payout_beneficiary?.beneficiary_name || "",
-                    15
-                  )}
-                </p>
-                <p className="text-center text-raiz-gray-700 text-xs leading-[18px]">
-                  {truncateString(
-                    user?.foreign_payout_beneficiary
-                      ?.beneficiary_account_number || "",
-                    15
-                  )}
-                </p>
-              </button>
-            ))}
-          </div>
-        ) : (
-          <EmptyList text={"No beneficiary yet"} />
-        )}
-      </div>
-      <div className="flex justify-between w-full mb-[15px]">
-        <h4 className="text-zinc-900 text-sm font-bold leading-none">
-          Add Beneficiary
-        </h4>
-        {beneficiaries?.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setShowModal("beneficiary")}
-            className="text-indigo-900 text-xs font-bold leading-tight"
-          >
-            Choose Beneficiary
-          </button>
-        )}
-      </div>
-      <ModalTrigger
-        onClick={() => setShowModal("country")}
-        placeholder="Enter country"
-        value={
-          typeof formik.values.country === "string"
-            ? formik.values.country
-            : formik.values.country?.name || ""
-        }
-      />
-
-      {fields.length > 0 && formik.values.country?.value === "NG" && (
-        <form
-          onSubmit={NgFormik.handleSubmit}
-          className="flex flex-col gap-[15px] justify-between h-[60vh] lg:h-[65vh] pb-7"
-        >
-          <div className="flex flex-col gap-[15px]">
-            <div className="mt-[15px]">
-              <InputLabel content={"Bank Name"} />
-              <ModalTrigger
-                onClick={() => setShowModal("bank")}
-                placeholder="Enter bank name"
-                value={bank?.bankName || ""}
-              />
-            </div>
-            <InputField
-              label="Account Number"
-              {...NgFormik.getFieldProps("account_number")}
-              placeholder="Enter account number"
-              errorMessage={error ? error : undefined}
-              onChange={handleAccountChange}
+              </div>
+              <Button
+                loading={AddBeneficiaryMutation.isPending}
+                type="submit"
+                disabled={!ngData || isFetching}
+              >
+                Continue
+              </Button>
+            </form>
+          )}
+          {fields.length > 0 && formik.values.country?.value === "GB" && (
+            <GbBeneficiaryForm
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              fields={fields as any}
+              countryCode={formik.values.country.value}
             />
-            <div className="flex gap-2 mt-2 items-center">
-              {isFetching ? (
-                <ImSpinner2 className="animate-spin w-4 h-4" />
-              ) : (
-                <span>{ngData?.account_name}</span>
-              )}
-            </div>
-          </div>
-          <Button
-            loading={AddBeneficiaryMutation.isPending}
-            type="submit"
-            disabled={!ngData || isFetching}
-          >
-            Continue
-          </Button>
-        </form>
-      )}
-      {fields.length > 0 && formik.values.country?.value === "GB" && (
-        <GbBeneficiaryForm
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          fields={fields as any}
-          countryCode={formik.values.country.value}
-        />
-      )}
-      {fields.length > 0 && formik.values.country?.value === "CN" && (
-        <CNBeneficiaryForm
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          fields={fields as any}
-          countryCode={formik.values.country.value}
-          countryName={"China"}
-          bankDetailsFields={[
-            { name: "bank_code", label: "Bank" },
-            {
-              name: "account_number",
-              label: "Account Number",
-              pattern: "^\\+86[1][3-9]\\d{9}$",
-            },
-            // {
-            //   name: "account_name",
-            //   label: "Account Name",
-            //   pattern: "[^\\s@]+(\\s+)[^\\s@]+",
-            // },
-          ]}
-        />
-      )}
+          )}
+          {fields.length > 0 && formik.values.country?.value === "CN" && (
+            <CNBeneficiaryForm
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              fields={fields as any}
+              countryCode={formik.values.country.value}
+              countryName={"China"}
+              bankDetailsFields={[
+                { name: "bank_code", label: "Bank" },
+                {
+                  name: "account_number",
+                  label: "Account Number",
+                  pattern: "^\\+86[1][3-9]\\d{9}$",
+                },
+                // {
+                //   name: "account_name",
+                //   label: "Account Name",
+                //   pattern: "[^\\s@]+(\\s+)[^\\s@]+",
+                // },
+              ]}
+            />
+          )}
 
-      {fields.length > 0 &&
-        formik.values.country?.value !== "NG" &&
-        formik.values.country?.value !== "GB" &&
-        formik.values.country?.value !== "CN" && (
-          <DynamicBeneficiaryForm
-            fields={fields}
-            formik={formik}
-            fieldsData={fieldsData || {}}
-            reset={() => formik.resetForm()}
-          />
-        )}
-
+          {fields.length > 0 &&
+            formik.values.country?.value !== "NG" &&
+            formik.values.country?.value !== "GB" &&
+            formik.values.country?.value !== "CN" && (
+              <DynamicBeneficiaryForm
+                fields={fields}
+                formik={formik}
+                fieldsData={fieldsData || {}}
+                reset={() => formik.resetForm()}
+              />
+            )}
+        </div>
+      </div>
       {showModal === "country" && (
         <IntCountriesModal
           setCountry={(country) => formik.setFieldValue("country", country)}
