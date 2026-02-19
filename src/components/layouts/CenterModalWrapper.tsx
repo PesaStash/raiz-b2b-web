@@ -3,6 +3,7 @@ import Image from "next/image";
 import React, { ReactNode, useEffect, useState } from "react";
 import * as motion from "motion/react-client";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
+import Link from "next/link";
 
 interface Props {
   children: ReactNode;
@@ -36,13 +37,15 @@ const CenterModalWrapper = ({ children, close, wrapperStyle }: Props) => {
       transition={{ duration: 0.3 }}
       className={`fixed inset-0 flex items-center justify-center bg-[#F8F7FA] z-50 `}
     >
-      <Image
-        src={"/icons/Logo-4.svg"}
-        width={103.95}
-        height={46}
-        alt="Logo"
-        className="absolute top-6 left-6"
-      />
+      <Link href="/" onClick={close}>
+        <Image
+          src={"/icons/Logo-4.svg"}
+          width={103.95}
+          height={46}
+          alt="Logo"
+          className="absolute top-6 left-6"
+        />
+      </Link>
       <motion.div
         initial={initial}
         animate={animate}

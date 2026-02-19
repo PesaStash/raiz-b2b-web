@@ -1,8 +1,5 @@
 "use client";
 import React, { useEffect, useState } from "react";
-// import SalesReport from "./SalesReport";
-import SideModalWrapper from "./SideModalWrapper";
-import Image from "next/image";
 import { AnimatePresence } from "motion/react";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import NgnSend from "./send/naira/NgnSend";
@@ -16,7 +13,6 @@ import { useUserStore } from "@/store/useUserStore";
 import { toast } from "sonner";
 import Swap from "./swap/Swap";
 import { useSwapStore } from "@/store/Swap";
-import { ACCOUNT_CURRENCIES } from "@/constants/misc";
 import { usePathname } from "next/navigation";
 import SelectAccount from "./SelectAccount";
 import CreateNgnAcct from "./createNgnAcct/CreateNgnAcct";
@@ -33,7 +29,6 @@ import AccountUpgrade from "./AccountUpgrade";
 import Loading from "@/app/loading";
 import ExchangeRateCard from "./exchangeRate/ExchangeRateCard";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
-// import NgnSuccessModal from "./createNgnAcct/NgnSuccessModal";
 
 const DashboardSummary = () => {
   const { user, refetch, isLoading } = useUser();
@@ -96,7 +91,7 @@ const DashboardSummary = () => {
   const handleActionButton = (action: "send" | "request" | "topUp") => {
     if (!currentWallet) {
       toast.warning(
-        "You do not have a wallet for this currency. Create one first!",
+        "You do not have an account for this currency. Create one first!",
       );
     } else {
       setOpenModal(action);
