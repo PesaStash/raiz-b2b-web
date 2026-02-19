@@ -53,7 +53,7 @@ const CenterModalWrapper = ({ children, close, wrapperStyle }: Props) => {
           damping: 30,
         }}
         key="modal"
-        className={`p-[25px] xl:p-[64px] no-scrollbar justify-start gap-2 flex flex-col fixed bottom-0 w-full max-w-[562px] lg:top-[45px] xl:top-0 ${
+        className={`p-[25px] xl:p-10 desktop:p-[64px] no-scrollbar justify-start gap-2 flex flex-col fixed bottom-0 w-full max-w-[562px] lg:top-[45px] xl:top-0 ${
           isMobile
             ? "max-h-[85vh] overflow-y-auto rounded-t-[32px] bg-white shadow-2xl"
             : "md:h-screen overflow-y-scroll"

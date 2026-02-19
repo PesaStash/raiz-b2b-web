@@ -7,6 +7,7 @@ import ListDetailItem from "../ui/ListDetailItem";
 import { formatTime, getCurrencySymbol, convertTime } from "@/utils/helpers";
 import { IInitialPayoutResponse } from "@/types/services";
 import dayjs from "dayjs";
+import CenterModalHeader from "../layouts/CenterModalHeader";
 
 interface Props {
   goBack: () => void;
@@ -33,75 +34,81 @@ const InternationalSendSummary = ({
   const currency =
     intBeneficiary?.foreign_payout_beneficiary?.beneficiary_currency || "";
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex flex-col items-center justify-center mb-4 text-zinc-900">
-        <div className="w-12 h-12 mb-4 flex mx-auto items-center justify-center bg-violet-100 bg-opacity-60 rounded-3xl">
-          <Image
-            className="w-6 h-6"
-            src={category?.category_emoji || "/icons/notif-general.svg"}
-            alt={category?.transaction_category || ""}
-            width={24}
-            height={24}
-          />
-        </div>
-        <p className="text-center text-xl font-bold leading-normal">
-          {getCurrencySymbol(currency)}
-          {Number(amount).toLocaleString()}
-        </p>
-        <p className="text-center   text-xs font-normal  leading-tight">
-          Send Summary
-        </p>
-      </div>
-      <div className="flex flex-col h-full justify-between items-center w-full">
-        <div className="w-full flex flex-col gap-[15px]">
-          <ListDetailItem
-            title="Recipient's name"
-            value={
-              paymentData?.foreign_payout_beneficiary?.beneficiary_name || ""
-            }
-          />
-          <ListDetailItem
-            title="You send"
-            value={`${getCurrencySymbol(senderCurrency || "")}
-              ${paymentData?.amount.toLocaleString()}`}
-          />
-          <ListDetailItem
-            title="Transaction fee"
-            value={`${getCurrencySymbol(senderCurrency || "")}
-              ${fee.toLocaleString()}`}
-          />
-          <ListDetailItem
-            title="Exchange rate"
-            value={`  ${getCurrencySymbol(currency)}${
-              paymentData?.exchange_rate?.toFixed(2) || 1
-            } = $1(USD)`}
-            border
-          />
-          <ListDetailItem
-            title="Category"
-            value={category?.transaction_category || ""}
-          />
-          <ListDetailItem title="Purpose" value={purpose} />
-          <ListDetailItem
-            title="Date"
-            value={dayjs(convertTime(paymentData?.created_at || "")).format(
-              "DD MMM YYYY @ hh:mm"
-            )}
-          />
-          <div
-            className={`flex text-zinc-900 justify-between gap-4 items-start pb-3    `}
-          >
-            <span className="text-xs font-normal leading-tight">Timer</span>
-            <div className="flex gap-1.5 items-center">
+    <div className="flex flex-col h-full  overflow-auto no-scrollbar pb-5">
+      <CenterModalHeader close={goBack} />
+      <h5 className=" text-raiz-gray-950 text-[22px] font-semibold leading-tight mb-10">
+        Send Summary
+      </h5>
+      <div className="flex flex-col justify-between gap-6">
+        <div className="bg-raiz-gray-50 p-6 rounded-[20px] w-full">
+          <div className="flex flex-col items-center justify-center mb-4 text-zinc-900">
+            <div className="w-12 h-12 mb-4 flex mx-auto items-center justify-center bg-violet-100 bg-opacity-60 rounded-3xl">
               <Image
-                src={"/icons/timer.svg"}
-                width={20}
-                height={20}
-                alt="timer"
+                className="w-6 h-6"
+                src={category?.category_emoji || "/icons/notif-general.svg"}
+                alt={category?.transaction_category || ""}
+                width={24}
+                height={24}
               />
-              <span className="text-sm text-right font-semibold font-brSonoma leading-tight">
-                {formatTime(timeLeft)}
-              </span>
+            </div>
+            <p className="text-center text-xl font-bold leading-normal">
+              {getCurrencySymbol(currency)}
+              {Number(amount).toLocaleString()}
+            </p>
+            <p className="text-center   text-xs font-normal  leading-tight">
+              Send Summary
+            </p>
+          </div>
+          <div className="w-full flex flex-col gap-[15px] ">
+            <ListDetailItem
+              title="Recipient's name"
+              value={
+                paymentData?.foreign_payout_beneficiary?.beneficiary_name || ""
+              }
+            />
+            <ListDetailItem
+              title="You send"
+              value={`${getCurrencySymbol(senderCurrency || "")}
+              ${paymentData?.amount.toLocaleString()}`}
+            />
+            <ListDetailItem
+              title="Transaction fee"
+              value={`${getCurrencySymbol(senderCurrency || "")}
+              ${fee.toLocaleString()}`}
+            />
+            <ListDetailItem
+              title="Exchange rate"
+              value={`  ${getCurrencySymbol(currency)}${
+                paymentData?.exchange_rate?.toFixed(2) || 1
+              } = $1(USD)`}
+              border
+            />
+            <ListDetailItem
+              title="Category"
+              value={category?.transaction_category || ""}
+            />
+            <ListDetailItem title="Purpose" value={purpose} />
+            <ListDetailItem
+              title="Date"
+              value={dayjs(convertTime(paymentData?.created_at || "")).format(
+                "DD MMM YYYY @ hh:mm",
+              )}
+            />
+            <div
+              className={`flex text-zinc-900 justify-between gap-4 items-start pb-3    `}
+            >
+              <span className="text-xs font-normal leading-tight">Timer</span>
+              <div className="flex gap-1.5 items-center">
+                <Image
+                  src={"/icons/timer.svg"}
+                  width={20}
+                  height={20}
+                  alt="timer"
+                />
+                <span className="text-sm text-right font-semibold font-brSonoma leading-tight">
+                  {formatTime(timeLeft)}
+                </span>
+              </div>
             </div>
           </div>
         </div>

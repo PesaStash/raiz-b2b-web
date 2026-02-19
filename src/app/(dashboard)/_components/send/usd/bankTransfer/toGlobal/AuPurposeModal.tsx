@@ -28,7 +28,9 @@ const AuPurposeModal = ({
         </h5>
         <div className="flex flex-col gap-4 mt-5 max-h-[450px] overflow-y-scroll no-scrollbar  w-full items-start">
           {data?.map((each, index) => (
-            <button
+            <div
+              role="button"
+              tabIndex={0}
               onClick={() => handleClick(each)}
               className="text-sm font-medium w-full flex gap-2 "
               key={index}
@@ -38,7 +40,7 @@ const AuPurposeModal = ({
                 onChange={() => handleClick(each)}
               />
               {convertField(each)}
-            </button>
+            </div>
           ))}
         </div>
       </div>

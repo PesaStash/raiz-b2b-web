@@ -140,33 +140,58 @@ const ToGlobal = ({ close, bankType }: Props) => {
         );
       case "pay":
         return (
-          <InternationPayout
-            paymentInitiationId={
-              paymentInitiationData?.payout_initiation_id || ""
-            }
-            goNext={() => setStep("status")}
-            close={() => setStep("summary")}
-            setPaymentError={setPaymentError}
-            fee={paymentInitiationData?.raiz_charge || 0}
-          />
+          <>
+            {paymentInitiationData && (
+              <InternationalSendSummary
+                goBack={() => setStep("category")}
+                goNext={() => setStep("pay")}
+                // cofirm if to use raiz charge or fee
+                fee={paymentInitiationData?.fees || 0}
+                paymentData={paymentInitiationData}
+                timeLeft={timeLeft}
+              />
+            )}
+            <InternationPayout
+              paymentInitiationId={
+                paymentInitiationData?.payout_initiation_id || ""
+              }
+              goNext={() => setStep("status")}
+              close={() => setStep("summary")}
+              setPaymentError={setPaymentError}
+              fee={paymentInitiationData?.raiz_charge || 0}
+            />
+          </>
         );
       case "status":
         return (
           currency &&
           intBeneficiary && (
-            <PaymentStatusModal
-              status={status}
-              amount={parseFloat(amount)}
-              currency={
-                intBeneficiary?.foreign_payout_beneficiary?.beneficiary_currency
-              }
-              user={intBeneficiary}
-              close={handleDone}
-              error={paymentError}
-              tryAgain={() => setStep("details")}
-              viewReceipt={() => setStep("receipt")}
-              type="external"
-            />
+            <>
+              {paymentInitiationData && (
+                <InternationalSendSummary
+                  goBack={() => setStep("category")}
+                  goNext={() => setStep("pay")}
+                  // cofirm if to use raiz charge or fee
+                  fee={paymentInitiationData?.fees || 0}
+                  paymentData={paymentInitiationData}
+                  timeLeft={timeLeft}
+                />
+              )}
+              <PaymentStatusModal
+                status={status}
+                amount={parseFloat(amount)}
+                currency={
+                  intBeneficiary?.foreign_payout_beneficiary
+                    ?.beneficiary_currency
+                }
+                user={intBeneficiary}
+                close={handleDone}
+                error={paymentError}
+                tryAgain={() => setStep("summary")}
+                viewReceipt={() => setStep("receipt")}
+                type="external"
+              />
+            </>
           )
         );
       case "receipt":

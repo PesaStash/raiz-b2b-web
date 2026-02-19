@@ -12,6 +12,7 @@ import ErrorMessage from "../ui/ErrorMessage";
 import InputField from "../ui/InputField";
 import Button from "../ui/Button";
 import { toast } from "sonner";
+import CenterModalHeader from "../layouts/CenterModalHeader";
 
 interface Props {
   goBack: () => void;
@@ -38,7 +39,7 @@ const InternationalSendMoney = ({
     if (!user || !user?.business_account?.wallets || !selectedCurrency?.name)
       return null;
     return user?.business_account?.wallets.find(
-      (wallet) => wallet.wallet_type.currency === selectedCurrency.name
+      (wallet) => wallet.wallet_type.currency === selectedCurrency.name,
     );
   }, [user, selectedCurrency]);
   const currency =
@@ -105,21 +106,23 @@ const InternationalSendMoney = ({
     const parsedAmount = parseFloat(amount || "0");
     if (minAmount && parsedAmount < minAmount) {
       toast.warning(
-        `Amount must be at least ${getCurrencySymbol(currency)}${minAmount}`
+        `Amount must be at least ${getCurrencySymbol(currency)}${minAmount}`,
       );
       return;
     }
     goNext();
   };
   return (
-    <div className="w-full flex flex-col h-full">
+    <div className="w-full flex flex-col h-full pb-5 overflow-y-scroll no-scrollbar">
+      <CenterModalHeader close={goBack} />
       <SideWrapperHeader
         close={goBack}
         title="Send Money"
         titleColor="text-zinc-900"
+        backArrow={false}
       />
-      <div className="flex flex-col h-full justify-between items-center w-full">
-        <div className="w-full h-full">
+      <div className="flex flex-col h-full justify-between rounded-[20px] overflow-y-scroll no-scrollbar items-center w-full bg-raiz-gray-50 p-6">
+        <div className="w-full  mb-3">
           <div className="flex flex-col justify-center items-center">
             <div className="relative w-10 h-10">
               <Avatar src={""} name={selectedUser?.beneficiary_name || ""} />
@@ -175,7 +178,7 @@ const InternationalSendMoney = ({
                 Balance:
                 <span className="text-zinc-900 text-xs font-bold leading-tight">
                   {getCurrencySymbol(
-                    currentWallet?.wallet_type?.currency || ""
+                    currentWallet?.wallet_type?.currency || "",
                   )}
                   {currentWallet?.account_balance}{" "}
                 </span>
