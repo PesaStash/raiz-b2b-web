@@ -86,7 +86,7 @@ const Swap = ({ close }: Props) => {
           {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
-          }
+          },
         ) || "1.00"
       );
     }
@@ -100,7 +100,7 @@ const Swap = ({ close }: Props) => {
           {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
-          }
+          },
         ) || "1.00"
       );
     }
@@ -163,11 +163,24 @@ const Swap = ({ close }: Props) => {
         );
       case "pay":
         return (
-          <SwapPayment
-            goNext={() => setStep("status")}
-            close={() => setStep("confirmation")}
-            setPaymentError={setPaymentError}
-          />
+          <>
+            <SwapDetail
+              close={close}
+              goNext={() => {
+                setStep("confirmation");
+              }}
+              exchangeRate={rate}
+              recipientAmount={recipientAmount}
+              timeLeft={timeLeft}
+              loading={isLoading}
+              cryptoFee={cryptoFee}
+            />
+            <SwapPayment
+              goNext={() => setStep("status")}
+              close={() => setStep("confirmation")}
+              setPaymentError={setPaymentError}
+            />
+          </>
         );
       case "status":
         return (
