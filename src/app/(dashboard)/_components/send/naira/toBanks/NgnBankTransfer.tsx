@@ -85,28 +85,42 @@ const NgnBankTransfer = () => {
         );
       case "pay":
         return (
-          <ExternalPayout
-            goNext={() => setStep("status")}
-            close={() => setStep("summary")}
-            setPaymentError={setPaymentError}
-            fee={fee || 0}
-          />
+          <>
+            <SendSummary
+              goBack={() => setStep("category")}
+              goNext={() => setStep("pay")}
+              fee={fee || 0}
+            />
+            <ExternalPayout
+              goNext={() => setStep("status")}
+              close={() => setStep("summary")}
+              setPaymentError={setPaymentError}
+              fee={fee || 0}
+            />
+          </>
         );
       case "status":
         return (
           currency &&
           externalUser && (
-            <PaymentStatusModal
-              status={status}
-              amount={parseFloat(amount)}
-              currency={currency}
-              user={externalUser}
-              close={handleDone}
-              error={paymentError}
-              tryAgain={() => setStep("summary")}
-              viewReceipt={() => setStep("receipt")}
-              type="external"
-            />
+            <>
+              <SendSummary
+                goBack={() => setStep("category")}
+                goNext={() => setStep("pay")}
+                fee={fee || 0}
+              />
+              <PaymentStatusModal
+                status={status}
+                amount={parseFloat(amount)}
+                currency={currency}
+                user={externalUser}
+                close={handleDone}
+                error={paymentError}
+                tryAgain={() => setStep("summary")}
+                viewReceipt={() => setStep("receipt")}
+                type="external"
+              />
+            </>
           )
         );
       case "receipt":
@@ -120,7 +134,7 @@ const NgnBankTransfer = () => {
     }
   };
   return (
-    <div className="rounded-[20px] bg-white p-6 overflow-y-auto mb-6 h-full no-scrollbar">
+    <div className=" p-6 overflow-y-auto mb-6 h-full no-scrollbar">
       {displayStep()}
     </div>
   );
