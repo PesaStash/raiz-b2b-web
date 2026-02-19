@@ -10,6 +10,7 @@ import { getCurrencySymbol } from "@/utils/helpers";
 import ErrorMessage from "@/components/ui/ErrorMessage";
 import { useUser } from "@/lib/hooks/useUser";
 import { toast } from "sonner";
+import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 
 interface Props {
   close: () => void;
@@ -58,7 +59,7 @@ const SwapDetail = ({
       },
       {
         message: `Amount cannot exceed available balance`,
-      }
+      },
     );
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -145,12 +146,14 @@ const SwapDetail = ({
 
   return (
     <div>
+      <CenterModalHeader close={close} />
       <SideWrapperHeader
         title={`Swap ${swapFromCurrency}`}
         close={close}
         titleColor="text-zinc-900"
+        backArrow={false}
       />
-      <div className="flex flex-col justify-between h-[85vh]">
+      <div className="flex flex-col justify-between xl:h-[75vh] bg-raiz-gray-50 rounded-[20px] p-6">
         <div className="mt-5">
           <h6 className="text-center justify-start text-zinc-900 text-base font-normal leading-normal">
             How much do you want to swap?
@@ -191,8 +194,8 @@ const SwapDetail = ({
                   swapToCurrency === "NGN"
                     ? "ngn"
                     : swapToCurrency === "USD"
-                    ? "dollar"
-                    : "bsc"
+                      ? "dollar"
+                      : "bsc"
                 }.svg`}
                 width={24}
                 height={24}
