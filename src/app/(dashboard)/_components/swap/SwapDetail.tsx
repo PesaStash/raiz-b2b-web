@@ -153,7 +153,7 @@ const SwapDetail = ({
         titleColor="text-zinc-900"
         backArrow={false}
       />
-      <div className="flex flex-col justify-between h-[85vh] bg-raiz-gray-50 rounded-[20px] p-6">
+      <div className="flex flex-col justify-between xl:h-[75vh] bg-raiz-gray-50 rounded-[20px] p-6">
         <div className="mt-5">
           <h6 className="text-center justify-start text-zinc-900 text-base font-normal leading-normal">
             How much do you want to swap?
