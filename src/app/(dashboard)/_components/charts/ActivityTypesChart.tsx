@@ -63,7 +63,7 @@ const ActivityTypesChart = () => {
 
   // Extract month labels from activity data
   const labels = data?.activity?.map((item) => {
-    const month = item.month.split(" ")[0];
+    const month = item?.month?.split(" ")[0];
     return month;
   }) || [
     "Jan",

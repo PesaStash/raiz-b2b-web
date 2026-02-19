@@ -2,7 +2,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
-import SideModalWrapper from "../../app/(dashboard)/_components/SideModalWrapper";
 import Notifications from "../../app/(dashboard)/_components/notification/Notifications";
 import { AnimatePresence } from "motion/react";
 import Rewards from "../../app/(dashboard)/_components/rewards/Rewards";
@@ -16,9 +15,37 @@ import { FetchUserRewardsApi } from "@/services/user";
 import { useNotifications } from "@/lib/hooks/useNotifications";
 import * as motion from "motion/react-client";
 import CreateCryptoWallet from "@/app/(dashboard)/_components/crypto/dashboard/CreateCryptoWallet";
-import { getTierInfo } from "@/utils/helpers";
-import SelectField, { Option } from "../ui/SelectField";
+import {
+  determineSwapPair,
+  findWalletByCurrency,
+  getTierInfo,
+} from "@/utils/helpers";
 import { useOutsideClick } from "@/lib/hooks/useOutsideClick";
+import NgnSend from "@/app/(dashboard)/_components/send/naira/NgnSend";
+import UsdSend from "@/app/(dashboard)/_components/send/usd/UsdSend";
+import { useSendStore } from "@/store/Send";
+import CenterModalWrapper from "./CenterModalWrapper";
+import Request from "@/app/(dashboard)/_components/request/Request";
+import Swap from "@/app/(dashboard)/_components/swap/Swap";
+import TopUp from "@/app/(dashboard)/_components/topUp/TopUp";
+import { useSwapStore } from "@/store/Swap";
+import { useTopupStore } from "@/store/TopUp";
+import { useCurrencyStore } from "@/store/useCurrencyStore";
+import UsdTopUp from "@/app/(dashboard)/_components/topUp/UsdTopup/UsdTopUp";
+import { useUser } from "@/lib/hooks/useUser";
+import { toast } from "sonner";
+import { CurrencyTypeKey } from "@/store/Swap/swapSlice.types";
+
+type ModalKeys =
+  | "notifications"
+  | "rewards"
+  | "selectAcct"
+  | "createNGN"
+  | "createCrypto"
+  | "send"
+  | "swap"
+  | "request"
+  | "topUp";
 
 const searchItems = [
   { name: "Dashboard", type: "route", path: "/" },
@@ -53,26 +80,26 @@ const Header = () => {
   //     setUserPfp(user.business_account.business_image);
   //   }
   // }, [user]);
-
-  const [showModal, setShowModal] = useState<
-    | "notifications"
-    | "rewards"
-    | "selectAcct"
-    | "createNGN"
-    | "createCrypto"
-    | null
-  >(null);
+  const { user } = useUser();
+  const walletData = user?.business_account?.wallets;
+  const [showModal, setShowModal] = useState<ModalKeys | null>(null);
   const [showBvnModal, setShowBvnModal] = useState(false);
   const [successful, setSuccessful] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<typeof searchItems>([]);
   const [isFocused, setIsFocused] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
-  const [selectedAction, setSelectedAction] = useState("send");
+  const [selectedAction, setSelectedAction] = useState<ModalKeys | null>(null);
   const [showActionOpts, setShowActionOpts] = useState(false);
   const router = useRouter();
   const params = useParams();
+  const NGNAcct = findWalletByCurrency(user, "NGN");
+  const USDAcct = findWalletByCurrency(user, "USD");
   const invoiceNo = params?.invoiceNo as string | undefined;
+  const { currency, actions: sendActions } = useSendStore();
+  const { actions } = useSwapStore();
+  const { actions: topupActions } = useTopupStore();
+  const { selectedCurrency } = useCurrencyStore();
   // const { selectedCurrency } = useCurrencyStore();
   // const currentWallet = useMemo(() => {
   //   if (!user || !user?.business_account?.wallets || !selectedCurrency?.name)
@@ -82,6 +109,15 @@ const Header = () => {
   //   );
   // }, [user, selectedCurrency]);
   const { currentTier } = getTierInfo(pointsData?.point || 0);
+  const getCurrentWallet = () => {
+    if (selectedCurrency.name === "NGN") {
+      return NGNAcct;
+    } else if (selectedCurrency.name === "USD") {
+      return USDAcct;
+    }
+  };
+
+  const currentWallet = getCurrentWallet();
 
   useEffect(() => {
     if (!searchTerm) {
@@ -142,6 +178,9 @@ const Header = () => {
 
   const handleCloseModal = () => {
     setShowModal(null);
+    sendActions.reset(selectedCurrency.name);
+    topupActions.reset();
+    actions.reset();
   };
   const openNGNModal = () => {
     setShowModal("createNGN");
@@ -175,13 +214,25 @@ const Header = () => {
         );
       case "createCrypto":
         return <CreateCryptoWallet close={handleCloseModal} />;
+      case "send":
+        return currency === "NGN" ? (
+          <NgnSend close={handleCloseModal} />
+        ) : (
+          <UsdSend close={handleCloseModal} />
+        );
+      case "request":
+        return <Request close={handleCloseModal} />;
+      case "swap":
+        return <Swap close={handleCloseModal} />;
+      case "topUp":
+        return currency === "NGN" && <TopUp close={handleCloseModal} />;
       default:
         break;
     }
   };
 
-  const actionOpts = [
-    { title: "Move Money", value: "send" },
+  const actionOpts: { title: string; value: ModalKeys }[] = [
+    { title: "Send", value: "send" },
     { title: "Top Up", value: "topUp" },
     { title: "Swap funds", value: "swap" },
     { title: "Request funds", value: "request" },
@@ -190,6 +241,47 @@ const Header = () => {
   const actionDropdownRef = useOutsideClick(() => {
     setShowActionOpts(false);
   });
+
+  const handleSelectAction = (value: ModalKeys) => {
+    if (!currentWallet) {
+      toast.warning(
+        "You do not have an account for this currency. Create one first!",
+      );
+      return;
+    } else {
+      setSelectedAction(value);
+      setShowActionOpts(false);
+      setShowModal(value);
+    }
+  };
+
+  const handleSwapClick = () => {
+    if (!walletData || walletData.length < 2) {
+      toast.warning("You need at least two wallets to use swap");
+      return;
+    }
+
+    // Determine the appropriate swap pair based on current currency
+    const swapPair = determineSwapPair(
+      selectedCurrency.name as CurrencyTypeKey,
+      walletData,
+    );
+
+    if (!swapPair.isValid) {
+      toast.warning(swapPair.message || "Cannot perform this swap");
+      return;
+    }
+
+    // Use the combined store's validation
+    const success = actions.switchSwapWallet(swapPair.toCurrency, walletData);
+
+    if (success) {
+      setShowModal("swap");
+    } else {
+      toast.error("This swap pair is not allowed. Please swap through USD.");
+    }
+  };
+
   return (
     <div className="flex  justify-between pb-5 gap-2">
       <div className="relative h-12 w-[285px] xl:w-[312px] ">
@@ -202,7 +294,7 @@ const Header = () => {
         />
         <input
           placeholder="Search..."
-          className="pl-10 h-full bg-raiz-gray-50 rounded-[20px] text-sm placeholder:text-raiz-gray-500 border border-raiz-gray-200 justify-start items-center gap-2 inline-flex w-full outline-none"
+          className="pl-10 h-full bg-raiz-gray-50 rounded-[20px] text-sm placeholder:text-raiz-gray-500  justify-start items-center gap-2 inline-flex w-full outline outline-1 outline-offset-[-1px] outline-white"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           onFocus={() => setIsFocused(true)}
@@ -252,14 +344,13 @@ const Header = () => {
           )}
         </AnimatePresence>
       </div>
-
-      {/* <div className="relative">
+      <div ref={actionDropdownRef} className="relative">
         <button
-          onClick={() => setShowActionOpts(!showActionOpts)}
-          className="flex justify-between items-center gap-3 min-w-[175px] xl:min-w-[220px] px-4 h-12 bg-raiz-gray-50 rounded-[20px] transition-all duration-200"
+          onClick={() => setShowActionOpts((prev) => !prev)}
+          className="flex justify-between items-center gap-3 min-w-[175px] xl:min-w-[220px] px-4 h-12 bg-raiz-gray-50 rounded-[20px] transition-all duration-200 outline outline-1 outline-offset-[-1px] outline-white"
         >
           <span className="text-sm font-medium text-raiz-gray-800">
-            {actionOpts.find((each) => each.value === selectedAction)?.title}
+            Move money
           </span>
           <motion.div
             animate={{ rotate: showActionOpts ? 180 : 0 }}
@@ -276,34 +367,36 @@ const Header = () => {
         <AnimatePresence>
           {showActionOpts && (
             <motion.div
-              ref={actionDropdownRef}
               initial={{ opacity: 0, y: 10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
               className="flex flex-col absolute top-full right-0 mt-2 w-full bg-white border border-gray-200 shadow-xl rounded-2xl z-50 overflow-hidden py-1"
             >
-              {actionOpts.map((each) => (
-                <button
-                  key={each.value}
-                  onClick={() => {
-                    setSelectedAction(each.value);
-                    setShowActionOpts(false);
-                  }}
-                  className={`text-sm text-left px-4 py-3 hover:bg-raiz-gray-50 transition-colors duration-200 w-full ${
-                    selectedAction === each.value
-                      ? "font-semibold text-raiz-gray-900 bg-raiz-gray-50/50"
-                      : "font-normal text-raiz-gray-800"
+              {actionOpts.map((each) => {
+                const isSwap = each.value === "swap";
+                return (
+                  <button
+                    key={each.value}
+                    onClick={() => {
+                      if (isSwap) {
+                        handleSwapClick();
+                      } else {
+                        handleSelectAction(each.value);
+                      }
+                    }}
+                    className={`text-sm text-left px-4 py-3 hover:bg-raiz-gray-50 transition-colors duration-200 w-full 
+                    font-normal text-raiz-gray-800
                   }`}
-                >
-                  {each.title}
-                </button>
-              ))}
+                  >
+                    {each.title}
+                  </button>
+                );
+              })}
             </motion.div>
           )}
         </AnimatePresence>
-      </div> */}
-
+      </div>
       {pathName.includes("invoice") && (
         <div className="flex items-center gap-1 xl:gap-2.5 ">
           <Link
@@ -347,7 +440,6 @@ const Header = () => {
           )}
         </div>
       )}
-
       <div className="flex gap-4 items-center">
         <button
           onClick={() => setShowModal("rewards")}
@@ -415,10 +507,9 @@ const Header = () => {
           </button>
         </Link>
       </div>
-
       <AnimatePresence>
         {showModal !== null && showModal !== "selectAcct" && (
-          <SideModalWrapper
+          <CenterModalWrapper
             close={handleCloseModal}
             wrapperStyle={
               showModal === "createNGN"
@@ -429,7 +520,7 @@ const Header = () => {
             }
           >
             {displayModal()}
-          </SideModalWrapper>
+          </CenterModalWrapper>
         )}
       </AnimatePresence>
       <AnimatePresence>
@@ -446,6 +537,9 @@ const Header = () => {
           openNgnModal={openNGNModal}
           openCryptoModal={openCryptoModal}
         />
+      )}
+      {showModal === "topUp" && currency !== "NGN" && (
+        <UsdTopUp close={handleCloseModal} />
       )}
       {successful && <NgnSuccessModal close={() => setSuccessful(false)} />}
     </div>
