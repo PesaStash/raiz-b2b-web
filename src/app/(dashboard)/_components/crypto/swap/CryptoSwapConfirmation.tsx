@@ -21,7 +21,7 @@ const CryptoSwapConfirmation = ({ goBack, goNext, fee }: Props) => {
           <div className="w-12 h-12 mb-4 flex mx-auto items-center justify-center bg-violet-100 bg-opacity-60 rounded-3xl">
             <Image
               className="w-12 h-12"
-              src={"/icons/crypto-coin.svg"}
+              src={`/icons/${coinType?.toLowerCase()}.svg`}
               alt={"coin"}
               width={48}
               height={48}

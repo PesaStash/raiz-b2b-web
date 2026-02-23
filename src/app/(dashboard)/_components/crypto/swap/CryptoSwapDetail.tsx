@@ -4,12 +4,16 @@ import ErrorMessage from "@/components/ui/ErrorMessage";
 import { useCryptoSwapStore } from "@/store/CryptoSwap";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { getCurrencySymbol } from "@/utils/helpers";
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import Image from "next/image";
 import Button from "@/components/ui/Button";
 import SideModalWrapper from "../../SideModalWrapper";
 import SelectSwapCurrencyModal from "./SelectSwapCurrencyModal";
+import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
+import CenterModalHeader from "@/components/layouts/CenterModalHeader";
+import { useSwapStore } from "@/store/Swap";
+import { useUser } from "@/lib/hooks/useUser";
 
 interface Props {
   close: () => void;
@@ -26,7 +30,6 @@ const CryptoSwapDetail = ({
   fee,
   loading,
 }: Props) => {
-  const { selectedCurrency } = useCurrencyStore();
   const [error, setError] = useState<string | null>(null);
   const {
     amount,
@@ -40,6 +43,11 @@ const CryptoSwapDetail = ({
   const [showCurrency, setShowCurrency] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [rawAmount, setRawAmount] = useState(amount);
+  const { user } = useUser();
+  const wallets = useMemo(
+    () => user?.business_account?.wallets || [],
+    [user?.business_account?.wallets],
+  );
   const amountSchema = z
     .string()
     .regex(/^\d*\.?\d{0,2}$/, "Enter a valid amount (max 2 decimal places)")
@@ -53,7 +61,7 @@ const CryptoSwapDetail = ({
       },
       {
         message: `Amount cannot exceed available balance`,
-      }
+      },
     );
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -89,15 +97,21 @@ const CryptoSwapDetail = ({
       : `${getCurrencySymbol(swapFromCurrency)}${num.toFixed(2)}`;
   };
 
+  useEffect(() => {
+    actions.switchSwapWallet("SBC", "USD", wallets);
+  }, []);
+
   return (
-    <SideModalWrapper close={close}>
+    <>
       <div>
+        <CenterModalHeader close={close} />
         <SideWrapperHeader
           title={`Swap Crypto`}
           close={close}
           titleColor="text-zinc-900"
+          backArrow={false}
         />
-        <div className="flex flex-col justify-between h-[85vh] ">
+        <div className="flex flex-col justify-between xl:h-[75vh] bg-raiz-gray-50 rounded-[20px] p-6">
           <div className="mt-5 ">
             <h6 className="text-center justify-start text-zinc-900 text-base font-normal  leading-normal">
               How much do you want to swap?
@@ -123,6 +137,7 @@ const CryptoSwapDetail = ({
               </p>
             </div>
           </div>
+
           <div className="pb-5">
             <p className="text-zinc-900 text-sm font-medium mb-3 font-brSonoma leading-normal">
               Swap Destination
@@ -152,11 +167,11 @@ const CryptoSwapDetail = ({
               {/* Recipient gets */}
               <div className="w-full flex justify-between items-center">
                 <span className="text-raiz-crypto-primary text-xs font-normal font-brSonoma leading-normal">
-                  Recipient gets:
+                  You get:
                 </span>
                 <div className="h-0.5 w-[36%] px-4 bg-white"></div>
                 <span className="text-zinc-900  text-xs font-semibold leading-none">
-                  {`${amount} ${coinType} `}
+                  {`${swapToCurrency === "USD" ? "$" : ""}${amount} ${swapToCurrency === "SBC" ? coinType : ""} `}
                 </span>
               </div>
               <div className="w-full flex justify-between items-center">
@@ -191,7 +206,7 @@ const CryptoSwapDetail = ({
                 <span className=" font-semibold"> {formatTime(timeLeft)}</span>
               </p>
             </div> */}
-            <Button disabled={!!error || !amount} onClick={goNext}>
+            <Button disabled={!!error || !amount || loading} onClick={goNext}>
               Continue
             </Button>
           </div>
@@ -200,7 +215,7 @@ const CryptoSwapDetail = ({
           <SelectSwapCurrencyModal close={() => setShowCurrency(false)} />
         )}
       </div>
-    </SideModalWrapper>
+    </>
   );
 };
 

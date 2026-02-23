@@ -56,29 +56,59 @@ const CryptoSwap = ({ close }: Props) => {
         );
       case "confirmation":
         return (
-          <CryptoSwapConfirmation
-            goBack={() => setStep("detail")}
-            goNext={() => setStep("pay")}
-            fee={fee || 0}
-          />
+          <>
+            <CryptoSwapDetail
+              close={handleDone}
+              goNext={() => {
+                setStep("confirmation");
+              }}
+              fee={fee || 0}
+              loading={isLoading}
+            />
+            <CryptoSwapConfirmation
+              goBack={() => setStep("detail")}
+              goNext={() => setStep("pay")}
+              fee={fee || 0}
+            />
+          </>
         );
       case "pay":
         return (
-          <CryptoSwapPay
-            goNext={() => setStep("status")}
-            close={() => setStep("confirmation")}
-            setPaymentError={setPaymentError}
-          />
+          <>
+            <CryptoSwapDetail
+              close={handleDone}
+              goNext={() => {
+                setStep("confirmation");
+              }}
+              fee={fee || 0}
+              loading={isLoading}
+            />
+            <CryptoSwapPay
+              goNext={() => setStep("status")}
+              close={() => setStep("confirmation")}
+              setPaymentError={setPaymentError}
+            />
+          </>
         );
       case "status":
         return (
-          <CryptoSwapStatusModal
-            status={status}
-            close={handleDone}
-            error={paymentError}
-            tryAgain={() => setStep("confirmation")}
-            viewReceipt={() => setStep("receipt")}
-          />
+          <>
+            <CryptoSwapDetail
+              close={handleDone}
+              goNext={() => {
+                setStep("confirmation");
+              }}
+              fee={fee || 0}
+              loading={isLoading}
+            />
+            <CryptoSwapStatusModal
+              status={status}
+              close={handleDone}
+              error={paymentError}
+              tryAgain={() => setStep("confirmation")}
+              viewReceipt={() => setStep("receipt")}
+            />
+          </>
         );
       default:
         break;

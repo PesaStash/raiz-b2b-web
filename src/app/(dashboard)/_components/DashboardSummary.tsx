@@ -29,6 +29,8 @@ import AccountUpgrade from "./AccountUpgrade";
 import Loading from "@/app/loading";
 import ExchangeRateCard from "./exchangeRate/ExchangeRateCard";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
+import CryptoSwap from "./crypto/swap/CryptoSwap";
+import { ACCOUNT_CURRENCIES } from "@/constants/misc";
 
 type actionBtnKeytype = "send" | "request" | "topUp" | "details";
 
@@ -36,7 +38,7 @@ const DashboardSummary = () => {
   const { user, refetch, isLoading } = useUser();
   const walletData = user?.business_account?.wallets;
   const { currency, actions: sendActions } = useSendStore();
-  const { actions } = useSwapStore();
+  const { actions, swapFromCurrency, swapToCurrency } = useSwapStore();
   const { actions: topupActions } = useTopupStore();
   const { setShowBalance, showBalance } = useUserStore();
   const { selectedCurrency } = useCurrencyStore();
@@ -89,13 +91,13 @@ const DashboardSummary = () => {
 
   const canSwap = NGNAcct && USDAcct;
 
-  // console.log("cuteenqwallet", currentWallet);
-
   const handleActionButton = (action: actionBtnKeytype) => {
     if (!currentWallet) {
       toast.warning(
         "You do not have an account for this currency. Create one first!",
       );
+    } else if (action === "details") {
+      setShowAcctInfo(true);
     } else {
       setOpenModal(action);
     }
@@ -118,6 +120,7 @@ const DashboardSummary = () => {
       return;
     }
 
+    actions.switchSwapWallet(swapPair.toCurrency, walletData);
     // Use the combined store's validation
     const success = actions.switchSwapWallet(swapPair.toCurrency, walletData);
 
@@ -139,7 +142,7 @@ const DashboardSummary = () => {
   const displayScreen = () => {
     switch (openModal) {
       case "send":
-        return currency === "NGN" ? (
+        return selectedCurrency?.name === "NGN" ? (
           <NgnSend close={closeModal} />
         ) : (
           <UsdSend close={closeModal} />
@@ -147,7 +150,11 @@ const DashboardSummary = () => {
       case "request":
         return <Request close={closeModal} />;
       case "swap":
-        return <Swap close={closeSwapModal} />;
+        return selectedCurrency?.name === "SBC" ? (
+          <CryptoSwap close={closeSwapModal} />
+        ) : (
+          <Swap close={closeSwapModal} />
+        );
       case "topUp":
         return currency === "NGN" && <TopUp close={closeModal} />;
       // ) : (
@@ -233,7 +240,7 @@ const DashboardSummary = () => {
         >
           <path
             d="M13.492 1.6665H6.50866C3.47533 1.6665 1.66699 3.47484 1.66699 6.50817V13.4832C1.66699 16.5248 3.47533 18.3332 6.50866 18.3332H13.4837C16.517 18.3332 18.3253 16.5248 18.3253 13.4915V6.50817C18.3337 3.47484 16.5253 1.6665 13.492 1.6665ZM13.1253 13.1248H6.87533C6.53366 13.1248 6.25033 12.8415 6.25033 12.4998C6.25033 12.1582 6.53366 11.8748 6.87533 11.8748H13.1253C13.467 11.8748 13.7503 12.1582 13.7503 12.4998C13.7503 12.8415 13.467 13.1248 13.1253 13.1248ZM13.1253 8.12484H6.87533C6.53366 8.12484 6.25033 7.8415 6.25033 7.49984C6.25033 7.15817 6.53366 6.87484 6.87533 6.87484H13.1253C13.467 6.87484 13.7503 7.15817 13.7503 7.49984C13.7503 7.8415 13.467 8.12484 13.1253 8.12484Z"
-            fill="#1E1924"
+            className="fill-[#1e1924] group-hover:fill-white transition-colors duration-200"
           />
         </svg>
       ),
@@ -318,6 +325,9 @@ const DashboardSummary = () => {
         <div className="flex gap-4 items-center">
           {actionBtnsOpts.map(({ name, key, icon }) => {
             const isSwap = key === "swap";
+            if (key !== "swap" && selectedCurrency.name === "SBC") {
+              return;
+            }
             return (
               <Button
                 key={key}
