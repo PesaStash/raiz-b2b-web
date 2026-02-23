@@ -486,7 +486,6 @@ export type IntCurrencyCode =
   | "MWK" // Malawi
   | "RWF" // Rwanda
   | "GNF" // Guinea
-
   | "GBP" // United Kingdom
   | "EUR" // Eurozone (Germany, France, Italy, Spain, Netherlands, etc.)
   | "DKK" // Denmark
@@ -494,11 +493,9 @@ export type IntCurrencyCode =
   | "SGD" // Singapore
   | "CNY" // China
   | "AED" // United Arab Emirates
-
   | "XOF" // West African CFA Franc (Benin, Burkina Faso, Ivory Coast, Mali, Niger, Senegal, Togo)
   | "XAF" // Central African CFA Franc (Cameroon, Central African Republic, Chad, Congo, Equatorial Guinea, Gabon)
   | "CDF"; // Democratic Republic of Congo
-
 
 export interface IIntBeneficiaryPayload {
   customer_email: string | null;
@@ -537,7 +534,7 @@ export interface IIntSendPayload {
 
 export interface IBusinessPaymentData {
   account_user: {
-    account_name: string
+    account_name: string;
     first_name: string | null;
     last_name: string | null;
     date_of_birth: string | null;
@@ -597,8 +594,7 @@ export interface InitiateAfricaPayinResponse {
   expires_at: Date;
 }
 
-export interface FinalizeAfricaPayinResponse
-  extends InitiateAfricaPayinResponse {
+export interface FinalizeAfricaPayinResponse extends InitiateAfricaPayinResponse {
   collection_account_number: string;
   collection_bank_name: string;
   collection_account_name: string;
@@ -611,12 +607,12 @@ export interface FeedbackPayload {
 }
 
 interface MonthlyVolume {
-  month: string; // e.g., "Sep 2024"
+  period: string; // e.g., "Sep 2024"
   value: number;
 }
 
 interface MonthlyActivity {
-  month: string;
+  period: string;
   transfer: number;
   swap: number;
   top_up: number;
@@ -650,7 +646,7 @@ export interface IInvoiceSettingsPayload {
 }
 
 export interface IAddCustomerPayload {
-  customer_type: "individual" | "business"
+  customer_type: "individual" | "business";
   full_name?: string | null;
   email: string | null;
   phone_number: string | null;
@@ -670,8 +666,8 @@ export interface IUpdateCustomerPayload {
   state: string | null;
   country: string | null;
   business_name: string | null;
-  business_account_id: string | null
-  customer_type: "individual" | "business"
+  business_account_id: string | null;
+  customer_type: "individual" | "business";
 }
 
 export interface IInvoiceTax {
