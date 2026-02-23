@@ -19,6 +19,7 @@ import { useUser } from "@/lib/hooks/useUser";
 import Skeleton from "react-loading-skeleton";
 import { findWalletByCurrency, getCurrencySymbol } from "@/utils/helpers";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
+import dayjs from "dayjs";
 
 ChartJS.register(
   CategoryScale,
@@ -33,22 +34,26 @@ const ActivityTypesChart = () => {
   const { user } = useUser();
   const NGNAcct = findWalletByCurrency(user, "NGN");
   const USDAcct = findWalletByCurrency(user, "USD");
+  const SBCAcct = findWalletByCurrency(user, "SBC");
   const { selectedCurrency } = useCurrencyStore();
-  const [numberOfDays, setNumberOfDays] = useState(30);
+  const [numberOfDays, setNumberOfDays] = useState(365);
 
   const getCurrentWallet = () => {
     if (selectedCurrency.name === "NGN") {
       return NGNAcct;
     } else if (selectedCurrency.name === "USD") {
       return USDAcct;
+    } else if (selectedCurrency.name === "SBC") {
+      return SBCAcct;
     }
   };
 
   const currentWallet = getCurrentWallet();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["activity-stats", currentWallet?.wallet_id],
-    queryFn: () => GetActivityStats(currentWallet?.wallet_id || ""),
+    queryKey: ["activity-stats", currentWallet?.wallet_id, numberOfDays],
+    queryFn: () =>
+      GetActivityStats(currentWallet?.wallet_id || "", numberOfDays),
     enabled: !!currentWallet?.wallet_id,
   });
 
@@ -61,24 +66,8 @@ const ActivityTypesChart = () => {
     );
   }
 
-  // Extract month labels from activity data
-  const labels = data?.activity?.map((item) => {
-    const month = item?.month?.split(" ")[0];
-    return month;
-  }) || [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
+  const labels =
+    data?.activity?.map((item) => dayjs(item.period).format("MMM D")) || [];
 
   const chartData = {
     labels,

@@ -528,9 +528,10 @@ export const GetTransactionsAnalyticsStatusApi = async (
 
 export const GetActivityStats = async (
   wallet_id: string,
+  number_of_days?: number,
 ): Promise<VolumeAndActivityData> => {
   const response = await AuthAxios.get(
-    `/business/transactions/transaction-reports/analytics/activities/?wallet_id=${wallet_id}`,
+    `/business/transactions/transaction-reports/analytics/activities/?wallet_id=${wallet_id}&number_of_days=${number_of_days}`,
     {
       silent: true,
     } as CustomAxiosRequestConfig,
