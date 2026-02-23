@@ -30,6 +30,8 @@ import Loading from "@/app/loading";
 import ExchangeRateCard from "./exchangeRate/ExchangeRateCard";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 
+type actionBtnKeytype = "send" | "request" | "topUp" | "details";
+
 const DashboardSummary = () => {
   const { user, refetch, isLoading } = useUser();
   const walletData = user?.business_account?.wallets;
@@ -39,10 +41,8 @@ const DashboardSummary = () => {
   const { setShowBalance, showBalance } = useUserStore();
   const { selectedCurrency } = useCurrencyStore();
   const [openModal, setOpenModal] = useState<
-    | "send"
-    | "request"
+    | actionBtnKeytype
     | "swap"
-    | "topUp"
     | "selectAcct"
     | "createNGN"
     | "createCrypto"
@@ -52,6 +52,7 @@ const DashboardSummary = () => {
   const pathName = usePathname();
   const NGNAcct = findWalletByCurrency(user, "NGN");
   const USDAcct = findWalletByCurrency(user, "USD");
+  const SBCAcct = findWalletByCurrency(user, "SBC");
   const verificationStatus =
     user?.business_account?.business_verifications?.[0]?.verification_status;
 
@@ -68,6 +69,8 @@ const DashboardSummary = () => {
       return NGNAcct;
     } else if (selectedCurrency.name === "USD") {
       return USDAcct;
+    } else if (selectedCurrency.name === "SBC") {
+      return SBCAcct;
     }
   };
 
@@ -88,7 +91,7 @@ const DashboardSummary = () => {
 
   // console.log("cuteenqwallet", currentWallet);
 
-  const handleActionButton = (action: "send" | "request" | "topUp") => {
+  const handleActionButton = (action: actionBtnKeytype) => {
     if (!currentWallet) {
       toast.warning(
         "You do not have an account for this currency. Create one first!",
@@ -217,6 +220,24 @@ const DashboardSummary = () => {
         </svg>
       ),
     },
+    {
+      name: "Details",
+      key: "details",
+      icon: () => (
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 20 20"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M13.492 1.6665H6.50866C3.47533 1.6665 1.66699 3.47484 1.66699 6.50817V13.4832C1.66699 16.5248 3.47533 18.3332 6.50866 18.3332H13.4837C16.517 18.3332 18.3253 16.5248 18.3253 13.4915V6.50817C18.3337 3.47484 16.5253 1.6665 13.492 1.6665ZM13.1253 13.1248H6.87533C6.53366 13.1248 6.25033 12.8415 6.25033 12.4998C6.25033 12.1582 6.53366 11.8748 6.87533 11.8748H13.1253C13.467 11.8748 13.7503 12.1582 13.7503 12.4998C13.7503 12.8415 13.467 13.1248 13.1253 13.1248ZM13.1253 8.12484H6.87533C6.53366 8.12484 6.25033 7.8415 6.25033 7.49984C6.25033 7.15817 6.53366 6.87484 6.87533 6.87484H13.1253C13.467 6.87484 13.7503 7.15817 13.7503 7.49984C13.7503 7.8415 13.467 8.12484 13.1253 8.12484Z"
+            fill="#1E1924"
+          />
+        </svg>
+      ),
+    },
   ];
 
   useEffect(() => {
@@ -291,7 +312,7 @@ const DashboardSummary = () => {
             </div>
           )}
         </div> */}
-        <h1 className="text-raiz-gray-950 text-2xl font-semibold leading-7">
+        <h1 className="text-raiz-gray-950 text-base xl:text-2xl font-semibold leading-7">
           Hi, {user?.first_name} 👋🏾{" "}
         </h1>
         <div className="flex gap-4 items-center">
@@ -304,7 +325,7 @@ const DashboardSummary = () => {
                   if (isSwap) {
                     handleSwapClick();
                   } else {
-                    handleActionButton(key as "send" | "request" | "topUp");
+                    handleActionButton(key as actionBtnKeytype);
                   }
                 }}
                 className={`h-10  px-[18px] min-w-[105px] ${key === "topUp" ? "!w-[127px]" : ""} py-2 group !bg-[#F8F7FA] hover:!bg-raiz-usd-primary  transition-all !text-raiz-gray-900  !rounded-3xl justify-center  items-center gap-1.5 inline-flex`}

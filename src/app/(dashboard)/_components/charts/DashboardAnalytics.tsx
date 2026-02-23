@@ -18,11 +18,14 @@ const DashboardAnalytics = () => {
   const { selectedCurrency } = useCurrencyStore();
   const NGNAcct = findWalletByCurrency(user, "NGN");
   const USDAcct = findWalletByCurrency(user, "USD");
+  const SBCAcct = findWalletByCurrency(user, "SBC");
   const getCurrentWallet = () => {
     if (selectedCurrency.name === "NGN") {
       return NGNAcct;
     } else if (selectedCurrency.name === "USD") {
       return USDAcct;
+    } else if (selectedCurrency.name === "SBC") {
+      return SBCAcct;
     }
   };
 
@@ -136,7 +139,9 @@ const DashboardAnalytics = () => {
                 className="size-4 rounded-full"
               />
               <span className="text-sm text-raiz-gray-900">
-                {selectedCurrency.name}
+                {selectedCurrency.name !== "SBC"
+                  ? selectedCurrency?.name
+                  : "Crypto"}
               </span>
             </div>
             <div className="size-1 rounded-full bg-raiz-gray-300" />
