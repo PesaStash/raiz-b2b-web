@@ -35,6 +35,7 @@ import UsdTopUp from "@/app/(dashboard)/_components/topUp/UsdTopup/UsdTopUp";
 import { useUser } from "@/lib/hooks/useUser";
 import { toast } from "sonner";
 import { CurrencyTypeKey } from "@/store/Swap/swapSlice.types";
+import CryptoSwap from "@/app/(dashboard)/_components/crypto/swap/CryptoSwap";
 
 type ModalKeys =
   | "notifications"
@@ -95,6 +96,7 @@ const Header = () => {
   const params = useParams();
   const NGNAcct = findWalletByCurrency(user, "NGN");
   const USDAcct = findWalletByCurrency(user, "USD");
+  const SBCAcct = findWalletByCurrency(user, "SBC");
   const invoiceNo = params?.invoiceNo as string | undefined;
   const { currency, actions: sendActions } = useSendStore();
   const { actions } = useSwapStore();
@@ -114,6 +116,8 @@ const Header = () => {
       return NGNAcct;
     } else if (selectedCurrency.name === "USD") {
       return USDAcct;
+    } else if (selectedCurrency.name === "SBC") {
+      return SBCAcct;
     }
   };
 
@@ -223,7 +227,11 @@ const Header = () => {
       case "request":
         return <Request close={handleCloseModal} />;
       case "swap":
-        return <Swap close={handleCloseModal} />;
+        return selectedCurrency?.name === "SBC" ? (
+          <CryptoSwap close={handleCloseModal} />
+        ) : (
+          <Swap close={handleCloseModal} />
+        );
       case "topUp":
         return currency === "NGN" && <TopUp close={handleCloseModal} />;
       default:
