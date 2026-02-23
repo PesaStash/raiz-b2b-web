@@ -54,7 +54,7 @@ const CryptoDepositDetail = ({ close, wallet }: Props) => {
               <ListDetailItem title="Chain" value={wallet?.chain} />
             </div>
           </div>
-          <Button>Save or Share Address</Button>
+          {/* <Button onClick={() => copyToClipboard()}>Save or Share Address</Button> */}
         </div>
       </div>
     </CenterModalWrapper>
