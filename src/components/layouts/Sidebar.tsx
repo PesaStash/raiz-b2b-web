@@ -454,7 +454,7 @@ const Sidebar = () => {
   ];
 
   return (
-    <aside className="w-[19.444%] pt-8 hidden lg:block  fixed top-0 bottom-0 left-0 z-20 bg-raiz-gray-50 border-r border-raiz-gray-200 h-[100vh] overflow-x-hidden overflow-y-scroll">
+    <aside className="w-[19.444%] pt-8 hidden lg:block  fixed top-0 bottom-0 left-0 z-20 bg-raiz-gray-50 border-r-2 border-raiz-gray-100 h-[100vh] overflow-x-hidden overflow-y-scroll">
       <div className="px-6">
         <Image
           className="w-12 h-12"

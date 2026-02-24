@@ -41,7 +41,7 @@ const Settingspage = () => {
     queryKey: ["country", user?.business_account?.entity?.country_id],
     queryFn: () =>
       FetchCountriesWithIdApi(
-        user?.business_account?.entity?.country_id || null
+        user?.business_account?.entity?.country_id || null,
       ),
     enabled: !!user?.business_account?.entity?.country_id,
   });
@@ -81,7 +81,7 @@ const Settingspage = () => {
     UpdateRaizTagMutation.mutate(formik.values.raiz_tag);
   };
   return (
-    <section className="gap-10 flex w-full  ">
+    <section className="gap-10 flex w-full overflow-y-scroll h-full no-scrollbar">
       <RouteSectionInfo
         title="Your Profile"
         subtitle="Update account information"
@@ -108,7 +108,7 @@ const Settingspage = () => {
       />
       <form
         onSubmit={formik.handleSubmit}
-        className="w-[70%] xl:w-[73.5%] flex flex-col gap-5"
+        className="w-[70%]  flex flex-col gap-5  "
       >
         <InputField
           label="Business Name"
@@ -168,8 +168,8 @@ const Settingspage = () => {
               {isLoading
                 ? "Loading..."
                 : error
-                ? "Error fetching country"
-                : formik.values.country_name || ""}
+                  ? "Error fetching country"
+                  : formik.values.country_name || ""}
             </span>
             <Image
               src={"/icons/lock.svg"}
