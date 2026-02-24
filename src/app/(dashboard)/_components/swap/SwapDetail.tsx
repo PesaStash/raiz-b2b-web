@@ -142,6 +142,8 @@ const SwapDetail = ({
     };
   };
 
+  console.log("receipienA,ount", recipientAmount, "excrate", exchangeRate);
+
   const rateDisplay = getRateDisplay();
 
   return (
@@ -222,7 +224,7 @@ const SwapDetail = ({
               <div className="h-0.5 w-[50%] px-4 bg-white"></div>
               <span className="text-zinc-900 text-xs font-semibold leading-none">
                 {recipientAmount
-                  ? `${getCurrencySymbol(swapToCurrency)}${exchangeRate}`
+                  ? `${getCurrencySymbol(swapToCurrency)}${recipientAmount}`
                   : "Calculating..."}
               </span>
             </div>
