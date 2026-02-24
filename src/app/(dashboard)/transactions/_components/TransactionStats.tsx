@@ -60,8 +60,8 @@ const TransactionStats = () => {
               each.change > 0
                 ? "positive"
                 : each.change < 0
-                ? "negative"
-                : "zero";
+                  ? "negative"
+                  : "zero";
 
             return (
               <div
@@ -94,8 +94,8 @@ const TransactionStats = () => {
                             value === "positive"
                               ? "text-[#079455]"
                               : value === "negative"
-                              ? "text-[#D92D20] rotate-180"
-                              : ""
+                                ? "text-[#D92D20] rotate-180"
+                                : ""
                           }
                         />
                       )}
@@ -104,11 +104,13 @@ const TransactionStats = () => {
                           value === "positive"
                             ? "text-raiz-success-500"
                             : value === "negative"
-                            ? "text-raiz-error"
-                            : "text-raiz-gray-700"
+                              ? "text-raiz-error"
+                              : "text-raiz-gray-700"
                         } text-center text-[10px] xl:text-sm font-bold leading-[16.80px]`}
                       >
-                        {each.change !== 0 ? `${each.change}%` : "0%"}{" "}
+                        {each.change !== 0
+                          ? `${each.change.toFixed(2)}%`
+                          : "0%"}{" "}
                         <span className="text-raiz-gray-700 font-normal">
                           vs last month
                         </span>
@@ -121,8 +123,8 @@ const TransactionStats = () => {
                         value === "positive"
                           ? "/icons/positiveChart2.svg"
                           : value === "negative"
-                          ? "/icons/NegativeChart2.svg"
-                          : "/icons/zeroChart.svg"
+                            ? "/icons/NegativeChart2.svg"
+                            : "/icons/zeroChart.svg"
                       }
                       alt="chart"
                       width={128}
