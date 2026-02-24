@@ -171,7 +171,7 @@ const FindRecipients = ({
         {!isLoading &&
           searchTerm &&
           (suggestions.length > 0 ? (
-            <ul className="mt-5 w-full overflow-y-scroll h-[80vh]">
+            <ul className="mt-5 w-full overflow-y-scroll flex flex-col py-5  rounded-[20px] bg-raiz-gray-50  px-6">
               {suggestions.map((user, index) => (
                 <RecipientRow
                   key={index}
@@ -182,7 +182,9 @@ const FindRecipients = ({
             </ul>
           ) : (
             <div className="my-3">
-              <p className="text-center text-sm">No users found</p>
+              <p className="text-center text-sm rounded-[20px] bg-raiz-gray-50 py-20 px-6">
+                No users found
+              </p>
             </div>
           ))}
       </div>
@@ -211,18 +213,20 @@ const FindRecipients = ({
         )}
 
       {/* Recent Users and Beneficiaries */}
-      <div className="mt-10 rounded-[20px] bg-raiz-gray-50 p-6 overflow-y-auto mb-6 no-scrollbar">
-        {!searchTerm && recentUsers.length > 0 && (
-          <RecentUsers
-            users={recentUsers}
-            setSelectedUser={setSelectedUser}
-            type="p2p"
-          />
-        )}
-        {!searchTerm && beneficiaries.length > 0 && (
-          <Beneficiaries users={beneficiaries} />
-        )}
-      </div>
+      {(recentUsers.length > 0 || beneficiaries.length > 0) && (
+        <div className="mt-10 rounded-[20px] bg-raiz-gray-50 p-6 overflow-y-auto mb-6 no-scrollbar">
+          {!searchTerm && recentUsers.length > 0 && (
+            <RecentUsers
+              users={recentUsers}
+              setSelectedUser={setSelectedUser}
+              type="p2p"
+            />
+          )}
+          {!searchTerm && beneficiaries.length > 0 && (
+            <Beneficiaries users={beneficiaries} />
+          )}
+        </div>
+      )}
     </div>
   );
 };
