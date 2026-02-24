@@ -1,4 +1,5 @@
 "use client";
+import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 import SideWrapperHeader from "@/components/SideWrapperHeader";
 import Button from "@/components/ui/Button";
 import ErrorMessage from "@/components/ui/ErrorMessage";
@@ -73,13 +74,12 @@ const RequestDetails = ({
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <SideWrapperHeader
-        close={goBack}
-        title="Request Money"
-        titleColor="text-zinc-900"
-      />
-      <div className="flex flex-col h-full  justify-between items-center">
+    <div className="flex flex-col h-full mb-8">
+      <CenterModalHeader close={goBack} />
+      <h2 className="text-xl font-semibold text-raiz-gray-950 leading-10 mb-4">
+        Request Money
+      </h2>
+      <div className="flex flex-col h-full  justify-between items-center rounded-[20px] bg-raiz-gray-50 p-6 overflow-y-auto">
         <div className="flex flex-col justify-center items-center">
           <div className="relative w-10 h-10">
             <Image

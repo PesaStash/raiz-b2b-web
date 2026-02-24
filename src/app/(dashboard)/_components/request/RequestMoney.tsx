@@ -22,7 +22,7 @@ export type RequestMoneyStepType =
   | "success"
   | "failed";
 
-export const RequestMoney = ({ setStep }: RequestStepsProps) => {
+export const RequestMoney = ({ setStep, close }: RequestStepsProps) => {
   const [requestMoneyStep, setRequestMoneyStep] =
     useState<RequestMoneyStepType | null>("select-user");
   const [selectedUser, setSelectedUser] = useState<ISearchedUser | undefined>();
@@ -52,7 +52,8 @@ export const RequestMoney = ({ setStep }: RequestStepsProps) => {
 
   const endStep = () => {
     setRequestMoneyStep(null);
-    setStep("all");
+    setStep("home");
+    close();
   };
 
   const qc = useQueryClient();
@@ -87,7 +88,7 @@ export const RequestMoney = ({ setStep }: RequestStepsProps) => {
       case "select-user":
         return (
           <Selectuser
-            goBack={() => setStep("all")}
+            goBack={() => setStep("home")}
             setSelectedUser={setSelectedUser}
           />
         );
@@ -114,7 +115,18 @@ export const RequestMoney = ({ setStep }: RequestStepsProps) => {
           />
         );
       case "success":
-        return <RequestSucess close={endStep} />;
+        return (
+          <>
+            <ChooseCategory
+              goBack={() => setRequestMoneyStep("details")}
+              goNext={handleRequest}
+              category={category}
+              setCategory={setCategory}
+              loading={RequestFundsMutation.isPending}
+            />
+            <RequestSucess close={endStep} />
+          </>
+        );
       case "failed":
         return (
           <RequestFailed
@@ -126,7 +138,7 @@ export const RequestMoney = ({ setStep }: RequestStepsProps) => {
         break;
     }
   };
-  return <div className="h-full p-[25px] xl:p-[30px]">{displayStep()}</div>;
+  return <>{displayStep()}</>;
 };
 
 export default RequestMoney;
