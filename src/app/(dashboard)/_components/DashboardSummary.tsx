@@ -437,13 +437,11 @@ const DashboardSummary = () => {
           <CenterModalWrapper
             close={closeModal}
             wrapperStyle={
-              openModal === "request"
-                ? "!p-0"
-                : openModal === "createNGN"
-                  ? "!bg-primary2"
-                  : openModal === "createCrypto"
-                    ? "!bg-raiz-crypto-primary"
-                    : ""
+              openModal === "createNGN"
+                ? "!bg-primary2"
+                : openModal === "createCrypto"
+                  ? "!bg-raiz-crypto-primary"
+                  : ""
             }
           >
             {displayScreen()}

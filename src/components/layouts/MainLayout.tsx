@@ -18,6 +18,7 @@ const MainLayout = ({ children }: { children: ReactNode }) => {
     "/analytics",
     "/invoice",
     "/customers",
+    "/bill-requests",
   ];
 
   const shouldShowSideNav = dashboardRoutes.some(
