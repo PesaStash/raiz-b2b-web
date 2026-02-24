@@ -93,15 +93,15 @@ const InflowOutflow = () => {
       {
         label: "Inflow",
         data: inflow,
-        borderColor: "#7F56D9",
+        borderColor: "#0496FF",
         backgroundColor: (context: any) => {
           const ctx = context.chart.ctx;
           const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-          gradient.addColorStop(0, "rgba(127, 86, 217, 0.15)");
-          gradient.addColorStop(1, "rgba(127, 86, 217, 0.0)");
+          gradient.addColorStop(0, "rgba(4, 150, 255, 0.15)");
+          gradient.addColorStop(1, "rgba(4, 150, 255, 0.0)");
           return gradient;
         },
-        pointBackgroundColor: "#7F56D9",
+        pointBackgroundColor: "#0496FF",
         pointBorderColor: "#fff",
         fill: true,
         tension: 0.4,
@@ -112,15 +112,15 @@ const InflowOutflow = () => {
       {
         label: "Outflow",
         data: outflow,
-        borderColor: "#B692F6",
+        borderColor: "#5215B6",
         backgroundColor: (context: any) => {
           const ctx = context.chart.ctx;
           const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-          gradient.addColorStop(0, "rgba(182, 146, 246, 0.15)");
-          gradient.addColorStop(1, "rgba(182, 146, 246, 0.0)");
+          gradient.addColorStop(0, "rgba(82, 21, 182, 0.15)");
+          gradient.addColorStop(1, "rgba(82, 21, 182, 0.0)");
           return gradient;
         },
-        pointBackgroundColor: "#B692F6",
+        pointBackgroundColor: "#5215B6",
         pointBorderColor: "#fff",
         fill: true,
         tension: 0.4,

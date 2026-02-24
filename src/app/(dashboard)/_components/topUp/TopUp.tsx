@@ -155,7 +155,9 @@ const TopUp = ({ close }: Props) => {
               </div>
             )}
             {/* Currency */}
-            <div className="w-full flex  justify-between items-center text-[15px]">
+            <div
+              className={`w-full flex ${selectedCurrency.name === "NGN" ? "flex-col" : "justify-between"} items-center text-[15px]`}
+            >
               <span className="text-center justify-start text-raiz-gray-600  font-normal leading-normal">
                 Currency
               </span>
@@ -170,6 +172,12 @@ const TopUp = ({ close }: Props) => {
                   <span className="text-left justify-start text-raiz-gray-600 text-[15px] font-normal leading-normal">
                     Address
                   </span>
+                </div>
+                {/* Fix this */}
+                <div className="flex  gap-2">
+                  <p className="text-right  text-raiz-gray-950 text-[15px] font-semibold  leading-normal">
+                    1801 Main St., Kansas City, MO 64108
+                  </p>
                   <button
                     onClick={() =>
                       copyToClipboard("1801 Main St., Kansas City, MO 64108")
@@ -183,20 +191,14 @@ const TopUp = ({ close }: Props) => {
                     />
                   </button>
                 </div>
-                {/* Fix this */}
-                <div className="flex items-start gap-2">
-                  <p className="text-right  text-raiz-gray-950 text-[15px] font-semibold  leading-normal">
-                    1801 Main St., Kansas City, MO 64108
-                  </p>
-                </div>
               </div>
             )}
           </div>
           <p className=" text-slate-800 text-sm font-normal leading-snug mb-2">
-            Transfer the amount you want to fund using mobile banking
+            Transfer the amount you want to fund using mobile banking.
           </p>
           <p className=" text-slate-800 text-sm font-normal leading-snug">
-            Your Raiz account balance will be funded immediately
+            Your Raiz account balance will be funded immediately.
           </p>
         </div>
       </div>
