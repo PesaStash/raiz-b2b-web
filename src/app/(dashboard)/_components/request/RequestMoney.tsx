@@ -14,11 +14,13 @@ import { useCurrentWallet } from "@/lib/hooks/useCurrentWallet";
 import { IRequestFundsPayload } from "@/types/services";
 import { toast } from "sonner";
 import RequestFailed from "./single-request/RequestFailed";
+import RequestConfirmation from "./single-request/RequestConfirmation";
 
 export type RequestMoneyStepType =
   | "select-user"
   | "details"
   | "category"
+  | "confirmation"
   | "success"
   | "failed";
 
@@ -108,9 +110,19 @@ export const RequestMoney = ({ setStep, close }: RequestStepsProps) => {
         return (
           <ChooseCategory
             goBack={() => setRequestMoneyStep("details")}
-            goNext={handleRequest}
+            goNext={() => setRequestMoneyStep("confirmation")}
             category={category}
             setCategory={setCategory}
+          />
+        );
+      case "confirmation":
+        return (
+          <RequestConfirmation
+            goBack={() => setRequestMoneyStep("category")}
+            goNext={handleRequest}
+            amount={amount}
+            narration={narration}
+            category={category}
             loading={RequestFundsMutation.isPending}
           />
         );
@@ -119,10 +131,9 @@ export const RequestMoney = ({ setStep, close }: RequestStepsProps) => {
           <>
             <ChooseCategory
               goBack={() => setRequestMoneyStep("details")}
-              goNext={handleRequest}
+              goNext={() => setRequestMoneyStep("confirmation")}
               category={category}
               setCategory={setCategory}
-              loading={RequestFundsMutation.isPending}
             />
             <RequestSucess close={endStep} />
           </>
