@@ -117,7 +117,7 @@ const Swap = ({ close }: Props) => {
 
     if (swapToCurrency === ACCOUNT_CURRENCIES.NGN.name) {
       return (
-        Number(safeAmount * Number(exchangeRateData.buy_rate)).toLocaleString(
+        Number(safeAmount * Number(exchangeRateData.sell_rate)).toLocaleString(
           undefined,
           {
             minimumFractionDigits: 2,
@@ -129,7 +129,7 @@ const Swap = ({ close }: Props) => {
 
     if (swapToCurrency === ACCOUNT_CURRENCIES.USD.name) {
       return (
-        Number(safeAmount / Number(exchangeRateData.sell_rate)).toLocaleString(
+        Number(safeAmount / Number(exchangeRateData.buy_rate)).toLocaleString(
           undefined,
           {
             minimumFractionDigits: 2,
@@ -155,8 +155,6 @@ const Swap = ({ close }: Props) => {
     enabled: !!amount,
   });
 
-  console.log("1recepamount", recipientAmount, "1Rate", exchangeRateData);
-
   const displayScreen = () => {
     switch (step) {
       case "detail":
@@ -173,7 +171,7 @@ const Swap = ({ close }: Props) => {
             exchangeRate={rate}
             recipientAmount={recipientAmount}
             timeLeft={timeLeft}
-            loading={isLoading || isFetching}
+            loading={isLoading || isFetching || cryptoFeeLoading}
             cryptoFee={cryptoFee}
           />
         );

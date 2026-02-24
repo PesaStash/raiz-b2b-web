@@ -142,8 +142,6 @@ const SwapDetail = ({
     };
   };
 
-  console.log("receipienA,ount", recipientAmount, "excrate", exchangeRate);
-
   const rateDisplay = getRateDisplay();
 
   return (
