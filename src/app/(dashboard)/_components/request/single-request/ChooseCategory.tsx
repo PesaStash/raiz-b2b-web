@@ -14,16 +14,9 @@ interface Props {
   goNext: () => void;
   category: ITransactionCategory | null;
   setCategory: Dispatch<SetStateAction<ITransactionCategory | null>>;
-  loading: boolean;
 }
 
-const ChooseCategory = ({
-  goBack,
-  goNext,
-  category,
-  setCategory,
-  loading,
-}: Props) => {
+const ChooseCategory = ({ goBack, goNext, category, setCategory }: Props) => {
   const { data, isLoading } = useQuery({
     queryKey: ["transactions-category"],
     queryFn: () => FetchTransactionCategoriesApi(),
@@ -102,7 +95,7 @@ const ChooseCategory = ({
             })
           )}
         </div>
-        <Button loading={loading} disabled={!category} onClick={goNext}>
+        <Button disabled={!category} onClick={goNext}>
           Continue
         </Button>
       </div>
