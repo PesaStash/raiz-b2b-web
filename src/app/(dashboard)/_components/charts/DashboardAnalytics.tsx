@@ -7,6 +7,8 @@ import { findWalletByCurrency } from "@/utils/helpers";
 import { useUser } from "@/lib/hooks/useUser";
 import { useState } from "react";
 import SelectAccount from "../SelectAccount";
+import CreateNgnAcct from "../createNgnAcct/CreateNgnAcct";
+import CreateCryptoWallet from "../crypto/dashboard/CreateCryptoWallet";
 
 const DashboardAnalytics = () => {
   const [openModal, setOpenModal] = useState<
@@ -201,6 +203,12 @@ const DashboardAnalytics = () => {
           openNgnModal={openNGNModal}
           openCryptoModal={openCryptoModal}
         />
+      )}
+      {openModal === "createNGN" && (
+        <CreateNgnAcct close={() => setOpenModal(null)} />
+      )}
+      {openModal === "createCrypto" && (
+        <CreateCryptoWallet close={() => setOpenModal(null)} />
       )}
     </>
   );
