@@ -33,11 +33,19 @@ const Swap = ({ close }: Props) => {
     isLoading,
     refetch,
     isFetching,
+    isError: exchangeRateError,
   } = useQuery({
     queryKey: ["exchange-rate", "NGN"],
     queryFn: () => GetExchangeRate("NGN"),
     staleTime: 1000 * 60, // 1 minute
+    retry: 2,
   });
+
+  useEffect(() => {
+    if (exchangeRateError) {
+      toast.error("Failed to fetch exchange rate. Please try again later.");
+    }
+  }, [exchangeRateError]);
 
   useEffect(() => {
     if (exchangeRateData) {
@@ -127,6 +135,10 @@ const Swap = ({ close }: Props) => {
           <SwapDetail
             close={close}
             goNext={() => {
+              if (exchangeRateError || !exchangeRateData) {
+                toast.error("Exchange rate unavailable. Cannot proceed.");
+                return;
+              }
               setStep("confirmation");
             }}
             exchangeRate={rate}
@@ -152,7 +164,13 @@ const Swap = ({ close }: Props) => {
             />
             <SwapConfirmation
               goBack={() => setStep("detail")}
-              goNext={() => setStep("pay")}
+              goNext={() => {
+                if (exchangeRateError || !exchangeRateData) {
+                  toast.error("Exchange rate unavailable. Cannot proceed.");
+                  return;
+                }
+                setStep("pay");
+              }}
               exchangeRate={rate}
               recipientAmount={recipientAmount}
               timeLeft={timeLeft}
