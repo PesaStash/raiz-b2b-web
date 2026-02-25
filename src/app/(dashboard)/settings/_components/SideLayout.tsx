@@ -94,7 +94,7 @@ const SideLayout = () => {
         setIsUploading(false);
       }
     },
-    [previewUrl, uploadImgMutation]
+    [previewUrl, uploadImgMutation],
   );
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -140,7 +140,7 @@ const SideLayout = () => {
   }, [user?.business_account?.entity]);
 
   return (
-    <section className="w-[23%] border-r border-[#dddbe1] h-full py-5 pr-2 no-scrollbar">
+    <section className="w-[23%]  h-full py-5 pr-2 no-scrollbar">
       {/* Profile Info */}
       <div className="mb-10">
         {/* Picture */}
@@ -190,7 +190,7 @@ const SideLayout = () => {
           <p className="text-raiz-gray-950 text-sm font-normal leading-tight">
             Joined{" "}
             {dayjs(user?.business_account?.entity?.created_at).format(
-              "MMM YYYY"
+              "MMM YYYY",
             )}
           </p>
           <div className="flex items-center gap-0.5">
@@ -276,7 +276,7 @@ const SideLayout = () => {
                   if (menu.action === "delete" && menu.email) {
                     const { to, subject, body } = menu.email;
                     const mailtoLink = `mailto:${to}?subject=${encodeURIComponent(
-                      subject
+                      subject,
                     )}&body=${encodeURIComponent(body)}`;
                     window.location.href = mailtoLink;
                   } else {
