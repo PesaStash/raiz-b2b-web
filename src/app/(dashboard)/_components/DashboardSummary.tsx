@@ -31,6 +31,7 @@ import ExchangeRateCard from "./exchangeRate/ExchangeRateCard";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 import CryptoSwap from "./crypto/swap/CryptoSwap";
 import { ACCOUNT_CURRENCIES } from "@/constants/misc";
+import CryptoSend from "./crypto/send/CryptoSend";
 
 type actionBtnKeytype = "send" | "request" | "topUp" | "details";
 
@@ -145,6 +146,10 @@ const DashboardSummary = () => {
         return selectedCurrency?.name === "NGN" ? (
           <NgnSend close={closeModal} />
         ) : (
+          // selectedCurrency?.name === "SBC" ? (
+          //   <CryptoSend close={closeModal} />
+          // )
+          // :
           <UsdSend close={closeModal} />
         );
       case "request":
@@ -325,7 +330,11 @@ const DashboardSummary = () => {
         <div className="flex gap-4 items-center">
           {actionBtnsOpts.map(({ name, key, icon }) => {
             const isSwap = key === "swap";
-            if (key !== "swap" && selectedCurrency.name === "SBC") {
+            if (
+              key !== "swap" &&
+              // key !== "send" &&
+              selectedCurrency.name === "SBC"
+            ) {
               return;
             }
             return (

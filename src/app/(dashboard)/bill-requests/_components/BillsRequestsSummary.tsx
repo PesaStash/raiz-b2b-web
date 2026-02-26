@@ -1,45 +1,30 @@
 "use client";
 
 import Button from "@/components/ui/Button";
-import {
-  FetchBillRequestApi,
-  FetchSentRequestApi,
-} from "@/services/transactions";
+import { FetchBillRequestMetricsApi } from "@/services/transactions";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
-import { IBillRequestParams } from "@/types/services";
 import { useQuery } from "@tanstack/react-query";
 import Skeleton from "react-loading-skeleton";
 
 const BillsRequestsSummary = () => {
   const { selectedCurrency } = useCurrencyStore();
+
   const {
-    data: receivedRequests,
-    isLoading: receivedRequestsLoading,
-    refetch: receivedRequestsRefetch,
+    data: metrics,
+    isLoading: metricsLoading,
+    refetch: metricsRefetch,
   } = useQuery({
-    queryKey: [
-      "bill-requests",
-      { currency: selectedCurrency.name, status_id: 2 },
-    ],
+    queryKey: ["bill-requests-metrics", { currency: selectedCurrency.name }],
     queryFn: ({ queryKey }) => {
-      const [, params] = queryKey as [string, IBillRequestParams];
-      return FetchBillRequestApi(params);
+      const [, params] = queryKey as [
+        string,
+        { start_date?: string; end_date?: string },
+      ];
+      return FetchBillRequestMetricsApi(params);
     },
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
-  });
-
-  const {
-    data: sentRequests,
-    isLoading: sentRequestsLoading,
-    refetch: sentRequestsRefetch,
-  } = useQuery({
-    queryKey: ["sent-requests", { currency: selectedCurrency.name }],
-    queryFn: ({ queryKey }) => {
-      const [, params] = queryKey as [string, IBillRequestParams];
-      return FetchSentRequestApi(params);
-    },
   });
 
   return (
@@ -78,11 +63,11 @@ const BillsRequestsSummary = () => {
           <p className="text-raiz-gray-950 text-base font-semibold leading-6">
             Received (Total)
           </p>
-          {receivedRequestsLoading ? (
+          {metricsLoading ? (
             <Skeleton height={40} width={100} />
           ) : (
             <p className="text-raiz-gray-950 text-4xl font-semibold leading-10">
-              {receivedRequests?.pagination_details?.total_results || 0}
+              {metrics?.received?.total || 0}
             </p>
           )}
         </div>
@@ -90,11 +75,11 @@ const BillsRequestsSummary = () => {
           <p className="text-raiz-gray-950 text-base font-semibold leading-6">
             Sent (Total)
           </p>
-          {sentRequestsLoading ? (
+          {metricsLoading ? (
             <Skeleton height={40} width={100} />
           ) : (
             <p className="text-raiz-gray-950 text-4xl font-semibold leading-10">
-              {sentRequests?.pagination_details?.total_results || 0}
+              {metrics?.sent?.total || 0}
             </p>
           )}
         </div>
@@ -102,9 +87,13 @@ const BillsRequestsSummary = () => {
           <p className="text-raiz-gray-950 text-base font-semibold leading-6">
             Pending Approval
           </p>
-          <p className="text-raiz-gray-950 text-4xl font-semibold leading-10">
-            200
-          </p>
+          {metricsLoading ? (
+            <Skeleton height={40} width={100} />
+          ) : (
+            <p className="text-raiz-gray-950 text-4xl font-semibold leading-10">
+              {metrics?.pending_approval?.total || 0}
+            </p>
+          )}
         </div>
       </div>
     </section>
