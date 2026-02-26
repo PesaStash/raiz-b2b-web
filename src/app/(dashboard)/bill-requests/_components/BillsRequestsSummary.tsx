@@ -4,10 +4,14 @@ import Button from "@/components/ui/Button";
 import { FetchBillRequestMetricsApi } from "@/services/transactions";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import Skeleton from "react-loading-skeleton";
+import Request from "../../_components/request/Request";
+import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 
 const BillsRequestsSummary = () => {
   const { selectedCurrency } = useCurrencyStore();
+  const [showReuest, setShowRequest] = useState(false);
 
   const {
     data: metrics,
@@ -39,7 +43,10 @@ const BillsRequestsSummary = () => {
             currencies.
           </p>
         </div>
-        <Button className="h-10  w-fit px-[18px] py-2   rounded-3xl justify-center items-center gap-1.5 inline-flex">
+        <Button
+          onClick={() => setShowRequest(true)}
+          className="h-10  w-fit px-[18px] py-2   rounded-3xl justify-center items-center gap-1.5 inline-flex"
+        >
           <svg
             width="16"
             height="16"
@@ -96,6 +103,11 @@ const BillsRequestsSummary = () => {
           )}
         </div>
       </div>
+      {showReuest && (
+        <CenterModalWrapper close={() => setShowRequest(false)}>
+          <Request close={() => setShowRequest(false)} />
+        </CenterModalWrapper>
+      )}
     </section>
   );
 };

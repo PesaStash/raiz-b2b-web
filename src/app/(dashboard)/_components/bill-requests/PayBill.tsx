@@ -66,6 +66,7 @@ const PayBill = ({
       qc.invalidateQueries({ queryKey: ["bill-requests"] });
       qc.invalidateQueries({ queryKey: ["transactions-report"] });
       qc.invalidateQueries({ queryKey: ["p2p-beneficiaries-recents"] });
+      qc.invalidateQueries({ queryKey: ["bill-requests-received"] });
       setStatus("success");
       goNext();
     },

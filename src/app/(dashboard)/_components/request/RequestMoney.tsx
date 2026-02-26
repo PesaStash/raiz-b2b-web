@@ -63,7 +63,7 @@ export const RequestMoney = ({ setStep, close }: RequestStepsProps) => {
     mutationFn: (data: IRequestFundsPayload) =>
       RequestFundsApi(currentWallet?.wallet_id || null, data),
     onSuccess: (response) => {
-      qc.refetchQueries({ queryKey: ["sent-requests"] });
+      qc.refetchQueries({ queryKey: ["bill-requests-sent"] });
       toast.success(response?.message);
       setRequestMoneyStep("success");
     },

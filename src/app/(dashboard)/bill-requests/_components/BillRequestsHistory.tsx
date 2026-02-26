@@ -8,11 +8,12 @@ import Avatar from "@/components/ui/Avatar";
 import {
   FetchBillRequestApi,
   FetchSentRequestApi,
+  FetchTransactionCategoriesApi,
 } from "@/services/transactions";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { IBillRequestParams, IP2pTransferResponse } from "@/types/services";
 import { IBillRequest, PaymentStatusType } from "@/types/transactions";
-import { getCurrencySymbol, convertTime } from "@/utils/helpers";
+import { getCurrencySymbol, convertTime, formatAmount } from "@/utils/helpers";
 import EmptyList from "@/components/ui/EmptyList";
 import AcceptBill from "@/app/(dashboard)/_components/bill-requests/AcceptBill";
 import RejectBill from "@/app/(dashboard)/_components/bill-requests/RejectBill";
@@ -284,14 +285,14 @@ const DetailPanel = ({
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-raiz-gray-500 text-sm mb-1">
-            Utility Bill Request
+          <p className="text-raiz-gray-950 text-sm mb-1 font-semibold">
+            Bill Request
           </p>
-          <p className="text-raiz-gray-900 text-3xl font-bold">
+          <p className="text-raiz-gray-900 text-2xl font-bold">
             {getCurrencySymbol(request.currency)}
-            {request.transaction_amount?.toLocaleString()}
+            {formatAmount(request.transaction_amount)}
           </p>
-          <p className="text-raiz-gray-500 text-sm mt-1">
+          <p className="text-raiz-gray-700 font-brSonoma text-sm mt-1 leading-5">
             {isSent ? "Sent Request" : "Received Request"}
           </p>
         </div>
@@ -309,14 +310,14 @@ const DetailPanel = ({
       {/* Meta */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <p className="text-raiz-gray-500 text-sm mb-1">Requester</p>
-          <p className="text-raiz-gray-900 text-sm font-semibold">
-            {request.third_party_account?.account_name}
+          <p className="text-raiz-gray-700 text-sm mb-1">Requester</p>
+          <p className="text-raiz-gray-700 text-base font-semibold">
+            {isSent ? "You" : request.third_party_account?.account_name}
           </p>
         </div>
         <div>
-          <p className="text-raiz-gray-500 text-sm mb-1">Submitted Date</p>
-          <p className="text-raiz-gray-900 text-sm font-semibold">
+          <p className="text-raiz-gray-700 text-sm mb-1">Submitted Date</p>
+          <p className="text-raiz-gray-700 text-base font-semibold">
             {submittedDate}
           </p>
         </div>
@@ -327,10 +328,10 @@ const DetailPanel = ({
       {/* Description */}
       {request.narration && (
         <div>
-          <p className="text-raiz-gray-900 text-sm font-semibold mb-2">
+          <p className="text-raiz-gray-700 text-sm font-bold mb-2">
             Description
           </p>
-          <p className="text-raiz-gray-600 text-sm leading-relaxed">
+          <p className="text-raiz-gray-700 text-base leading-relaxed">
             {request.narration}
           </p>
         </div>
@@ -357,6 +358,13 @@ const TableRow = ({
   const isPending = statusKey === "pending";
   const statusInfo = normalizeStatus(request.status?.status);
 
+  const { data } = useQuery({
+    queryKey: ["transactions-category"],
+    queryFn: () => FetchTransactionCategoriesApi(),
+  });
+
+  console.log("data", data);
+
   return (
     <tr className="border-b border-raiz-gray-100 hover:bg-gray-50 transition-colors">
       {/* Client */}
@@ -366,7 +374,7 @@ const TableRow = ({
             name={request.third_party_account?.account_name}
             src={request.third_party_account?.selfie_image}
           />
-          <span className="text-raiz-gray-900 text-sm font-medium">
+          <span className="text-raiz-gray-950 text-sm font-medium">
             {request.third_party_account?.account_name}
           </span>
         </div>
@@ -375,8 +383,8 @@ const TableRow = ({
       {/* Amount */}
       <td className="py-4 px-3">
         <span
-          className={`text-sm font-semibold ${
-            isSent ? "text-raiz-gray-900" : "text-green-600"
+          className={`text-sm font-normal ${
+            isSent ? "text-raiz-gray-700" : "text-green-600"
           }`}
         >
           {isSent ? "- " : "+ "}
@@ -386,12 +394,15 @@ const TableRow = ({
       </td>
 
       {/* Category */}
-      <td className="py-4 px-3">
-        <span className="inline-flex items-center gap-1.5 text-xs border border-raiz-gray-200 rounded-md px-2 py-1 text-raiz-gray-700">
+      {/* <td className="py-4 px-3">
+        <span className="inline-flex items-center font-brSonoma font-medium gap-1.5 text-xs border border-raiz-gray-200 rounded-md px-2 py-1 text-raiz-gray-700 shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)]">
           <span className="w-2 h-2 rounded-full bg-blue-400" />
-          {request.status?.description || "General"}
+          {data?.find(
+            (item) =>
+              item.transaction_category_id === request.transaction_category_id,
+          )?.transaction_category || "General"}
         </span>
-      </td>
+      </td> */}
 
       {/* Date */}
       <td className="py-4 px-3 text-raiz-gray-600 text-sm">
@@ -417,7 +428,7 @@ const TableRow = ({
       </td>
 
       {/* Three-dot */}
-      <td className="py-4 px-4">
+      {/* <td className="py-4 px-4">
         <button className="text-raiz-gray-400 hover:text-raiz-gray-700 transition-colors">
           <svg
             width="4"
@@ -431,7 +442,7 @@ const TableRow = ({
             <circle cx="2" cy="14" r="2" fill="currentColor" />
           </svg>
         </button>
-      </td>
+      </td> */}
     </tr>
   );
 };
@@ -470,7 +481,7 @@ const TableSkeleton = () => (
       <div key={i} className="flex items-center gap-4">
         <Skeleton circle width={40} height={40} />
         <Skeleton width={120} height={14} />
-        <Skeleton width={80} height={14} className="ml-auto" />
+        {/* <Skeleton width={80} height={14} className="ml-auto" /> */}
         <Skeleton width={80} height={24} borderRadius={6} />
         <Skeleton width={120} height={14} />
         <Skeleton width={80} height={14} />
@@ -497,7 +508,7 @@ const BillRequestsHistory = () => {
 
   // ── Filter state ──
   const [filterCurrency, setFilterCurrency] = useState<CurrencyFilter>("all");
-  const [datePreset, setDatePreset] = useState<DatePreset>("this_month");
+  const [datePreset, setDatePreset] = useState<DatePreset>("all_time");
   const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false);
   const [dateDropdownOpen, setDateDropdownOpen] = useState(false);
 
@@ -558,7 +569,10 @@ const BillRequestsHistory = () => {
 
   const receivedRequests = receivedData?.data ?? [];
   const sentRequests = sentData?.data ?? [];
-  const allRequests = [...receivedRequests, ...sentRequests];
+  const allRequests = [...receivedRequests, ...sentRequests].sort(
+    (a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  );
 
   const pendingCount = receivedRequests.filter(
     (r) => r.status?.status?.toLowerCase() === "pending",
@@ -993,23 +1007,23 @@ const BillRequestsHistory = () => {
         <div className="bg-white rounded-2xl border border-raiz-gray-100 overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-raiz-gray-100">
-                <th className="text-left py-3 pl-4 pr-3 text-xs font-medium text-raiz-gray-500">
+              <tr className="border-b border-raiz-gray-100 bg-[#F8F7FA]">
+                <th className="text-left py-3 pl-4 pr-3 text-[13px] font-medium text-raiz-gray-700">
                   Client / Recipient
                 </th>
-                <th className="text-left py-3 px-3 text-xs font-medium text-raiz-gray-500">
+                <th className="text-left py-3 px-3 text-[13px] font-medium text-raiz-gray-700">
                   Amount
                 </th>
-                <th className="text-left py-3 px-3 text-xs font-medium text-raiz-gray-500">
+                {/* <th className="text-left py-3 px-3 text-[13px] font-medium text-raiz-gray-700">
                   Category
-                </th>
-                <th className="text-left py-3 px-3 text-xs font-medium text-raiz-gray-500">
+                </th> */}
+                <th className="text-left py-3 px-3 text-[13px] font-medium text-raiz-gray-700">
                   Date
                 </th>
-                <th className="text-left py-3 px-3 text-xs font-medium text-raiz-gray-500">
+                <th className="text-left py-3 px-3 text-[13px] font-medium text-raiz-gray-700">
                   Status
                 </th>
-                <th className="py-3 px-4" />
+                {/*  <th className="py-3 px-4" /> */}
               </tr>
             </thead>
             <tbody>
