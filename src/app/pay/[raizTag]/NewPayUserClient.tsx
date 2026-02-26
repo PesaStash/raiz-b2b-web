@@ -107,7 +107,7 @@ const RaizPaymentPage = () => {
   const [mobileOpen, setMobileOpen] = useState<string | null>("transfer");
   // const [amount, setAmount] = useState<string | undefined>();
   const [screen, setScreen] = useState<GuestPaymentType | "detail" | null>(
-    "transfer"
+    "transfer",
   );
   const [transferCurrency, setTransferCurrency] =
     useState<TransferCurrencyType>("GBP");
@@ -151,7 +151,7 @@ const RaizPaymentPage = () => {
     data?.wallets
       ?.filter((acct) => {
         const allowedType = allowedWalletTypeCodes.includes(
-          acct?.wallet_type?.wallet_type_code
+          acct?.wallet_type?.wallet_type_code,
         );
         const notEmail = !isEmail(acct.account_number || "");
         return allowedType && notEmail;
@@ -166,7 +166,7 @@ const RaizPaymentPage = () => {
       })) ?? [];
 
   const hasNgnAcct = data?.wallets?.find(
-    (acct) => acct.wallet_type.wallet_type_code === 2
+    (acct) => acct.wallet_type.wallet_type_code === 2,
   );
 
   const handleMethodClick = (id: GuestPaymentType) => {
@@ -228,7 +228,7 @@ const RaizPaymentPage = () => {
     );
   }
   const selectedMethodObj = paymentMethodsArr.find(
-    (item) => item.id === screen
+    (item) => item.id === screen,
   );
   return (
     <div className="min-h-screen bg-[url('/images/paybg.gif')] bg-no-repeat bg-cover flex md:items-center justify-center p-0 md:p-4">
@@ -410,8 +410,8 @@ const RaizPaymentPage = () => {
                                     opt.value === "NGN"
                                       ? "ngn"
                                       : opt.value === "USD"
-                                      ? "dollar"
-                                      : "sbc"
+                                        ? "dollar"
+                                        : "sbc"
                                   }.svg`}
                                   alt={opt.value}
                                   width={20}
@@ -507,7 +507,7 @@ const RaizPaymentPage = () => {
               <div className="flex items-center gap-4">
                 <a
                   target="_blank"
-                  href="https://www.instagram.com/raizdigitalcompany/"
+                  href="https://www.instagram.com/p/DVMC7huiulF/?img_index=1&igsh=eWtrZHVrczI5dWEx"
                   className="flex gap-1 items-center text-raiz-gray-950 text-[13px] hover:text-blue-800 transition"
                 >
                   <svg

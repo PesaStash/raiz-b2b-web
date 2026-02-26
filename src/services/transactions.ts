@@ -4,6 +4,7 @@ import { PublicAxios } from "@/lib/publicAxios";
 import {
   IAcceptRequestPayload,
   IBeneficiariestResponse,
+  IBillRequestMetricsResponse,
   IBillRequestParams,
   IBillRequestResponse,
   IBusinessPaymentData,
@@ -64,6 +65,23 @@ export const FetchBillRequestApi = async (
   );
   const response = await AuthAxios.get(
     `/business/transactions/requests/funds/received/`,
+    { params: queryParams },
+  );
+  return response?.data;
+};
+
+export const FetchBillRequestMetricsApi = async (params: {
+  start_date?: string;
+  end_date?: string;
+}): Promise<IBillRequestMetricsResponse> => {
+  const queryParams = Object.fromEntries(
+    Object.entries(params).filter(
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      ([_, value]) => value !== undefined && value !== null,
+    ),
+  );
+  const response = await AuthAxios.get(
+    `/business/transactions/requests/funds/metrics/`,
     { params: queryParams },
   );
   return response?.data;
