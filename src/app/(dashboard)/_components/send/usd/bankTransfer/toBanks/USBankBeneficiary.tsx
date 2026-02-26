@@ -131,7 +131,7 @@ const USBankBeneficiary = ({ close }: Props) => {
           account_type: values.account_type as "checking" | "savings",
           account_owner_name: values.account_owner_name,
           street_line_1: values.street_line_1,
-          street_line_2: values.street_line_2,
+          street_line_2: values.street_line_2 || null,
           city: values.city,
           state: values.state,
           postal_code: values.postal_code,

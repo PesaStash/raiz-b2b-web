@@ -334,7 +334,7 @@ export interface IUsBeneficiaryPayload {
     account_type: "checking" | "savings";
     account_owner_name: string;
     street_line_1: string;
-    street_line_2: string;
+    street_line_2: string | null;
     city: string;
     state: string;
     postal_code: string;

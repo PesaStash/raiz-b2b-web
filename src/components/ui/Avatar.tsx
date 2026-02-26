@@ -47,7 +47,7 @@ const Avatar: React.FC<AvatarProps> = ({
       style={{ width: size, height: size, fontSize: size / 3 }}
     >
       {showImage ? (
-        <Image
+        <img
           src={src}
           alt={name}
           className="rounded-full object-cover group-hover:scale-110 transition-all duration-300"
