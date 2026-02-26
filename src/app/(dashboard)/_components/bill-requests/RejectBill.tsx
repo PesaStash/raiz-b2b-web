@@ -22,6 +22,8 @@ const RejectBill = ({ close, request }: Props) => {
     onSuccess: (response) => {
       toast.success(response?.message);
       qc.invalidateQueries({ queryKey: ["bill-requests"] });
+      qc.invalidateQueries({ queryKey: ["bill-requests-received"] });
+      qc.invalidateQueries({ queryKey: ["bill-requests-metrics"] });
     },
     onSettled: () => {
       close();

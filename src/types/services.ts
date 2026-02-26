@@ -132,11 +132,31 @@ export interface IBillRequestParams {
   page?: number;
   limit?: number;
   currency?: string | null;
+  start_date?: string;
+  end_date?: string;
 }
 
 export interface IBillRequestResponse {
   pagination_details: IPagination;
   data: IBillRequest[];
+}
+
+export interface IBillRequestMetricsResponse {
+  received: {
+    total: number;
+    percentage_change: number;
+    trend: string;
+  };
+  sent: {
+    total: number;
+    percentage_change: number;
+    trend: string;
+  };
+  pending_approval: {
+    total: number;
+    percentage_change: number;
+    trend: string;
+  };
 }
 
 export interface IUserSearchParams {

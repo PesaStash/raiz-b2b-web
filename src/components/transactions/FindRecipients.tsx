@@ -57,6 +57,7 @@ const FindRecipients = ({
   const { user } = useUser();
   const NGNAcct = findWalletByCurrency(user, "NGN");
   const USDAcct = findWalletByCurrency(user, "USD");
+  const SBCAcct = findWalletByCurrency(user, "SBC");
 
   const { selectedCurrency } = useCurrencyStore();
 
@@ -65,6 +66,8 @@ const FindRecipients = ({
       return NGNAcct;
     } else if (selectedCurrency.name === "USD") {
       return USDAcct;
+    } else if (selectedCurrency.name === "SBC") {
+      return SBCAcct;
     }
   };
 
