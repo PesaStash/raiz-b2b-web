@@ -32,6 +32,7 @@ import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 import CryptoSwap from "./crypto/swap/CryptoSwap";
 import { ACCOUNT_CURRENCIES } from "@/constants/misc";
 import CryptoSend from "./crypto/send/CryptoSend";
+import CryptoSend from "./crypto/send/CryptoSend";
 
 type actionBtnKeytype = "send" | "request" | "topUp" | "details";
 
@@ -145,6 +146,8 @@ const DashboardSummary = () => {
       case "send":
         return selectedCurrency?.name === "NGN" ? (
           <NgnSend close={closeModal} />
+        ) : selectedCurrency?.name === "SBC" ? (
+          <CryptoSend close={closeModal} />
         ) : (
           // selectedCurrency?.name === "SBC" ? (
           //   <CryptoSend close={closeModal} />
@@ -332,7 +335,7 @@ const DashboardSummary = () => {
             const isSwap = key === "swap";
             if (
               key !== "swap" &&
-              // key !== "send" &&
+              key !== "send" &&
               selectedCurrency.name === "SBC"
             ) {
               return;

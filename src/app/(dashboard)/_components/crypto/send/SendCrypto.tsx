@@ -12,6 +12,8 @@ import { z } from "zod";
 import Image from "next/image";
 import Button from "@/components/ui/Button";
 import SideModalWrapper from "../../SideModalWrapper";
+import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
+import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 
 interface Props {
   goBack: () => void;
@@ -52,7 +54,7 @@ const SendCrypto = ({
       },
       {
         message: `Amount cannot exceed available balance`,
-      }
+      },
     );
 
   const purposeSchema = z
@@ -123,7 +125,7 @@ const SendCrypto = ({
 
     if (minAmount && parsedAmount < minAmount) {
       toast.warning(
-        `Amount must be at least ${selectedCurrency?.sign}${minAmount}`
+        `Amount must be at least ${selectedCurrency?.sign}${minAmount}`,
       );
       return;
     }
@@ -132,13 +134,12 @@ const SendCrypto = ({
   };
 
   return (
-    <SideModalWrapper close={close} wrapperStyle="!p-0">
+    <CenterModalWrapper close={goBack}>
       <div className="w-full flex flex-col h-full p-6">
-        <SideWrapperHeader
-          close={goBack}
-          title="Send Money"
-          titleColor="text-zinc-900"
-        />
+        <CenterModalHeader close={goBack} />
+        <h2 className="text-xl font-bold text-raiz-gray-950 mb-4">
+          Send Money
+        </h2>
         <div className="flex flex-col h-full justify-between items-center w-full">
           <div className="w-full h-full">
             <div className="flex flex-col justify-center items-center">
@@ -229,7 +230,7 @@ const SendCrypto = ({
           </div>
         </div>
       </div>
-    </SideModalWrapper>
+    </CenterModalWrapper>
   );
 };
 
