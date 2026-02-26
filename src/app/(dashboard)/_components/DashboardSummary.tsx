@@ -32,7 +32,6 @@ import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 import CryptoSwap from "./crypto/swap/CryptoSwap";
 import { ACCOUNT_CURRENCIES } from "@/constants/misc";
 import CryptoSend from "./crypto/send/CryptoSend";
-import CryptoSend from "./crypto/send/CryptoSend";
 
 type actionBtnKeytype = "send" | "request" | "topUp" | "details";
 
