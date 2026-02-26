@@ -717,3 +717,21 @@ export interface SendInvoicemailPayload {
   payment_link: string;
   invoice_pdf_url: string;
 }
+
+export interface RoutingNumberInfoResponse {
+  status: string;
+  data: RoutingNumberInfo;
+}
+
+export interface RoutingNumberInfo {
+  routingNumber: string;
+  paymentType: string;
+  name: string;
+  telegraphicName: string;
+  location: string;
+  city: string;
+  state: string;
+  fundsTransferEligible: string;
+  bookEntrySecuritiesTransferEligible: string;
+  lastUpdated: string;
+}
