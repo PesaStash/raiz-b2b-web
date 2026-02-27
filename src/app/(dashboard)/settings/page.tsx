@@ -135,13 +135,13 @@ const Settingspage = () => {
           disabled
           {...formik.getFieldProps("email")}
         />
-        <InputField
+        {/* <InputField
           label="Phone Number"
           icon="/icons/lock.svg"
           disabled
           {...formik.getFieldProps("phone_number")}
           className="!text-raiz-gray-400"
-        />
+        /> */}
         <InputField
           label="Address"
           icon="/icons/lock.svg"
