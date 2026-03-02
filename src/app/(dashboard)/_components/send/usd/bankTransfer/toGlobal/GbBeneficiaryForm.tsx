@@ -69,7 +69,7 @@ const GbBeneficiaryForm = ({ fields, countryCode }: Props) => {
       acc[key] = entry[key];
       return acc;
     },
-    { DOMESTIC_GBP: [], SEPA_EUR: [] }
+    { DOMESTIC_GBP: [], SEPA_EUR: [] },
   );
 
   const entity = user?.business_account?.entity;
@@ -109,14 +109,14 @@ const GbBeneficiaryForm = ({ fields, countryCode }: Props) => {
           const regex = new RegExp(field.pattern);
           const readableMessage = getReadablePatternMessage(
             field.pattern,
-            field.name
+            field.name,
           );
 
           fieldSchema = fieldSchema.regex(regex, readableMessage);
         } catch (error) {
           console.log(
             `Invalid regex pattern for ${field.name}: ${field.pattern}`,
-            error
+            error,
           );
         }
       }
@@ -236,7 +236,7 @@ const GbBeneficiaryForm = ({ fields, countryCode }: Props) => {
             type,
             account_number: values.account_number,
             account_name: values.account_name,
-            remittance_purpose: values.remittance_purporse,
+            remittance_purpose: values.remittance_purpose,
           },
           customer_email: userEmail,
           country: countryCode,
@@ -258,7 +258,7 @@ const GbBeneficiaryForm = ({ fields, countryCode }: Props) => {
 
   const handleOpenModal = (
     value: string[] | Bank[] | undefined,
-    name: string
+    name: string,
   ) => {
     if (name === "remittance_purpose") setShowModal("purpose");
     if (name === "type") setShowModal("type");
@@ -324,7 +324,7 @@ const GbBeneficiaryForm = ({ fields, countryCode }: Props) => {
 
   // console.log("formik valluess--------", formik.values);
 
-  console.log("f--------errrrrs", formik.errors);
+  // console.log("f--------errrrrs", formik.errors);
   return (
     <div className="my-5">
       <InputLabel content="UK Send type" />
@@ -377,7 +377,7 @@ const GbBeneficiaryForm = ({ fields, countryCode }: Props) => {
                     [],
                     handleOpenModal,
                     field?.fields,
-                    []
+                    [],
                   )}
                 </div>
               );
@@ -405,7 +405,7 @@ const GbBeneficiaryForm = ({ fields, countryCode }: Props) => {
                     [],
                     handleOpenModal,
                     field?.fields,
-                    []
+                    [],
                   )}
                 </div>
               );
