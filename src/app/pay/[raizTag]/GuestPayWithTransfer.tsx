@@ -1,58 +1,67 @@
-"use client"
-import Button from '@/components/ui/Button'
-import CopyButton from '@/components/ui/CopyButton'
-import { IBusinessPaymentData } from '@/types/services'
-import React, { useState } from 'react'
-import QRCode from 'react-qr-code'
-import { toast } from 'sonner'
+"use client";
+import Button from "@/components/ui/Button";
+import CopyButton from "@/components/ui/CopyButton";
+import { IBusinessPaymentData } from "@/types/services";
+import React, { useState } from "react";
+import QRCode from "react-qr-code";
+import { toast } from "sonner";
 import * as motion from "motion/react-client";
 import { AnimatePresence } from "motion/react";
-import Image from 'next/image'
-import NGNPalmPayAcct from './NGNPalmPayAcct'
+import Image from "next/image";
+import NGNPalmPayAcct from "./NGNPalmPayAcct";
 
-export type TransferCurrencyType = "NGN" | "SBC" | "USD" | "GBP"
+export type TransferCurrencyType = "NGN" | "SBC" | "USD" | "GBP";
 interface Props {
-  transferCurrency: TransferCurrencyType
-  data: IBusinessPaymentData
+  transferCurrency: TransferCurrencyType;
+  data: IBusinessPaymentData;
 }
 
 const GuestPayWithTransfer = ({ transferCurrency, data }: Props) => {
-
   const hasNgnAcct = data?.wallets?.find(
-    (acct) =>
-      acct.wallet_type.wallet_type_code === 2
+    (acct) => acct.wallet_type.wallet_type_code === 2,
   );
 
   const NGNAcct = data?.wallets?.find(
-    (acct) =>
-      acct.wallet_type.currency === "NGN"
+    (acct) => acct.wallet_type.currency === "NGN",
   );
   const USDAcct = data?.wallets?.find(
-    (acct) =>
-      acct.wallet_type.currency === "USD"
+    (acct) => acct.wallet_type.currency === "USD",
   );
   const SBCAcct = data?.wallets?.find(
-    (acct) =>
-      acct.wallet_type.currency === "SBC"
+    (acct) => acct.wallet_type.currency === "SBC",
   );
-  const GBPAcct = true
+  const GBPAcct = {
+    account_number: "35486872",
+    sortCode: "60-84-64",
+    bankName: "Monzo Bank",
+    accountName: "Vestafrik Technologies Limited",
+    address:
+      "Worship Square, 65 Clifton Street, London. EC2A 4JE. United Kingdom",
+  };
   const secondarySBCAccts = SBCAcct?.secondary_crypto_details?.map((acct) => ({
     label: acct?.chain,
     value: acct.crypto_id,
-  }))
-  const [sbcType, setSbcType] = useState(secondarySBCAccts?.[0].value || "")
-  const subSBCAcct = SBCAcct?.secondary_crypto_details?.find((acct) => acct.crypto_id === sbcType)
+  }));
+  const [sbcType, setSbcType] = useState(secondarySBCAccts?.[0].value || "");
+  const subSBCAcct = SBCAcct?.secondary_crypto_details?.find(
+    (acct) => acct.crypto_id === sbcType,
+  );
   const handlePaid = () => {
-    toast.success(`${data?.account_user?.account_name} will be notified once the payment is successful.`)
-  }
+    toast.success(
+      `${data?.account_user?.account_name} will be notified once the payment is successful.`,
+    );
+  };
   return (
-    <div className='h-[85%] mb-4 overflow-y-auto no-scrollbar'>
-      {transferCurrency === "SBC" &&
-        <div className='flex md:hidden justify-between items-center gap-2'>
-          <div className='bg-[#F3F1F6] h-[2px] w-full' />
-          <p className="text-center justify-start uppercase text-gray-400 text-[10px] font-semibold leading-4">Details</p>
-          <div className='bg-[#F3F1F6] h-[2px] w-full' />
-        </div>}
+    <div className="h-[85%] mb-4 overflow-y-auto no-scrollbar">
+      {transferCurrency === "SBC" && (
+        <div className="flex md:hidden justify-between items-center gap-2">
+          <div className="bg-[#F3F1F6] h-[2px] w-full" />
+          <p className="text-center justify-start uppercase text-gray-400 text-[10px] font-semibold leading-4">
+            Details
+          </p>
+          <div className="bg-[#F3F1F6] h-[2px] w-full" />
+        </div>
+      )}
       <AnimatePresence mode="wait">
         {transferCurrency === "SBC" && (
           <motion.div
@@ -60,11 +69,11 @@ const GuestPayWithTransfer = ({ transferCurrency, data }: Props) => {
             initial={{ opacity: 0, height: 0 }}
             animate={{
               opacity: 1,
-              height: "auto"
+              height: "auto",
             }}
             exit={{
               opacity: 0,
-              height: 0
+              height: 0,
             }}
             transition={{ duration: 0.3 }}
           >
@@ -78,11 +87,12 @@ const GuestPayWithTransfer = ({ transferCurrency, data }: Props) => {
                   opacity: 1,
                   x: 0,
                   scale: opt.value === sbcType ? 1.05 : 1,
-                  backgroundColor: opt.value === sbcType ? "#F8F6FA" : "#FCFCFD"
+                  backgroundColor:
+                    opt.value === sbcType ? "#F8F6FA" : "#FCFCFD",
                 }}
                 whileHover={{
                   scale: 1.05,
-                  transition: { duration: 0.2 }
+                  transition: { duration: 0.2 },
                 }}
                 whileTap={{ scale: 0.95 }}
                 transition={{
@@ -90,19 +100,24 @@ const GuestPayWithTransfer = ({ transferCurrency, data }: Props) => {
                   delay: i * 0.05,
                   type: "spring",
                   stiffness: 300,
-                  damping: 20
+                  damping: 20,
                 }}
               >
                 <motion.div
                   animate={{
-                    rotate: opt.value === sbcType ? [0, -10, 10, 0] : 0
+                    rotate: opt.value === sbcType ? [0, -10, 10, 0] : 0,
                   }}
                   transition={{
                     duration: 0.5,
-                    delay: 0.1
+                    delay: 0.1,
                   }}
                 >
-                  <Image src={`/icons/${opt.label === "ethereum" ? "eth" : opt.label}.svg`} alt={opt.label} width={14} height={14} />
+                  <Image
+                    src={`/icons/${opt.label === "ethereum" ? "eth" : opt.label}.svg`}
+                    alt={opt.label}
+                    width={14}
+                    height={14}
+                  />
                 </motion.div>
                 <span>{opt.label}</span>
               </motion.button>
@@ -144,13 +159,17 @@ const GuestPayWithTransfer = ({ transferCurrency, data }: Props) => {
                 <p className="text-center justify-start text-zinc-900 text-lg font-semibold  leading-normal">
                   {
                     USDAcct?.routing?.find(
-                      (route) => route.routing_type_name === "ACH"
+                      (route) => route.routing_type_name === "ACH",
                     )?.routing
                   }
                 </p>
-                <CopyButton value={USDAcct?.routing?.find(
-                  (route) => route.routing_type_name === "ACH"
-                )?.routing || ""} />
+                <CopyButton
+                  value={
+                    USDAcct?.routing?.find(
+                      (route) => route.routing_type_name === "ACH",
+                    )?.routing || ""
+                  }
+                />
               </div>
             </div>
             {/* Routing Number (WIRE) */}
@@ -162,13 +181,17 @@ const GuestPayWithTransfer = ({ transferCurrency, data }: Props) => {
                 <p className="text-center justify-start text-zinc-900 text-lg font-semibold  leading-normal">
                   {
                     USDAcct?.routing?.find(
-                      (route) => route.routing_type_name === "WIRE"
+                      (route) => route.routing_type_name === "WIRE",
                     )?.routing
                   }
                 </p>
-                <CopyButton value={USDAcct?.routing?.find(
-                  (route) => route.routing_type_name === "WIRE"
-                )?.routing || ""} />
+                <CopyButton
+                  value={
+                    USDAcct?.routing?.find(
+                      (route) => route.routing_type_name === "WIRE",
+                    )?.routing || ""
+                  }
+                />
               </div>
             </div>
             {/* Currency */}
@@ -195,8 +218,8 @@ const GuestPayWithTransfer = ({ transferCurrency, data }: Props) => {
             </div>
           </div>
         )}
-        {transferCurrency === "NGN" && (
-          hasNgnAcct ? (
+        {transferCurrency === "NGN" &&
+          (hasNgnAcct ? (
             <div className="p-7 bg-violet-100/60 rounded-[20px] inline-flex flex-col justify-center items-center gap-5 w-full my-3">
               {/* Bank details */}
               <div className="w-full flex flex-col justify-center items-center">
@@ -217,7 +240,6 @@ const GuestPayWithTransfer = ({ transferCurrency, data }: Props) => {
                     {NGNAcct?.account_number || ""}
                   </p>
                   <CopyButton value={NGNAcct?.account_number || ""} />
-
                 </div>
               </div>
 
@@ -230,12 +252,15 @@ const GuestPayWithTransfer = ({ transferCurrency, data }: Props) => {
                   {NGNAcct?.wallet_type.currency || ""}
                 </p>
               </div>
-            </div>) :
-            <NGNPalmPayAcct walletId={USDAcct?.wallet_id || ""} userName={data?.account_user?.account_name || ""} />
-        )}
+            </div>
+          ) : (
+            <NGNPalmPayAcct
+              walletId={USDAcct?.wallet_id || ""}
+              userName={data?.account_user?.account_name || ""}
+            />
+          ))}
         {transferCurrency === "SBC" && (
           <div className="p-7 bg-violet-100/60 rounded-[20px] inline-flex flex-col justify-center items-center gap-5 w-full my-[30px]">
-
             <QRCode
               value={subSBCAcct?.qr_code || subSBCAcct?.address || ""}
               size={231}
@@ -247,7 +272,10 @@ const GuestPayWithTransfer = ({ transferCurrency, data }: Props) => {
                 Deposit Address
               </p>
               <div className="flex justify-between gap-2">
-                <p style={{ overflowWrap: "anywhere" }} className="text-left wrap-anywhere justify-start text-zinc-900 text-sm font-semibold  leading-normal">
+                <p
+                  style={{ overflowWrap: "anywhere" }}
+                  className="text-left wrap-anywhere justify-start text-zinc-900 text-sm font-semibold  leading-normal"
+                >
                   {subSBCAcct?.address || ""}
                 </p>
                 <div className="size-4">
@@ -279,37 +307,46 @@ const GuestPayWithTransfer = ({ transferCurrency, data }: Props) => {
               <span className="text-center justify-start text-gray-500 text-sm md:text-base font-normal leading-normal">
                 Account number
               </span>
-              <p className="text-center justify-start text-zinc-900 text-base md:text-lg font-semibold  leading-normal">
-                35486872
-              </p>
+              <div className="flex items-cen text-basetmd:er gap-2">
+                <p className="text-center justify-start text-zinc-900 text-base md:text-lg font-semibold  leading-normal">
+                  {GBPAcct.account_number}
+                </p>
+                <CopyButton value={GBPAcct.account_number} />
+              </div>
             </div>
             <div className="w-full flex flex-col justify-center items-center">
               <span className="text-center justify-start text-gray-500 text-sm md:text-base font-normal leading-normal">
                 Sort code
               </span>
-              <p className="text-center justify-start text-zinc-900 text-base md:text-lg font-semibold  leading-normal">
-                60-84-64
-              </p>
+              <div className="flex items-cen text-basetmd:er gap-2">
+                <p className="text-center justify-start text-zinc-900 text-base md:text-lg font-semibold  leading-normal">
+                  {GBPAcct.sortCode}
+                </p>
+                <CopyButton value={GBPAcct.sortCode} />
+              </div>
             </div>
             <div className="w-full flex flex-col justify-center items-center">
               <span className="text-center justify-start text-gray-500 text-sm md:text-base font-normal leading-normal">
                 Address
               </span>
-              <p className="text-center justify-start text-zinc-900 text-base md:text-lg font-semibold  leading-normal">
-                Worship Square, 65 Clifton Street, London. EC2A 4JE. United Kingdom
-              </p>
+              <div className="flex items-center text-base gap-2">
+                <p className="text-center justify-start text-zinc-900 text-base md:text-lg font-semibold  leading-normal">
+                  {GBPAcct.address}
+                </p>
+                <CopyButton value={GBPAcct.address} />
+              </div>
             </div>
           </div>
         )}
-        {(GBPAcct || USDAcct || NGNAcct || SBCAcct) && hasNgnAcct !== undefined && <Button
-          onClick={handlePaid}
-          className="mt-5 mb-4">
-          I&apos;ve made payment
-        </Button>}
+        {(GBPAcct || USDAcct || NGNAcct || SBCAcct) &&
+          hasNgnAcct !== undefined && (
+            <Button onClick={handlePaid} className="mt-5 mb-4">
+              I&apos;ve made payment
+            </Button>
+          )}
       </div>
-
     </div>
-  )
-}
+  );
+};
 
-export default GuestPayWithTransfer
+export default GuestPayWithTransfer;

@@ -1,5 +1,5 @@
 "use client";
-import React, { JSX, useState } from "react";
+import React, { JSX, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import Avatar from "@/components/ui/Avatar";
@@ -15,6 +15,7 @@ import GuestPayWithTransfer, {
 } from "./GuestPayWithTransfer";
 import { WALLET_TYPES } from "@/constants/misc";
 import * as motion from "motion/react-client";
+import { fetchPublicIP } from "@/utils/helpers";
 // import { decryptData } from '@/lib/headerEncryption';
 // import { useGuestSendStore } from '@/store/GuestSend';
 // import { useTopupStore } from '@/store/TopUp';
@@ -111,6 +112,26 @@ const RaizPaymentPage = () => {
   );
   const [transferCurrency, setTransferCurrency] =
     useState<TransferCurrencyType>("GBP");
+  const [isUSUser, setIsUSUser] = useState(false);
+
+  useEffect(() => {
+    const detectCountry = async () => {
+      try {
+        const ip = await fetchPublicIP();
+        if (!ip) return;
+        const res = await fetch(`https://api.country.is/${ip}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.country === "US") {
+            setIsUSUser(true);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to detect user country", err);
+      }
+    };
+    detectCountry();
+  }, []);
   // const [step, setStep] = useState<GuestPayDetailsSteps>("details");
   // const [paymentType, setPaymentType] = useState<
   //     GuestPaymentType | undefined
@@ -186,7 +207,7 @@ const RaizPaymentPage = () => {
             />
           );
       case "zelle":
-        if (data) return <GuestPayWithZelle data={data} />;
+        if (data && isUSUser) return <GuestPayWithZelle data={data} />;
       default:
         return null;
     }
@@ -274,158 +295,50 @@ const RaizPaymentPage = () => {
               </h3>
               <div className="block w-[calc(100%+40px)] -ml-[19px] mb-8 h-[1px] md:hidden border-b-[1.5px] border-[#F3F1F6]" />
               <div className="space-y-4 md:space-y-1.5">
-                {paymentMethodsArr.map(({ id, label, icon }) => {
-                  const active = screen === id;
-                  const isOpen = mobileOpen === id;
+                {paymentMethodsArr
+                  .filter((method) => method.id !== "zelle" || isUSUser)
+                  .map(({ id, label, icon }) => {
+                    const active = screen === id;
+                    const isOpen = mobileOpen === id;
 
-                  return (
-                    <div key={id} className="md:border-none border rounded-xl">
-                      <button
-                        onClick={() => handleMethodClick(id)}
-                        className={`w-full flex items-center justify-between gap-3 px-5 py-3 border-t-[0.5px] md:border-t-0 border-b-0 rounded-xl transition-all
-                    ${isOpen || active ? "bg-indigo-50" : ""}`}
+                    return (
+                      <div
+                        key={id}
+                        className="md:border-none border rounded-xl"
                       >
-                        <div className="flex gap-2 items-center">
-                          {icon(isOpen)}
-                          <span
-                            className={`text-xs md:text-base font-bold ${
-                              isOpen || active
-                                ? "text-primary2"
-                                : "text-raiz-gray-600"
-                            }`}
-                          >
-                            {label}
-                          </span>
-                        </div>
-                        <Image
-                          className={`${
-                            id === "transfer" ? "" : "md:hidden"
-                          } transition-all ${isOpen ? "rotate-180" : ""}`}
-                          src="/icons/arrow-down.svg"
-                          alt="down"
-                          width={16}
-                          height={16}
-                        />
-                      </button>
-                      {id === "transfer" && (active || isOpen) && (
-                        <div className={`mt-4 flex flex-col gap-1`}>
-                          <motion.button
-                            onClick={() => setTransferCurrency("GBP")}
-                            className={`flex   mx-6 px-5 whitespace-nowrap items-center gap-1 py-2  rounded-xl text-sm w-[85%]  flex-shrink-0  ${
-                              transferCurrency === "GBP"
-                                ? "bg-[#EAECFF66] text-primary2 font-semibold"
-                                : "text-[#6F5B86]"
-                            }`}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{
-                              opacity: 1,
-                              y: 0,
-                              scale: transferCurrency === "GBP" ? 1.05 : 1,
-                              backgroundColor:
-                                transferCurrency === "GBP"
-                                  ? "#F8F6FA"
-                                  : "#FCFCFD",
-                            }}
-                            whileHover={{
-                              scale: 1.05,
-                              transition: { duration: 0.2 },
-                            }}
-                            whileTap={{ scale: 0.95 }}
-                            transition={{
-                              duration: 0.3,
-                              delay: availablepaymentOptsArr?.length * 0.05,
-                              type: "spring",
-                              stiffness: 300,
-                              damping: 20,
-                            }}
-                          >
-                            <motion.div
-                              animate={{
-                                rotate:
-                                  transferCurrency === "GBP"
-                                    ? [0, -10, 10, 0]
-                                    : 0,
-                              }}
-                              transition={{
-                                duration: 0.5,
-                                delay: 0.1,
-                              }}
-                            >
-                              <Image
-                                src={`/icons/gbp.png`}
-                                alt="GBP"
-                                width={20}
-                                height={20}
-                              />
-                            </motion.div>
-                            <span>GBP transfer</span>
-                          </motion.button>
-                          {availablepaymentOptsArr?.map((opt, i) => (
-                            <motion.button
-                              key={opt.value}
-                              onClick={() => setTransferCurrency(opt.value)}
-                              className={`flex   mx-6 px-5 whitespace-nowrap items-center gap-1 py-2  rounded-xl text-sm w-[85%]  flex-shrink-0 ${
-                                opt.value === transferCurrency
-                                  ? "bg-[#EAECFF66] text-primary2 font-semibold"
-                                  : "text-[#6F5B86]"
+                        <button
+                          onClick={() => handleMethodClick(id)}
+                          className={`w-full flex items-center justify-between gap-3 px-5 py-3 border-t-[0.5px] md:border-t-0 border-b-0 rounded-xl transition-all
+                    ${isOpen || active ? "bg-indigo-50" : ""}`}
+                        >
+                          <div className="flex gap-2 items-center">
+                            {icon(isOpen)}
+                            <span
+                              className={`text-xs md:text-base font-bold ${
+                                isOpen || active
+                                  ? "text-primary2"
+                                  : "text-raiz-gray-600"
                               }`}
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{
-                                opacity: 1,
-                                y: 0,
-                                scale:
-                                  opt.value === transferCurrency ? 1.05 : 1,
-                                backgroundColor:
-                                  opt.value === transferCurrency
-                                    ? "#F8F6FA"
-                                    : "#FCFCFD",
-                              }}
-                              whileHover={{
-                                scale: 1.05,
-                                transition: { duration: 0.2 },
-                              }}
-                              whileTap={{ scale: 0.95 }}
-                              transition={{
-                                duration: 0.3,
-                                delay: i * 0.05,
-                                type: "spring",
-                                stiffness: 300,
-                                damping: 20,
-                              }}
                             >
-                              <motion.div
-                                animate={{
-                                  rotate:
-                                    opt.value === transferCurrency
-                                      ? [0, -10, 10, 0]
-                                      : 0,
-                                }}
-                                transition={{
-                                  duration: 0.5,
-                                  delay: 0.1,
-                                }}
-                              >
-                                <Image
-                                  src={`/icons/${
-                                    opt.value === "NGN"
-                                      ? "ngn"
-                                      : opt.value === "USD"
-                                        ? "dollar"
-                                        : "sbc"
-                                  }.svg`}
-                                  alt={opt.value}
-                                  width={20}
-                                  height={20}
-                                />
-                              </motion.div>
-                              <span>{opt.label}</span>
-                            </motion.button>
-                          ))}
-                          {!hasNgnAcct && (
+                              {label}
+                            </span>
+                          </div>
+                          <Image
+                            className={`${
+                              id === "transfer" ? "" : "md:hidden"
+                            } transition-all ${isOpen ? "rotate-180" : ""}`}
+                            src="/icons/arrow-down.svg"
+                            alt="down"
+                            width={16}
+                            height={16}
+                          />
+                        </button>
+                        {id === "transfer" && (active || isOpen) && (
+                          <div className={`mt-4 flex flex-col gap-1`}>
                             <motion.button
-                              onClick={() => setTransferCurrency("NGN")}
+                              onClick={() => setTransferCurrency("GBP")}
                               className={`flex   mx-6 px-5 whitespace-nowrap items-center gap-1 py-2  rounded-xl text-sm w-[85%]  flex-shrink-0  ${
-                                transferCurrency === "NGN"
+                                transferCurrency === "GBP"
                                   ? "bg-[#EAECFF66] text-primary2 font-semibold"
                                   : "text-[#6F5B86]"
                               }`}
@@ -433,9 +346,9 @@ const RaizPaymentPage = () => {
                               animate={{
                                 opacity: 1,
                                 y: 0,
-                                scale: transferCurrency === "NGN" ? 1.05 : 1,
+                                scale: transferCurrency === "GBP" ? 1.05 : 1,
                                 backgroundColor:
-                                  transferCurrency === "NGN"
+                                  transferCurrency === "GBP"
                                     ? "#F8F6FA"
                                     : "#FCFCFD",
                               }}
@@ -455,7 +368,7 @@ const RaizPaymentPage = () => {
                               <motion.div
                                 animate={{
                                   rotate:
-                                    transferCurrency === "NGN"
+                                    transferCurrency === "GBP"
                                       ? [0, -10, 10, 0]
                                       : 0,
                                 }}
@@ -465,37 +378,150 @@ const RaizPaymentPage = () => {
                                 }}
                               >
                                 <Image
-                                  src={`/icons/ngn.svg`}
-                                  alt="NGN"
+                                  src={`/icons/gbp.png`}
+                                  alt="GBP"
                                   width={20}
                                   height={20}
                                 />
                               </motion.div>
-                              <span>NGN transfer</span>
+                              <span>GBP transfer</span>
                             </motion.button>
+                            {availablepaymentOptsArr?.map((opt, i) => (
+                              <motion.button
+                                key={opt.value}
+                                onClick={() => setTransferCurrency(opt.value)}
+                                className={`flex   mx-6 px-5 whitespace-nowrap items-center gap-1 py-2  rounded-xl text-sm w-[85%]  flex-shrink-0 ${
+                                  opt.value === transferCurrency
+                                    ? "bg-[#EAECFF66] text-primary2 font-semibold"
+                                    : "text-[#6F5B86]"
+                                }`}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{
+                                  opacity: 1,
+                                  y: 0,
+                                  scale:
+                                    opt.value === transferCurrency ? 1.05 : 1,
+                                  backgroundColor:
+                                    opt.value === transferCurrency
+                                      ? "#F8F6FA"
+                                      : "#FCFCFD",
+                                }}
+                                whileHover={{
+                                  scale: 1.05,
+                                  transition: { duration: 0.2 },
+                                }}
+                                whileTap={{ scale: 0.95 }}
+                                transition={{
+                                  duration: 0.3,
+                                  delay: i * 0.05,
+                                  type: "spring",
+                                  stiffness: 300,
+                                  damping: 20,
+                                }}
+                              >
+                                <motion.div
+                                  animate={{
+                                    rotate:
+                                      opt.value === transferCurrency
+                                        ? [0, -10, 10, 0]
+                                        : 0,
+                                  }}
+                                  transition={{
+                                    duration: 0.5,
+                                    delay: 0.1,
+                                  }}
+                                >
+                                  <Image
+                                    src={`/icons/${
+                                      opt.value === "NGN"
+                                        ? "ngn"
+                                        : opt.value === "USD"
+                                          ? "dollar"
+                                          : "sbc"
+                                    }.svg`}
+                                    alt={opt.value}
+                                    width={20}
+                                    height={20}
+                                  />
+                                </motion.div>
+                                <span>{opt.label}</span>
+                              </motion.button>
+                            ))}
+                            {!hasNgnAcct && (
+                              <motion.button
+                                onClick={() => setTransferCurrency("NGN")}
+                                className={`flex   mx-6 px-5 whitespace-nowrap items-center gap-1 py-2  rounded-xl text-sm w-[85%]  flex-shrink-0  ${
+                                  transferCurrency === "NGN"
+                                    ? "bg-[#EAECFF66] text-primary2 font-semibold"
+                                    : "text-[#6F5B86]"
+                                }`}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{
+                                  opacity: 1,
+                                  y: 0,
+                                  scale: transferCurrency === "NGN" ? 1.05 : 1,
+                                  backgroundColor:
+                                    transferCurrency === "NGN"
+                                      ? "#F8F6FA"
+                                      : "#FCFCFD",
+                                }}
+                                whileHover={{
+                                  scale: 1.05,
+                                  transition: { duration: 0.2 },
+                                }}
+                                whileTap={{ scale: 0.95 }}
+                                transition={{
+                                  duration: 0.3,
+                                  delay: availablepaymentOptsArr?.length * 0.05,
+                                  type: "spring",
+                                  stiffness: 300,
+                                  damping: 20,
+                                }}
+                              >
+                                <motion.div
+                                  animate={{
+                                    rotate:
+                                      transferCurrency === "NGN"
+                                        ? [0, -10, 10, 0]
+                                        : 0,
+                                  }}
+                                  transition={{
+                                    duration: 0.5,
+                                    delay: 0.1,
+                                  }}
+                                >
+                                  <Image
+                                    src={`/icons/ngn.svg`}
+                                    alt="NGN"
+                                    width={20}
+                                    height={20}
+                                  />
+                                </motion.div>
+                                <span>NGN transfer</span>
+                              </motion.button>
+                            )}
+                          </div>
+                        )}
+                        <div
+                          className={`md:hidden overflow-auto no-scrollbar transition-all duration-300 
+                ${isOpen ? "max-h-[500px] py-4 px-2" : "max-h-0"}`}
+                        >
+                          {id === "card" && data && (
+                            <GuestPayWithCard data={data} />
+                          )}
+                          {id === "transfer" && data && (
+                            <GuestPayWithTransfer
+                              transferCurrency={transferCurrency}
+                              data={data}
+                            />
+                          )}
+                          {id === "zelle" && data && (
+                            <GuestPayWithZelle data={data} />
                           )}
                         </div>
-                      )}
-                      <div
-                        className={`md:hidden overflow-auto no-scrollbar transition-all duration-300 
-                ${isOpen ? "max-h-[500px] py-4 px-2" : "max-h-0"}`}
-                      >
-                        {id === "card" && data && (
-                          <GuestPayWithCard data={data} />
-                        )}
-                        {id === "transfer" && data && (
-                          <GuestPayWithTransfer
-                            transferCurrency={transferCurrency}
-                            data={data}
-                          />
-                        )}
-                        {id === "zelle" && data && (
-                          <GuestPayWithZelle data={data} />
-                        )}
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
             </div>
 
