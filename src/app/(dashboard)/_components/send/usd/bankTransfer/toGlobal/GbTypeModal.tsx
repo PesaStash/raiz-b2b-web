@@ -24,9 +24,10 @@ const GbTypeModal = ({ setType, close, type, data }: Props) => {
         </h5>
         <div className="flex flex-col gap-4 mt-5 w-full items-start">
           {data?.map((each, index) => (
-            <button
+            <div
+              role="button"
               onClick={() => handleClick(each)}
-              className="text-sm font-medium w-full flex gap-2 "
+              className="cursor-pointer text-sm font-medium w-full flex gap-2 "
               key={index}
             >
               <Radio
@@ -34,7 +35,7 @@ const GbTypeModal = ({ setType, close, type, data }: Props) => {
                 onChange={() => handleClick(each)}
               />
               {convertField(each || "")}
-            </button>
+            </div>
           ))}
         </div>
       </div>
