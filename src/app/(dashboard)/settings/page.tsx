@@ -112,7 +112,7 @@ const Settingspage = () => {
       >
         <InputField
           label="Business Name"
-          className="!text-raiz-gray-400"
+          className="!text-raiz-gray-950/50"
           icon="/icons/lock.svg"
           disabled
           {...formik.getFieldProps("business_name")}
@@ -124,29 +124,30 @@ const Settingspage = () => {
           icon="/icons/pen.svg"
           autoFocus={focus === "raiz-tag"}
           {...formik.getFieldProps("raiz_tag")}
-          className="!text-raiz-gray-400"
+          className="!text-raiz-gray-950 placeholder:!text-raiz-gray-950"
           errorMessage={formik.touched.raiz_tag && formik.errors.raiz_tag}
         />
         <InputField
           type="email"
           label="Work Email"
-          className="!text-raiz-gray-400"
+          className="!text-raiz-gray-950/50"
           icon="/icons/lock.svg"
           disabled
           {...formik.getFieldProps("email")}
         />
-        <InputField
+        {/* <InputField
           label="Phone Number"
           icon="/icons/lock.svg"
           disabled
           {...formik.getFieldProps("phone_number")}
-          className="!text-raiz-gray-400"
-        />
+          className="!text-raiz-gray-950/50"
+        /> */}
         <InputField
           label="Address"
           icon="/icons/lock.svg"
           disabled
           {...formik.getFieldProps("address")}
+          className="!text-raiz-gray-950/50 "
         />
         <div className="">
           <InputLabel content="Country" />
@@ -160,7 +161,7 @@ const Settingspage = () => {
               className={`
                     ${
                       formik.values.country_name
-                        ? "text-raiz-gray-950"
+                        ? "text-raiz-gray-950/50"
                         : "text-raiz-gray-400"
                     }
                        text-sm font-normal  leading-tight`}

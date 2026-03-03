@@ -387,7 +387,7 @@ const renderField = (
   }
   if (field.name === "country" || field.name === "sender_country") {
     return (
-      <div className="mt-[15px]">
+      <div key={field.name} className="mt-[15px]">
         <InputField
           key={field.name}
           label={convertField(field.name)}

@@ -11,18 +11,23 @@ import {
 } from "@/services/transactions";
 import {
   IUsBeneficiariesParams,
+  IUsBeneficiariesResponse,
   IUsBeneficiaryPayload,
 } from "@/types/services";
 import { truncateString } from "@/utils/helpers";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Form, Formik, useFormikContext } from "formik";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { toFormikValidationSchema } from "zod-formik-adapter";
 import { useSendStore } from "@/store/Send";
 import USBeneficiaryModal from "./USBeneficiaryModal";
 import CenterModalHeader from "@/components/layouts/CenterModalHeader";
+import { GetUsdBankName } from "@/services/utils";
+import SelectField from "@/components/ui/SelectField";
+import { USAstateCodes } from "@/constants/misc";
+import { useDebounce } from "@/lib/hooks/useDebounce";
 
 interface FormValues {
   label: string;
@@ -42,6 +47,310 @@ interface FormValues {
 interface Props {
   close: () => void;
 }
+
+interface FormContentProps {
+  submitRef: React.RefObject<HTMLButtonElement | null>;
+  beneficiaries: IUsBeneficiariesResponse["beneficiaries"];
+  setShowBeneficiary: (show: boolean) => void;
+  setIsFormValid: (valid: boolean) => void;
+  setIsSubmitting: (submitting: boolean) => void;
+}
+
+const FormContent = ({
+  submitRef,
+  beneficiaries,
+  setShowBeneficiary,
+  setIsFormValid,
+  setIsSubmitting,
+}: FormContentProps) => {
+  const {
+    errors,
+    touched,
+    values,
+    handleChange,
+    handleBlur,
+    setFieldValue,
+    isValid,
+    dirty,
+    isSubmitting: formikSubmitting,
+  } = useFormikContext<FormValues>();
+
+  const debouncedRoutingNumber = useDebounce(values.routing_number, 500);
+
+  const qcForm = useQueryClient();
+
+  const {
+    data: routingInfo,
+    isFetching: routingFetching,
+    error,
+  } = useQuery({
+    queryKey: ["usd-bank-routing-info", debouncedRoutingNumber],
+    queryFn: () => GetUsdBankName({ rn: values.routing_number }),
+    enabled: !!values.routing_number,
+  });
+
+  useEffect(() => {
+    setIsFormValid(isValid && dirty);
+    setIsSubmitting(formikSubmitting);
+  }, [isValid, dirty, formikSubmitting]);
+
+  // Clear bank_name and purge cached routing lookup when navigating away
+  useEffect(() => {
+    return () => {
+      setFieldValue("bank_name", "");
+      qcForm.removeQueries({ queryKey: ["usd-bank-routing-info"] });
+    };
+  }, []);
+
+  useEffect(() => {
+    if (error as any) {
+      toast.error((error as any)?.data[0]?.data?.message);
+      return;
+    }
+    if (routingInfo?.data?.name) {
+      setFieldValue(
+        "bank_name",
+        routingInfo.data?.telegraphicName || routingInfo.data?.name,
+      );
+    }
+  }, [routingInfo, error]);
+
+  return (
+    <Form
+      className={`flex flex-col gap-[15px] justify-between ${
+        beneficiaries?.length > 0 ? "min-h-[75vh]" : "min-h-[80vh]"
+      }  pb-7`}
+    >
+      <div className="flex flex-col gap-[15px]">
+        <div className="flex justify-between w-full">
+          <h4 className="text-zinc-900 text-sm font-bold leading-none">
+            Add Beneficiary
+          </h4>
+          {beneficiaries?.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowBeneficiary(true)}
+              className=" text-indigo-900 text-xs font-bold leading-tight"
+            >
+              Choose Beneficiary
+            </button>
+          )}
+        </div>
+        <InputField
+          label="Label/Nickname"
+          placeholder="E.g  mikey"
+          name="label"
+          type="text"
+          value={values.label}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          errorMessage={
+            touched.label && errors.label ? errors.label : undefined
+          }
+          status={touched.label && errors.label ? "error" : null}
+        />
+        <InputField
+          label="Account Owner Name"
+          name="account_owner_name"
+          type="text"
+          value={values.account_owner_name}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          errorMessage={
+            touched.account_owner_name && errors.account_owner_name
+              ? errors.account_owner_name
+              : undefined
+          }
+          status={
+            touched.account_owner_name && errors.account_owner_name
+              ? "error"
+              : null
+          }
+        />
+        <InputField
+          label="Account Number"
+          name="account_number"
+          type="text"
+          value={values.account_number}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          errorMessage={
+            touched.account_number && errors.account_number
+              ? errors.account_number
+              : undefined
+          }
+          status={
+            touched.account_number && errors.account_number ? "error" : null
+          }
+        />
+        <InputField
+          label="Routing Number"
+          name="routing_number"
+          type="text"
+          value={values.routing_number}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          errorMessage={
+            touched.routing_number && errors.routing_number
+              ? errors.routing_number
+              : undefined
+          }
+          status={
+            touched.routing_number && errors.routing_number ? "error" : null
+          }
+        />
+        <InputField
+          label="Bank Name"
+          name="bank_name"
+          type="text"
+          value={routingFetching ? "Looking up bank..." : values.bank_name}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          disabled={routingFetching}
+          errorMessage={
+            touched.bank_name && errors.bank_name ? errors.bank_name : undefined
+          }
+          status={touched.bank_name && errors.bank_name ? "error" : null}
+        />
+
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium text-gray-700">
+            Account Type
+          </label>
+          <div className="flex flex-col gap-3">
+            {["checking", "savings"].map((option) => (
+              <div
+                onClick={() => setFieldValue("account_type", option)}
+                role="button"
+                key={option}
+                className="flex items-center gap-2"
+              >
+                <Radio
+                  checked={values.account_type === option}
+                  onChange={() => setFieldValue("account_type", option)}
+                />
+                <span className="text-sm text-gray-700 capitalize">
+                  {option}
+                </span>
+              </div>
+            ))}
+          </div>
+          {errors.account_type && touched.account_type && (
+            <div className="text-red-500 text-sm mt-1">
+              {errors.account_type}
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium text-gray-700">
+            Payment Rail
+          </label>
+          <div className="flex flex-col gap-3">
+            {["ach", "wire"].map((option) => (
+              <div
+                onClick={() => setFieldValue("payment_rail", option)}
+                key={option}
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <Radio
+                  checked={values.payment_rail === option}
+                  onChange={() => setFieldValue("payment_rail", option)}
+                />
+                <span className="text-sm text-gray-700 capitalize">
+                  {option.toUpperCase()}
+                </span>
+              </div>
+            ))}
+          </div>
+          {errors.payment_rail && touched.payment_rail && (
+            <div className="text-red-500 text-sm mt-1">
+              {errors.payment_rail}
+            </div>
+          )}
+        </div>
+        <InputField
+          label="Street Line 1"
+          name="street_line_1"
+          type="text"
+          value={values.street_line_1}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          errorMessage={
+            touched.street_line_1 && errors.street_line_1
+              ? errors.street_line_1
+              : undefined
+          }
+          status={
+            touched.street_line_1 && errors.street_line_1 ? "error" : null
+          }
+        />
+        <InputField
+          label="Street Line 2 (Optional)"
+          name="street_line_2"
+          type="text"
+          value={values.street_line_2}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          errorMessage={
+            touched.street_line_2 && errors.street_line_2
+              ? errors.street_line_2
+              : undefined
+          }
+          status={
+            touched.street_line_2 && errors.street_line_2 ? "error" : null
+          }
+        />
+        <SelectField
+          label="State"
+          name="state"
+          placeholder="Select a state"
+          options={USAstateCodes.map((s) => ({
+            value: s.abbreviation,
+            label: `${s.name} (${s.abbreviation})`,
+          }))}
+          value={
+            values.state
+              ? {
+                  value: values.state,
+                  label:
+                    USAstateCodes.find((s) => s.abbreviation === values.state)
+                      ?.name + ` (${values.state})`,
+                }
+              : null
+          }
+          onChange={(opt) => setFieldValue("state", opt?.value ?? "")}
+          status={touched.state && errors.state ? "error" : null}
+          helper={touched.state && errors.state ? errors.state : null}
+        />
+        <InputField
+          label="City"
+          name="city"
+          type="text"
+          value={values.city}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          errorMessage={touched.city && errors.city ? errors.city : undefined}
+          status={touched.city && errors.city ? "error" : null}
+        />
+        <InputField
+          label="Postal Code"
+          name="postal_code"
+          type="text"
+          value={values.postal_code}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          errorMessage={
+            touched.postal_code && errors.postal_code
+              ? errors.postal_code
+              : undefined
+          }
+          status={touched.postal_code && errors.postal_code ? "error" : null}
+        />
+      </div>
+      <button ref={submitRef} type="submit" className="hidden" />
+    </Form>
+  );
+};
 
 const USBankBeneficiary = ({ close }: Props) => {
   // const [labelFilter, setLabelFilter] = useState("");
@@ -196,283 +505,13 @@ const USBankBeneficiary = ({ close }: Props) => {
             validationSchema={toFormikValidationSchema(validationSchema)}
             onSubmit={handleSubmit}
           >
-            {({
-              errors,
-              touched,
-              values,
-              handleChange,
-              handleBlur,
-              setFieldValue,
-              isValid,
-              dirty,
-              isSubmitting: formikSubmitting,
-            }) => {
-              React.useEffect(() => {
-                setIsFormValid(isValid && dirty);
-                setIsSubmitting(formikSubmitting);
-              }, [isValid, dirty, formikSubmitting]);
-              return (
-                <Form
-                  className={`flex flex-col gap-[15px] justify-between ${
-                    beneficiaries?.length > 0 ? "min-h-[75vh]" : "min-h-[80vh]"
-                  }  pb-7`}
-                >
-                  <div className="flex flex-col gap-[15px]">
-                    <div className="flex justify-between w-full">
-                      <h4 className="text-zinc-900 text-sm font-bold leading-none">
-                        Add Beneficiary
-                      </h4>
-                      {beneficiaries?.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setShowBeneficiary(true)}
-                          className=" text-indigo-900 text-xs font-bold leading-tight"
-                        >
-                          Choose Beneficiary
-                        </button>
-                      )}
-                    </div>
-
-                    <InputField
-                      label="Bank Name"
-                      name="bank_name"
-                      type="text"
-                      value={values.bank_name}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      errorMessage={
-                        touched.bank_name && errors.bank_name
-                          ? errors.bank_name
-                          : undefined
-                      }
-                      status={
-                        touched.bank_name && errors.bank_name ? "error" : null
-                      }
-                    />
-
-                    <InputField
-                      label="Account Number"
-                      name="account_number"
-                      type="text"
-                      value={values.account_number}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      errorMessage={
-                        touched.account_number && errors.account_number
-                          ? errors.account_number
-                          : undefined
-                      }
-                      status={
-                        touched.account_number && errors.account_number
-                          ? "error"
-                          : null
-                      }
-                    />
-
-                    <InputField
-                      label="Routing Number"
-                      name="routing_number"
-                      type="text"
-                      value={values.routing_number}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      errorMessage={
-                        touched.routing_number && errors.routing_number
-                          ? errors.routing_number
-                          : undefined
-                      }
-                      status={
-                        touched.routing_number && errors.routing_number
-                          ? "error"
-                          : null
-                      }
-                    />
-
-                    <div className="flex flex-col gap-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        Account Type
-                      </label>
-                      <div className="flex flex-col gap-3">
-                        {["checking", "savings"].map((option) => (
-                          <div
-                            onClick={() =>
-                              setFieldValue("account_type", option)
-                            }
-                            role="button"
-                            key={option}
-                            className="flex items-center gap-2"
-                          >
-                            <Radio
-                              checked={values.account_type === option}
-                              onChange={() =>
-                                setFieldValue("account_type", option)
-                              }
-                            />
-                            <span className="text-sm text-gray-700 capitalize">
-                              {option}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                      {errors.account_type && touched.account_type && (
-                        <div className="text-red-500 text-sm mt-1">
-                          {errors.account_type}
-                        </div>
-                      )}
-                    </div>
-
-                    <InputField
-                      label="Account Owner Name"
-                      name="account_owner_name"
-                      type="text"
-                      value={values.account_owner_name}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      errorMessage={
-                        touched.account_owner_name && errors.account_owner_name
-                          ? errors.account_owner_name
-                          : undefined
-                      }
-                      status={
-                        touched.account_owner_name && errors.account_owner_name
-                          ? "error"
-                          : null
-                      }
-                    />
-
-                    <InputField
-                      label="Street Line 1"
-                      name="street_line_1"
-                      type="text"
-                      value={values.street_line_1}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      errorMessage={
-                        touched.street_line_1 && errors.street_line_1
-                          ? errors.street_line_1
-                          : undefined
-                      }
-                      status={
-                        touched.street_line_1 && errors.street_line_1
-                          ? "error"
-                          : null
-                      }
-                    />
-
-                    <InputField
-                      label="Street Line 2 (Optional)"
-                      name="street_line_2"
-                      type="text"
-                      value={values.street_line_2}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      errorMessage={
-                        touched.street_line_2 && errors.street_line_2
-                          ? errors.street_line_2
-                          : undefined
-                      }
-                      status={
-                        touched.street_line_2 && errors.street_line_2
-                          ? "error"
-                          : null
-                      }
-                    />
-
-                    <InputField
-                      label="City"
-                      name="city"
-                      type="text"
-                      value={values.city}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      errorMessage={
-                        touched.city && errors.city ? errors.city : undefined
-                      }
-                      status={touched.city && errors.city ? "error" : null}
-                    />
-
-                    <InputField
-                      label="State"
-                      name="state"
-                      type="text"
-                      value={values.state}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      errorMessage={
-                        touched.state && errors.state ? errors.state : undefined
-                      }
-                      status={touched.state && errors.state ? "error" : null}
-                    />
-
-                    <InputField
-                      label="Postal Code"
-                      name="postal_code"
-                      type="text"
-                      value={values.postal_code}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      errorMessage={
-                        touched.postal_code && errors.postal_code
-                          ? errors.postal_code
-                          : undefined
-                      }
-                      status={
-                        touched.postal_code && errors.postal_code
-                          ? "error"
-                          : null
-                      }
-                    />
-
-                    <div className="flex flex-col gap-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        Payment Rail
-                      </label>
-                      <div className="flex flex-col gap-3">
-                        {["ach", "wire"].map((option) => (
-                          <div
-                            onClick={() =>
-                              setFieldValue("payment_rail", option)
-                            }
-                            key={option}
-                            className="flex items-center gap-2 cursor-pointer"
-                          >
-                            <Radio
-                              checked={values.payment_rail === option}
-                              onChange={() =>
-                                setFieldValue("payment_rail", option)
-                              }
-                            />
-                            <span className="text-sm text-gray-700 capitalize">
-                              {option.toUpperCase()}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                      {errors.payment_rail && touched.payment_rail && (
-                        <div className="text-red-500 text-sm mt-1">
-                          {errors.payment_rail}
-                        </div>
-                      )}
-                    </div>
-
-                    <InputField
-                      label="Label/Nickname"
-                      placeholder="E.g  mikey"
-                      name="label"
-                      type="text"
-                      value={values.label}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      errorMessage={
-                        touched.label && errors.label ? errors.label : undefined
-                      }
-                      status={touched.label && errors.label ? "error" : null}
-                    />
-                  </div>
-                  <button ref={submitRef} type="submit" className="hidden" />
-                </Form>
-              );
-            }}
+            <FormContent
+              submitRef={submitRef}
+              beneficiaries={beneficiaries}
+              setShowBeneficiary={setShowBeneficiary}
+              setIsFormValid={setIsFormValid}
+              setIsSubmitting={setIsSubmitting}
+            />
           </Formik>
         </div>
         <Button

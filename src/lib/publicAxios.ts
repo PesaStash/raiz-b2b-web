@@ -2,6 +2,7 @@
 import axios, {
   AxiosError,
   AxiosInstance,
+  AxiosRequestConfig,
   AxiosResponse,
   CancelTokenSource,
 } from "axios";
@@ -20,12 +21,19 @@ interface CustomAxiosError extends AxiosError {
   response?: AxiosResponse<ErrorResponseData>;
 }
 
+interface CustomAxiosRequestConfig extends AxiosRequestConfig {
+  silent?: boolean;
+}
+
 const handleResponse = (response: AxiosResponse) => response;
 
 const handleError = async (error: CustomAxiosError) => {
   console.log(JSON.stringify(error, null, 2));
-  const errorMessage = error.response?.data?.message || "An Error Occurred";
-  toast.error(errorMessage);
+  const isSilent = (error.config as CustomAxiosRequestConfig)?.silent;
+  if (!isSilent) {
+    const errorMessage = error.response?.data?.message || "An Error Occurred";
+    toast.error(errorMessage);
+  }
   return Promise.reject(error.response);
 };
 
@@ -62,7 +70,7 @@ const addNetworkCheckInterceptor = (axiosInstance: AxiosInstance) => {
         return Promise.reject(error);
       }
     },
-    (error: AxiosError) => Promise.reject(error)
+    (error: AxiosError) => Promise.reject(error),
   );
 };
 
