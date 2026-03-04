@@ -29,17 +29,18 @@ const PayBill = ({
   setTransactionDetail,
 }: Props) => {
   const { user } = useUser();
-  const { selectedCurrency } = useCurrencyStore();
   const NGNAcct = findWalletByCurrency(user, "NGN");
   const USDAcct = findWalletByCurrency(user, "USD");
 
   const getCurrentWallet = () => {
-    if (selectedCurrency.name === "NGN") {
+    if (request?.currency === "NGN") {
       return NGNAcct;
-    } else if (selectedCurrency.name === "USD") {
+    } else if (request?.currency === "USD") {
       return USDAcct;
     }
   };
+
+  console.log("request", request);
 
   const currentWallet = getCurrentWallet();
   const [pin, setPin] = useState<string>("");
@@ -65,6 +66,7 @@ const PayBill = ({
       qc.invalidateQueries({ queryKey: ["bill-requests"] });
       qc.invalidateQueries({ queryKey: ["transactions-report"] });
       qc.invalidateQueries({ queryKey: ["p2p-beneficiaries-recents"] });
+      qc.invalidateQueries({ queryKey: ["bill-requests-received"] });
       setStatus("success");
       goNext();
     },

@@ -7,8 +7,9 @@ import { useSendStore } from "@/store/Send";
 import NgnToRaizers from "./toRaizers/NgnToRaizers";
 import { INGNSendOptions } from "@/types/misc";
 import NgnBankTransfer from "./toBanks/NgnBankTransfer";
+import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 
-const NgnSend = () => {
+const NgnSend = ({ close }: { close: () => void }) => {
   const { actions, user, ngnSendType, externalUser } = useSendStore();
 
   const handleTypeChange = (value: INGNSendOptions) => {
@@ -30,13 +31,14 @@ const NgnSend = () => {
 
   return (
     <div className="flex flex-col h-full">
+      {!user && !externalUser && <CenterModalHeader close={close} />}
       {!user && !externalUser && (
         <SideWrapperHeader
           title="Find Recipient"
           close={() => actions.selectUser(null)}
           titleColor="text-zinc-900 "
-          backArrow={!user || !externalUser ? false : true}
-          rightComponent={<ScanButton />}
+          backArrow={false}
+          // rightComponent={<ScanButton />}
         />
       )}
       {!user && !externalUser && (
@@ -49,6 +51,7 @@ const NgnSend = () => {
           onChange={handleTypeChange}
         />
       )}
+      <div className="mb-5" />
       {ngnSendType === "to Raizer" ? <NgnToRaizers /> : <NgnBankTransfer />}
     </div>
   );

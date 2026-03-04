@@ -32,7 +32,7 @@ const handleError = async (error: CustomAxiosError) => {
   const isSilent = (error.config as CustomAxiosRequestConfig)?.silent;
 
   // Check for 401 status and redirect to login
-  if (error.response?.status === 401) {
+  if (error.response?.status === 401 || error.response?.status === 403) {
     // If we're in the browser environment
     if (typeof window !== "undefined") {
       window.location.href = "/login";
@@ -77,7 +77,7 @@ AuthAxios.interceptors.request.use(
 
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 AuthAxios.interceptors.response.use(handleResponse, handleError);

@@ -5,36 +5,42 @@ import Image from "next/image";
 import { ISearchedUser } from "@/types/user";
 import FindRecipients from "@/components/transactions/FindRecipients";
 import { useP2PBeneficiaries } from "@/lib/hooks/useP2pBeneficiaries";
+import CenterModalHeader from "@/components/layouts/CenterModalHeader";
+import { useQuery } from "@tanstack/react-query";
+import { IBillRequestParams } from "@/types/services";
+import { FetchSentRequestApi } from "@/services/transactions";
+import { useCurrencyStore } from "@/store/useCurrencyStore";
 
 interface Props {
   goBack: () => void;
   setSelectedUser: Dispatch<SetStateAction<ISearchedUser | undefined>>;
+  currentWalletId: string;
 }
 
-const Selectuser = ({ goBack, setSelectedUser }: Props) => {
-  const { recents, favourites } = useP2PBeneficiaries();
-  const Scan = () => {
-    return (
-      <button>
-        <Image src={"/icons/qr.svg"} alt="scan qr" width={18} height={19.2} />
-      </button>
-    );
-  };
+const Selectuser = ({ goBack, setSelectedUser, currentWalletId }: Props) => {
+  const { selectedCurrency } = useCurrencyStore();
+  const { data: response, isLoading } = useQuery({
+    queryKey: ["bill-requests-sent", { currency: selectedCurrency.name }],
+    queryFn: ({ queryKey }) => {
+      const [, params] = queryKey as [string, IBillRequestParams];
+      return FetchSentRequestApi(params);
+    },
+  });
+
+  const recents = response?.data?.map((item) => item.third_party_account) || [];
   return (
-    <div>
-      <SideWrapperHeader
-        close={goBack}
-        title="Request Money"
-        rightComponent={<Scan />}
-        titleColor="text-zinc-900"
-      />
+    <>
+      <CenterModalHeader close={goBack} />
+      <h2 className="text-xl font-semibold text-raiz-gray-950 leading-10 mb-4">
+        Request Money
+      </h2>
       <FindRecipients
         recentUsers={recents}
         setSelectedUser={setSelectedUser}
-        beneficiaries={favourites}
+        beneficiaries={[]}
         emptyStateTitle="You haven't made any request"
       />
-    </div>
+    </>
   );
 };
 

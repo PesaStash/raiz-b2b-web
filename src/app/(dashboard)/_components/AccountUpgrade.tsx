@@ -69,23 +69,23 @@ const AccountUpgrade = () => {
     verificationStatus === "not_started"
       ? "active"
       : verificationStatus === "pending"
-      ? "completed"
-      : "pending";
+        ? "completed"
+        : "pending";
 
   // STEP 2 — Terms & Conditions
   const step2Status: "completed" | "active" | "pending" = tosApproved
     ? "completed"
     : tosPending
-    ? "active"
-    : "pending";
+      ? "active"
+      : "pending";
 
   // STEP 3 — KYB
   const step3Status: "completed" | "active" | "pending" =
     verificationStatus === "completed"
       ? "completed"
       : tosApproved
-      ? "active"
-      : "pending";
+        ? "active"
+        : "pending";
 
   // STEP 4 — Check status
   const step4Status: "completed" | "active" | "pending" =
@@ -112,8 +112,8 @@ const AccountUpgrade = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-white p-4 md:p-10 font-sans">
-        <div className="max-w-5xl mx-auto bg-[#FFF3E666] rounded-lg px-4 py-5">
+      <div className="min-h-screen bg-white mt-8  font-sans">
+        <div className=" bg-[#FFF3E666] rounded-lg px-4 py-5">
           {/* Header Section */}
           <div className="flex items-start gap-4 mb-10">
             <svg
@@ -238,10 +238,10 @@ const AccountUpgrade = () => {
                   {verificationStatus === "completed"
                     ? "KYB Completed"
                     : kycAwaitingUbo
-                    ? "Awaiting UBOs"
-                    : kycUnderReview
-                    ? "KYB Under Review"
-                    : "Start KYB Process"}
+                      ? "Awaiting UBOs"
+                      : kycUnderReview
+                        ? "KYB Under Review"
+                        : "Start KYB Process"}
                 </button>
                 {kycAwaitingUbo && (
                   <p className="text-raiz-gray-500 text-sm mt-1 leading-relaxed">

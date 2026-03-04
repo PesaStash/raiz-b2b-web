@@ -28,16 +28,31 @@ const Swap = ({ close }: Props) => {
     useSwapStore();
   const [paymentError, setPaymentError] = useState("");
 
+  const isUsdSbcSwap =
+    (swapFromCurrency === ACCOUNT_CURRENCIES.USD.name &&
+      swapToCurrency === ACCOUNT_CURRENCIES.SBC.name) ||
+    (swapFromCurrency === ACCOUNT_CURRENCIES.SBC.name &&
+      swapToCurrency === ACCOUNT_CURRENCIES.USD.name);
+
   const {
     data: exchangeRateData,
     isLoading,
     refetch,
     isFetching,
+    isError: exchangeRateError,
   } = useQuery({
     queryKey: ["exchange-rate", "NGN"],
     queryFn: () => GetExchangeRate("NGN"),
     staleTime: 1000 * 60, // 1 minute
+    retry: 2,
+    enabled: !isUsdSbcSwap,
   });
+
+  useEffect(() => {
+    if (exchangeRateError) {
+      toast.error("Failed to fetch exchange rate. Please try again later.");
+    }
+  }, [exchangeRateError]);
 
   useEffect(() => {
     if (exchangeRateData) {
@@ -60,50 +75,70 @@ const Swap = ({ close }: Props) => {
   }, [timeLeft, refetch]);
 
   const getRate = () => {
+    // USD <-> SBC: fixed 1:1 rate, no API needed
+    if (
+      (swapFromCurrency === ACCOUNT_CURRENCIES.USD.name &&
+        swapToCurrency === ACCOUNT_CURRENCIES.SBC.name) ||
+      (swapFromCurrency === ACCOUNT_CURRENCIES.SBC.name &&
+        swapToCurrency === ACCOUNT_CURRENCIES.USD.name)
+    ) {
+      return 1;
+    }
+
     if (swapToCurrency === ACCOUNT_CURRENCIES.NGN.name) {
       return exchangeRateData?.sell_rate || 0;
     }
 
     if (swapToCurrency === ACCOUNT_CURRENCIES.USD.name) {
-      if (swapFromCurrency === ACCOUNT_CURRENCIES.SBC.name) {
-        return 1;
-      }
       return exchangeRateData?.buy_rate || 0;
+    }
+
+    if (swapToCurrency === ACCOUNT_CURRENCIES.SBC.name) {
+      return 1;
     }
   };
 
   const rate = getRate();
 
   const getRecipientAmount = () => {
-    if (!exchangeRateData) return "0.00";
-
     const safeAmount = Number(amount || 0);
+
+    // USD <-> SBC: fixed 1:1, no API needed
+    if (
+      (swapFromCurrency === ACCOUNT_CURRENCIES.USD.name &&
+        swapToCurrency === ACCOUNT_CURRENCIES.SBC.name) ||
+      (swapFromCurrency === ACCOUNT_CURRENCIES.SBC.name &&
+        swapToCurrency === ACCOUNT_CURRENCIES.USD.name)
+    ) {
+      return formatAmount(safeAmount);
+    }
+
+    if (!exchangeRateData) return "0.00";
 
     if (swapToCurrency === ACCOUNT_CURRENCIES.NGN.name) {
       return (
-        Number(safeAmount * Number(exchangeRateData.buy_rate)).toLocaleString(
+        Number(safeAmount * Number(exchangeRateData.sell_rate)).toLocaleString(
           undefined,
           {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
-          }
+          },
         ) || "1.00"
       );
     }
+
     if (swapToCurrency === ACCOUNT_CURRENCIES.USD.name) {
-      if (swapFromCurrency === ACCOUNT_CURRENCIES.SBC.name) {
-        return formatAmount(safeAmount * 1);
-      }
       return (
-        Number(safeAmount / Number(exchangeRateData.sell_rate)).toLocaleString(
+        Number(safeAmount / Number(exchangeRateData.buy_rate)).toLocaleString(
           undefined,
           {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
-          }
+          },
         ) || "1.00"
       );
     }
+
     return formatAmount(safeAmount);
   };
 
@@ -127,12 +162,16 @@ const Swap = ({ close }: Props) => {
           <SwapDetail
             close={close}
             goNext={() => {
+              if (!isUsdSbcSwap && (exchangeRateError || !exchangeRateData)) {
+                toast.error("Exchange rate unavailable. Cannot proceed.");
+                return;
+              }
               setStep("confirmation");
             }}
             exchangeRate={rate}
             recipientAmount={recipientAmount}
             timeLeft={timeLeft}
-            loading={isLoading || isFetching}
+            loading={isLoading || isFetching || cryptoFeeLoading}
             cryptoFee={cryptoFee}
           />
         );
@@ -152,7 +191,13 @@ const Swap = ({ close }: Props) => {
             />
             <SwapConfirmation
               goBack={() => setStep("detail")}
-              goNext={() => setStep("pay")}
+              goNext={() => {
+                if (!isUsdSbcSwap && (exchangeRateError || !exchangeRateData)) {
+                  toast.error("Exchange rate unavailable. Cannot proceed.");
+                  return;
+                }
+                setStep("pay");
+              }}
               exchangeRate={rate}
               recipientAmount={recipientAmount}
               timeLeft={timeLeft}
@@ -163,11 +208,24 @@ const Swap = ({ close }: Props) => {
         );
       case "pay":
         return (
-          <SwapPayment
-            goNext={() => setStep("status")}
-            close={() => setStep("confirmation")}
-            setPaymentError={setPaymentError}
-          />
+          <>
+            <SwapDetail
+              close={close}
+              goNext={() => {
+                setStep("confirmation");
+              }}
+              exchangeRate={rate}
+              recipientAmount={recipientAmount}
+              timeLeft={timeLeft}
+              loading={isLoading}
+              cryptoFee={cryptoFee}
+            />
+            <SwapPayment
+              goNext={() => setStep("status")}
+              close={() => setStep("confirmation")}
+              setPaymentError={setPaymentError}
+            />
+          </>
         );
       case "status":
         return (

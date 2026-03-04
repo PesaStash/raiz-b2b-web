@@ -14,11 +14,11 @@ import { IAddCustomerPayload } from "@/types/services";
 import { AddCustomerApi } from "@/services/invoice";
 import SelectField from "@/components/ui/SelectField";
 import { sanitizeAddressField } from "@/utils/helpers";
+import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 
 interface Props {
   close: () => void;
 }
-
 
 // Base schema with conditional validation
 const AddCustomerSchema = z
@@ -26,7 +26,10 @@ const AddCustomerSchema = z
     customerType: z.string().min(1, "Please select a customer type"),
     fullname: z.string().optional(),
     companyName: z.string().optional(),
-    email: z.string().email("Invalid email address").min(1, "Email is required"),
+    email: z
+      .string()
+      .email("Invalid email address")
+      .min(1, "Email is required"),
     phone: z
       .string()
       .min(10, "Invalid phone number")
@@ -43,7 +46,7 @@ const AddCustomerSchema = z
     {
       message: "Full name is required",
       path: ["fullname"],
-    }
+    },
   )
   .refine(
     (data) => {
@@ -55,7 +58,7 @@ const AddCustomerSchema = z
     {
       message: "Business name is required",
       path: ["companyName"],
-    }
+    },
   );
 
 const AddNewCustomer = ({ close }: Props) => {
@@ -87,9 +90,9 @@ const AddNewCustomer = ({ close }: Props) => {
         customer_type: values.customerType as "individual" | "business",
         email: values.email,
         phone_number: values.phone,
-        street_address: sanitizeAddressField(values.address), 
-        city: sanitizeAddressField(values?.city),            
-        state: sanitizeAddressField(values?.state), 
+        street_address: sanitizeAddressField(values.address),
+        city: sanitizeAddressField(values?.city),
+        state: sanitizeAddressField(values?.state),
         country: values?.country_code,
         ...(values.companyName && { business_name: values?.companyName }),
       };
@@ -110,21 +113,21 @@ const AddNewCustomer = ({ close }: Props) => {
 
   return (
     <form onSubmit={formik.handleSubmit} className="h-full flex flex-col">
-      <SideWrapperHeader
-        title="New Customer"
-        close={close}
-        titleColor="text-zinc-900"
-      />
+      <CenterModalHeader close={close} />
+
+      <h2 className="text-xl font-bold text-raiz-gray-950 mb-4">
+        New Customer
+      </h2>
       <div className="flex-1 overflow-y-auto flex flex-col justify-between">
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 rounded-[20px] bg-raiz-gray-50 p-6">
           <SelectField
             placeholder="Customer Type"
             options={customerTypeOpt}
             value={
               formik.values.customerType
                 ? customerTypeOpt.find(
-                  (option) => option.value === formik.values.customerType
-                ) || null
+                    (option) => option.value === formik.values.customerType,
+                  ) || null
                 : null
             }
             onChange={(i) =>
@@ -199,7 +202,12 @@ const AddNewCustomer = ({ close }: Props) => {
         </div>
         <div className="space-y-[15px]">
           <Button
-            disabled={!formik.dirty || AddMutation.isPending || !formik.values.city || !formik.values.state}
+            disabled={
+              !formik.dirty ||
+              AddMutation.isPending ||
+              !formik.values.city ||
+              !formik.values.state
+            }
             loading={AddMutation.isPending}
             type="submit"
           >

@@ -86,9 +86,16 @@ const Infos = () => {
       action: (
         <button
           onClick={() => setShowModal("set-pin")}
-          className="text-primary2 text-xs xl:text-sm font-bold"
+          className="group text-primary2 bg-white flex py-4 px-8 rounded-3xl gap-3 h-[52px] hover:underline border-2 border-[#F8F7FA] text-xs xl:text-sm font-bold"
         >
           Set Up
+          <Image
+            src={"/icons/long-arrow-right.svg"}
+            alt=""
+            width={20}
+            height={20}
+            className="group-hover:translate-x-1 transition-transform"
+          />
         </button>
       ),
       bg: "bg-[#eaecff]/40",
@@ -128,16 +135,25 @@ const Infos = () => {
       action: (
         <button
           onClick={() => USDWalletMutation.mutate()}
-          className="text-primary2 text-sm font-bold flex items-center gap-2"
+          className="group text-primary2 bg-white flex py-4 px-8 rounded-3xl gap-3 h-[52px] hover:underline border-2 border-[#F8F7FA] text-xs xl:text-sm font-bold"
           disabled={USDWalletMutation.isPending}
         >
           {USDWalletMutation.isPending ? (
             <Spinner className="!w-4 !h-4 !border-t-2 !border-b-2" />
           ) : null}
           {USDWalletMutation.isPending ? "Processing..." : "Get USD Account"}
+          {!USDWalletMutation.isPending && (
+            <Image
+              src={"/icons/long-arrow-right.svg"}
+              alt=""
+              width={20}
+              height={20}
+              className="group-hover:translate-x-1 transition-transform"
+            />
+          )}
         </button>
       ),
-      bg: "bg-[#EAECFF66]",
+      bg: "bg-[#FFF3E666]",
     },
     {
       condition:
@@ -153,9 +169,16 @@ const Infos = () => {
       action: (
         <button
           onClick={() => setShowModal("getNgn")}
-          className="text-primary2 text-sm font-bold"
+          className="group text-primary2 bg-white flex py-4 px-8 rounded-3xl gap-3 h-[52px] hover:underline border-2 border-[#F8F7FA] text-xs xl:text-sm font-bold"
         >
           Get Naira Account
+          <Image
+            src={"/icons/long-arrow-right.svg"}
+            alt=""
+            width={20}
+            height={20}
+            className="group-hover:translate-x-1 transition-transform"
+          />
         </button>
       ),
       bg: "bg-[#eaecff]/40",
@@ -205,7 +228,7 @@ const Infos = () => {
       {!verificationStatus
         ? null
         : statuses.map((status, index) =>
-            status.condition ? <StatusCard key={index} {...status} /> : null
+            status.condition ? <StatusCard key={index} {...status} /> : null,
           )}
       <AnimatePresence>
         {showModal ? (
@@ -237,17 +260,22 @@ const StatusCard = ({
   bg: string;
 }) => (
   <div
-    className={`w-full my-6 px-3 xl:px-4 py-5 ${bg}  rounded-lg flex-col justify-start items-start gap-3 inline-flex`}
+    className={`w-full mt-6 px-3 xl:px-4 py-5 ${bg}  rounded-lg  justify-between items-start gap-3 inline-flex`}
   >
-    <div className="w-12 h-12 relative bg-[#fcfcfd] rounded-[66.67px] flex items-center justify-center">
-      {icon}
+    <div className="flex gap-4">
+      <div className="w-12 h-12 relative bg-[#fcfcfd] rounded-[66.67px] flex items-center justify-center">
+        {icon}
+      </div>
+      <div>
+        <h5 className="text-raiz-gray-900 text-sm font-bold leading-[16.80px]">
+          {title}
+        </h5>
+        <p className="text-gray-600 lg:text-xs xl:text-sm font-normal leading-tight">
+          {description}
+        </p>
+      </div>
     </div>
-    <h5 className="text-raiz-gray-900 text-sm font-bold leading-[16.80px]">
-      {title}
-    </h5>
-    <p className="text-gray-600 lg:text-xs xl:text-sm font-normal leading-tight">
-      {description}
-    </p>
+
     {action}
   </div>
 );

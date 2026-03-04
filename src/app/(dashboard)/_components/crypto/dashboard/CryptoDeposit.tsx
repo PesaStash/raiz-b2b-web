@@ -10,12 +10,12 @@ import { ICryptoWallet } from "@/types/user";
 const CryptoDeposit = () => {
   const [showModal, setShowModal] = useState<"chain" | "deposit" | null>(null);
   const [selectedChain, setSelectedChain] = useState<ICryptoWallet | null>(
-    null
+    null,
   );
   const { user } = useUser();
   const cryptoWallets =
     user?.business_account?.wallets.find(
-      (i) => i.wallet_type.currency === "SBC"
+      (i) => i.wallet_type.currency === "SBC",
     )?.secondary_crypto_details || [];
 
   const addedChains = Array.isArray(cryptoWallets)
@@ -23,7 +23,7 @@ const CryptoDeposit = () => {
     : [];
 
   const remainingChains = CHAINS.filter(
-    (chain) => !addedChains.includes(chain.value)
+    (chain) => !addedChains.includes(chain.value),
   );
 
   const closeModal = () => setShowModal(null);
@@ -33,7 +33,7 @@ const CryptoDeposit = () => {
     setShowModal("deposit");
   };
   return (
-    <section className="flex flex-col border border-[#E4E0EA] p-6 rounded-[20px] ">
+    <section className="flex my-6 flex-col  bg-raiz-gray-50 p-6 rounded-[20px] ">
       <h3 className=" text-zinc-900 font-semibold">Deposit</h3>
       <div className="flex justify-between gap-3 mt-5 w-full">
         {/* Existing chain */}

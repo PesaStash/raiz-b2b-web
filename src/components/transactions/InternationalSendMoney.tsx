@@ -6,12 +6,13 @@ import React, { useRef, useState, useMemo } from "react";
 import { z } from "zod";
 import SideWrapperHeader from "../SideWrapperHeader";
 import Avatar from "../ui/Avatar";
-import { getCurrencySymbol } from "@/utils/helpers";
+import { formatAmount, getCurrencySymbol } from "@/utils/helpers";
 import Image from "next/image";
 import ErrorMessage from "../ui/ErrorMessage";
 import InputField from "../ui/InputField";
 import Button from "../ui/Button";
 import { toast } from "sonner";
+import CenterModalHeader from "../layouts/CenterModalHeader";
 
 interface Props {
   goBack: () => void;
@@ -38,7 +39,7 @@ const InternationalSendMoney = ({
     if (!user || !user?.business_account?.wallets || !selectedCurrency?.name)
       return null;
     return user?.business_account?.wallets.find(
-      (wallet) => wallet.wallet_type.currency === selectedCurrency.name
+      (wallet) => wallet.wallet_type.currency === selectedCurrency.name,
     );
   }, [user, selectedCurrency]);
   const currency =
@@ -105,21 +106,23 @@ const InternationalSendMoney = ({
     const parsedAmount = parseFloat(amount || "0");
     if (minAmount && parsedAmount < minAmount) {
       toast.warning(
-        `Amount must be at least ${getCurrencySymbol(currency)}${minAmount}`
+        `Amount must be at least ${getCurrencySymbol(currency)}${minAmount}`,
       );
       return;
     }
     goNext();
   };
   return (
-    <div className="w-full flex flex-col h-full">
+    <div className="w-full flex flex-col h-full pb-5 overflow-y-scroll no-scrollbar">
+      <CenterModalHeader close={goBack} />
       <SideWrapperHeader
         close={goBack}
         title="Send Money"
         titleColor="text-zinc-900"
+        backArrow={false}
       />
-      <div className="flex flex-col h-full justify-between items-center w-full">
-        <div className="w-full h-full">
+      <div className="flex flex-col h-full justify-between rounded-[20px] overflow-y-scroll no-scrollbar items-center w-full bg-raiz-gray-50 p-6">
+        <div className="w-full  mb-3">
           <div className="flex flex-col justify-center items-center">
             <div className="relative w-10 h-10">
               <Avatar src={""} name={selectedUser?.beneficiary_name || ""} />
@@ -175,24 +178,14 @@ const InternationalSendMoney = ({
                 Balance:
                 <span className="text-zinc-900 text-xs font-bold leading-tight">
                   {getCurrencySymbol(
-                    currentWallet?.wallet_type?.currency || ""
+                    currentWallet?.wallet_type?.currency || "",
                   )}
                   {currentWallet?.account_balance}{" "}
                 </span>
                 <span>({currentWallet?.wallet_type?.currency})</span>
               </p>
             </div>
-            <div className="w-full flex justify-center my-4">
-              <div className="w-full flex justify-between items-center my-4 px-4 py-2 bg-indigo-50 bg-opacity-50 rounded-lg">
-                <span className="text-cyan-700 text-xs font-normal font-brSonoma leading-normal">
-                  Minimum Amount:
-                </span>
-                <span className="text-zinc-900 text-sm font-semibold leading-none flex items-center gap-1">
-                  {getCurrencySymbol(currency)}
-                  {minAmount?.toLocaleString()}
-                </span>
-              </div>
-            </div>
+
             <div className="w-full mt-10">
               <div className="flex items-center justify-between  font-brSonoma font-medium mb-3 w-full">
                 <p className="text-zinc-900 text-sm leading-normal">Purpose</p>
@@ -223,18 +216,18 @@ const InternationalSendMoney = ({
           </div>
         </div>
         <div className="w-full py-6 ">
-          {/* <div className=" p-3.5 mb-3 bg-grays-100 w-full rounded-lg outline outline-1 outline-offset-[-1px] outline-white inline-flex flex-col justify-center items-start gap-2"> */}
-          {/* <div className="w-full flex justify-between items-center">
+          <div className=" p-3.5 mb-3 bg-raiz-gray-100 w-full rounded-lg outline outline-1 outline-offset-[-1px] outline-white inline-flex flex-col justify-center items-start gap-2">
+            <div className="w-full flex justify-between items-center">
               <span className="text-cyan-700 text-xs font-normal font-brSonoma leading-normal">
                 Min Amount:
               </span>
               <div className="h-0.5 w-[50%] px-4 bg-white"></div>
               <span className="text-zinc-900  text-xs font-semibold leading-none">
                 {getCurrencySymbol(currency)}
-                {minAmount}
+                {formatAmount(minAmount)}
               </span>
-            </div> */}
-          {/* {fee ? (
+            </div>
+            {/* {fee ? (
               <div className="w-full flex justify-between items-center">
                 <span className="text-cyan-700 text-xs font-normal font-brSonoma leading-normal">
                   Fee:
@@ -246,7 +239,7 @@ const InternationalSendMoney = ({
                 </span>
               </div>
             ) : null} */}
-          {/* </div> */}
+          </div>
 
           <Button
             disabled={!!error || !purpose}

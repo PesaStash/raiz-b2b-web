@@ -18,6 +18,7 @@ import { IoIosArrowDown } from "react-icons/io";
 import DateRange from "../transactions/_components/DateRange";
 import AnalyticsChart from "@/components/charts/AnalyticsChart";
 import RangeModal from "../_components/analytics/RangeModal";
+import { findWalletByCurrency } from "@/utils/helpers";
 
 export interface DateOption {
   label: string;
@@ -80,6 +81,7 @@ const AnalyticsPage = () => {
   };
 
   const dateRanges = getDateRanges();
+  const { selectedCurrency } = useCurrencyStore();
   const [showRange, setShowRange] = useState(false);
   const [selectedRange, setSelectedRange] = useState<DateOption>(dateRanges[0]);
   const [showCategoryRange, setShowCategoryRange] = useState(false);
@@ -87,8 +89,21 @@ const AnalyticsPage = () => {
     useState<DateOption>(dateRanges[0]);
   const [showCustomCalendar, setShowCustomCalendar] = useState(false);
   const { user } = useUser();
-  const currentWallet = useCurrentWallet(user);
-  const { selectedCurrency } = useCurrencyStore();
+  const NGNAcct = findWalletByCurrency(user, "NGN");
+  const USDAcct = findWalletByCurrency(user, "USD");
+  const SBCAcct = findWalletByCurrency(user, "SBC");
+  const getCurrentWallet = () => {
+    if (selectedCurrency.name === "NGN") {
+      return NGNAcct;
+    } else if (selectedCurrency.name === "USD") {
+      return USDAcct;
+    } else if (selectedCurrency.name === "SBC") {
+      return SBCAcct;
+    }
+  };
+
+  const currentWallet = getCurrentWallet();
+
   const { data, isLoading } = useQuery({
     queryKey: [
       "income-expense-chart",
@@ -131,7 +146,7 @@ const AnalyticsPage = () => {
     const daysDiff = end.diff(start, "day") + 1;
 
     const formatted = `${start.format("DD MMM YYYY")} - ${end.format(
-      "DD MMM YYYY"
+      "DD MMM YYYY",
     )}`;
 
     setSelectedCategoryRange({
@@ -145,76 +160,86 @@ const AnalyticsPage = () => {
   };
 
   return (
-    <section className="mt-10">
-      <h2 className="text-zinc-900 text-2xl font-bold  leading-7 mb-8">
-        Report & Analytics
-      </h2>
-      <div className="flex gap-4 pt-5 mb-8">
-        {/* income total */}
-        <div className="rounded-[20px] pl-5 py-3.5  w-1/2 outline outline-1 outline-offset-[-1px] outline-zinc-200 inline-flex flex-col justify-start items-start gap-2 xl:gap-3.5">
-          <div className="w-12 h-12 flex items-center justify-center relative bg-violet-100/60 rounded-3xl ">
-            <Image
-              src={"/icons/income.svg"}
-              width={28.8}
-              height={28.8}
-              alt="income"
-            />
-          </div>
-          <p className="text-zinc-900 text-xs xl:text-base font-bold leading-tight">
-            {selectedCurrency.sign}
-            {isLoading ? (
-              <Skeleton height={15} width={60} />
-            ) : (
-              data?.total_income.toLocaleString() || 0
-            )}
-          </p>
-
-          <p className=" text-zinc-700 text-sm leading-tight">Income</p>
+    <section className="mt-4">
+      <div className="rounded-[20px] bg-raiz-gray-50 p-6">
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-zinc-900 text-2xl font-bold  leading-7 ">
+            Report & Analytics
+          </h2>
+          <button
+            onClick={handleOpenRange}
+            className="h-8 px-3.5 py-2.5 bg-gray-100 rounded-2xl inline-flex justify-start items-center gap-2"
+          >
+            <span className="text-zinc-900 text-xs font-medium font-brSonoma leading-tight">
+              {selectedRange.label}
+            </span>
+            <IoIosArrowDown className="text-[#443852] w-4 h-4 " />
+          </button>
         </div>
-        {/* expense total */}
-        <div className="rounded-[20px] pl-5 py-3.5  w-1/2 outline outline-1 outline-offset-[-1px] outline-zinc-200 inline-flex flex-col justify-start items-start gap-2 xl:gap-3.5">
-          <div className="w-12 h-12 flex items-center justify-center relative bg-violet-100/60 rounded-3xl ">
-            <Image
-              src={"/icons/expense.svg"}
-              width={28.8}
-              height={28.8}
-              alt="expense"
-            />
+        <div className="flex gap-4 pt-5 mb-8">
+          {/* income total */}
+          <div className="rounded-[20px] shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] pl-5 py-3.5  w-1/2 border border-raiz-gray-100 inline-flex flex-col justify-start items-start gap-2 xl:gap-3.5">
+            <div className="w-12 h-12 flex items-center justify-center relative bg-violet-100/60 rounded-3xl ">
+              <Image
+                src={"/icons/income.svg"}
+                width={28.8}
+                height={28.8}
+                alt="income"
+              />
+            </div>
+            <p className=" text-raiz-gray-600 font-semibold text-sm leading-4">
+              Income
+            </p>
+            <p className="text-raiz-gray-950 text-xs xl:text-base font-bold leading-6">
+              {selectedCurrency.sign}
+              {isLoading ? (
+                <Skeleton height={15} width={60} />
+              ) : (
+                data?.total_income.toLocaleString() || 0
+              )}
+            </p>
           </div>
-
-          <p className="text-zinc-900 text-xs xl:text-base font-bold leading-tight">
-            {selectedCurrency.sign}
-            {isLoading ? (
-              <Skeleton height={15} width={60} />
-            ) : (
-              data?.total_expense.toLocaleString() || 0
-            )}
-          </p>
-
-          <p className=" text-zinc-700 text-sm leading-tight">Expenses</p>
+          {/* expense total */}
+          <div className="rounded-[20px] shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] pl-5 py-3.5  w-1/2 border border-raiz-gray-100 inline-flex flex-col justify-start items-start gap-2 xl:gap-3.5">
+            <div className="w-12 h-12 flex items-center justify-center relative bg-violet-100/60 rounded-3xl ">
+              <Image
+                src={"/icons/expense.svg"}
+                width={28.8}
+                height={28.8}
+                alt="expense"
+              />
+            </div>
+            <p className=" text-raiz-gray-600 font-semibold text-sm leading-4">
+              Expenses
+            </p>
+            <p className="text-zinc-900 text-xs xl:text-base font-bold leading-tight">
+              {selectedCurrency.sign}
+              {isLoading ? (
+                <Skeleton height={15} width={60} />
+              ) : (
+                data?.total_expense.toLocaleString() || 0
+              )}
+            </p>
+          </div>
         </div>
-      </div>
-      {/* <InflowOutflow
+        {/* <InflowOutflow
         type="income-expense"
         opened={showRange}
         open={handleOpenRange}
         close={handleCloseRange}
         selectedRange={selectedRange}
       /> */}
-      <AnalyticsChart
-        opened={showRange}
-        open={handleOpenRange}
-        close={handleCloseRange}
-        selectedRange={selectedRange}
-        data={data?.analytics || []}
-        loading={isLoading}
-        totalExpenses={data?.total_expense || 0}
-        totalIncome={data?.total_income || 0}
-      />
+        <AnalyticsChart
+          opened={showRange}
+          open={handleOpenRange}
+          close={handleCloseRange}
+          selectedRange={selectedRange}
+        />
+      </div>
       {/* Expenses Categories */}
-      <div className="pb-8 relative">
-        <div className="flex items-center w-full justify-between mt-[30px] mb-4">
-          <h5 className="text-zinc-900 text-base font-semibold leading-tight tracking-tight">
+      <div className="my-8 bg-raiz-gray-50 p-8 relative rounded-[20px] shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)]    border border-raiz-gray-100">
+        <div className="flex items-center w-full justify-between mb-7">
+          <h5 className="text-raiz-gray-950 text-lg font-semibold leading-5">
             All Expenses
           </h5>
           <button
@@ -237,7 +262,7 @@ const AnalyticsPage = () => {
             {categoryData?.map((each, index) => (
               <div
                 key={index}
-                className="px-5 py-3.5 rounded-[20px] outline outline-1 outline-offset-[-1px] outline-zinc-200 inline-flex flex-col justify-start items-start"
+                className="px-5 py-3.5 rounded-[20px] shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] border border-raiz-gray-100 inline-flex flex-col justify-start items-start"
               >
                 <Image
                   className="mb-[15px]"

@@ -12,6 +12,7 @@ import { INotificationResponse } from "@/types/services";
 import Spinner from "@/components/ui/Spinner";
 import "@/styles/misc.css";
 import { useNotifications } from "@/lib/hooks/useNotifications";
+import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 
 dayjs.extend(relativeTime);
 
@@ -34,7 +35,7 @@ const NotificationItem = ({
 }: INotification & { onMarkAsRead: () => void }) => {
   const categoryIcon =
     categoryIcons.find(
-      (icon) => icon.code === notification_category.notification_category_id
+      (icon) => icon.code === notification_category.notification_category_id,
     )?.icon || "/icons/notif-general.svg";
 
   return (
@@ -97,7 +98,7 @@ const Notifications = ({ close }: { close: () => void }) => {
             notifications: page.notifications.map((notif: INotification) =>
               notif.notification_id === notificationId
                 ? { ...notif, read: true }
-                : notif
+                : notif,
             ),
           })),
         };
@@ -118,7 +119,7 @@ const Notifications = ({ close }: { close: () => void }) => {
   const notifications = data?.pages.flatMap((page) => page.notifications) || [];
   const groupedNotifications = groupByDate<INotification>(
     notifications,
-    "created_at"
+    "created_at",
   );
 
   const handleNotificationClick = (notification: INotification) => {
@@ -141,22 +142,9 @@ const Notifications = ({ close }: { close: () => void }) => {
 
   return (
     <>
+      <CenterModalHeader close={close} />
       <div className="h-full overflow-hidden flex flex-col">
-        <div className="sticky bg-raiz-gray-50 w-full h-[49px] flex items-center z-10">
-          <div className="flex justify-between w-1/2 items-center">
-            <button onClick={close}>
-              <Image
-                src={"/icons/close.svg"}
-                alt="go back"
-                width={16}
-                height={16}
-              />
-            </button>
-            <h5 className="text-center text-raiz-gray-950 text-base font-bold leading-tight">
-              Inbox
-            </h5>
-          </div>
-        </div>
+        <h2 className="text-xl font-bold text-raiz-gray-950 mb-4">Inbox</h2>
 
         {isLoading ? (
           <div className="absolute inset-0 flex items-center justify-center">
@@ -193,12 +181,12 @@ const Notifications = ({ close }: { close: () => void }) => {
                                 onMarkAsRead={() =>
                                   !notification.read &&
                                   markAsReadMutation.mutate(
-                                    notification.notification_id
+                                    notification.notification_id,
                                   )
                                 }
                               />
                             </button>
-                          )
+                          ),
                         )}
                       </div>
                     </div>

@@ -44,6 +44,7 @@ import TxnReceipt from "./transaction-history/TxnReceipt";
 import FilterHistory from "./transaction-history/FilterHistory";
 import { GetTransactionClasses } from "@/services/transactions";
 import { toast } from "sonner";
+import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 
 type customDateType = {
   day: string;
@@ -151,7 +152,7 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
             }`}
           >
             {`${isDebit ? "-" : "+"} ${getCurrencySymbol(
-              info.row.original?.currency
+              info.row.original?.currency,
             )}${Math.abs(info?.getValue())?.toLocaleString(undefined, {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
@@ -190,8 +191,8 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
           status === "completed"
             ? "bg-green-500"
             : status === "pending"
-            ? "bg-yellow-500"
-            : "bg-red-500";
+              ? "bg-yellow-500"
+              : "bg-red-500";
 
         return (
           <div className="w-fit flex items-center px-1.5 py-0.5 gap-1 text-xs font-brSonoma border border-raiz-gray-200 rounded-md">
@@ -302,26 +303,23 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
   const handleSendButton = () => {
     if (!currentWallet) {
       toast.warning(
-        "You do not have a wallet for this currency. Create one first!"
+        "You do not have a wallet for this currency. Create one first!",
       );
     } else {
       setShowSend(true);
     }
   };
   return (
-    <section className="w-full mt-8">
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="text-lg font-bold  leading-snug text-raiz-gray-900">
-          Transaction history
-        </h3>
-        {topRightOpts === "link" ? (
-          <Link
-            className="text-raiz-gray-700 text-sm font-bold py-2 px-3.5  border border-[#E4E0EA] shadow rounded-md"
-            href={"/transactions"}
-          >
-            See more
-          </Link>
-        ) : (
+    <section
+      className={`w-full ${topRightOpts === "opts" ? "mt-8 p-6 bg-raiz-gray-50 rounded-[20px]" : ""}`}
+    >
+      <div className="flex justify-between items-center">
+        {topRightOpts === "opts" && (
+          <h3 className="text-lg font-bold  leading-snug text-raiz-gray-900">
+            Transaction history
+          </h3>
+        )}
+        {topRightOpts === "link" ? null : ( // </Link> //   See more // > //   href={"/transactions"} //   className="text-raiz-gray-700 text-sm font-bold py-2 px-3.5  border border-[#E4E0EA] shadow rounded-md" // <Link
           <div className="flex gap-3 items-center">
             {/* dates */}
             <div className="relative">
@@ -339,7 +337,7 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
                   {dateRange.startDate && dateRange.endDate
                     ? `${format(dateRange.startDate, "dd MMM")} - ${format(
                         dateRange.endDate,
-                        "dd MMM"
+                        "dd MMM",
                       )}`
                     : "Select dates"}
                 </span>
@@ -403,20 +401,21 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
-                      className="py-3 px-4 text-raiz-gray-700 text-[13px] font-normal font-monzo"
+                      className="py-3 px-4 text-raiz-gray-700 bg-[#F8F7FA] text-[13px] font-normal font-monzo"
                     >
                       {flexRender(
                         header.column.columnDef.header,
-                        header.getContext()
+                        header.getContext(),
                       )}
                     </th>
                   ))}
                 </tr>
               ))}
+              <tr />
             </thead>
             <tbody className="divide-y">
               <tr>
-                <td colSpan={5}>
+                <td colSpan={6}>
                   <Skeleton count={4} className="mb-3" height={48} />
                 </td>
               </tr>
@@ -425,7 +424,7 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
         </div>
       ) : transactions.length > 0 ? (
         <>
-          <div className="w-full overflow-x-auto h-full ">
+          <div className="w-full overflow-x-auto h-full mt-6">
             <table className="min-w-full text-left text-sm">
               <thead className="border-b ">
                 {table.getHeaderGroups().map((headerGroup) => (
@@ -433,11 +432,11 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
                     {headerGroup.headers.map((header) => (
                       <th
                         key={header.id}
-                        className="py-3 px-4 text-raiz-gray-700 text-[13px] font-normal font-monzo"
+                        className="py-3 px-4 text-raiz-gray-700 bg-[#F8F7FA] text-xs font-normal font-monzo first:rounded-tl-lg last:rounded-tr-lg"
                       >
                         {flexRender(
                           header.column.columnDef.header,
-                          header.getContext()
+                          header.getContext(),
                         )}
                       </th>
                     ))}
@@ -454,7 +453,7 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
                       <td key={cell.id} className="px-4 py-3 ">
                         {flexRender(
                           cell.column.columnDef.cell,
-                          cell.getContext()
+                          cell.getContext(),
                         )}
                       </td>
                     ))}
@@ -463,6 +462,16 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
               </tbody>
             </table>
           </div>
+          {topRightOpts === "link" && (
+            <div className="w-full flex justify-center mt-3">
+              <Link
+                href={"/transactions"}
+                className="text-raiz-gray-700 text-sm font-bold   mx-auto w-fit"
+              >
+                See all
+              </Link>
+            </div>
+          )}{" "}
           {pagination && totalPages > 1 && (
             <Pagination
               currentPage={currentPage}
@@ -484,11 +493,14 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
             />
           </svg>
           <h2 className="text-raiz-gray-950 text-sm font-semibold mb-[14px]">
-            No transactions yet
+            {paramPresent || dateRange.startDate || dateRange.endDate
+              ? "No transactions found"
+              : "No transactions yet"}
           </h2>
           <p className="w-80 mb-6 text-center text-raiz-gray-950 text-xs leading-none">
-            Once transactions start flowing in, you&#39;ll see them listed here
-            in real time.
+            {paramPresent || dateRange.startDate || dateRange.endDate
+              ? "We couldn't find any transactions matching your selected filters. Please try adjusting them."
+              : "Once transactions start flowing in, you'll see them listed here in real time."}
           </p>
           <Button
             onClick={() => handleSendButton()}
@@ -511,7 +523,7 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
           <TxnReceipt transaction={selectedTxn} close={closeReceipt} />
         )}
         {showFilter && (
-          <SideModalWrapper close={() => setShowFilter(false)}>
+          <CenterModalWrapper close={() => setShowFilter(false)}>
             <FilterHistory
               close={() => setShowFilter(false)}
               activities={activities || []}
@@ -531,17 +543,17 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
               setCategory={setCategory}
               categories={categories || []}
             />
-          </SideModalWrapper>
+          </CenterModalWrapper>
         )}
         {showSend ? (
           currency === "NGN" ? (
-            <SideModalWrapper close={() => setShowSend(false)}>
-              <NgnSend />
-            </SideModalWrapper>
+            <CenterModalWrapper close={() => setShowSend(false)}>
+              <NgnSend close={() => setShowSend(false)} />
+            </CenterModalWrapper>
           ) : (
-            <SideModalWrapper close={() => setShowSend(false)}>
+            <CenterModalWrapper close={() => setShowSend(false)}>
               <UsdSend close={() => setShowSend(false)} />
-            </SideModalWrapper>
+            </CenterModalWrapper>
           )
         ) : null}
       </AnimatePresence>

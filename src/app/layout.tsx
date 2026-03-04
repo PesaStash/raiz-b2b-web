@@ -139,6 +139,7 @@ export default function RootLayout({
           <MainLayout>
             <Suspense fallback={<Loading />}>{children}</Suspense>
             <Toaster
+              closeButton
               toastOptions={{
                 unstyled: true,
                 classNames: {
@@ -149,11 +150,57 @@ export default function RootLayout({
                   warning: "bg-yellow-400",
                   info: "bg-[#488ee8]",
                   loading: "bg-[#475467]",
+                  closeButton: "!bg-transparent !border-none !shadow-none",
                 },
               }}
               icons={{
+                close: (
+                  <svg
+                    key="toast-close"
+                    width="14"
+                    height="15"
+                    viewBox="0 0 21 22"
+                    fill="none"
+                  >
+                    <path
+                      d="M21 11C21 16.7981 16.2981 21.5 10.5 21.5C4.7019 21.5 0 16.7981 0 11C0 5.2019 4.7019 0.5 10.5 0.5C16.2981 0.5 21 5.2019 21 11Z"
+                      fill="url(#paint0_linear_close)"
+                    />
+                    <path
+                      d="M15.2325 6.26838C15.6424 6.6783 15.6424 7.34316 15.2325 7.75308L7.2521 15.7335C6.84218 16.1434 6.17732 16.1434 5.7674 15.7335C5.35748 15.3236 5.35748 14.6587 5.7674 14.2488L13.7478 6.26838C14.1577 5.85846 14.8226 5.85846 15.2325 6.26838Z"
+                      fill="white"
+                    />
+                    <path
+                      d="M15.2325 15.7335C14.8226 16.1434 14.1577 16.1434 13.7478 15.7335L5.7674 7.75308C5.35748 7.34316 5.35748 6.6783 5.7674 6.26838C6.17732 5.85846 6.84218 5.85846 7.2521 6.26838L15.2325 14.2488C15.6424 14.6587 15.6424 15.3236 15.2325 15.7335Z"
+                      fill="white"
+                    />
+                    <defs>
+                      <linearGradient
+                        id="paint0_linear_close"
+                        x1="10.5"
+                        y1="21.5"
+                        x2="10.5"
+                        y2="0.5"
+                        gradientUnits="userSpaceOnUse"
+                      >
+                        <stop stopColor="#FF634D" />
+                        <stop offset="0.204" stopColor="#FE6464" />
+                        <stop offset="0.521" stopColor="#FC6581" />
+                        <stop offset="0.794" stopColor="#FA6694" />
+                        <stop offset="0.989" stopColor="#FA669A" />
+                        <stop offset="1" stopColor="#FA669A" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                ),
                 success: (
-                  <svg width="21" height="22" viewBox="0 0 21 22" fill="none">
+                  <svg
+                    key="toast-success"
+                    width="21"
+                    height="22"
+                    viewBox="0 0 21 22"
+                    fill="none"
+                  >
                     <g clipPath="url(#clip0_23792_6377)">
                       <path
                         d="M21 11C21 16.7986 16.2986 21.5 10.5 21.5C4.70137 21.5 0 16.7986 0 11C0 5.20137 4.70137 0.5 10.5 0.5C16.2986 0.5 21 5.20137 21 11Z"
@@ -177,7 +224,13 @@ export default function RootLayout({
                   </svg>
                 ),
                 info: (
-                  <svg width="21" height="22" viewBox="0 0 21 22" fill="none">
+                  <svg
+                    key="toast-info"
+                    width="21"
+                    height="22"
+                    viewBox="0 0 21 22"
+                    fill="none"
+                  >
                     <path
                       d="M10.5 19.75C15.3325 19.75 19.25 15.8325 19.25 11C19.25 6.16751 15.3325 2.25 10.5 2.25C5.66751 2.25 1.75 6.16751 1.75 11C1.75 15.8325 5.66751 19.75 10.5 19.75Z"
                       fill="#C5DDF5"
@@ -193,7 +246,13 @@ export default function RootLayout({
                   </svg>
                 ),
                 error: (
-                  <svg width="21" height="22" viewBox="0 0 21 22" fill="none">
+                  <svg
+                    key="toast-error"
+                    width="21"
+                    height="22"
+                    viewBox="0 0 21 22"
+                    fill="none"
+                  >
                     <path
                       d="M21 11C21 16.7981 16.2981 21.5 10.5 21.5C4.7019 21.5 0 16.7981 0 11C0 5.2019 4.7019 0.5 10.5 0.5C16.2981 0.5 21 5.2019 21 11Z"
                       fill="url(#paint0_linear_23792_6392)"

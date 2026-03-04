@@ -3,7 +3,7 @@ import Image from "next/image";
 import React, { useEffect, useRef } from "react";
 import ListDetailItem from "../ui/ListDetailItem";
 import dayjs from "dayjs";
-import { convertTime } from "@/utils/helpers";
+import { convertTime, formatAmount, getCurrencySymbol } from "@/utils/helpers";
 import html2canvas from "html2canvas";
 import { ITransaction } from "@/types/transactions";
 import { useUser } from "@/lib/hooks/useUser";
@@ -14,10 +14,16 @@ export interface IRaizReceipt {
   data: ITransaction;
   type?: "guest";
   senderName?: string;
-  beneficiaryName?: string
+  beneficiaryName?: string;
 }
 
-const RaizReceipt = ({ close, data, type, senderName, beneficiaryName }: IRaizReceipt) => {
+const RaizReceipt = ({
+  close,
+  data,
+  type,
+  senderName,
+  beneficiaryName,
+}: IRaizReceipt) => {
   const receiptRef = useRef<HTMLDivElement>(null);
   const handleShareReceipt = async () => {
     if (!receiptRef.current) return;
@@ -90,9 +96,6 @@ const RaizReceipt = ({ close, data, type, senderName, beneficiaryName }: IRaizRe
 
   return (
     <div>
-      <button onClick={close}>
-        <Image src={"/icons/close.svg"} alt="close" width={16} height={16} />
-      </button>
       <div className="relative mt-10">
         <div
           ref={receiptRef}
@@ -110,7 +113,7 @@ const RaizReceipt = ({ close, data, type, senderName, beneficiaryName }: IRaizRe
           </h6>
           <p className="text-zinc-900 text-xl font-bold mt-[5px] leading-normal">
             {data?.currency}
-            {data?.transaction_amount?.toLocaleString()}
+            {formatAmount(data?.transaction_amount)}
           </p>
           <div className="flex flex-col gap-2 w-full mt-5 px-5 lg:px-2 xl:px-5 pt-5 border-t border-dashed border-zinc-200">
             <ListDetailItem
@@ -141,15 +144,19 @@ const RaizReceipt = ({ close, data, type, senderName, beneficiaryName }: IRaizRe
               value={data?.transaction_remarks || ""}
             />
             <ListDetailItem
+              title="Fees"
+              value={`${getCurrencySymbol(data.currency)}${formatAmount(data?.fee_amount || 0)}`}
+            />
+            <ListDetailItem
               title="Date"
               value={dayjs(
-                convertTime(data?.transaction_date_time || "")
+                convertTime(data?.transaction_date_time || ""),
               ).format("MMM DD, YYYY")}
             />
             <ListDetailItem
               title="Time"
               value={dayjs(
-                convertTime(data?.transaction_date_time || "")
+                convertTime(data?.transaction_date_time || ""),
               ).format("hh:mm a")}
             />
             <ListDetailItem
@@ -169,12 +176,13 @@ const RaizReceipt = ({ close, data, type, senderName, beneficiaryName }: IRaizRe
             <div className="flex justify-between items-center border-t border-zinc-200 pt-[18px]">
               <span className="text-xs font-normal leading-tight">Status</span>
               <span
-                className={`${data?.transaction_status?.transaction_status === "completed"
-                  ? "text-green-600"
-                  : data?.transaction_status?.transaction_status === "failed"
-                    ? "text-red-600"
-                    : "text-orange-400"
-                  } text-sm font-semibold leading-snug capitalize`}
+                className={`${
+                  data?.transaction_status?.transaction_status === "completed"
+                    ? "text-green-600"
+                    : data?.transaction_status?.transaction_status === "failed"
+                      ? "text-red-600"
+                      : "text-orange-400"
+                } text-sm font-semibold leading-snug capitalize`}
               >
                 {data?.transaction_status?.transaction_status}
               </span>

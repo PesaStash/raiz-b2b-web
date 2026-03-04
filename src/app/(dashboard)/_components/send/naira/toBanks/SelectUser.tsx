@@ -29,7 +29,7 @@ const SelectUser = () => {
   const { actions } = useSendStore();
   const { user } = useUser();
   const [showModal, setShowModal] = useState<"bank" | "beneficiary" | null>(
-    null
+    null,
   );
   const [bank, setBank] = useState<IBank>();
   const [acctNo, setAccountNo] = useState("");
@@ -68,7 +68,7 @@ const SelectUser = () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const [_, params] = queryKey as [
         string,
-        { account_number: string; bank_code: string }
+        { account_number: string; bank_code: string },
       ];
       return await FetchNgnAcctDetailsApi(params);
     },
@@ -94,49 +94,53 @@ const SelectUser = () => {
       </div>
     );
   return (
-    <div className="flex flex-col h-full">
-      {recents.length !== 0 && (
-        <RecentUsers
-          type="external"
-          users={recents}
-          setSelectedUser={actions.selectExternalUser}
-        />
-      )}
-      <div className="flex flex-col justify-between h-full mt-[35px] pb-6">
-        <div className="w-full">
-          <div className="flex justify-between items-center mb-[15px]">
-            <h5 className="text-zinc-900 text-sm font-bold leading-none">
-              Other Bank
-            </h5>
-            <button
-              onClick={() => setShowModal("beneficiary")}
-              className="text-indigo-900 text-xs font-bold leading-tight"
-            >
-              Choose Beneficiary
-            </button>
-          </div>
-          <InputField
-            name="account_number"
-            label="Account Number"
-            placeholder="Enter account number"
-            value={acctNo}
-            onChange={handleAccountChange}
-            errorMessage={error ? error : undefined}
-          />
-          <div className="mt-[15px]">
-            <InputLabel content={"Bank Name"} />
-            <ModalTrigger
-              onClick={() => setShowModal("bank")}
-              placeholder="Enter bank name"
-              value={bank?.bankName || ""}
+    <div className="flex flex-col h-full ">
+      <div className="flex  flex-col justify-between gap-6">
+        <div className="bg-raiz-gray-50 rounded-[20px] p-6 ">
+          {recents.length !== 0 && (
+            <RecentUsers
+              type="external"
+              users={recents}
+              setSelectedUser={actions.selectExternalUser}
             />
-          </div>
-          <div className="flex gap-2 mt-2 items-center">
-            {isFetching ? (
-              <ImSpinner2 className="animate-spin w-4 h-4" />
-            ) : (
-              <span>{data?.account_name}</span>
-            )}
+          )}
+          <div className="w-full mt-[35px]">
+            <div className="flex justify-between items-center mb-[15px]">
+              <h5 className="text-zinc-900 text-sm font-bold leading-none">
+                Other Bank
+              </h5>
+              <button
+                onClick={() => setShowModal("beneficiary")}
+                className="text-indigo-900 text-xs font-bold leading-tight"
+              >
+                Choose Beneficiary
+              </button>
+            </div>
+            <InputField
+              name="account_number"
+              label="Account Number"
+              placeholder="Enter account number"
+              value={acctNo}
+              onChange={handleAccountChange}
+              errorMessage={error ? error : undefined}
+            />
+            <div className="mt-[15px]">
+              <InputLabel content={"Bank Name"} />
+              <ModalTrigger
+                onClick={() => setShowModal("bank")}
+                placeholder="Enter bank name"
+                value={bank?.bankName || ""}
+              />
+            </div>
+            <div className="flex gap-2 mt-2 items-center">
+              {isFetching ? (
+                <ImSpinner2 className="animate-spin w-4 h-4" />
+              ) : (
+                <span className="text-xs text-raiz-gray-950 leading-5">
+                  {data?.account_name}
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <Button disabled={!data || isFetching} onClick={handleNext}>

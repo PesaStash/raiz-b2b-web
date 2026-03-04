@@ -10,6 +10,8 @@ import { toFormikValidationSchema } from "zod-formik-adapter";
 import { z } from "zod";
 import { useSendStore } from "@/store/Send";
 import { CHAINS } from "@/constants/misc";
+import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
+import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 
 interface Props {
   close: () => void;
@@ -40,12 +42,12 @@ const AddRecipient = ({ close, goNext }: Props) => {
     },
   });
   return (
-    <SideModalWrapper close={close}>
-      <SideWrapperHeader
-        close={close}
-        title={`Add Recipient`}
-        titleColor="text-zinc-900"
-      />
+    <CenterModalWrapper close={close}>
+      <CenterModalHeader close={close} />
+      <h2 className="text-xl font-bold text-raiz-gray-950 mb-4">
+        Add Recipient
+      </h2>
+
       <form
         onSubmit={formik.handleSubmit}
         className="flex flex-col justify-between gap-8 h-full pb-[30px]"
@@ -72,7 +74,7 @@ const AddRecipient = ({ close, goNext }: Props) => {
         </Button>
       </form>
       {modal && <NetworkModal close={() => setModal(false)} formik={formik} />}
-    </SideModalWrapper>
+    </CenterModalWrapper>
   );
 };
 

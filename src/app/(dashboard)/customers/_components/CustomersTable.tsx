@@ -27,6 +27,7 @@ import SideModalWrapper from "../../_components/SideModalWrapper";
 import EditCustomer from "./EditCustomer";
 import DeleteCustomer from "./DeleteCustomer";
 import Overlay from "@/components/ui/Overlay";
+import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 
 const columnHelper = createColumnHelper<ICustomer>();
 
@@ -39,7 +40,7 @@ const CustomersTable = () => {
   // }>({});
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCustomer, setSelectedCustomer] = useState<ICustomer | null>(
-    null
+    null,
   );
   const [showEdit, setShowEdit] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
@@ -163,15 +164,16 @@ const CustomersTable = () => {
           search?: string;
           page?: number;
           limit?: number;
-        }
+        },
       ];
       return FetchCustomers(params);
     },
   });
+  console.log("data customers", data);
 
   const customers = data?.customers || [];
-  const totalPages = data?.pagination_details?.total_pages
-    ? data.pagination_details.total_pages
+  const totalPages = data?.pagination?.total_pages
+    ? data.pagination.total_pages
     : Math.ceil(customers?.length / pageSize) || 1;
   const table = useReactTable({
     data: customers,
@@ -251,7 +253,7 @@ const CustomersTable = () => {
                     >
                       {flexRender(
                         header.column.columnDef.header,
-                        header.getContext()
+                        header.getContext(),
                       )}
                     </th>
                   ))}
@@ -281,7 +283,7 @@ const CustomersTable = () => {
                       >
                         {flexRender(
                           header.column.columnDef.header,
-                          header.getContext()
+                          header.getContext(),
                         )}
                       </th>
                     ))}
@@ -298,7 +300,7 @@ const CustomersTable = () => {
                       <td key={cell.id} className="px-4 py-3 ">
                         {flexRender(
                           cell.column.columnDef.cell,
-                          cell.getContext()
+                          cell.getContext(),
                         )}
                       </td>
                     ))}
@@ -322,9 +324,9 @@ const CustomersTable = () => {
       )}
       <AnimatePresence>
         {showEdit && selectedCustomer ? (
-          <SideModalWrapper close={handleCloseEdit}>
+          <CenterModalWrapper close={handleCloseEdit}>
             <EditCustomer close={handleCloseEdit} customer={selectedCustomer} />
-          </SideModalWrapper>
+          </CenterModalWrapper>
         ) : null}
       </AnimatePresence>
       {showDelete && selectedCustomer ? (

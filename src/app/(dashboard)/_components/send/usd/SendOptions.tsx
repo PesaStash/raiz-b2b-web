@@ -2,13 +2,42 @@ import React from "react";
 import Image from "next/image";
 import { usdSendOptions } from "@/constants/send";
 import { useSendStore } from "@/store/Send";
+import DailyTransactionLimit from "../DailyTransactionLimit";
+import { useQuery } from "@tanstack/react-query";
+import { FetchTodayOutflowApi } from "@/services/user";
+import { findWalletByCurrency } from "@/utils/helpers";
+import { useUser } from "@/lib/hooks/useUser";
+import { useCurrencyStore } from "@/store/useCurrencyStore";
 
 interface Props {
   close: () => void;
 }
 
 const SendOptions = ({ close }: Props) => {
+  const { user } = useUser();
+  const { selectedCurrency } = useCurrencyStore();
+  const NGNAcct = findWalletByCurrency(user, "NGN");
+  const USDAcct = findWalletByCurrency(user, "USD");
+
+  const getCurrentWallet = () => {
+    if (selectedCurrency.name === "NGN") {
+      return NGNAcct;
+    } else if (selectedCurrency.name === "USD") {
+      return USDAcct;
+    }
+  };
+
+  const currentWallet = getCurrentWallet();
   const { actions } = useSendStore();
+  const { data } = useQuery({
+    queryKey: ["today-outflow"],
+    queryFn: () => FetchTodayOutflowApi(currentWallet?.wallet_id || ""),
+    enabled: !!currentWallet?.wallet_id,
+  });
+
+  console.log("addatata", data);
+  const dailyLimit =
+    user?.business_account?.entity?.wallet_tier?.dollar_limit || 0;
   return (
     <div>
       <button onClick={close}>
@@ -21,10 +50,10 @@ const SendOptions = ({ close }: Props) => {
       </button>
       <div className="flex justify-between mt-4 mb-11">
         <div className="">
-          <h5 className="text-raiz-gray-950 text-[23px] font-semibold leading-10">
+          <h5 className="text-raiz-gray-950 text-xl font-semibold leading-10">
             Choose your send option
           </h5>
-          <p className="text-raiz-gray-700 text-[15px] font-normal leading-snug">
+          <p className="text-raiz-gray-700 text-sm font-normal leading-5">
             Select your preferred send action
           </p>
         </div>
@@ -37,7 +66,8 @@ const SendOptions = ({ close }: Props) => {
         />
       </div>
       {/* options */}
-      <div className="flex flex-col gap-0.5 lg:mt-8 xl:mt-11 pb-10">
+      <div className="flex flex-col gap-0.5 lg:mt-8 xl:mt-11 pb-10 p-6 bg-neutral-50 rounded-[20px]">
+        <DailyTransactionLimit limit={dailyLimit} used={data || 0} />
         {usdSendOptions.map((each, index) => {
           return (
             <div

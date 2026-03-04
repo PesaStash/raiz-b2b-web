@@ -14,15 +14,19 @@ import { useCurrentWallet } from "@/lib/hooks/useCurrentWallet";
 import { IRequestFundsPayload } from "@/types/services";
 import { toast } from "sonner";
 import RequestFailed from "./single-request/RequestFailed";
+import RequestConfirmation from "./single-request/RequestConfirmation";
+import { findWalletByCurrency } from "@/utils/helpers";
+import { useCurrencyStore } from "@/store/useCurrencyStore";
 
 export type RequestMoneyStepType =
   | "select-user"
   | "details"
   | "category"
+  | "confirmation"
   | "success"
   | "failed";
 
-export const RequestMoney = ({ setStep }: RequestStepsProps) => {
+export const RequestMoney = ({ setStep, close }: RequestStepsProps) => {
   const [requestMoneyStep, setRequestMoneyStep] =
     useState<RequestMoneyStepType | null>("select-user");
   const [selectedUser, setSelectedUser] = useState<ISearchedUser | undefined>();
@@ -30,7 +34,21 @@ export const RequestMoney = ({ setStep }: RequestStepsProps) => {
   const [narration, setNarration] = useState("");
   const [category, setCategory] = useState<ITransactionCategory | null>(null);
   const { user } = useUser();
-  const currentWallet = useCurrentWallet(user);
+  const { selectedCurrency } = useCurrencyStore();
+  const NGNAcct = findWalletByCurrency(user, "NGN");
+  const USDAcct = findWalletByCurrency(user, "USD");
+  const SBCAcct = findWalletByCurrency(user, "SBC");
+  const getCurrentWallet = () => {
+    if (selectedCurrency.name === "NGN") {
+      return NGNAcct;
+    } else if (selectedCurrency.name === "USD") {
+      return USDAcct;
+    } else if (selectedCurrency.name === "SBC") {
+      return SBCAcct;
+    }
+  };
+
+  const currentWallet = getCurrentWallet();
 
   useEffect(() => {
     if (requestMoneyStep === "select-user" && selectedUser) {
@@ -52,7 +70,8 @@ export const RequestMoney = ({ setStep }: RequestStepsProps) => {
 
   const endStep = () => {
     setRequestMoneyStep(null);
-    setStep("all");
+    setStep("home");
+    close();
   };
 
   const qc = useQueryClient();
@@ -60,7 +79,15 @@ export const RequestMoney = ({ setStep }: RequestStepsProps) => {
     mutationFn: (data: IRequestFundsPayload) =>
       RequestFundsApi(currentWallet?.wallet_id || null, data),
     onSuccess: (response) => {
-      qc.refetchQueries({ queryKey: ["sent-requests"] });
+      qc.refetchQueries({ queryKey: ["bill-requests-sent"] });
+      qc.invalidateQueries({
+        queryKey: ["p2p-beneficiaries-recents"],
+        refetchType: "all",
+      });
+      qc.invalidateQueries({
+        queryKey: ["p2p-beneficiaries-favorites"],
+        refetchType: "all",
+      });
       toast.success(response?.message);
       setRequestMoneyStep("success");
     },
@@ -87,8 +114,9 @@ export const RequestMoney = ({ setStep }: RequestStepsProps) => {
       case "select-user":
         return (
           <Selectuser
-            goBack={() => setStep("all")}
+            goBack={() => setStep("home")}
             setSelectedUser={setSelectedUser}
+            currentWalletId={currentWallet?.wallet_id || ""}
           />
         );
       case "details":
@@ -107,14 +135,34 @@ export const RequestMoney = ({ setStep }: RequestStepsProps) => {
         return (
           <ChooseCategory
             goBack={() => setRequestMoneyStep("details")}
-            goNext={handleRequest}
+            goNext={() => setRequestMoneyStep("confirmation")}
             category={category}
             setCategory={setCategory}
+          />
+        );
+      case "confirmation":
+        return (
+          <RequestConfirmation
+            goBack={() => setRequestMoneyStep("category")}
+            goNext={handleRequest}
+            amount={amount}
+            narration={narration}
+            category={category}
             loading={RequestFundsMutation.isPending}
           />
         );
       case "success":
-        return <RequestSucess close={endStep} />;
+        return (
+          <>
+            <ChooseCategory
+              goBack={() => setRequestMoneyStep("details")}
+              goNext={() => setRequestMoneyStep("confirmation")}
+              category={category}
+              setCategory={setCategory}
+            />
+            <RequestSucess close={endStep} />
+          </>
+        );
       case "failed":
         return (
           <RequestFailed
@@ -126,7 +174,7 @@ export const RequestMoney = ({ setStep }: RequestStepsProps) => {
         break;
     }
   };
-  return <div className="h-full p-[25px] xl:p-[30px]">{displayStep()}</div>;
+  return <>{displayStep()}</>;
 };
 
 export default RequestMoney;

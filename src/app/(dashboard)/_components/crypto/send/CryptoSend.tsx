@@ -12,6 +12,7 @@ import RaizReceipt from "@/components/transactions/RaizReceipt";
 import { useQuery } from "@tanstack/react-query";
 import { GetIntTransactionFeeApi } from "@/services/transactions";
 import SideModalWrapper from "../../SideModalWrapper";
+import Categories from "@/components/transactions/Categories";
 
 export type cryptoSendSteps =
   | "coin-type"
@@ -19,6 +20,7 @@ export type cryptoSendSteps =
   | "review"
   | "send"
   | "summary"
+  | "category"
   | "pay"
   | "status"
   | "receipt";
@@ -67,47 +69,88 @@ const CryptoSend = ({ close }: Props) => {
         );
       case "review":
         return (
-          <ReviewModal
-            close={() => setStep("add-recipient")}
-            goNext={() => setStep("send")}
-          />
+          <>
+            <AddRecipient
+              close={() => {
+                setStep(null);
+                close();
+              }}
+              goNext={() => setStep("review")}
+            />
+            <ReviewModal
+              close={() => setStep("add-recipient")}
+              goNext={() => setStep("send")}
+            />
+          </>
         );
       case "send":
         return (
           <SendCrypto
             goBack={() => setStep("review")}
-            goNext={() => setStep("summary")}
+            goNext={() => setStep("category")}
             fee={fee || 0}
             loading={isLoading}
           />
         );
+      case "category":
+        return (
+          <Categories
+            goBack={() => setStep("send")}
+            goNext={() => setStep("summary")}
+            loading={false}
+          />
+        );
       case "summary":
         return (
-          <CryptoSendSummary
-            goBack={() => setStep("send")}
-            goNext={() => setStep("pay")}
-            fee={fee || 0}
-          />
+          <>
+            <SendCrypto
+              goBack={() => setStep("review")}
+              goNext={() => setStep("summary")}
+              fee={fee || 0}
+              loading={isLoading}
+            />
+            <CryptoSendSummary
+              goBack={() => setStep("send")}
+              goNext={() => setStep("pay")}
+              fee={fee || 0}
+            />
+          </>
         );
       case "pay":
         return (
-          <CryptoPay
-            goNext={() => setStep("status")}
-            close={() => setStep("summary")}
-            setPaymentError={setPaymentError}
-            fee={fee || 0}
-          />
+          <>
+            <SendCrypto
+              goBack={() => setStep("review")}
+              goNext={() => setStep("summary")}
+              fee={fee || 0}
+              loading={isLoading}
+            />
+            <CryptoPay
+              goNext={() => setStep("status")}
+              close={() => setStep("summary")}
+              setPaymentError={setPaymentError}
+              fee={fee || 0}
+            />
+          </>
         );
       case "status":
         return (
-          <CryptoPayStatusModal
-            status={status}
-            amount={parseFloat(amount)}
-            close={handleDone}
-            error={paymentError}
-            tryAgain={() => setStep("summary")}
-            viewReceipt={() => setStep("receipt")}
-          />
+          <>
+            <SendCrypto
+              goBack={() => setStep("review")}
+              goNext={() => setStep("summary")}
+              fee={fee || 0}
+              loading={isLoading}
+            />
+            <CryptoPayStatusModal
+              status={status}
+              amount={parseFloat(amount)}
+              close={handleDone}
+              error={paymentError}
+              tryAgain={() => setStep("summary")}
+              viewReceipt={() => setStep("receipt")}
+            />
+          </>
         );
 
       case "receipt":
