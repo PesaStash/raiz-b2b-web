@@ -18,6 +18,7 @@ import { GenerateStatementApi } from "@/services/transactions";
 import SelectField from "@/components/ui/SelectField";
 import { monthsData } from "@/constants/misc";
 import { FilterParams } from "../TransactionTable";
+import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 
 interface Props {
   close: () => void;
@@ -64,7 +65,7 @@ const dateOutputSchema = z
   })
   .refine(
     (data) => dayjs(data.end).isAfter(dayjs(data.start)),
-    "End date must be after start date"
+    "End date must be after start date",
   );
 
 const FilterHistory = ({
@@ -110,7 +111,7 @@ const FilterHistory = ({
       dateComponentSchema.parse(date);
       const formattedDate = `${date.year}-${date.month.padStart(
         2,
-        "0"
+        "0",
       )}-${date.day.padStart(2, "0")}`;
       if (!dayjs(formattedDate).isValid()) {
         throw new Error("Invalid date");
@@ -161,14 +162,14 @@ const FilterHistory = ({
           customStartDate.year
         }-${customStartDate.month.padStart(
           2,
-          "0"
+          "0",
         )}-${customStartDate.day.padStart(2, "0")}`;
 
         const endFormatted = `${
           customEndDate.year
         }-${customEndDate.month.padStart(2, "0")}-${customEndDate.day.padStart(
           2,
-          "0"
+          "0",
         )}`;
 
         startDate = dayjs(startFormatted);
@@ -259,7 +260,7 @@ const FilterHistory = ({
     try {
       const response = await GenerateStatementApi(params);
       toast.success(
-        response?.message || "Bank statement generated successfully"
+        response?.message || "Bank statement generated successfully",
       );
       clearFilter();
       clearAll();
@@ -279,13 +280,12 @@ const FilterHistory = ({
 
   return (
     <div className="flex flex-col h-full">
-      <SideWrapperHeader
-        title="Transaction History"
-        close={close}
-        titleColor="text-zinc-900"
-      />
-      <div className="flex flex-col justify-between h-full">
-        <div>
+      <CenterModalHeader close={close} />
+      <h2 className="text-zinc-900 text-2xl font-bold  leading-7 mb-8">
+        Transaction History
+      </h2>
+      <div className="flex flex-col justify-between gap-5 h-full">
+        <div className="flex flex-col bg-raiz-gray-50 rounded-[20px] p-6 w-full">
           {/* activity */}
           {/* <div className="">
             <h4 className="text-zinc-900 text-xs font-bold leading-tight mb-[9px]">
@@ -315,7 +315,13 @@ const FilterHistory = ({
             <div className="flex items-center gap-4 overflow-x-scroll no-scrollbar">
               {categories.map((each, index) => (
                 <button
-                  onClick={() => setCategory(each.transaction_category_id)}
+                  onClick={() =>
+                    setCategory(
+                      each.transaction_category_id === category
+                        ? 0
+                        : each.transaction_category_id,
+                    )
+                  }
                   className={`p-2 rounded-lg whitespace-nowrap  border-[0.5px] leading-tight text-xs ${
                     each.transaction_category_id === category
                       ? "border-indigo-900 text-indigo-900 bg-indigo-100/60 "
@@ -336,7 +342,11 @@ const FilterHistory = ({
             <div className="flex items-center gap-4 overflow-x-scroll no-scrollbar">
               {statuses.map((each, index) => (
                 <button
-                  onClick={() => setStatus(each)}
+                  onClick={() =>
+                    setStatus(
+                      each.id === status.id ? { label: "", id: 0 } : each,
+                    )
+                  }
                   className={`p-2 rounded-lg whitespace-nowrap  border-[0.5px] leading-tight text-xs ${
                     each.id === status.id
                       ? "border-indigo-900 text-indigo-900 bg-indigo-100/60 "
@@ -357,7 +367,7 @@ const FilterHistory = ({
             <div className="flex items-center gap-4 overflow-x-scroll no-scrollbar">
               {periods.map((each, index) => (
                 <button
-                  onClick={() => setPeriod(each)}
+                  onClick={() => setPeriod(each === period ? "" : each)}
                   className={`p-2 rounded-lg whitespace-nowrap  border-[0.5px] leading-tight text-xs ${
                     each === period
                       ? "border-indigo-900 text-indigo-900 bg-indigo-100/60 "
@@ -401,7 +411,7 @@ const FilterHistory = ({
                     value={
                       customStartDate.month
                         ? monthsOpts.find(
-                            (o) => o.value === customStartDate.month
+                            (o) => o.value === customStartDate.month,
                           )
                         : null
                     }
@@ -452,7 +462,7 @@ const FilterHistory = ({
                     value={
                       customStartDate.month
                         ? monthsOpts.find(
-                            (o) => o.value === customEndDate.month
+                            (o) => o.value === customEndDate.month,
                           )
                         : null
                     }

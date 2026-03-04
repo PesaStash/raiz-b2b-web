@@ -292,66 +292,111 @@ const Header = () => {
 
   return (
     <div className="flex  justify-between pb-5 gap-2">
-      <div className="relative h-12 w-[285px] xl:w-[312px] ">
-        <Image
-          className="absolute top-3.5 left-3"
-          src={"/icons/search.svg"}
-          alt="search"
-          width={22}
-          height={22}
-        />
-        <input
-          placeholder="Search..."
-          className="pl-10 h-full bg-raiz-gray-50 rounded-[20px] text-sm placeholder:text-raiz-gray-500  justify-start items-center gap-2 inline-flex w-full outline outline-1 outline-offset-[-1px] outline-white"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setTimeout(() => setIsFocused(false), 200)}
-          onKeyDown={handleKeyDown}
-        />
-        <AnimatePresence>
-          {isFocused && searchResults.length > 0 && (
-            <motion.ul
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              className="absolute top-full mt-2 w-full bg-white border border-gray-200 shadow-xl rounded-2xl z-50 max-h-72 overflow-y-auto"
-            >
-              {searchResults.map((item, index) => (
-                <motion.li
-                  key={index}
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 5 }}
-                  transition={{ duration: 0.15 }}
-                  onMouseDown={() => handleSearchAction(item)}
-                  className={`flex items-center justify-between gap-3 px-4 py-3 cursor-pointer transition-all duration-200 ${
-                    index === focusedIndex
-                      ? "bg-blue-100 text-blue-800"
-                      : "hover:bg-blue-50"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-gray-800 text-sm font-medium">
-                      {item.name}
-                    </span>
-                  </div>
-                  <span
-                    className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                      item.type === "modal"
-                        ? "bg-yellow-100 text-yellow-700"
-                        : "bg-green-100 text-green-700"
+      {!pathName.includes("invoice") && (
+        <div className="relative h-12 w-[285px] xl:w-[312px] ">
+          <Image
+            className="absolute top-3.5 left-3"
+            src={"/icons/search.svg"}
+            alt="search"
+            width={22}
+            height={22}
+          />
+          <input
+            placeholder="Search..."
+            className="pl-10 h-full bg-raiz-gray-50 rounded-[20px] text-sm placeholder:text-raiz-gray-500  justify-start items-center gap-2 inline-flex w-full outline outline-1 outline-offset-[-1px] outline-white"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setTimeout(() => setIsFocused(false), 200)}
+            onKeyDown={handleKeyDown}
+          />
+          <AnimatePresence>
+            {isFocused && searchResults.length > 0 && (
+              <motion.ul
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="absolute top-full mt-2 w-full bg-white border border-gray-200 shadow-xl rounded-2xl z-50 max-h-72 overflow-y-auto"
+              >
+                {searchResults.map((item, index) => (
+                  <motion.li
+                    key={index}
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 5 }}
+                    transition={{ duration: 0.15 }}
+                    onMouseDown={() => handleSearchAction(item)}
+                    className={`flex items-center justify-between gap-3 px-4 py-3 cursor-pointer transition-all duration-200 ${
+                      index === focusedIndex
+                        ? "bg-blue-100 text-blue-800"
+                        : "hover:bg-blue-50"
                     }`}
                   >
-                    {item.type}
-                  </span>
-                </motion.li>
-              ))}
-            </motion.ul>
+                    <div className="flex items-center gap-3">
+                      <span className="text-gray-800 text-sm font-medium">
+                        {item.name}
+                      </span>
+                    </div>
+                    <span
+                      className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                        item.type === "modal"
+                          ? "bg-yellow-100 text-yellow-700"
+                          : "bg-green-100 text-green-700"
+                      }`}
+                    >
+                      {item.type}
+                    </span>
+                  </motion.li>
+                ))}
+              </motion.ul>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+      {pathName.includes("invoice") && (
+        <div className="flex items-center gap-1 xl:gap-2.5 ">
+          <Link
+            className={`px-2 py-1 ${
+              pathName.endsWith("invoice")
+                ? "text-raiz-gray-900 font-semibold"
+                : "text-raiz-gray-700 font-medium"
+            }  text-sm  font-brSonoma leading-tight `}
+            href={"/invoice"}
+          >
+            Invoices
+          </Link>
+          <Image
+            src={"/icons/forward.svg"}
+            alt="forward"
+            width={16}
+            height={16}
+          />
+          {invoiceNo ? (
+            <Link
+              className={`px-2 py-1 ${
+                pathName.endsWith(invoiceNo)
+                  ? "text-raiz-gray-900 font-semibold"
+                  : "text-raiz-gray-700 font-medium"
+              }  text-sm font-medium font-brSonoma leading-tight `}
+              href={`/invoice/${invoiceNo}`}
+            >
+              {invoiceNo}
+            </Link>
+          ) : (
+            <Link
+              className={`px-2 py-1 ${
+                pathName.endsWith("create-new")
+                  ? "text-raiz-gray-900 font-semibold"
+                  : "text-raiz-gray-700 font-medium"
+              }  text-sm font-medium font-brSonoma leading-tight `}
+              href={"/invoice/create-new"}
+            >
+              New Invoice
+            </Link>
           )}
-        </AnimatePresence>
-      </div>
+        </div>
+      )}
       <div ref={actionDropdownRef} className="relative">
         <button
           onClick={() => setShowActionOpts((prev) => !prev)}
@@ -405,49 +450,7 @@ const Header = () => {
           )}
         </AnimatePresence>
       </div>
-      {pathName.includes("invoice") && (
-        <div className="flex items-center gap-1 xl:gap-2.5 ">
-          <Link
-            className={`px-2 py-1 ${
-              pathName.endsWith("invoice")
-                ? "text-raiz-gray-900 font-semibold"
-                : "text-raiz-gray-700 font-medium"
-            }  text-sm  font-brSonoma leading-tight `}
-            href={"/invoice"}
-          >
-            Invoices
-          </Link>
-          <Image
-            src={"/icons/forward.svg"}
-            alt="forward"
-            width={16}
-            height={16}
-          />
-          {invoiceNo ? (
-            <Link
-              className={`px-2 py-1 ${
-                pathName.endsWith(invoiceNo)
-                  ? "text-raiz-gray-900 font-semibold"
-                  : "text-raiz-gray-700 font-medium"
-              }  text-sm font-medium font-brSonoma leading-tight `}
-              href={`/invoice/${invoiceNo}`}
-            >
-              {invoiceNo}
-            </Link>
-          ) : (
-            <Link
-              className={`px-2 py-1 ${
-                pathName.endsWith("create-new")
-                  ? "text-raiz-gray-900 font-semibold"
-                  : "text-raiz-gray-700 font-medium"
-              }  text-sm font-medium font-brSonoma leading-tight `}
-              href={"/invoice/create-new"}
-            >
-              New Invoice
-            </Link>
-          )}
-        </div>
-      )}
+
       <div className="flex gap-4 items-center">
         <button
           onClick={() => setShowModal("rewards")}

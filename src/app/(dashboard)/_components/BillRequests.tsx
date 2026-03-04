@@ -18,6 +18,7 @@ import RaizReceipt from "@/components/transactions/RaizReceipt";
 import SideModalWrapper from "./SideModalWrapper";
 import { usePathname } from "next/navigation";
 import ReceivedRequests from "./bill-requests/ReceivedRequests";
+import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 
 type OpenModalType =
   | "accept"
@@ -116,7 +117,7 @@ const BillRequests = () => {
   const [openModal, setOpenModal] = useState<OpenModalType>(null);
   const { selectedCurrency } = useCurrencyStore();
   const [selectedRequest, setSelectedRequest] = useState<IBillRequest | null>(
-    null
+    null,
   );
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatusType>(null);
   const [paymentError, setPaymentError] = useState("");
@@ -201,9 +202,9 @@ const BillRequests = () => {
       case "receipt":
         return (
           transactionDetail && (
-            <SideModalWrapper close={() => {}}>
+            <CenterModalWrapper close={() => {}}>
               <RaizReceipt close={closePopModal} data={transactionDetail} />
-            </SideModalWrapper>
+            </CenterModalWrapper>
           )
         );
       case "list":

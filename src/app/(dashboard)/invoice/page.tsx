@@ -10,7 +10,7 @@ import Link from "next/link";
 const InvoicePage = () => {
   // const [showSettings, setShowSettings] = useState(false);
   return (
-    <section className="mt-10 h-full">
+    <section className="bg-raiz-gray-50 p-6 rounded-[20px] h-full">
       <div className="flex justify-between gap-7 items-center ">
         <h2 className="text-zinc-900 text-2xl font-bold  leading-7 mb-8">
           Invoices
