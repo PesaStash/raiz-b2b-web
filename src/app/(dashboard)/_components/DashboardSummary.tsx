@@ -181,6 +181,19 @@ const DashboardSummary = () => {
     }
   };
 
+  const getActionBtnHoverClass = () => {
+    switch (selectedCurrency?.name?.toLowerCase()) {
+      case "usd":
+        return "hover:!bg-raiz-usd-primary";
+      case "ngn":
+        return "hover:!bg-primary2";
+      case "sbc":
+        return "hover:!bg-raiz-crypto-primary";
+      default:
+        return "hover:!bg-primary2";
+    }
+  };
+
   const actionBtnsOpts = [
     {
       name: "Top up",
@@ -349,7 +362,7 @@ const DashboardSummary = () => {
                     handleActionButton(key as actionBtnKeytype);
                   }
                 }}
-                className={`h-10  px-[18px] min-w-[105px] ${key === "topUp" ? "!w-[127px]" : ""} py-2 group !bg-[#F8F7FA] hover:!bg-raiz-usd-primary  transition-all !text-raiz-gray-900  !rounded-3xl justify-center  items-center gap-1.5 inline-flex`}
+                className={`h-10  px-[18px] min-w-[105px] ${key === "topUp" ? "!w-[127px]" : ""} py-2 group !bg-[#F8F7FA] ${getActionBtnHoverClass()} transition-all !text-raiz-gray-900 !rounded-3xl justify-center items-center gap-1.5 inline-flex`}
               >
                 {icon()}
                 <span className="group-hover:!text-[#fcfcfc] text-sm xl:text-base whitespace-nowrap font-medium font-brSonoma leading-tight tracking-tight">

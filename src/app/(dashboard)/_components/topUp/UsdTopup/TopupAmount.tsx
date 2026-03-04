@@ -24,6 +24,8 @@ import {
 import SideModalWrapper from "../../SideModalWrapper";
 import { useUser } from "@/lib/hooks/useUser";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
+import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
+import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 
 interface Props {
   close: () => void;
@@ -84,7 +86,7 @@ const TopupAmount = ({ close, goNext }: Props) => {
     if (isNaN(num)) return "";
 
     return `${getCurrencySymbol(
-      topupCurrency?.currency || ""
+      topupCurrency?.currency || "",
     )}${num.toLocaleString("en-US", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
@@ -96,7 +98,7 @@ const TopupAmount = ({ close, goNext }: Props) => {
     queryFn: GetAllRates,
   });
   const selectedCurrency = ratesData?.find(
-    (item) => item.currency === topupCurrency?.currency
+    (item) => item.currency === topupCurrency?.currency,
   );
 
   const dollarRate = selectedCurrency
@@ -107,7 +109,7 @@ const TopupAmount = ({ close, goNext }: Props) => {
     if (!user || !user?.business_account?.wallets || !appCurrency?.name)
       return null;
     return user?.business_account?.wallets.find(
-      (wallet) => wallet.wallet_type.currency === appCurrency.name
+      (wallet) => wallet.wallet_type.currency === appCurrency.name,
     );
   }, [user, appCurrency]);
 
@@ -160,14 +162,11 @@ const TopupAmount = ({ close, goNext }: Props) => {
     actions.setTopupCurrency(defaultOpt);
   }, [isLoading, countries, topupCurrency, actions]);
   return (
-    <SideModalWrapper close={close}>
-      <SideWrapperHeader
-        close={close}
-        title="Top Up"
-        titleColor="text-zinc-900"
-      />
+    <CenterModalWrapper close={close}>
+      <CenterModalHeader close={close} />
+      <h2 className="text-xl font-bold text-raiz-gray-950 mb-10">Top Up</h2>
       <div className="flex flex-col h-full justify-between items-center w-full">
-        <div className="flex flex-col justify-center items-center">
+        <div className="flex flex-col bg-raiz-gray-50 rounded-[20px] w-full justify-center items-center">
           <p className="text-center mt-10 justify-start text-zinc-900 text-base mb-3">
             How much do you want to top up?
           </p>
@@ -177,7 +176,7 @@ const TopupAmount = ({ close, goNext }: Props) => {
               autoFocus
               className="outline-none h-[91px] bg-transparent w-fit xl:mx-auto text-center text-zinc-900 placeholder:text-zinc-900 text-3xl font-semibold leading-10"
               placeholder={`${getCurrencySymbol(
-                topupCurrency?.currency || "$"
+                topupCurrency?.currency || "$",
               )}0.00`}
               value={displayValue()}
               onChange={handleAmountChange}
@@ -205,7 +204,7 @@ const TopupAmount = ({ close, goNext }: Props) => {
           )}
         </div>
         <div className="w-full py-6">
-          <div className=" p-3.5 mb-3 bg-gray-100 w-full rounded-lg outline outline-1 outline-offset-[-1px] outline-white inline-flex flex-col justify-center items-start gap-2">
+          <div className=" p-3.5 mb-3 bg-gray-100 w-full rounded-lg   inline-flex flex-col justify-center items-start gap-2">
             <div className="w-full flex justify-between items-center">
               <span className="text-cyan-700 text-xs font-normal font-brSonoma leading-normal">
                 You get:
@@ -239,7 +238,7 @@ const TopupAmount = ({ close, goNext }: Props) => {
           }
         />
       )}
-    </SideModalWrapper>
+    </CenterModalWrapper>
   );
 };
 

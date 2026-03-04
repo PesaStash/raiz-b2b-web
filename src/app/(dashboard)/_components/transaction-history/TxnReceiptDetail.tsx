@@ -6,12 +6,15 @@ import SideModalWrapper from "../SideModalWrapper";
 import {
   convertTime,
   copyToClipboard,
+  formatAmount,
   getCurrencySymbol,
   truncateString,
 } from "@/utils/helpers";
 import ListDetailItem from "@/components/ui/ListDetailItem";
 import dayjs from "dayjs";
 import Button from "@/components/ui/Button";
+import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
+import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 
 interface Props {
   close: () => void;
@@ -25,19 +28,19 @@ const TxnReceiptDetail = ({ close, transaction, goNext }: Props) => {
   // Function to handle mailto link click with fallback
   const handleSupportClick = () => {
     const emailSubject = encodeURIComponent(
-      `Payment Issue - Transaction ${transaction.transaction_reference}`
+      `Payment Issue - Transaction ${transaction.transaction_reference}`,
     );
     const emailBody = encodeURIComponent(
       `Hello Support Team,\n\nI'm having an issue with a payment. Here are the details:\n` +
         `Reference No: ${transaction.transaction_reference}\n` +
         `Amount: ${getCurrencySymbol(
-          transaction.currency
+          transaction.currency,
         )}${transaction.transaction_amount.toFixed(2)}\n` +
         `Date: ${dayjs(convertTime(transaction.transaction_date_time)).format(
-          "MMM DD, YYYY"
+          "MMM DD, YYYY",
         )}\n` +
         `Status: ${transaction.transaction_status.transaction_status}\n\n` +
-        `Please assist me with this matter.\nThank you!`
+        `Please assist me with this matter.\nThank you!`,
     );
     const mailtoLink = `mailto:support@raiz.app?subject=${emailSubject}&body=${emailBody}`;
 
@@ -52,21 +55,22 @@ const TxnReceiptDetail = ({ close, transaction, goNext }: Props) => {
         typeof newWindow.closed === "undefined"
       ) {
         alert(
-          "It seems your email client is not configured. Please contact support at support@raiz.app or visit our support page at https://www.raiz.app/contact-us"
+          "It seems your email client is not configured. Please contact support at support@raiz.app or visit our support page at https://www.raiz.app/contact-us",
         );
       }
     }, 1000);
   };
 
   return (
-    <SideModalWrapper close={close} wrapperStyle={`bg-[#F3F1F6]`}>
+    <>
       <div className={`flex flex-col h-screen`}>
-        <button onClick={close}>
-          <Image src={"/icons/close.svg"} width={16} height={16} alt="close" />
-        </button>
+        <CenterModalHeader close={close} />
+        <h2 className="text-xl font-bold text-raiz-gray-950 mb-4">
+          {transaction?.third_party_name}
+        </h2>
         <div className="flex flex-col justify-between h-[90%] mt-2">
-          <div className="w-full bg-white">
-            <div className="w-full mt-[26px] shadow-[0px_7.342465877532959px_22.02739715576172px_0px_rgba(170,170,170,0.12)] rounded-xl inline-flex flex-col justify-center items-center gap-5">
+          <div className="w-full">
+            <div className="w-full mt-[26px] rounded-[20px] bg-raiz-gray-50  shadow-[0px_7.342465877532959px_22.02739715576172px_0px_rgba(170,170,170,0.12)] inline-flex flex-col justify-center items-center gap-5">
               {/* Status */}
               <div className="relative px-6 py-5 flex w-full flex-col justify-center items-center gap-1 pb-5 border-b border-dashed">
                 <Image
@@ -74,8 +78,8 @@ const TxnReceiptDetail = ({ close, transaction, goNext }: Props) => {
                     status === "completed"
                       ? "success"
                       : status === "failed"
-                      ? "failed"
-                      : "pending"
+                        ? "failed"
+                        : "pending"
                   }.svg`}
                   width={64}
                   height={64}
@@ -86,7 +90,7 @@ const TxnReceiptDetail = ({ close, transaction, goNext }: Props) => {
                 </p>
                 <p className="text-zinc-900 text-xl font-bold leading-normal">
                   {getCurrencySymbol(transaction.currency)}
-                  {transaction?.transaction_amount?.toLocaleString()}
+                  {formatAmount(transaction?.transaction_amount)}
                 </p>
                 <div className="w-5 h-4 rounded-full bg-[#F3F1F6] absolute left-[-10px] top-1/2" />
                 <div className="w-5 h-4 rounded-full bg-[#F3F1F6] absolute right-[-10px] top-1/2" />
@@ -107,12 +111,16 @@ const TxnReceiptDetail = ({ close, transaction, goNext }: Props) => {
                 <ListDetailItem
                   title="Date"
                   value={dayjs(
-                    convertTime(transaction?.transaction_date_time)
+                    convertTime(transaction?.transaction_date_time),
                   ).format("MMM DD, YYYY")}
                 />
                 <ListDetailItem
                   title="Purpose"
                   value={transaction?.transaction_remarks}
+                />
+                <ListDetailItem
+                  title="Fees"
+                  value={`${getCurrencySymbol(transaction.currency)}${formatAmount(transaction?.fee_amount || 0)}`}
                 />
                 <div className="flex justify-between items-center pb-3">
                   <span className="text-xs font-normal leading-tight">
@@ -151,8 +159,8 @@ const TxnReceiptDetail = ({ close, transaction, goNext }: Props) => {
                       status === "completed"
                         ? "text-green-600"
                         : status === "failed"
-                        ? "text-red-600"
-                        : "text-orange-400"
+                          ? "text-red-600"
+                          : "text-orange-400"
                     } text-sm font-semibold leading-snug capitalize`}
                   >
                     {status}
@@ -224,7 +232,7 @@ const TxnReceiptDetail = ({ close, transaction, goNext }: Props) => {
           </div>
         </div>
       </div>
-    </SideModalWrapper>
+    </>
   );
 };
 

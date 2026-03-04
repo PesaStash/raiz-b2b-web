@@ -5,12 +5,13 @@ import CustomersTable from "./_components/CustomersTable";
 import { AnimatePresence } from "motion/react";
 import SideModalWrapper from "../_components/SideModalWrapper";
 import AddNewCustomer from "./_components/AddNewCustomer";
+import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 
 const CustomerPage = () => {
   const [showAddCustomer, setShowAddCustomer] = useState(false);
 
   return (
-    <section className="mt-10 h-full">
+    <section className="bg-raiz-gray-50 p-6 rounded-[20px]">
       <div className="flex justify-between gap-7 items-center ">
         <h2 className="text-zinc-900 text-2xl font-bold  leading-7 mb-8">
           Customers
@@ -36,9 +37,9 @@ const CustomerPage = () => {
       <CustomersTable />
       <AnimatePresence>
         {showAddCustomer ? (
-          <SideModalWrapper close={() => setShowAddCustomer(false)}>
+          <CenterModalWrapper close={() => setShowAddCustomer(false)}>
             <AddNewCustomer close={() => setShowAddCustomer(false)} />
-          </SideModalWrapper>
+          </CenterModalWrapper>
         ) : null}
       </AnimatePresence>
     </section>

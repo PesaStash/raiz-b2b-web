@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import TxnReceiptDetail from "./TxnReceiptDetail";
 import RaizReceipt from "@/components/transactions/RaizReceipt";
 import SideModalWrapper from "../SideModalWrapper";
+import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
+import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 
 interface Props {
   close: () => void;
@@ -26,9 +28,13 @@ const TxnReceipt = ({ close, transaction }: Props) => {
       case 2:
         return (
           transaction && (
-            <SideModalWrapper close={close}>
+            <>
+              <CenterModalHeader close={close} />
+              <h2 className="text-xl font-bold text-raiz-gray-950 mb-4">
+                Transaction Receipt
+              </h2>
               <RaizReceipt close={close} data={transaction} />
-            </SideModalWrapper>
+            </>
           )
         );
 
@@ -36,7 +42,9 @@ const TxnReceipt = ({ close, transaction }: Props) => {
         break;
     }
   };
-  return <>{displayScreen()}</>;
+  return (
+    <CenterModalWrapper close={close}>{displayScreen()}</CenterModalWrapper>
+  );
 };
 
 export default TxnReceipt;
