@@ -32,6 +32,7 @@ import ErrorMessage from "@/components/ui/ErrorMessage";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CreateInvoiceApi, FetchInvoiceIndexApi } from "@/services/invoice";
 import { useRouter } from "next/navigation";
+import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 
 const invoiceSchema = z
   .object({
@@ -44,7 +45,7 @@ const invoiceSchema = z
       .string()
       .regex(
         /^[a-zA-Z0-9\s.,!?()-]*$/,
-        "Notes can only contain letters, numbers, spaces, and basic punctuation (.,!?()-)"
+        "Notes can only contain letters, numbers, spaces, and basic punctuation (.,!?()-)",
       )
       .optional(),
     items: z
@@ -53,7 +54,7 @@ const invoiceSchema = z
           description: z.string().min(1, "Item description is required"),
           quantity: z.number().min(1, "Quantity must be at least 1"),
           unitPrice: z.number().min(0, "Unit price cannot be negative"),
-        })
+        }),
       )
       .min(1, "At least one item is required"),
     terms: z
@@ -61,7 +62,7 @@ const invoiceSchema = z
       .min(2, "Enter your terms and condition")
       .regex(
         /^[a-zA-Z0-9\s.,!?()-]+$/,
-        "Terms can only contain letters, numbers, spaces, and basic punctuation (.,!?()-)"
+        "Terms can only contain letters, numbers, spaces, and basic punctuation (.,!?()-)",
       ),
     discount: z.number().min(0, "Discount cannot be negative").optional(),
     discountType: z.enum(["percent", "value"]).optional(),
@@ -77,7 +78,7 @@ const invoiceSchema = z
     {
       message: "Due date cannot be before the issue date",
       path: ["dueDate"],
-    }
+    },
   );
 
 type InvoiceFormValues = z.infer<typeof invoiceSchema>;
@@ -99,17 +100,17 @@ const CreateInvoicePage = () => {
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
   const [currency, setCurrency] = useState(selectedCurrency?.name || "");
   const [selectedCustomer, setSelectedCustomer] = useState<ICustomer | null>(
-    null
+    null,
   );
   const [discountType, setDiscountType] = useState<"discount" | "noDiscount">(
-    "noDiscount"
+    "noDiscount",
   );
   const [taxType, setTaxType] = useState<"tax" | "noTax">("noTax");
   const [showSideModal, setShowSideModal] = useState<
     "settings" | "customer" | null
   >(null);
   const [submitType, setSubmitType] = useState<"draft" | "preview" | null>(
-    null
+    null,
   );
 
   const today = new Date().toISOString().split("T")[0];
@@ -120,7 +121,7 @@ const CreateInvoicePage = () => {
   // );
   const currencyDropdownRef = useOutsideClick(
     () => setShowCurrencyDropdown(false),
-    currencyBtnRef
+    currencyBtnRef,
   );
 
   const currencyOpts =
@@ -274,7 +275,7 @@ const CreateInvoicePage = () => {
   };
 
   return (
-    <section className="mt-10 h-full p-6 bg-white">
+    <section className="p-6 bg-raiz-gray-50 rounded-[20px]">
       <div className="flex justify-between items-center">
         <h2 className="text-zinc-900 text-2xl font-bold leading-7 mb-8">
           New Invoice
@@ -315,7 +316,7 @@ const CreateInvoicePage = () => {
                       onClick={() => {
                         formikRef.current?.setFieldValue(
                           "currency",
-                          option.value
+                          option.value,
                         );
                         setCurrency(option.value);
                         setShowCurrencyDropdown(false);
@@ -359,7 +360,8 @@ const CreateInvoicePage = () => {
                       className="w-full mt-2 h-[50px] text-sm text-raiz-gray-950 border bg-raiz-gray-100 p-[15px] rounded-md flex"
                     >
                       {selectedCustomer
-                        ? selectedCustomer?.business_name || selectedCustomer?.full_name
+                        ? selectedCustomer?.business_name ||
+                          selectedCustomer?.full_name
                         : "Select or add a customer"}
                     </button>
                     {showSearchBox && (
@@ -371,7 +373,7 @@ const CreateInvoicePage = () => {
                           setSelectedCustomer(customer);
                           formik.setFieldValue(
                             "customerName",
-                            customer?.customer_id
+                            customer?.customer_id,
                           );
                         }}
                         selectedCustomerId={selectedCustomer?.customer_id}
@@ -446,7 +448,7 @@ const CreateInvoicePage = () => {
                       value={
                         discountType
                           ? discountOpts.find(
-                              (option) => option.value === discountType
+                              (option) => option.value === discountType,
                             ) || null
                           : null
                       }
@@ -467,7 +469,7 @@ const CreateInvoicePage = () => {
                       value={
                         taxType
                           ? taxOpts.find(
-                              (option) => option.value === taxType
+                              (option) => option.value === taxType,
                             ) || null
                           : null
                       }
@@ -480,11 +482,11 @@ const CreateInvoicePage = () => {
                           onChange={(val) => {
                             formik.setFieldValue(
                               "tax_amount",
-                              parseFloat(String(val.tax_percentage))
+                              parseFloat(String(val.tax_percentage)),
                             );
                             formik.setFieldValue(
                               "tax_rate_id",
-                              val.tax_rate_id
+                              val.tax_rate_id,
                             );
                           }}
                           displayNewTax={handleAddTax}
@@ -526,7 +528,7 @@ const CreateInvoicePage = () => {
                           placeholder="type an item"
                           className="!bg-white"
                           {...formik.getFieldProps(
-                            `items[${index}].description`
+                            `items[${index}].description`,
                           )}
                           status={
                             formik.touched.items?.[index]?.description &&
@@ -573,7 +575,7 @@ const CreateInvoicePage = () => {
                         onClick={() =>
                           formik.setFieldValue(
                             "items",
-                            formik.values.items.filter((_, i) => i !== index)
+                            formik.values.items.filter((_, i) => i !== index),
                           )
                         }
                         className=""
@@ -672,7 +674,7 @@ const CreateInvoicePage = () => {
                   <div className="flex items-center justify-between">
                     <span>Subtotal:</span>
                     <span>{`${getCurrencySymbol(currency)}${formatAmount(
-                      subtotal
+                      subtotal,
                     )}`}</span>
                   </div>
                   {discountType === "discount" && (
@@ -701,14 +703,14 @@ const CreateInvoicePage = () => {
                     <div className="flex items-center justify-between">
                       <span>Tax:</span>
                       <span>{`${getCurrencySymbol(currency)}${formatAmount(
-                        totalTax
+                        totalTax,
                       )}`}</span>
                     </div>
                   )}
                   <div className="font-semibold text-base mt-9 flex items-center justify-between">
                     <span>Total:</span>
                     <span>{`${getCurrencySymbol(currency)}${formatAmount(
-                      total
+                      total,
                     )}`}</span>
                   </div>
                 </div>
@@ -961,7 +963,7 @@ const CreateInvoicePage = () => {
                     Total Quantity:{" "}
                     {formik.values.items.reduce(
                       (sum, item) => sum + item.quantity,
-                      0
+                      0,
                     )}
                   </p>
                 </div>
@@ -1008,9 +1010,9 @@ const CreateInvoicePage = () => {
       {showAddTaxModal && <AddNewTax close={() => setShowAddTaxModal(false)} />}
       <AnimatePresence>
         {showSideModal ? (
-          <SideModalWrapper close={closeSideModal}>
+          <CenterModalWrapper close={closeSideModal}>
             {displayModal()}
-          </SideModalWrapper>
+          </CenterModalWrapper>
         ) : null}
       </AnimatePresence>
     </section>

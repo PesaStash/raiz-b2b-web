@@ -15,6 +15,8 @@ import { IRequestFundsPayload } from "@/types/services";
 import { toast } from "sonner";
 import RequestFailed from "./single-request/RequestFailed";
 import RequestConfirmation from "./single-request/RequestConfirmation";
+import { findWalletByCurrency } from "@/utils/helpers";
+import { useCurrencyStore } from "@/store/useCurrencyStore";
 
 export type RequestMoneyStepType =
   | "select-user"
@@ -32,7 +34,21 @@ export const RequestMoney = ({ setStep, close }: RequestStepsProps) => {
   const [narration, setNarration] = useState("");
   const [category, setCategory] = useState<ITransactionCategory | null>(null);
   const { user } = useUser();
-  const currentWallet = useCurrentWallet(user);
+  const { selectedCurrency } = useCurrencyStore();
+  const NGNAcct = findWalletByCurrency(user, "NGN");
+  const USDAcct = findWalletByCurrency(user, "USD");
+  const SBCAcct = findWalletByCurrency(user, "SBC");
+  const getCurrentWallet = () => {
+    if (selectedCurrency.name === "NGN") {
+      return NGNAcct;
+    } else if (selectedCurrency.name === "USD") {
+      return USDAcct;
+    } else if (selectedCurrency.name === "SBC") {
+      return SBCAcct;
+    }
+  };
+
+  const currentWallet = getCurrentWallet();
 
   useEffect(() => {
     if (requestMoneyStep === "select-user" && selectedUser) {
@@ -64,6 +80,14 @@ export const RequestMoney = ({ setStep, close }: RequestStepsProps) => {
       RequestFundsApi(currentWallet?.wallet_id || null, data),
     onSuccess: (response) => {
       qc.refetchQueries({ queryKey: ["bill-requests-sent"] });
+      qc.invalidateQueries({
+        queryKey: ["p2p-beneficiaries-recents"],
+        refetchType: "all",
+      });
+      qc.invalidateQueries({
+        queryKey: ["p2p-beneficiaries-favorites"],
+        refetchType: "all",
+      });
       toast.success(response?.message);
       setRequestMoneyStep("success");
     },
@@ -92,6 +116,7 @@ export const RequestMoney = ({ setStep, close }: RequestStepsProps) => {
           <Selectuser
             goBack={() => setStep("home")}
             setSelectedUser={setSelectedUser}
+            currentWalletId={currentWallet?.wallet_id || ""}
           />
         );
       case "details":

@@ -47,12 +47,13 @@ import SearchBox from "@/components/ui/SearchBox";
 import { useDebounce } from "@/lib/hooks/useDebounce";
 import EmptyInvoiceTable from "./EmptyInvoiceTable";
 import { useOutsideClick } from "@/lib/hooks/useOutsideClick";
+import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 
 const columnHelper = createColumnHelper<IInvoice>();
 type DateFilterType = "date_created" | "date_issued" | "due_date";
 
 const InvoicesTable = () => {
-  const [showDateRange, setShowDateRange] = useState(false)
+  const [showDateRange, setShowDateRange] = useState(false);
   const [showDateOpts, setShowDateOpts] = useState(false);
   const [dateRange, setDateRange] = useState<{
     startDate?: Date;
@@ -63,9 +64,11 @@ const InvoicesTable = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [showAddCustomer, setShowAddCustomer] = useState(false);
   const [invoiceToDownload, setInvoiceToDownload] = useState<IInvoice | null>(
-    null
+    null,
   );
-  const [dateFilterType, setDateFilterType] = useState<DateFilterType | null>(null);
+  const [dateFilterType, setDateFilterType] = useState<DateFilterType | null>(
+    null,
+  );
   const [invoiceToEmail, setInvoiceToEmail] = useState<IInvoice | null>(null);
   const [sendingMail, setSendingmail] = useState(false);
   const router = useRouter();
@@ -172,14 +175,18 @@ const InvoicesTable = () => {
     columnHelper.accessor("customer.business_name", {
       header: "Customer",
       cell: (info) => {
-        const val = info?.row?.original.customer.business_name || info?.row?.original.customer.full_name
+        const val =
+          info?.row?.original.customer.business_name ||
+          info?.row?.original.customer.full_name;
 
-       return <div className="flex items-center gap-2 font-brSonoma">
-          <Avatar name="" src={""} />
-          <span className="text-sm font-medium text-raiz-gray-950">
-            {truncateString(val, 28)}
-          </span>
-        </div>
+        return (
+          <div className="flex items-center gap-2 font-brSonoma">
+            <Avatar name="" src={""} />
+            <span className="text-sm font-medium text-raiz-gray-950">
+              {truncateString(val, 28)}
+            </span>
+          </div>
+        );
       },
     }),
     columnHelper.accessor("invoice_number", {
@@ -230,12 +237,12 @@ const InvoicesTable = () => {
           status === "paid"
             ? "bg-green-500"
             : status === "pending"
-            ? "bg-yellow-500"
-            : status === "draft"
-            ? "bg-[#CED3D2]"
-            : status === "sent"
-            ? "bg-[#0D90DC]"
-            : "bg-red-500";
+              ? "bg-yellow-500"
+              : status === "draft"
+                ? "bg-[#CED3D2]"
+                : status === "sent"
+                  ? "bg-[#0D90DC]"
+                  : "bg-red-500";
 
         return (
           <div className="w-fit flex items-center capitalize px-1.5 py-0.5 gap-1 text-xs font-brSonoma border border-raiz-gray-200 rounded-md">
@@ -253,7 +260,7 @@ const InvoicesTable = () => {
             className={`text-sm font-normal  font-brSonoma  text-raiz-gray-700`}
           >
             {`+ ${getCurrencySymbol(info.row.original?.currency)}${formatAmount(
-              info?.getValue()
+              info?.getValue(),
             )}`}
           </span>
         );
@@ -317,7 +324,7 @@ const InvoicesTable = () => {
             }
             onCopyLink={() => {
               copyToClipboard(
-                `${window.location.origin}/invoice/${invoice.invoice_id}`
+                `${window.location.origin}/invoice/${invoice.invoice_id}`,
               );
             }}
             onDownloadPDF={() => handleDownloadInvoice(invoice)}
@@ -333,7 +340,7 @@ const InvoicesTable = () => {
     }),
   ];
 
-  const debouncedSearch = useDebounce(searchTerm, 500)
+  const debouncedSearch = useDebounce(searchTerm, 500);
 
   const pageSize = 10;
 
@@ -366,7 +373,6 @@ const InvoicesTable = () => {
     ...(dateToKey && dateRange.endDate
       ? { [dateToKey]: dayjs(dateRange.endDate).format("YYYY-MM-DD") }
       : {}),
-   
   };
 
   const { data, isLoading } = useQuery({
@@ -389,19 +395,17 @@ const InvoicesTable = () => {
     getCoreRowModel: getCoreRowModel(),
   });
 
-  const dateFilterArr = [
-    "date_created",
-    "date_issued",
-    "due_date",
-  ].map((item) => ({
-    label: convertField(item),
-    value: item,
-  }));
-const closeCalendar = () => {
-  setShowDateRange(false);
-  // setDateFilterType(null)
-  setShowDateOpts(false)
-}
+  const dateFilterArr = ["date_created", "date_issued", "due_date"].map(
+    (item) => ({
+      label: convertField(item),
+      value: item,
+    }),
+  );
+  const closeCalendar = () => {
+    setShowDateRange(false);
+    // setDateFilterType(null)
+    setShowDateOpts(false);
+  };
   // const customerBtnRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useOutsideClick(() => closeCalendar());
   return (
@@ -457,9 +461,9 @@ const closeCalendar = () => {
           }
           onChange={(i) => setStatus(i?.value as string)}
           bgColor="#fff"
-         width="160px"
+          width="160px"
           style={{
-            height: "40px"
+            height: "40px",
           }}
           minHeight="40px"
           height="40px"
@@ -484,39 +488,80 @@ const closeCalendar = () => {
               {dateRange.startDate && dateRange.endDate
                 ? `${format(dateRange.startDate, "dd MMM")} - ${format(
                     dateRange.endDate,
-                    "dd MMM"
+                    "dd MMM",
                   )}`
                 : "Select dates"}
             </span>
-            {dateFilterType ? (<svg width="16" height="17" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path opacity="0.4" d="M13.7333 3.73336V5.20002C13.7333 5.73336 13.4 6.40002 13.0667 6.73336L10.2 9.26669C9.8 9.60002 9.53334 10.2667 9.53334 10.8V13.6667C9.53334 14.0667 9.26667 14.6 8.93334 14.8L8 15.4C7.13334 15.9334 5.93334 15.3334 5.93334 14.2667V10.7334C5.93334 10.2667 5.66667 9.66669 5.4 9.33336L4.73334 8.63336L8.61334 2.40002H12.4C13.1333 2.40002 13.7333 3.00002 13.7333 3.73336Z" fill="#6F5B86" />
-              <path d="M7.53333 2.40002L4.08 7.94002L2.86666 6.66669C2.53333 6.33336 2.26666 5.73336 2.26666 5.33336V3.80002C2.26666 3.00002 2.86666 2.40002 3.6 2.40002H7.53333Z" fill="#6F5B86" />
-              <circle cx="12.5" cy="2.5" r="2.5" fill="#DC180D" />
-            </svg>
-) : <svg width="16" height="17" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path opacity="0.4" d="M13.7333 3.73336V5.20002C13.7333 5.73336 13.4 6.40002 13.0667 6.73336L10.2 9.26669C9.8 9.60002 9.53334 10.2667 9.53334 10.8V13.6667C9.53334 14.0667 9.26667 14.6 8.93334 14.8L8 15.4C7.13334 15.9334 5.93334 15.3334 5.93334 14.2667V10.7334C5.93334 10.2667 5.66667 9.66669 5.4 9.33336L4.73334 8.63336L8.61334 2.40002H12.4C13.1333 2.40002 13.7333 3.00002 13.7333 3.73336Z" fill="#6F5B86" />
-              <path d="M7.53333 2.40002L4.08 7.94002L2.86666 6.66669C2.53333 6.33336 2.26666 5.73336 2.26666 5.33336V3.80002C2.26666 3.00002 2.86666 2.40002 3.6 2.40002H7.53333Z" fill="#6F5B86" />          
-            </svg>}
-
-          </button>
-          {showDateOpts && <div className="bg-[#FCFCFD] py-2 w-[220px] border border-[#F3F1F6] rounded-md shadow-md absolute top-12 right-0 z-50">
-            {dateFilterArr?.map((item) => (
-              <div
-                key={item.value}
-                onClick={() => {
-                  setDateFilterType(item.value as DateFilterType);
-                  setShowDateOpts(false);
-                  setShowDateRange(true);
-                }}
-                className={`px-4 py-2 text-sm text-raiz-gray-700 flex justify-between items-center cursor-pointer hover:bg-[#EAECFF99] ${dateFilterType === item.value && "bg-[#EAECFF99]"}`}
+            {dateFilterType ? (
+              <svg
+                width="16"
+                height="17"
+                viewBox="0 0 16 17"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
               >
-                <span>{item.label}</span> 
-               {dateFilterType === item.value && <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 2C6.49 2 2 6.49 2 12C2 17.51 6.49 22 12 22C17.51 22 22 17.51 22 12C22 6.49 17.51 2 12 2ZM16.78 9.7L11.11 15.37C10.97 15.51 10.78 15.59 10.58 15.59C10.38 15.59 10.19 15.51 10.05 15.37L7.22 12.54C6.93 12.25 6.93 11.77 7.22 11.48C7.51 11.19 7.99 11.19 8.28 11.48L10.58 13.78L15.72 8.64C16.01 8.35 16.49 8.35 16.78 8.64C17.07 8.93 17.07 9.4 16.78 9.7Z" fill="#443852" />
-                </svg>}
-              </div>
-            ))}
-          </div>}
+                <path
+                  opacity="0.4"
+                  d="M13.7333 3.73336V5.20002C13.7333 5.73336 13.4 6.40002 13.0667 6.73336L10.2 9.26669C9.8 9.60002 9.53334 10.2667 9.53334 10.8V13.6667C9.53334 14.0667 9.26667 14.6 8.93334 14.8L8 15.4C7.13334 15.9334 5.93334 15.3334 5.93334 14.2667V10.7334C5.93334 10.2667 5.66667 9.66669 5.4 9.33336L4.73334 8.63336L8.61334 2.40002H12.4C13.1333 2.40002 13.7333 3.00002 13.7333 3.73336Z"
+                  fill="#6F5B86"
+                />
+                <path
+                  d="M7.53333 2.40002L4.08 7.94002L2.86666 6.66669C2.53333 6.33336 2.26666 5.73336 2.26666 5.33336V3.80002C2.26666 3.00002 2.86666 2.40002 3.6 2.40002H7.53333Z"
+                  fill="#6F5B86"
+                />
+                <circle cx="12.5" cy="2.5" r="2.5" fill="#DC180D" />
+              </svg>
+            ) : (
+              <svg
+                width="16"
+                height="17"
+                viewBox="0 0 16 17"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  opacity="0.4"
+                  d="M13.7333 3.73336V5.20002C13.7333 5.73336 13.4 6.40002 13.0667 6.73336L10.2 9.26669C9.8 9.60002 9.53334 10.2667 9.53334 10.8V13.6667C9.53334 14.0667 9.26667 14.6 8.93334 14.8L8 15.4C7.13334 15.9334 5.93334 15.3334 5.93334 14.2667V10.7334C5.93334 10.2667 5.66667 9.66669 5.4 9.33336L4.73334 8.63336L8.61334 2.40002H12.4C13.1333 2.40002 13.7333 3.00002 13.7333 3.73336Z"
+                  fill="#6F5B86"
+                />
+                <path
+                  d="M7.53333 2.40002L4.08 7.94002L2.86666 6.66669C2.53333 6.33336 2.26666 5.73336 2.26666 5.33336V3.80002C2.26666 3.00002 2.86666 2.40002 3.6 2.40002H7.53333Z"
+                  fill="#6F5B86"
+                />
+              </svg>
+            )}
+          </button>
+          {showDateOpts && (
+            <div className="bg-[#FCFCFD] py-2 w-[220px] border border-[#F3F1F6] rounded-md shadow-md absolute top-12 right-0 z-50">
+              {dateFilterArr?.map((item) => (
+                <div
+                  key={item.value}
+                  onClick={() => {
+                    setDateFilterType(item.value as DateFilterType);
+                    setShowDateOpts(false);
+                    setShowDateRange(true);
+                  }}
+                  className={`px-4 py-2 text-sm text-raiz-gray-700 flex justify-between items-center cursor-pointer hover:bg-[#EAECFF99] ${dateFilterType === item.value && "bg-[#EAECFF99]"}`}
+                >
+                  <span>{item.label}</span>
+                  {dateFilterType === item.value && (
+                    <svg
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M12 2C6.49 2 2 6.49 2 12C2 17.51 6.49 22 12 22C17.51 22 22 17.51 22 12C22 6.49 17.51 2 12 2ZM16.78 9.7L11.11 15.37C10.97 15.51 10.78 15.59 10.58 15.59C10.38 15.59 10.19 15.51 10.05 15.37L7.22 12.54C6.93 12.25 6.93 11.77 7.22 11.48C7.51 11.19 7.99 11.19 8.28 11.48L10.58 13.78L15.72 8.64C16.01 8.35 16.49 8.35 16.78 8.64C17.07 8.93 17.07 9.4 16.78 9.7Z"
+                        fill="#443852"
+                      />
+                    </svg>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
           {dateFilterType && showDateRange && (
             <DateRange
               onApply={setDateRange}
@@ -526,7 +571,10 @@ const closeCalendar = () => {
         </div>
         {dateRange.startDate && (
           <button
-            onClick={() => {setDateRange({}); setDateFilterType(null)}}
+            onClick={() => {
+              setDateRange({});
+              setDateFilterType(null);
+            }}
             className="flex items-center justify-center w-10 h-10 rounded-lg shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] outline outline-1 outline-offset-[-1px] outline-zinc-200"
           >
             <LiaTimesSolid />
@@ -560,7 +608,7 @@ const closeCalendar = () => {
                     >
                       {flexRender(
                         header.column.columnDef.header,
-                        header.getContext()
+                        header.getContext(),
                       )}
                     </th>
                   ))}
@@ -578,7 +626,7 @@ const closeCalendar = () => {
         </div>
       ) : InvoiceList.length > 0 ? (
         <>
-          <div className="w-full overflow-x-auto h-full ">
+          <div className="w-full overflow-x-auto">
             <table className="min-w-full text-left text-sm">
               <thead className="border-b ">
                 {table.getHeaderGroups().map((headerGroup) => (
@@ -590,7 +638,7 @@ const closeCalendar = () => {
                       >
                         {flexRender(
                           header.column.columnDef.header,
-                          header.getContext()
+                          header.getContext(),
                         )}
                       </th>
                     ))}
@@ -607,7 +655,7 @@ const closeCalendar = () => {
                       <td key={cell.id} className="px-4 py-3 ">
                         {flexRender(
                           cell.column.columnDef.cell,
-                          cell.getContext()
+                          cell.getContext(),
                         )}
                       </td>
                     ))}
@@ -642,9 +690,9 @@ const closeCalendar = () => {
       )}
       <AnimatePresence>
         {showAddCustomer ? (
-          <SideModalWrapper close={() => setShowAddCustomer(false)}>
+          <CenterModalWrapper close={() => setShowAddCustomer(false)}>
             <AddNewCustomer close={() => setShowAddCustomer(false)} />
-          </SideModalWrapper>
+          </CenterModalWrapper>
         ) : null}
       </AnimatePresence>
     </section>

@@ -515,7 +515,7 @@ const Sidebar = () => {
                   <StatusCard key={index} {...status} />
                 ) : null,
               )}
-          <div className="flex gap-2 items-center mt-6">
+          {/* <div className="flex gap-2 items-center mt-6">
             <button
               onClick={() => setShowModal("rewards")}
               className="pl-2 pr-2.5 py-1.5 bg-amber-100 rounded-3xl inline-flex justify-center items-center gap-0.5 overflow-hidden"
@@ -542,7 +542,7 @@ const Sidebar = () => {
                 {currentTier?.level || ""}
               </div>
             </button>
-          </div>
+          </div> */}
           <div className="flex justify-between items-center gap-2 mt-6 w-full pb-5 pt-4 border-t border-[#eaecf0]">
             <div className="flex items-center gap-1.5  ">
               <Avatar src={userPfp} name="pfp" size={isXLarge ? 40 : 30} />

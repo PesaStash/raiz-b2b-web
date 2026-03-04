@@ -26,6 +26,7 @@ import DiscountInput from "../../_components/DiscountInput";
 import AddNewTax from "../../_components/AddNewTax";
 import SideModalWrapper from "@/app/(dashboard)/_components/SideModalWrapper";
 import { ACCOUNT_CURRENCIES } from "@/constants/misc";
+import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 
 const invoiceSchema = z
   .object({
@@ -38,7 +39,7 @@ const invoiceSchema = z
       .string()
       .regex(
         /^[a-zA-Z0-9\s.,!?()-]*$/,
-        "Notes can only contain letters, numbers, spaces, and basic punctuation (.,!?()-)"
+        "Notes can only contain letters, numbers, spaces, and basic punctuation (.,!?()-)",
       )
       .optional(),
     items: z
@@ -47,7 +48,7 @@ const invoiceSchema = z
           description: z.string().min(1, "Item description is required"),
           quantity: z.number().min(1, "Quantity must be at least 1"),
           unitPrice: z.number().min(0, "Unit price cannot be negative"),
-        })
+        }),
       )
       .min(1, "At least one item is required"),
     terms: z
@@ -55,7 +56,7 @@ const invoiceSchema = z
       .min(2, "Enter your terms and condition")
       .regex(
         /^[a-zA-Z0-9\s.,!?()-]+$/,
-        "Terms can only contain letters, numbers, spaces, and basic punctuation (.,!?()-)"
+        "Terms can only contain letters, numbers, spaces, and basic punctuation (.,!?()-)",
       ),
     discount: z.number().min(0, "Discount cannot be negative").optional(),
     discountType: z.enum(["percent", "value"]).optional(),
@@ -71,7 +72,7 @@ const invoiceSchema = z
     {
       message: "Due date cannot be before the issue date",
       path: ["dueDate"],
-    }
+    },
   );
 
 type InvoiceFormValues = z.infer<typeof invoiceSchema>;
@@ -90,25 +91,25 @@ const EditInvoicePage = () => {
   const [showAddTaxModal, setShowAddTaxModal] = useState(false);
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
   const [currency, setCurrency] = useState<keyof typeof ACCOUNT_CURRENCIES>(
-    selectedCurrency?.name || ""
+    selectedCurrency?.name || "",
   );
   const [selectedCustomer, setSelectedCustomer] = useState<ICustomer | null>(
-    null
+    null,
   );
   const [discountType, setDiscountType] = useState<"discount" | "noDiscount">(
-    "noDiscount"
+    "noDiscount",
   );
   const [taxType, setTaxType] = useState<"tax" | "noTax">("noTax");
   const [showSideModal, setShowSideModal] = useState<
     "settings" | "customer" | null
   >(null);
   const [submitType, setSubmitType] = useState<"draft" | "preview" | null>(
-    null
+    null,
   );
 
   const currencyDropdownRef = useOutsideClick(
     () => setShowCurrencyDropdown(false),
-    currencyBtnRef
+    currencyBtnRef,
   );
 
   const currencyOpts =
@@ -364,7 +365,7 @@ const EditInvoicePage = () => {
                       onClick={() => {
                         formikRef.current?.setFieldValue(
                           "currency",
-                          option.value
+                          option.value,
                         );
                         setCurrency(option.value);
                         setShowCurrencyDropdown(false);
@@ -420,7 +421,7 @@ const EditInvoicePage = () => {
                           setSelectedCustomer(customer);
                           formik.setFieldValue(
                             "customerName",
-                            customer?.customer_id
+                            customer?.customer_id,
                           );
                         }}
                         selectedCustomerId={selectedCustomer?.customer_id}
@@ -490,7 +491,7 @@ const EditInvoicePage = () => {
                       value={
                         discountType
                           ? discountOpts.find(
-                              (option) => option.value === discountType
+                              (option) => option.value === discountType,
                             ) || null
                           : null
                       }
@@ -511,7 +512,7 @@ const EditInvoicePage = () => {
                       value={
                         taxType
                           ? taxOpts.find(
-                              (option) => option.value === taxType
+                              (option) => option.value === taxType,
                             ) || null
                           : null
                       }
@@ -524,11 +525,11 @@ const EditInvoicePage = () => {
                           onChange={(val) => {
                             formik.setFieldValue(
                               "tax_amount",
-                              parseFloat(String(val.tax_percentage))
+                              parseFloat(String(val.tax_percentage)),
                             );
                             formik.setFieldValue(
                               "tax_rate_id",
-                              val.tax_rate_id
+                              val.tax_rate_id,
                             );
                           }}
                           displayNewTax={handleAddTax}
@@ -570,7 +571,7 @@ const EditInvoicePage = () => {
                           placeholder="type an item"
                           className="!bg-white"
                           {...formik.getFieldProps(
-                            `items[${index}].description`
+                            `items[${index}].description`,
                           )}
                           status={
                             formik.touched.items?.[index]?.description &&
@@ -616,7 +617,7 @@ const EditInvoicePage = () => {
                         onClick={() =>
                           formik.setFieldValue(
                             "items",
-                            formik.values.items.filter((_, i) => i !== index)
+                            formik.values.items.filter((_, i) => i !== index),
                           )
                         }
                       >
@@ -713,7 +714,7 @@ const EditInvoicePage = () => {
                   <div className="flex items-center justify-between">
                     <span>Subtotal:</span>
                     <span>{`${getCurrencySymbol(currency)}${formatAmount(
-                      subtotal
+                      subtotal,
                     )}`}</span>
                   </div>
                   {discountType === "discount" && (
@@ -738,14 +739,14 @@ const EditInvoicePage = () => {
                     <div className="flex items-center justify-between">
                       <span>Tax:</span>
                       <span>{`${getCurrencySymbol(currency)}${formatAmount(
-                        totalTax
+                        totalTax,
                       )}`}</span>
                     </div>
                   )}
                   <div className="font-semibold text-base mt-9 flex items-center justify-between">
                     <span>Total:</span>
                     <span>{`${getCurrencySymbol(currency)}${formatAmount(
-                      total
+                      total,
                     )}`}</span>
                   </div>
                 </div>
@@ -762,7 +763,7 @@ const EditInvoicePage = () => {
                     Total Quantity:{" "}
                     {formik.values.items.reduce(
                       (sum, item) => sum + item.quantity,
-                      0
+                      0,
                     )}
                   </p>
                 </div>
@@ -810,9 +811,9 @@ const EditInvoicePage = () => {
       {showAddTaxModal && <AddNewTax close={() => setShowAddTaxModal(false)} />}
       <AnimatePresence>
         {showSideModal ? (
-          <SideModalWrapper close={closeSideModal}>
+          <CenterModalWrapper close={closeSideModal}>
             {displayModal()}
-          </SideModalWrapper>
+          </CenterModalWrapper>
         ) : null}
       </AnimatePresence>
     </section>

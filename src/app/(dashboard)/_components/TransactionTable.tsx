@@ -44,6 +44,7 @@ import TxnReceipt from "./transaction-history/TxnReceipt";
 import FilterHistory from "./transaction-history/FilterHistory";
 import { GetTransactionClasses } from "@/services/transactions";
 import { toast } from "sonner";
+import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 
 type customDateType = {
   day: string;
@@ -492,11 +493,14 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
             />
           </svg>
           <h2 className="text-raiz-gray-950 text-sm font-semibold mb-[14px]">
-            No transactions yet
+            {paramPresent || dateRange.startDate || dateRange.endDate
+              ? "No transactions found"
+              : "No transactions yet"}
           </h2>
           <p className="w-80 mb-6 text-center text-raiz-gray-950 text-xs leading-none">
-            Once transactions start flowing in, you&#39;ll see them listed here
-            in real time.
+            {paramPresent || dateRange.startDate || dateRange.endDate
+              ? "We couldn't find any transactions matching your selected filters. Please try adjusting them."
+              : "Once transactions start flowing in, you'll see them listed here in real time."}
           </p>
           <Button
             onClick={() => handleSendButton()}
@@ -519,7 +523,7 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
           <TxnReceipt transaction={selectedTxn} close={closeReceipt} />
         )}
         {showFilter && (
-          <SideModalWrapper close={() => setShowFilter(false)}>
+          <CenterModalWrapper close={() => setShowFilter(false)}>
             <FilterHistory
               close={() => setShowFilter(false)}
               activities={activities || []}
@@ -539,17 +543,17 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
               setCategory={setCategory}
               categories={categories || []}
             />
-          </SideModalWrapper>
+          </CenterModalWrapper>
         )}
         {showSend ? (
           currency === "NGN" ? (
-            <SideModalWrapper close={() => setShowSend(false)}>
+            <CenterModalWrapper close={() => setShowSend(false)}>
               <NgnSend close={() => setShowSend(false)} />
-            </SideModalWrapper>
+            </CenterModalWrapper>
           ) : (
-            <SideModalWrapper close={() => setShowSend(false)}>
+            <CenterModalWrapper close={() => setShowSend(false)}>
               <UsdSend close={() => setShowSend(false)} />
-            </SideModalWrapper>
+            </CenterModalWrapper>
           )
         ) : null}
       </AnimatePresence>

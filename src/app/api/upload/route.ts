@@ -19,7 +19,7 @@ const s3Client = new S3Client({
 async function uploadImageToS3(
   file: Buffer,
   fileName: string,
-  type: string
+  type: string,
 ): Promise<string> {
   const params = {
     Bucket: process.env.AWS_BUCKET_NAME as string,
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     if (!file) {
       return NextResponse.json(
         { error: "File blob is required." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     const url = await uploadImageToS3(
       buffer,
       uuid() + "." + fileExtension,
-      mimeType
+      mimeType,
     );
 
     return NextResponse.json({ success: true, url });
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       // Added return statement
       { message: "Error uploading image" },
-      { status: 500 } // Added status code for error case
+      { status: 500 }, // Added status code for error case
     );
   }
 }

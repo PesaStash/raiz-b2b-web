@@ -17,6 +17,7 @@ import TxnHistory from "./transaction-history/TxnHistory";
 import TxnReceipt from "./transaction-history/TxnReceipt";
 import { usePathname } from "next/navigation";
 import { IWallet } from "@/types/user";
+import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 
 interface Props {
   currentWallet: IWallet;
@@ -135,12 +136,14 @@ const Transactions = ({ currentWallet, maxHeight = "max-h-72" }: Props) => {
       </div>
       <AnimatePresence>
         {openModal === "history" ? (
-          <SideModalWrapper close={closeModal}>
+          <CenterModalWrapper close={closeModal}>
             <TxnHistory close={closeModal} />
-          </SideModalWrapper>
+          </CenterModalWrapper>
         ) : openModal === "detail" ? (
           selectedTxn && (
-            <TxnReceipt transaction={selectedTxn} close={closeModal} />
+            <CenterModalWrapper close={closeModal}>
+              <TxnReceipt transaction={selectedTxn} close={closeModal} />
+            </CenterModalWrapper>
           )
         ) : null}
       </AnimatePresence>

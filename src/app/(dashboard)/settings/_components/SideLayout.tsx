@@ -114,6 +114,9 @@ const SideLayout = () => {
     }
 
     uploadFile(selectedFile);
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
   };
 
   const { data: pointsData } = useQuery({
