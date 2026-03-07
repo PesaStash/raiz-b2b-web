@@ -6,7 +6,7 @@ import { z } from "zod";
 import Image from "next/image";
 import Button from "@/components/ui/Button";
 import SelectCurrencyModal from "./SelectCurrencyModal";
-import { getCurrencySymbol } from "@/utils/helpers";
+import { formatAmount, getCurrencySymbol } from "@/utils/helpers";
 import ErrorMessage from "@/components/ui/ErrorMessage";
 import { useUser } from "@/lib/hooks/useUser";
 import { toast } from "sonner";
@@ -144,6 +144,16 @@ const SwapDetail = ({
 
   const rateDisplay = getRateDisplay();
 
+  const showFee = () => {
+    let fee = 0;
+    if (swapFromCurrency === "SBC" || swapToCurrency === "SBC") {
+      if (cryptoFee) fee = cryptoFee;
+    } else {
+      fee = 0;
+    }
+    return formatAmount(fee, { currency: selectedCurrency.name });
+  };
+
   return (
     <div>
       <CenterModalHeader close={close} />
@@ -233,7 +243,7 @@ const SwapDetail = ({
               </span>
               <div className="h-0.5 w-[75%] px-4 bg-white"></div>
               <span className="text-zinc-900  text-xs font-semibold leading-none">
-                {loading ? "..." : `$${cryptoFee?.toFixed(2) || "0.00"}`}
+                {loading ? "..." : `${showFee()}`}
               </span>
             </div>
             {/* )} */}
