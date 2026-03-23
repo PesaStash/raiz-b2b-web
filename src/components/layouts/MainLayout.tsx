@@ -9,7 +9,7 @@ import MobileScreen from "./MobileScreen";
 const MainLayout = ({ children }: { children: ReactNode }) => {
   const [screenSize, setScreenSize] = useState<number | null>(null);
   const pathName = usePathname();
-  // useAutoLogout();
+  useAutoLogout();
 
   const dashboardRoutes = [
     "/",

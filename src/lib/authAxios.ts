@@ -75,6 +75,14 @@ AuthAxios.interceptors.request.use(
       config.headers["ip-address"] = cachedIP;
     }
 
+    const mutatingMethods = ["post", "patch"];
+    if (
+      config.method &&
+      mutatingMethods.includes(config.method.toLowerCase())
+    ) {
+      config.headers["idempotency-key"] = crypto.randomUUID();
+    }
+
     return config;
   },
   (error) => Promise.reject(error),
