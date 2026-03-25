@@ -32,7 +32,7 @@ const handleError = async (error: CustomAxiosError) => {
   const isSilent = (error.config as CustomAxiosRequestConfig)?.silent;
 
   // Check for 401 status and redirect to login
-  if (error.response?.status === 401 || error.response?.status === 403) {
+  if (error.response?.status === 401) {
     // If we're in the browser environment
     if (typeof window !== "undefined") {
       window.location.href = "/login";
@@ -73,6 +73,14 @@ AuthAxios.interceptors.request.use(
 
     if (cachedIP) {
       config.headers["ip-address"] = cachedIP;
+    }
+
+    const mutatingMethods = ["post", "patch"];
+    if (
+      config.method &&
+      mutatingMethods.includes(config.method.toLowerCase())
+    ) {
+      config.headers["idempotency-key"] = crypto.randomUUID();
     }
 
     return config;
