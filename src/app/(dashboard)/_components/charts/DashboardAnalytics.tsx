@@ -9,6 +9,7 @@ import { useState } from "react";
 import SelectAccount from "../SelectAccount";
 import CreateNgnAcct from "../createNgnAcct/CreateNgnAcct";
 import CreateCryptoWallet from "../crypto/dashboard/CreateCryptoWallet";
+import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 
 const DashboardAnalytics = () => {
   const [openModal, setOpenModal] = useState<
@@ -239,10 +240,14 @@ const DashboardAnalytics = () => {
         />
       )}
       {openModal === "createNGN" && (
-        <CreateNgnAcct close={() => setOpenModal(null)} />
+        <CenterModalWrapper close={() => setOpenModal(null)}>
+          <CreateNgnAcct close={() => setOpenModal(null)} />
+        </CenterModalWrapper>
       )}
       {openModal === "createCrypto" && (
-        <CreateCryptoWallet close={() => setOpenModal(null)} />
+        <CenterModalWrapper close={() => setOpenModal(null)}>
+          <CreateCryptoWallet close={() => setOpenModal(null)} />
+        </CenterModalWrapper>
       )}
     </>
   );
