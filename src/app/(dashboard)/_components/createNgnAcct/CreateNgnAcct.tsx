@@ -1,4 +1,5 @@
 "use client";
+import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 import SideWrapperHeader from "@/components/SideWrapperHeader";
 import Button from "@/components/ui/Button";
 import { CreateNGNVirtualWalletApi } from "@/services/business";
@@ -40,11 +41,14 @@ const CreateNgnAcct = ({ close }: { close: () => void }) => {
   };
   return (
     <>
-      <div className=" h-full pb-[30px]">
-        <SideWrapperHeader title="NGN Account" close={close} />
+      <div className="w-full  xl:max-h-[85vh] lg:max-h-[80vh] flex flex-col font-brSonoma">
+        <CenterModalHeader close={close} />
+        <h2 className="text-xl font-bold text-raiz-gray-950 mb-4">
+          Create NGN Account
+        </h2>
         <div className="flex flex-col justify-between gap-8 h-full pb-[30px]">
           <div className="">
-            <div className="flex flex-col justify-center items-center mt-[104px] gap-3">
+            <div className="bg-raiz-gray-50 p-6 rounded-[20px] flex flex-col justify-center text-raiz-gray-950  gap-3">
               <svg
                 width="80"
                 height="80"
@@ -63,16 +67,16 @@ const CreateNgnAcct = ({ close }: { close: () => void }) => {
                   fill="#5E6CE9"
                 />
               </svg>
-              <h3 className="text-center text-raiz-gray-50 text-xl font-bold leading-normal mt-2">
+              <h3 className=" xl:text-xl text-lg font-bold leading-normal mt-2">
                 What you get with your Naira account
               </h3>
-              <p className="text-center text-raiz-gray-100 text-sm font-normal  leading-tight">
+              <p className="xl:text-sm text-xs font-normal  leading-tight">
                 An NGN account lets you hold, send, and receive Naira, making
                 local payments and transfers simple for daily finances in
                 Nigeria.
               </p>
             </div>
-            <div className="flex flex-col gap-[22px] mt-[30px]">
+            <div className="bg-raiz-gray-50 p-6 rounded-[20px] flex flex-col gap-[22px] mt-[30px]">
               {list.map((each, index) => (
                 <div key={index} className="flex gap-4 items-start ">
                   <Image
@@ -81,11 +85,11 @@ const CreateNgnAcct = ({ close }: { close: () => void }) => {
                     width={30}
                     height={30}
                   />
-                  <div className="text-raiz-gray-50 flex flex-col gap-1">
-                    <h6 className=" text-sm font-bold  leading-[16.80px]">
+                  <div className=" flex flex-col gap-1">
+                    <h6 className="text-[13px] xl:text-sm font-bold  leading-[16.80px]">
                       {each.title}
                     </h6>
-                    <p className=" text-[13px] font-normal leading-tight">
+                    <p className=" text-xs xl:text-[13px] font-normal leading-tight">
                       {each.text}
                     </p>
                   </div>
@@ -96,7 +100,7 @@ const CreateNgnAcct = ({ close }: { close: () => void }) => {
           <Button
             onClick={handleCreate}
             loading={NGNWalletMutation.isPending}
-            className="!bg-raiz-gray-50 text-primary2 hover:bg-raiz-gray-50 disabled:!bg-slate-500  "
+            className="bg-primary disabled:!bg-slate-500  "
           >
             Create NGN Account
           </Button>
