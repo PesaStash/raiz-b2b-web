@@ -23,11 +23,11 @@ const ZelleTopupInfo = ({ goBack, goNext, type }: Props) => {
             {type === "guest" ? "Send" : "Top up"} via Zelle
           </h3>
           <p className="text-yellow-500 font-medium">Important:</p>
-          <p className="text-zinc-900 text-left text-xs leading-tight">
+          <p className="text-zinc-900 text-left desktop:text-xs text-[10px] leading-tight">
             Make sure the memo code and amount matches or funds won&apos;t be
             credited.
           </p>
-          <p className="text-yellow-500 text-left text-xs leading-tight">
+          <p className="text-yellow-500 mt-2 text-left desktop:text-xs text-[10px] leading-tight">
             Zelle payments must come from an account in your name. Third party
             payments will be require verifications before being credited.
           </p>
