@@ -3,7 +3,7 @@ import Button from "@/components/ui/Button";
 import ListDetailItem from "@/components/ui/ListDetailItem";
 import Overlay from "@/components/ui/Overlay";
 import { useTopupStore } from "@/store/TopUp";
-import { formatAmount } from "@/utils/helpers";
+import { convertTime, formatAmount } from "@/utils/helpers";
 import dayjs from "dayjs";
 import React from "react";
 
@@ -53,7 +53,7 @@ const ZelleTopupInfo = ({ goBack, goNext, type }: Props) => {
           />
           <ListDetailItem
             title="Expires at"
-            value={dayjs(zelleInfo?.expires_at || "").format(
+            value={dayjs(convertTime(zelleInfo?.expires_at || "")).format(
               "DD/MM/YYYY, h:mm:ss A",
             )}
           />
