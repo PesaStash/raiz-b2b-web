@@ -86,7 +86,7 @@ const FormContent = ({
   } = useQuery({
     queryKey: ["usd-bank-routing-info", debouncedRoutingNumber],
     queryFn: () => GetUsdBankName({ rn: values.routing_number }),
-    enabled: !!values.routing_number,
+    enabled: !!values.routing_number && values.routing_number.length === 9,
   });
 
   useEffect(() => {
@@ -110,7 +110,7 @@ const FormContent = ({
     if (routingInfo?.data?.name) {
       setFieldValue(
         "bank_name",
-        routingInfo.data?.telegraphicName || routingInfo.data?.name,
+        routingInfo.data?.name || routingInfo.data?.telegraphicName || "",
       );
     }
   }, [routingInfo, error]);
