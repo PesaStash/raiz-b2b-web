@@ -227,7 +227,7 @@ const TxnReceiptDetail = ({ close, transaction, goNext }: Props) => {
               variant="secondary"
             >
               <Image src={"/icons/upload.svg"} alt="" width={24} height={24} />
-              Share Receipt
+              Download Receipt
             </Button>
           </div>
         </div>

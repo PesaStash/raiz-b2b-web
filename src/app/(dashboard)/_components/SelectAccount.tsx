@@ -91,8 +91,8 @@ const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
                   {USDAcct
                     ? USDAcct?.account_number
                     : USDWalletMutation.isPending
-                    ? "Creating your USD account..."
-                    : "Get USD Account"}
+                      ? "Creating your USD account..."
+                      : "Get USD Account"}
                 </p>
                 <p className="opacity-50 text-raiz-gray-950 text-[13px] font-normal  leading-tight">
                   {USDAcct?.wallet_type.wallet_type_name || "USD Account"}

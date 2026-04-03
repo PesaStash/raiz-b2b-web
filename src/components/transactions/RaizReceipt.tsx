@@ -8,7 +8,7 @@ import html2canvas from "html2canvas";
 import { ITransaction } from "@/types/transactions";
 import { useUser } from "@/lib/hooks/useUser";
 import QRCode from "react-qr-code";
-
+import jsPDF from "jspdf";
 export interface IRaizReceipt {
   close: () => void;
   data: ITransaction;
@@ -32,17 +32,16 @@ const RaizReceipt = ({
       const canvas = await html2canvas(receiptRef.current, {
         scale: 2,
         useCORS: true,
-        backgroundColor: null,
+        backgroundColor: "#ffffff",
         y: receiptRef.current.offsetTop - 24, // Adjust to capture the logo
         height: receiptRef.current.offsetHeight + 24, // Include extra space for logo
       });
       const dataUrl = canvas.toDataURL("image/png");
-      const link = document.createElement("a");
-      link.download = `receipt-${data?.transaction_reference}.png`;
-      link.href = dataUrl;
-      link.click();
-
-      link.remove();
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      pdf.addImage(dataUrl, "PNG", 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`receipt-${data?.transaction_reference}.pdf`);
     } catch (error) {
       console.error("Error generating receipt:", error);
       alert("Failed to generate receipt. Please try again.");

@@ -14,7 +14,7 @@ import {
   IUsBeneficiariesResponse,
   IUsBeneficiaryPayload,
 } from "@/types/services";
-import { truncateString } from "@/utils/helpers";
+import { convertField, truncateString } from "@/utils/helpers";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Form, Formik, useFormikContext } from "formik";
 import React, { useEffect, useRef, useState } from "react";
@@ -86,7 +86,7 @@ const FormContent = ({
   } = useQuery({
     queryKey: ["usd-bank-routing-info", debouncedRoutingNumber],
     queryFn: () => GetUsdBankName({ rn: values.routing_number }),
-    enabled: !!values.routing_number,
+    enabled: !!values.routing_number && values.routing_number.length === 9,
   });
 
   useEffect(() => {
@@ -110,7 +110,7 @@ const FormContent = ({
     if (routingInfo?.data?.name) {
       setFieldValue(
         "bank_name",
-        routingInfo.data?.telegraphicName || routingInfo.data?.name,
+        routingInfo.data?.name || routingInfo.data?.telegraphicName || "",
       );
     }
   }, [routingInfo, error]);
@@ -246,7 +246,7 @@ const FormContent = ({
             Payment Rail
           </label>
           <div className="flex flex-col gap-3">
-            {["ach", "wire"].map((option) => (
+            {["ach_same_day", "ach", "wire"].map((option) => (
               <div
                 onClick={() => setFieldValue("payment_rail", option)}
                 key={option}
@@ -257,7 +257,7 @@ const FormContent = ({
                   onChange={() => setFieldValue("payment_rail", option)}
                 />
                 <span className="text-sm text-gray-700 capitalize">
-                  {option.toUpperCase()}
+                  {convertField(option).toUpperCase()}
                 </span>
               </div>
             ))}
