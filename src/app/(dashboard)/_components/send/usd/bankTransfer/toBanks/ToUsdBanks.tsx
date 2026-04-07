@@ -75,7 +75,15 @@ const ToUsdBanks = ({ close, bankType }: Props) => {
   const displayStep = () => {
     switch (step) {
       case "add-beneficiary":
-        return bankType && <AddBeneficiary type={bankType} close={close} />;
+        return (
+          bankType && (
+            <AddBeneficiary
+              type={bankType}
+              close={close}
+              goNext={() => setStep("details")}
+            />
+          )
+        );
       case "details":
         return (
           <SendMoney
