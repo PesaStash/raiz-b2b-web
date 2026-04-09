@@ -46,6 +46,7 @@ interface FormValues {
 
 interface Props {
   close: () => void;
+  goNext: () => void;
 }
 
 interface FormContentProps {
@@ -352,7 +353,7 @@ const FormContent = ({
   );
 };
 
-const USBankBeneficiary = ({ close }: Props) => {
+const USBankBeneficiary = ({ close, goNext }: Props) => {
   // const [labelFilter, setLabelFilter] = useState("");
   const { actions } = useSendStore();
   const [showBeneficiary, setShowBeneficiary] = useState(false);
@@ -400,8 +401,32 @@ const USBankBeneficiary = ({ close }: Props) => {
   const qc = useQueryClient();
   const AddBeneficiaryMutation = useMutation({
     mutationFn: (data: IUsBeneficiaryPayload) => CreateUsBeneficiary(data),
-    onSuccess: () => {
+    onSuccess: async (res: any, payload: IUsBeneficiaryPayload) => {
       toast.success("Beneficiary added!");
+
+      const queryParams = {
+        option_type: "bank",
+        page: 1,
+        limit: 50,
+      };
+
+      try {
+        // Bypass QueryClient cache entirely to ensure we get the fresh DB list
+        const updatedData = await FetchUsBeneficiariesApi(queryParams as any);
+
+        const oldIds = new Set(beneficiaries.map((b) => b.usd_beneficiary_id));
+        const newBen = updatedData?.beneficiaries?.find(
+          (b) => !oldIds.has(b.usd_beneficiary_id),
+        );
+
+        if (newBen) {
+          actions.selectUsdBeneficiary(newBen);
+          goNext();
+        }
+      } catch (err) {
+        console.log("Failed to fetch latest beneficiaries", err);
+      }
+
       qc.invalidateQueries({ queryKey: ["us-bank-beneficiaries"] });
     },
   });
@@ -484,7 +509,7 @@ const USBankBeneficiary = ({ close }: Props) => {
                       name={user?.usd_beneficiary?.account_name}
                     />
                     <p className="text-center text-raiz-gray-950 text-[13px] font-semibold leading-none">
-                      {user?.usd_beneficiary?.label}
+                      {user?.label}
                     </p>
                     <p className="text-center text-raiz-gray-700 text-xs leading-[18px]">
                       {" "}

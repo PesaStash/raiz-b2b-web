@@ -84,7 +84,7 @@ const InflowOutflow = () => {
     } else if (value >= 1000) {
       return `${selectedCurrency.sign}${(value / 1000).toFixed(0)}K`;
     }
-    return `${selectedCurrency.sign}${value.toFixed(0)}`;
+    return `${selectedCurrency.sign}${value.toFixed(2)}`;
   };
 
   const chartData = {
@@ -265,7 +265,10 @@ const InflowOutflow = () => {
                     strokeLinejoin="round"
                   />
                 </svg>
-                <span className="text-sm font-semibold text-raiz-gray-900">
+                <span
+                  title={`${selectedCurrency.sign}${data?.total_income?.toString()}`}
+                  className="text-sm font-semibold text-raiz-gray-900"
+                >
                   {formatCurrency(data?.total_income ?? 0)}
                 </span>
               </div>
@@ -294,7 +297,10 @@ const InflowOutflow = () => {
                     strokeLinejoin="round"
                   />
                 </svg>
-                <span className="text-sm font-semibold text-raiz-gray-900">
+                <span
+                  title={`${selectedCurrency.sign}${data?.total_expense?.toString()}`}
+                  className="text-sm font-semibold text-raiz-gray-900"
+                >
                   −{formatCurrency(data?.total_expense ?? 0)}
                 </span>
               </div>
