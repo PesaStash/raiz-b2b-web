@@ -469,7 +469,7 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
           city: values.city,
           state: values.state,
           postal_code: values.postal_code,
-          payment_rail: values.payment_rail as "ach" | "wire",
+          payment_rail: values.payment_rail as "ach" | "wire" | "ach-same-day",
         },
         label: values.label,
         optionType: "bank",

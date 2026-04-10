@@ -34,8 +34,6 @@ const SendOptions = ({ close }: Props) => {
     queryFn: () => FetchTodayOutflowApi(currentWallet?.wallet_id || ""),
     enabled: !!currentWallet?.wallet_id,
   });
-
-  console.log("addatata", data);
   const dailyLimit =
     user?.business_account?.entity?.wallet_tier?.dollar_limit || 0;
   return (
