@@ -400,7 +400,7 @@ const Sidebar = () => {
       action: (
         <button
           onClick={() => USDWalletMutation.mutate()}
-          className="text-primary2 text-sm font-bold flex items-center gap-2"
+          className="text-white bg-primary py-3 px-5 rounded-full text-sm font-semibold flex items-center gap-2"
           disabled={USDWalletMutation.isPending}
         >
           {USDWalletMutation.isPending ? (
@@ -425,7 +425,7 @@ const Sidebar = () => {
       action: (
         <button
           onClick={() => setShowModal("getNgn")}
-          className="text-primary2 text-sm font-bold"
+          className="text-white bg-primary py-3 px-5 rounded-full text-sm font-semibold flex items-center gap-2"
         >
           Get Naira Account
         </button>

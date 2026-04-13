@@ -14,14 +14,16 @@ interface Props {
   setPage: (arg: number) => void;
   email: string;
   user: WelcomUserProps;
+  setPassword: (arg: string) => void;
 }
 
-const WelcomeBack = ({ setPage, email, user }: Props) => {
+const WelcomeBack = ({ setPage, email, user, setPassword }: Props) => {
   const [showPassword, setShowPassword] = useState(false);
   const loginMutation = useMutation({
     mutationFn: (data: ILoginPayload) => LoginApi(data),
     onSuccess: () => {
       setPage(5);
+      setPassword(passwordHash(formik.values.password));
     },
   });
   const formik = useFormik({
