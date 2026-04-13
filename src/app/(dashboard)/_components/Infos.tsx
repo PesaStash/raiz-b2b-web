@@ -13,6 +13,7 @@ import SetTransactionPin from "./transaction-pin/SetTransactionPin";
 import { AnimatePresence } from "motion/react";
 import SideModalWrapper from "./SideModalWrapper";
 import BusinessVerificationModal from "@/app/(dashboard)/_components/BusinessVerificationModal";
+import { MdArrowRightAlt } from "react-icons/md";
 
 const Infos = () => {
   const [showModal, setShowModal] = useState<
@@ -135,7 +136,7 @@ const Infos = () => {
       action: (
         <button
           onClick={() => USDWalletMutation.mutate()}
-          className="group text-primary2 bg-white flex py-4 px-8 rounded-3xl gap-3 h-[52px] hover:underline border-2 border-[#F8F7FA] text-xs xl:text-sm font-bold"
+          className="group text-white bg-primary items-center flex py-4 px-8 rounded-3xl gap-3 h-[52px] hover:underline border-2 border-[#F8F7FA] text-xs xl:text-sm font-bold"
           disabled={USDWalletMutation.isPending}
         >
           {USDWalletMutation.isPending ? (
@@ -143,13 +144,7 @@ const Infos = () => {
           ) : null}
           {USDWalletMutation.isPending ? "Processing..." : "Get USD Account"}
           {!USDWalletMutation.isPending && (
-            <Image
-              src={"/icons/long-arrow-right.svg"}
-              alt=""
-              width={20}
-              height={20}
-              className="group-hover:translate-x-1 transition-transform"
-            />
+            <MdArrowRightAlt className="group-hover:translate-x-1 size-5 transition-transform" />
           )}
         </button>
       ),
@@ -169,16 +164,10 @@ const Infos = () => {
       action: (
         <button
           onClick={() => setShowModal("getNgn")}
-          className="group text-primary2 bg-white flex py-4 px-8 rounded-3xl gap-3 h-[52px] hover:underline border-2 border-[#F8F7FA] text-xs xl:text-sm font-bold"
+          className="group text-white bg-primary flex py-4 px-8 items-center rounded-3xl gap-3 h-[52px] hover:underline border-2 border-[#F8F7FA] text-xs xl:text-sm font-bold"
         >
           Get Naira Account
-          <Image
-            src={"/icons/long-arrow-right.svg"}
-            alt=""
-            width={20}
-            height={20}
-            className="group-hover:translate-x-1 transition-transform"
-          />
+          <MdArrowRightAlt className="group-hover:translate-x-1 size-5 transition-transform" />
         </button>
       ),
       bg: "bg-[#eaecff]/40",
