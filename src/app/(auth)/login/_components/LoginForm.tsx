@@ -17,9 +17,11 @@ import { useRouter } from "next/navigation";
 const LoginForm = ({
   setStep,
   setEmail,
+  setPassword,
 }: {
   setStep: Dispatch<SetStateAction<number>>;
   setEmail: Dispatch<SetStateAction<string>>;
+  setPassword: Dispatch<SetStateAction<string>>;
 }) => {
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
@@ -37,8 +39,16 @@ const LoginForm = ({
     onSuccess: () => {
       setStep(2);
       setEmail(formik.values.email);
+      setPassword(passwordHash(formik.values.password));
     },
   });
+
+  const submitFn = () => {
+    loginMutation.mutate({
+      email: formik.values.email,
+      password: passwordHash(formik.values.password),
+    });
+  };
 
   const formik = useFormik({
     initialValues: {
@@ -46,12 +56,7 @@ const LoginForm = ({
       password: "",
     },
     validationSchema: toFormikValidationSchema(loginSchema),
-    onSubmit: (values) => {
-      loginMutation.mutate({
-        email: values.email,
-        password: passwordHash(values.password),
-      });
-    },
+    onSubmit: () => submitFn(),
   });
   return (
     <AnimatedSection

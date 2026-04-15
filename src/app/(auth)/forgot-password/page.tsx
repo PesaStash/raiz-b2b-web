@@ -18,6 +18,7 @@ const ForgotPasswordPage = () => {
   const [email, setEmail] = useState("");
   const [page, setPage] = useState(1);
   const [otp, setOtp] = useState("");
+  const [password, setPassword] = useState("");
   const [user, setUser] = useState<WelcomUserProps>({
     first_name: "",
     last_name: "",
@@ -39,9 +40,23 @@ const ForgotPasswordPage = () => {
           />
         );
       case 4:
-        return <WelcomeBack setPage={setPage} email={email} user={user} />;
+        return (
+          <WelcomeBack
+            setPage={setPage}
+            email={email}
+            user={user}
+            setPassword={setPassword}
+          />
+        );
       case 5:
-        return <LoginOtp from="welcome-back" setStep={setPage} email={email} />;
+        return (
+          <LoginOtp
+            from="welcome-back"
+            setStep={setPage}
+            email={email}
+            password={password}
+          />
+        );
       default:
         break;
     }

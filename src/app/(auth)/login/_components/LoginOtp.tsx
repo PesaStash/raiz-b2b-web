@@ -4,20 +4,23 @@ import React, { Dispatch, SetStateAction } from "react";
 import Image from "next/image";
 import { useFormik } from "formik";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { LoginOtpApi } from "@/services/auth";
+import { LoginOtpApi, LoginApi, ILoginPayload } from "@/services/auth";
+import { toast } from "sonner";
 import OtpInput from "@/components/ui/OtpInput";
 import Button from "@/components/ui/Button";
 import AnimatedSection from "@/components/ui/AnimatedSection";
 import { SetItemToCookie } from "@/utils/CookiesFunc";
 import { encryptData } from "@/lib/headerEncryption";
+import OtpInputWithTimer from "@/components/ui/OtpInputWithTimer";
 
 interface Props {
   setStep: Dispatch<SetStateAction<number>>;
   from: "login" | "welcome-back";
   email: string;
+  password?: string;
 }
 
-const LoginOtp = ({ setStep, from, email }: Props) => {
+const LoginOtp = ({ setStep, from, email, password }: Props) => {
   const router = useRouter();
   const qc = useQueryClient();
   const loginMutation = useMutation({
@@ -26,6 +29,12 @@ const LoginOtp = ({ setStep, from, email }: Props) => {
       SetItemToCookie("access_token", response?.access_token);
       qc.invalidateQueries({ queryKey: ["user"] });
       router.push("/");
+    },
+  });
+  const resendOtpMutation = useMutation({
+    mutationFn: (data: ILoginPayload) => LoginApi(data),
+    onSuccess: () => {
+      toast.success("OTP sent successfully! Check your email");
     },
   });
   const formik = useFormik({
@@ -87,11 +96,21 @@ const LoginOtp = ({ setStep, from, email }: Props) => {
             <p className="text-raiz-gray-700 text-[15px] font-normal  leading-snug mb-[44px]">
               Please enter the OTP code sent to your Email Address
             </p>
-            <OtpInput
+            <OtpInputWithTimer
               value={formik.values.otp}
               onChange={(val) => formik.setFieldValue("otp", val)}
               error={formik.errors.otp}
               touched={formik.touched.otp}
+              onResend={() => {
+                if (password) {
+                  resendOtpMutation.mutate({
+                    email,
+                    password,
+                  });
+                } else {
+                  toast.error("Please go back to login page and try again.");
+                }
+              }}
               length={6}
             />
           </div>
