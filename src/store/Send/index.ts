@@ -62,6 +62,8 @@ export const useSendStore = create<SendSlice>((set) => ({
     setCryptoType: (type) => set(() => ({ cryptoType: type })),
     setGuestLocalCurrency: (guestLocalCurrency) =>
       set((state) => ({ ...state, guestLocalCurrency })),
+    // setPaymentRail: (paymentRail) =>
+    //   set((state) => ({ ...state, paymentRail })),
     reset: (currency) =>
       set(() => ({
         ...initialSendState,

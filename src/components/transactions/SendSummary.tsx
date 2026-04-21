@@ -1,12 +1,12 @@
 "use client";
 import { useSendStore } from "@/store/Send";
-import React from "react";
+import React, { useMemo } from "react";
 import Image from "next/image";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import Button from "../ui/Button";
 import ListDetailItem from "../ui/ListDetailItem";
 import CenterModalHeader from "../layouts/CenterModalHeader";
-import { formatAmount } from "@/utils/helpers";
+import { convertField, formatAmount } from "@/utils/helpers";
 
 interface Props {
   goBack: () => void;
@@ -15,13 +15,47 @@ interface Props {
 }
 
 const SendSummary = ({ goBack, goNext, fee }: Props) => {
-  const { category, amount, purpose } = useSendStore();
+  const {
+    category,
+    amount,
+    purpose,
+    user: selectedUser,
+    usdBeneficiary,
+    externalUser,
+  } = useSendStore();
   const { selectedCurrency } = useCurrencyStore();
 
   const totalPayable = fee ? parseFloat(amount) + fee : amount;
 
+  const recipient = useMemo(() => {
+    if (selectedUser) return selectedUser;
+    if (usdBeneficiary) return usdBeneficiary;
+    if (externalUser) return externalUser;
+    return null;
+  }, [selectedUser, usdBeneficiary, externalUser]);
+
+  const recipientName = useMemo(() => {
+    if (!recipient) return "";
+    if ("account_name" in recipient) return recipient.account_name || "";
+    if ("usd_beneficiary" in recipient)
+      return recipient.usd_beneficiary.account_name || "";
+    if ("bank_account_name" in recipient)
+      return recipient.bank_account_name || "";
+    return "";
+  }, [recipient]);
+
+  const recipientAccountNumber = useMemo(() => {
+    if (!recipient) return "";
+    // if ("account_number" in recipient) return recipient.account_number || "";
+    if ("usd_beneficiary" in recipient)
+      return recipient.usd_beneficiary?.account_number || "";
+    if ("bank_account_number" in recipient)
+      return recipient.bank_account_number || "";
+    return "";
+  }, [recipient]);
+
   return (
-    <div className="h-full flex flex-col overflow-auto no-scrollbar pb-5">
+    <div className="h-full flex flex-col overflow-auto no-scrollbar pb-5 lg:mb-12 xl:mb-0   ">
       <CenterModalHeader close={goBack} />
       <h5 className=" text-raiz-gray-950 text-[22px] font-semibold leading-tight mb-10">
         Send Summary
@@ -58,6 +92,21 @@ const SendSummary = ({ goBack, goNext, fee }: Props) => {
               value={`${selectedCurrency?.sign}
               ${fee.toLocaleString()}`}
             />
+            <ListDetailItem title="Beneficiary" value={recipientName} />
+            {!selectedUser && (
+              <ListDetailItem
+                title="Account Number"
+                value={recipientAccountNumber}
+              />
+            )}
+            {usdBeneficiary && (
+              <ListDetailItem
+                title="Payment Rail"
+                value={convertField(
+                  usdBeneficiary?.usd_beneficiary?.payment_rail,
+                )}
+              />
+            )}
             <ListDetailItem title="Purpose" value={purpose} />
             <ListDetailItem
               title="Category"

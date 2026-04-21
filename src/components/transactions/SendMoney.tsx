@@ -34,6 +34,7 @@ const SendMoney = ({
     amount,
     purpose,
     actions,
+    usdBeneficiary,
   } = useSendStore();
   const { user, refetch } = useUser();
   const { selectedCurrency } = useCurrencyStore();
@@ -144,6 +145,27 @@ const SendMoney = ({
     goNext();
   };
 
+  const recipient = useMemo(() => {
+    if (selectedUser) return selectedUser;
+    if (usdBeneficiary) return usdBeneficiary;
+    if (externalUser) return externalUser;
+    return null;
+  }, [selectedUser, usdBeneficiary, externalUser]);
+
+  const recipientName = useMemo(() => {
+    if (!recipient) return "";
+    if ("account_name" in recipient) return recipient.account_name || "";
+    if ("usd_beneficiary" in recipient) return recipient.usd_beneficiary.account_name || "";
+    if ("bank_account_name" in recipient) return recipient.bank_account_name || "";
+    return "";
+  }, [recipient]);
+
+  const recipientImage = useMemo(() => {
+    if (!recipient) return "";
+    if ("selfie_image" in recipient) return recipient.selfie_image;
+    return "";
+  }, [recipient]);
+
   return (
     <div
       className="w-full flex flex-col h-full pb-5 overflow-y-scroll no-scrollbar
@@ -162,12 +184,8 @@ const SendMoney = ({
           <div className="flex flex-col justify-center items-center">
             <div className="relative w-10 h-10">
               <Avatar
-                src={selectedUser?.selfie_image || ""}
-                name={
-                  selectedUser?.account_name ||
-                  externalUser?.bank_account_name ||
-                  ""
-                }
+                src={recipientImage || ""}
+                name={recipientName}
               />
 
               <svg
@@ -201,7 +219,7 @@ const SendMoney = ({
               </svg>
             </div>
             <p className="text-center mt-4 justify-start text-zinc-900 text-sm font-bold  leading-none">
-              {selectedUser?.account_name}
+              {recipientName}
             </p>
             <p className="text-center mt-10 justify-start text-zinc-900 text-base mb-3">
               How much do you want to send?

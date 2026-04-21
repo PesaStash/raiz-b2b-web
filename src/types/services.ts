@@ -338,7 +338,7 @@ export interface IUsBeneficiaryPayload {
     city: string;
     state: string;
     postal_code: string;
-    payment_rail: "ach" | "wire";
+    payment_rail: "ach" | "wire" | "ach-same-day";
   };
 }
 
@@ -365,6 +365,8 @@ export interface UsdBeneficiary {
   usd_beneficiary_id: string;
   created_at: string;
   updated_at: string;
+  account_number: string;
+  payment_rail: "ach" | "wire" | "ach-same-day";
 }
 
 export interface EntityBeneficiary {
