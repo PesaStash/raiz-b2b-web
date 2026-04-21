@@ -73,8 +73,9 @@ const DevelopersPage = () => {
               Manage Developer API keys
             </h4>
             <p className="text-raiz-gray-600 text-sm leading-tight">
-              Revoke disables a key without removing it. Delete permanently
-              removes it and cannot be undone.
+              Revoke disables a key without removing it.
+              {/* Delete permanently
+              removes it and cannot be undone. */}
             </p>
           </div>
         </div>

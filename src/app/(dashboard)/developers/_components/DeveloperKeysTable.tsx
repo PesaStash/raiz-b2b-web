@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -17,8 +17,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Button from "@/components/ui/Button";
 import Pagination from "@/components/ui/Pagination";
-import DateRange from "../../transactions/_components/DateRange";
-import { format } from "date-fns";
+// import DateRange from "../../transactions/_components/DateRange";
+// import { format } from "date-fns";
 import { LiaTimesSolid } from "react-icons/lia";
 import APIKeyTableOptions from "./APIKeyTableOptions";
 import APIKeyLogsModal from "./APIKeyLogsModal";
@@ -88,13 +88,9 @@ const DeveloperKeysTable = ({ onGenerateKey }: DeveloperKeysTableProps) => {
               {info.getValue()}
             </span>
             <span className="text-[13px] text-zinc-500 font-medium">
-              {info.row.original.raw_key
-                ? info.row.original.raw_key
-                : info.row.original.key_prefix
-                  ? `${info.row.original.key_prefix}_**********************${info.row.original.id.slice(
-                      -4,
-                    )}`
-                  : "**********************"}
+              {`${info.row.original.key_prefix}_••••••••••••${info.row.original.id.slice(
+                -4,
+              )}`}
             </span>
           </div>
         ),
@@ -206,7 +202,7 @@ const DeveloperKeysTable = ({ onGenerateKey }: DeveloperKeysTableProps) => {
     <div className="w-full flex flex-col flex-1 bg-white rounded-[20px] shadow-[0px_4px_30px_0px_rgba(0,0,0,0.03)] border border-gray-50 mt-6 p-6">
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-[18px] font-bold text-zinc-900">Your Keys</h3>
-        <div className="flex gap-3">
+        {/* <div className="flex gap-3">
           <div className="relative">
             <button
               onClick={() => setShowDateRange(!showDateRange)}
@@ -242,18 +238,8 @@ const DeveloperKeysTable = ({ onGenerateKey }: DeveloperKeysTableProps) => {
               <LiaTimesSolid />
             </button>
           )}
-          {/* <button className="flex gap-1.5 items-center px-3.5 py-2.5 rounded-lg border border-gray-200 shadow-sm transition-colors hover:bg-gray-50">
-            <Image
-              src={"/icons/filter.svg"}
-              alt="Filter"
-              width={20}
-              height={20}
-            />
-            <span className="text-zinc-800 text-sm font-semibold leading-none">
-              Apply filter
-            </span>
-          </button> */}
-        </div>
+          
+        </div> */}
       </div>
 
       {isLoading ? (
@@ -392,22 +378,34 @@ const DeveloperKeysTable = ({ onGenerateKey }: DeveloperKeysTableProps) => {
               key will immediately fail.
             </p>
 
-            <div className="flex gap-3 w-full">
-              <Button
-                variant="tertiary"
-                className="flex-1 py-3"
-                onClick={() => setKeyToRevoke(null)}
-                disabled={isRevokePending}
-              >
-                Cancel
-              </Button>
+            <div className="bg-[#FFE6E666] rounded-md p-3 flex items-center gap-2 mb-6">
+              <Image
+                src={"/icons/info-green.svg"}
+                alt="info"
+                width={20}
+                height={20}
+              />
+              <span className="text-raiz-gray-600 text-[11px]">
+                This action cannot be undone.
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-3 w-full">
               <Button
                 variant="primary"
-                className="flex-1 py-3 bg-red-600 hover:bg-red-700 border-none"
+                className="flex-1 py-3 bg-red-600 hover:!bg-red-700 border-none"
                 onClick={confirmRevoke}
                 loading={isRevokePending}
               >
                 Revoke
+              </Button>
+              <Button
+                variant="tertiary"
+                className="flex-1 py-3 bg-[#FDDCDA] hover:!bg-[#FDDCDA]/80"
+                onClick={() => setKeyToRevoke(null)}
+                disabled={isRevokePending}
+              >
+                Cancel
               </Button>
             </div>
           </div>

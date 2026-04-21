@@ -38,7 +38,7 @@ const APIKeyTableOptions = ({
       </button>
       {isOpen && (
         <div
-          className={`absolute right-0 w-48 bg-white rounded-md shadow-lg z-10 ${
+          className={`absolute right-0 w-48 bg-white mb-[-50px] rounded-md shadow-lg z-10 ${
             isLast ? "bottom-full mb-2" : "!-mb-10"
           }`}
         >

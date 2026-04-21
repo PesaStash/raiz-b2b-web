@@ -1,7 +1,11 @@
 import React, { useState } from "react";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 import CenterModalHeader from "@/components/layouts/CenterModalHeader";
-import { IDeveloperApiKey, IAPILogsParams, IAPIKeyLogs } from "@/types/services";
+import {
+  IDeveloperApiKey,
+  IAPILogsParams,
+  IAPIKeyLogs,
+} from "@/types/services";
 import { useQuery } from "@tanstack/react-query";
 import { FetchAPILogs } from "@/services/developers";
 import Pagination from "@/components/ui/Pagination";
@@ -33,10 +37,10 @@ const APIKeyLogsModal = ({ apiKey, close }: Props) => {
   const totalPages = Math.ceil(total / pageSize) || 1;
 
   const getStatusColor = (status: number) => {
-    if (status >= 200 && status < 300) return "text-green-600 bg-green-50 border-green-200";
-    if (status >= 400 && status < 500) return "text-yellow-600 bg-yellow-50 border-yellow-200";
-    if (status >= 500) return "text-red-600 bg-red-50 border-red-200";
-    return "text-gray-600 bg-gray-50 border-gray-200";
+    if (status >= 200 && status < 300) return "bg-[#41DC0D] ";
+    if (status >= 400 && status < 500) return "bg-[#FFC857] ";
+    if (status >= 500) return "bg-[#DC180D] ";
+    return "bg-[#9CA3AF] ";
   };
 
   return (
@@ -44,49 +48,65 @@ const APIKeyLogsModal = ({ apiKey, close }: Props) => {
       <CenterModalHeader close={close} />
       <div className="flex flex-col font-brSonoma w-full">
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-raiz-gray-950 mb-1">API Logs</h2>
-          <p className="text-sm text-raiz-gray-600">
-            Viewing last request logs for <span className="font-semibold text-raiz-gray-950">{apiKey.name}</span>
-          </p>
+          <h2 className="text-xl font-semibold text-raiz-gray-950 mb-1">
+            {apiKey.name}
+          </h2>
         </div>
 
-        <div className="bg-white rounded-[20px] shadow-[0px_4px_30px_0px_rgba(0,0,0,0.03)] border border-gray-50 flex-1 overflow-x-auto min-h-[300px]">
+        <div className="bg-raiz-gray-50 rounded-[20px] shadow-[0px_4px_30px_0px_rgba(0,0,0,0.03)] border border-gray-50 flex-1 overflow-x-auto min-h-[300px]">
           {isLoading ? (
             <div className="p-4">
               <Skeleton count={5} height={40} className="mb-4" />
             </div>
           ) : logs.length > 0 ? (
             <>
-              <table className="min-w-full text-left text-sm whitespace-nowrap">
-                <thead className="border-b border-gray-100 bg-[#FAFAFA]">
+              <p className="text-raiz-gray-950  p-5 text-lg font-bold leading-5">
+                {`${apiKey?.key_prefix}_••••••••••••${apiKey?.id?.slice(-4)}`}
+              </p>
+              <table className="min-w-[90%]  mx-6 text-left text-sm whitespace-nowrap">
+                <thead className="border-b border-[#EAECF0] text-[13px] bg-[#F8F7FA]">
                   <tr>
-                    <th className="py-4 px-6 text-zinc-500 font-medium whitespace-nowrap">Date & Time</th>
-                    <th className="py-4 px-6 text-zinc-500 font-medium">Method</th>
-                    <th className="py-4 px-6 text-zinc-500 font-medium">Status</th>
-                    <th className="py-4 px-6 text-zinc-500 font-medium">Endpoint</th>
-                    <th className="py-4 px-6 text-zinc-500 font-medium">IP Address</th>
+                    <th className="py-4 px-2 text-raiz-gray-700  whitespace-nowrap">
+                      Time stamp
+                    </th>
+                    <th className="py-4 px-2 text-raiz-gray-700 ">Endpoint</th>
+                    <th className="py-4 px-2 text-raiz-gray-700 ">Method</th>
+                    <th className="py-4 px-2 text-raiz-gray-700 ">Status</th>
+
+                    <th className="py-4 px-2 text-raiz-gray-700 ">
+                      IP Address
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {logs.map((log) => (
-                    <tr key={log.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-6 py-4 text-[13px] text-zinc-700 font-medium">
+                    <tr
+                      key={log.id}
+                      className="hover:bg-gray-50/50 transition-colors"
+                    >
+                      <td className="px-2 py-4 text-[13px] text-zinc-700 font-medium">
                         {dayjs(log.created_at).format("DD MMM YYYY, HH:mm:ss")}
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="font-mono text-[12px] font-bold text-gray-700 bg-gray-100 px-2 py-1 rounded">
+                      <td className="px-2 py-4 text-[13px] text-raiz-gray-600 font-mono">
+                        {log.endpoint}
+                      </td>
+                      <td className="px-2 py-4">
+                        <span className="font-mono text-[12px] font-medium text-raiz-gray-700 border border-raiz-gray-200 px-2 py-1 rounded">
                           {log.method}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className={`px-2.5 py-1 text-[12px] font-bold flex w-fit rounded-md border ${getStatusColor(log.status_code)}`}>
+                      <td className="px-2 py-4">
+                        <span
+                          className={` items-center gap-1 px-2.5 py-1 text-[12px] flex w-fit rounded-md border border-raiz-gray-200 text-raiz-gray-700 font-medium`}
+                        >
+                          <div
+                            className={`size-1.5 rounded-full ${getStatusColor(log.status_code)}`}
+                          />
                           {log.status_code}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-[13px] text-zinc-600 font-mono">
-                        {log.endpoint}
-                      </td>
-                      <td className="px-6 py-4 text-[13px] text-zinc-500">
+
+                      <td className="px-2 py-4 text-[13px] text-raiz-gray-700">
                         {log.ip_address}
                       </td>
                     </tr>
