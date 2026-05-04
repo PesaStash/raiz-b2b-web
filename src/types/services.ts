@@ -737,3 +737,44 @@ export interface RoutingNumberInfo {
   bookEntrySecuritiesTransferEligible: string;
   lastUpdated: string;
 }
+
+export interface IDeveloperApiKey {
+  id: string;
+  name: string;
+  key_prefix: string;
+  environment: string;
+  permissions: string[];
+  is_active: boolean;
+  last_used_at: string;
+  expires_at: string;
+  created_at: string;
+  raw_key: string;
+}
+
+export interface IGenerateDeveloperKeysAPI {
+  name: string;
+  environment: string;
+  permissions: string[];
+  expires_at: string;
+}
+
+export interface IAPILogsParams {
+  limit?: number;
+  offset?: number;
+  key_id?: string;
+}
+
+export interface IAPIKeyLogs {
+  id: string;
+  key_id: string;
+  endpoint: string;
+  method: string;
+  status_code: number;
+  ip_address: string;
+  created_at: string;
+}
+
+export interface IAPIKeyLogsResponse {
+  logs: IAPIKeyLogs[];
+  total: number;
+}
