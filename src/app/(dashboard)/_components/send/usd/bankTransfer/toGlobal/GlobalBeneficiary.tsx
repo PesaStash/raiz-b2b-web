@@ -17,6 +17,7 @@ import {
 import { useSendStore } from "@/store/Send";
 import {
   FormField,
+  IntBeneficiaryMethodFields,
   IIntBeneficiariesParams,
   IIntBeneficiaryPayload,
   IntCountryType,
@@ -26,6 +27,7 @@ import {
   getReadablePatternMessage,
   truncateString,
 } from "@/utils/helpers";
+import { resolveCountryMethodFields } from "@/utils/remittanceFormFields";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FormikConfig, useFormik } from "formik";
 import React, { useEffect, useState } from "react";
@@ -64,6 +66,10 @@ const GlobalBeneficiary = ({ close }: Props) => {
   >(null);
   const [bank, setBank] = useState<IBank>();
   const [fields, setFields] = useState<FormField[]>([]);
+  const [countryMethods, setCountryMethods] = useState<IntBeneficiaryMethodFields>(
+    {},
+  );
+  const [selectedMethod, setSelectedMethod] = useState<string>("");
   const [isValid, setIsValid] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { data: fieldsData, isLoading: fieldLoading } = useQuery({
@@ -110,8 +116,23 @@ const GlobalBeneficiary = ({ close }: Props) => {
       let fieldSchema = z.string();
 
       // Add required validation
-      if (field.required) {
+      if (field.required && !field.const) {
         fieldSchema = fieldSchema.min(1, `${field.name} is required`);
+      }
+
+      const minLength = field.min_length ?? field.minLength;
+      const maxLength = field.max_length ?? field.maxLength;
+      if (typeof minLength === "number" && minLength > 0) {
+        fieldSchema = fieldSchema.min(
+          minLength,
+          `${field.name} must be at least ${minLength} characters`,
+        );
+      }
+      if (typeof maxLength === "number" && maxLength > 0) {
+        fieldSchema = fieldSchema.max(
+          maxLength,
+          `${field.name} must be at most ${maxLength} characters`,
+        );
       }
 
       // Add pattern validation if it exists
@@ -199,34 +220,57 @@ const GlobalBeneficiary = ({ close }: Props) => {
     },
   });
 
-  // Update fields and validation when country changes
-  useEffect(() => {
-    if (fieldsData && formik.values.country) {
-      const newFields: FormField[] =
-        typeof formik.values.country === "string" || !formik.values.country
-          ? []
-          : (fieldsData?.[formik.values.country.value] as FormField[]) || [];
+  const countryCode =
+    typeof formik.values.country === "string" || !formik.values.country
+      ? ""
+      : formik.values.country.value;
 
-      setFields(newFields);
-      formik.setFormikState((prev) => ({
-        ...prev,
-        validationSchema: toFormikValidationSchema(
-          createValidationSchema(newFields),
-        ),
-      }));
-      const newValues: FormValues = {
-        country: formik.values.country,
-        ...newFields.reduce<Record<string, string>>(
-          (acc: Record<string, string>, field: FormField) => {
-            acc[field.name] = formik.values[field.name] || "";
-            return acc;
-          },
-          {},
-        ),
-      };
-      formik.setValues(newValues);
+  // Update fields and validation when country/method changes
+  useEffect(() => {
+    if (!fieldsData || !countryCode) {
+      setFields([]);
+      setCountryMethods({});
+      setSelectedMethod("");
+      return;
     }
-  }, [formik.values.country, fieldsData]);
+
+    const resolved = resolveCountryMethodFields(
+      fieldsData,
+      countryCode,
+      selectedMethod,
+    );
+
+    if (!resolved.activeMethod) {
+      setFields([]);
+      setCountryMethods({});
+      setSelectedMethod("");
+      return;
+    }
+
+    if (resolved.activeMethod !== selectedMethod) {
+      setSelectedMethod(resolved.activeMethod);
+    }
+
+    setCountryMethods(resolved.methods);
+    setFields(resolved.fields);
+    formik.setFormikState((prev) => ({
+      ...prev,
+      validationSchema: toFormikValidationSchema(
+        createValidationSchema(resolved.fields),
+      ),
+    }));
+    const newValues: FormValues = {
+      country: formik.values.country,
+      ...resolved.fields.reduce<Record<string, string>>(
+        (acc: Record<string, string>, field: FormField) => {
+          acc[field.name] = formik.values[field.name] || field.const || "";
+          return acc;
+        },
+        {},
+      ),
+    };
+    formik.setValues(newValues);
+  }, [countryCode, fieldsData, selectedMethod]);
 
   useEffect(() => {
     const result = NGNAcctNoSchema.safeParse(NgFormik.values.account_number);
@@ -358,6 +402,24 @@ const GlobalBeneficiary = ({ close }: Props) => {
                 : formik.values.country?.name || ""
             }
           />
+          {Object.keys(countryMethods).length > 1 &&
+            formik.values.country?.value !== "GB" &&
+            formik.values.country?.value !== "CN" && (
+              <div className="mt-4">
+                <InputLabel content="Payout Method" />
+                <select
+                  className="w-full mt-2 rounded-xl border border-raiz-gray-200 px-4 py-3 bg-white text-raiz-gray-900"
+                  value={selectedMethod}
+                  onChange={(event) => setSelectedMethod(event.target.value)}
+                >
+                  {Object.keys(countryMethods).map((method) => (
+                    <option value={method} key={method}>
+                      {method}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
           {fields.length > 0 && formik.values.country?.value === "NG" && (
             <form
@@ -399,15 +461,13 @@ const GlobalBeneficiary = ({ close }: Props) => {
           )}
           {fields.length > 0 && formik.values.country?.value === "GB" && (
             <GbBeneficiaryForm
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              fields={fields as any}
+              methods={countryMethods}
               countryCode={formik.values.country.value}
             />
           )}
           {fields.length > 0 && formik.values.country?.value === "CN" && (
             <CNBeneficiaryForm
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              fields={fields as any}
+              methods={countryMethods}
               countryCode={formik.values.country.value}
               countryName={"China"}
               bankDetailsFields={[
@@ -433,7 +493,8 @@ const GlobalBeneficiary = ({ close }: Props) => {
               <DynamicBeneficiaryForm
                 fields={fields}
                 formik={formik}
-                fieldsData={fieldsData || {}}
+                countryMethods={countryMethods}
+                activeMethod={selectedMethod}
                 reset={() => formik.resetForm()}
               />
             )}

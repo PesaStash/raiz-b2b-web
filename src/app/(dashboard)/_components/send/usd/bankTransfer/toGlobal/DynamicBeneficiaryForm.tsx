@@ -3,7 +3,11 @@ import Button from "@/components/ui/Button";
 import InputField from "@/components/ui/InputField";
 import Radio from "@/components/ui/Radio";
 import { GlobalCountryConfig } from "@/constants/send";
-import { FormField, IntCountryType } from "@/types/services";
+import {
+  FormField,
+  IntBeneficiaryMethodFields,
+  IntCountryType,
+} from "@/types/services";
 import { convertField } from "@/utils/helpers";
 import { FormikProps } from "formik";
 import React, { useEffect } from "react";
@@ -11,14 +15,16 @@ import React, { useEffect } from "react";
 interface Props {
   fields: FormField[];
   formik: FormikProps<any>;
-  fieldsData: Record<string, FormField[]>;
+  countryMethods: IntBeneficiaryMethodFields;
+  activeMethod: string;
   reset: () => void;
 }
 
 const DynamicBeneficiaryForm = ({
   fields,
   formik,
-  fieldsData,
+  countryMethods,
+  activeMethod,
   reset,
 }: Props) => {
   useEffect(() => {
@@ -143,12 +149,14 @@ const DynamicBeneficiaryForm = ({
   } = config;
   const FormComponent = formComponent;
 
+  const methodFields = activeMethod ? countryMethods[activeMethod] || [] : fields;
+  const fallbackFields = Object.values(countryMethods).flat();
   const banks =
     (defaultBanks?.length ?? 0) > 0
       ? defaultBanks
-      : fieldsData?.[countryCode]?.find(
-          (field: any) => field.name === "bank_code"
-        )?.banks || [];
+      : methodFields.find((field: any) => field.name === "bank_code")?.banks ||
+        fallbackFields.find((field: any) => field.name === "bank_code")?.banks ||
+        [];
 
   return (
     <FormComponent

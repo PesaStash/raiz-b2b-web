@@ -4,6 +4,7 @@ import { convertField, getReadablePatternMessage } from "@/utils/helpers";
 import React, { useState } from "react";
 import {
   FormField,
+  IntBeneficiaryMethodFields,
   IIntBeneficiaryPayload,
   IntCountryType,
 } from "@/types/services";
@@ -27,10 +28,6 @@ import BeneficiaryTypeModal from "../toInternational/BeneficiaryTypeModal";
 
 export type gbBenType = "DOMESTIC_GBP" | "SEPA_EUR" | null;
 
-interface FieldEntry {
-  [key: string]: FormField[];
-}
-
 interface FieldsMap {
   [key: string]: FormField[];
   DOMESTIC_GBP: FormField[];
@@ -38,7 +35,7 @@ interface FieldsMap {
 }
 
 interface Props {
-  fields: FieldEntry[];
+  methods: IntBeneficiaryMethodFields;
   countryCode: IntCountryType;
 }
 
@@ -47,7 +44,7 @@ interface FormValues {
   [key: string]: any;
 }
 
-const GbBeneficiaryForm = ({ fields, countryCode }: Props) => {
+const GbBeneficiaryForm = ({ methods, countryCode }: Props) => {
   const { user } = useUser();
   const [showModal, setShowModal] = useState<
     "type" | null | "purpose" | "ben" | "send"
@@ -63,14 +60,11 @@ const GbBeneficiaryForm = ({ fields, countryCode }: Props) => {
   });
   const [type, setType] = useState<gbBenType>(null);
   const typeFields = ["DOMESTIC_GBP", "SEPA_EUR"] as gbBenType[];
-  const fieldsMap: FieldsMap = fields.reduce<FieldsMap>(
-    (acc, entry) => {
-      const key = Object.keys(entry)[0] as "DOMESTIC_GBP" | "SEPA_EUR";
-      acc[key] = entry[key];
-      return acc;
-    },
-    { DOMESTIC_GBP: [], SEPA_EUR: [] },
-  );
+  const fieldsMap: FieldsMap = {
+    DOMESTIC_GBP: methods.DOMESTIC_GBP || [],
+    SEPA_EUR: methods.SEPA_EUR || [],
+    ...methods,
+  };
 
   const entity = user?.business_account?.entity;
   const userName = `${user?.first_name || ""} ${user?.last_name || ""}`.trim();
