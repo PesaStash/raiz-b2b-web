@@ -8,6 +8,7 @@ import { useUser } from "@/lib/hooks/useUser";
 import { CreateIntBeneficiary } from "@/services/transactions";
 import {
   FormField,
+  IntBeneficiaryMethodFields,
   IIntBeneficiaryPayload,
   IntCountryType,
 } from "@/types/services";
@@ -30,10 +31,6 @@ import IdSelectModal from "./IdSelectModal";
 
 export type cnBenType = "BANK" | "ALIPAY" | "WECHATPAY" | null;
 
-interface FieldEntry {
-  [key: string]: FormField[];
-}
-
 interface FieldsMap {
   [key: string]: FormField[];
   BANK: FormField[];
@@ -42,7 +39,7 @@ interface FieldsMap {
 }
 
 interface Props {
-  fields: FieldEntry[];
+  methods: IntBeneficiaryMethodFields;
   countryCode: IntCountryType;
   countryName: string;
   bankDetailsFields?: { name: string; label: string; pattern?: string }[];
@@ -54,7 +51,7 @@ interface FormValues {
 }
 
 const CNBeneficiaryForm = ({
-  fields,
+  methods,
   countryCode,
   countryName,
   bankDetailsFields = [],
@@ -82,14 +79,12 @@ const CNBeneficiaryForm = ({
   });
   const [bankCurrency, setBankCurrency] = useState<"USD" | "CNY">("CNY");
   const typeFields = ["BANK", "ALIPAY", "WECHATPAY"] as cnBenType[];
-  const fieldsMap: FieldsMap = fields.reduce<FieldsMap>(
-    (acc, entry) => {
-      const key = Object.keys(entry)[0] as "BANK" | "ALIPAY" | "WECHATPAY";
-      acc[key] = entry[key];
-      return acc;
-    },
-    { BANK: [], ALIPAY: [], WECHATPAY: [] }
-  );
+  const fieldsMap: FieldsMap = {
+    BANK: methods.BANK || [],
+    ALIPAY: methods.ALIPAY || [],
+    WECHATPAY: methods.WECHATPAY || [],
+    ...methods,
+  };
   const formDetail = type !== null ? fieldsMap[type] || [] : [];
   const bankDetailsFieldNames = bankDetailsFields.map((field) => field.name);
   // console.log("bbb", bankDetailsFieldNames);
@@ -421,8 +416,8 @@ const CNBeneficiaryForm = ({
             </label>
             <div className="flex flex-col gap-3">
               {subField.enum.map((option) => (
-                <button
-                  type="button"
+                <div
+                role="button"
                   onClick={() => formik.setFieldValue(fieldName, option)}
                   key={option}
                   className="flex items-center gap-2"
@@ -437,7 +432,7 @@ const CNBeneficiaryForm = ({
                       .toLowerCase()
                       .replace(/^./, (c) => c.toUpperCase())}
                   </span>
-                </button>
+                </div>
               ))}
             </div>
             {formik.errors[fieldName] && formik.touched[fieldName] && (
@@ -646,7 +641,9 @@ const CNBeneficiaryForm = ({
   };
   return (
     <div className="my-5">
+            <p className=" text-sm font-medium font-brSonoma leading-normal mb-3 text-yellow-500">Note: For China BANK transfers, Sender name and beneficiary name must exactly match the name on the attached invoice</p>
       <InputLabel content="Send type" />
+
       <ModalTrigger
         onClick={() => setOpenModal("type")}
         placeholder="Select type "
@@ -754,8 +751,8 @@ const CNBeneficiaryForm = ({
                     </label>
                     <div className="flex flex-col gap-3">
                       {field.enum.map((option) => (
-                        <button
-                          type="button"
+                        <div
+                          role="button"
                           onClick={() =>
                             formik.setFieldValue(field.name, option)
                           }
@@ -774,7 +771,7 @@ const CNBeneficiaryForm = ({
                               .toLowerCase()
                               .replace(/^./, (c) => c.toUpperCase())}
                           </span>
-                        </button>
+                        </div>
                       ))}
                     </div>
                     {formik.errors[field.name] &&

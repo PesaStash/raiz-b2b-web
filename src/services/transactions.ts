@@ -30,8 +30,10 @@ import {
   IUsBeneficiariesParams,
   IUsBeneficiariesResponse,
   IUsBeneficiaryPayload,
+  NormalizedIntBeneficiaryFormFields,
   VolumeAndActivityData,
 } from "@/types/services";
+import { normalizeRemittanceFormFields } from "@/utils/remittanceFormFields";
 import {
   INgnTempPaymentLinkPayload,
   IRate,
@@ -393,11 +395,12 @@ export const SendCryptoApi = async (
   return response?.data;
 };
 
-export const GetIntBeneficiaryFormFields = async () => {
+export const GetIntBeneficiaryFormFields =
+  async (): Promise<NormalizedIntBeneficiaryFormFields> => {
   const response = await AuthAxios.get(
     `/business/transactions/remittance/form-fields/`,
   );
-  return response?.data;
+  return normalizeRemittanceFormFields(response?.data);
 };
 
 export const FetchIntBeneficiariesApi = async (

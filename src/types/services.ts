@@ -324,6 +324,26 @@ export interface FormField {
   banks?: IBeneficiaryBank[];
 }
 
+export type IntBeneficiaryMethodFields = Record<string, FormField[]>;
+
+export type IntBeneficiaryCountryRawEntry = FormField | IntBeneficiaryMethodFields;
+
+export type IntBeneficiaryCountryRaw = IntBeneficiaryCountryRawEntry[];
+
+export type IntBeneficiaryFormFieldsRaw = Record<string, IntBeneficiaryCountryRaw>;
+
+export interface NormalizedIntBeneficiaryCountryFields {
+  methods: IntBeneficiaryMethodFields;
+  methodEntries: IntBeneficiaryMethodFields[];
+  defaultMethod: string;
+  flatFields: FormField[];
+}
+
+export type NormalizedIntBeneficiaryFormFields = Record<
+  string,
+  NormalizedIntBeneficiaryCountryFields
+>;
+
 export interface IUsBeneficiaryPayload {
   optionType: IUsBeneficiaryOptionType;
   label: string;
