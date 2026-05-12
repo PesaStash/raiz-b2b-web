@@ -112,12 +112,24 @@ const GlobalBeneficiary = ({ close }: Props) => {
       country: z.any().refine((val) => val !== "", "Country is required"),
     };
 
-    fields.forEach((field) => {
+    const appendFieldSchema = (field: FormField, parentName = "") => {
+      if (!field.name) {
+        return;
+      }
+      const fieldName = parentName ? `${parentName}_${field.name}` : field.name;
+
+      if (field.type === "object" && field.fields?.length) {
+        field.fields.forEach((nestedField) =>
+          appendFieldSchema(nestedField, fieldName),
+        );
+        return;
+      }
+
       let fieldSchema = z.string();
 
       // Add required validation
       if (field.required && !field.const) {
-        fieldSchema = fieldSchema.min(1, `${field.name} is required`);
+        fieldSchema = fieldSchema.min(1, `${fieldName} is required`);
       }
 
       const minLength = field.min_length ?? field.minLength;
@@ -131,7 +143,7 @@ const GlobalBeneficiary = ({ close }: Props) => {
       if (typeof maxLength === "number" && maxLength > 0) {
         fieldSchema = fieldSchema.max(
           maxLength,
-          `${field.name} must be at most ${maxLength} characters`,
+          `${fieldName} must be at most ${maxLength} characters`,
         );
       }
 
@@ -147,7 +159,7 @@ const GlobalBeneficiary = ({ close }: Props) => {
           fieldSchema = fieldSchema.regex(regex, readableMessage);
         } catch (error) {
           console.log(
-            `Invalid regex pattern for ${field.name}: ${field.pattern}`,
+            `Invalid regex pattern for ${fieldName}: ${field.pattern}`,
             error,
           );
         }
@@ -162,10 +174,71 @@ const GlobalBeneficiary = ({ close }: Props) => {
         });
       }
 
-      schemaShape[field.name] = finalSchema;
-    });
+      schemaShape[fieldName] = finalSchema;
+    };
+
+    fields.forEach((field) => appendFieldSchema(field));
 
     return z.object(schemaShape);
+  };
+
+  const collectFieldNames = (inputFields: FormField[], parentName = ""): string[] =>
+    inputFields.flatMap((field) => {
+      if (!field.name) {
+        return [];
+      }
+      const fieldName = parentName ? `${parentName}_${field.name}` : field.name;
+      if (field.type === "object" && field.fields?.length) {
+        return collectFieldNames(field.fields, fieldName);
+      }
+      return [fieldName];
+    });
+
+  const collectObjectFieldNames = (
+    inputFields: FormField[],
+    parentName = "",
+  ): string[] =>
+    inputFields.flatMap((field) => {
+      if (!field.name) {
+        return [];
+      }
+
+      const fieldName = parentName ? `${parentName}_${field.name}` : field.name;
+      if (field.type === "object") {
+        return field.fields?.length
+          ? [fieldName, ...collectObjectFieldNames(field.fields, fieldName)]
+          : [fieldName];
+      }
+
+      return [];
+    });
+
+  const nestObjectValues = (
+    values: Record<string, string>,
+    objectFields: string[],
+  ) => {
+    const transformed = { ...values } as Record<string, any>;
+    const sortedObjectFields = [...objectFields].sort(
+      (left, right) => right.length - left.length,
+    );
+
+    sortedObjectFields.forEach((objectField) => {
+      const prefix = `${objectField}_`;
+      const nestedValues: Record<string, string> = {};
+
+      Object.keys(transformed).forEach((key) => {
+        if (key.startsWith(prefix)) {
+          nestedValues[key.slice(prefix.length)] = transformed[key];
+          delete transformed[key];
+        }
+      });
+
+      if (Object.keys(nestedValues).length) {
+        transformed[objectField] = nestedValues;
+      }
+    });
+
+    return transformed;
   };
 
   const formikConfig: FormikConfig<FormValues> = {
@@ -174,10 +247,12 @@ const GlobalBeneficiary = ({ close }: Props) => {
     onSubmit: async (values, { resetForm, setSubmitting }) => {
       try {
         const { country, ...restValues } = values;
+        const objectFieldNames = collectObjectFieldNames(fields);
+        const transformedValues = nestObjectValues(restValues, objectFieldNames);
         const payload = {
           country: country?.value as IntCountryType,
           customer_email: user?.business_account?.business_email || null,
-          data: { ...restValues },
+          data: { ...transformedValues },
         };
         await AddBeneficiaryMutation.mutateAsync(payload);
         resetForm();
@@ -253,6 +328,7 @@ const GlobalBeneficiary = ({ close }: Props) => {
 
     setCountryMethods(resolved.methods);
     setFields(resolved.fields);
+    const valueFieldNames = collectFieldNames(resolved.fields);
     formik.setFormikState((prev) => ({
       ...prev,
       validationSchema: toFormikValidationSchema(
@@ -261,9 +337,9 @@ const GlobalBeneficiary = ({ close }: Props) => {
     }));
     const newValues: FormValues = {
       country: formik.values.country,
-      ...resolved.fields.reduce<Record<string, string>>(
-        (acc: Record<string, string>, field: FormField) => {
-          acc[field.name] = formik.values[field.name] || field.const || "";
+      ...valueFieldNames.reduce<Record<string, string>>(
+        (acc: Record<string, string>, fieldName: string) => {
+          acc[fieldName] = formik.values[fieldName] || "";
           return acc;
         },
         {},
