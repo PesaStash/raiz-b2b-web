@@ -16,7 +16,7 @@ const Tabs = <T,>({ options, selected, onChange, className }: TabsProps<T>) => {
         <button
           key={index}
           onClick={() => onChange(option.value)}
-          className={`p-2 rounded-xl w-1/2 transition-all duration-300 ease-in-out lg:text-[10px] xl:text-sm ${
+          className={`p-2 rounded-xl flex-1 transition-all duration-300 ease-in-out lg:text-[10px] xl:text-sm ${
             selected === option.value
               ? "bg-raiz-gray-50 text-raiz-gray-950 font-bold leading-[16.80px]"
               : "text-raiz-gray-500 leading-tight"
