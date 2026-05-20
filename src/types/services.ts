@@ -324,6 +324,26 @@ export interface FormField {
   banks?: IBeneficiaryBank[];
 }
 
+export type IntBeneficiaryMethodFields = Record<string, FormField[]>;
+
+export type IntBeneficiaryCountryRawEntry = FormField | IntBeneficiaryMethodFields;
+
+export type IntBeneficiaryCountryRaw = IntBeneficiaryCountryRawEntry[];
+
+export type IntBeneficiaryFormFieldsRaw = Record<string, IntBeneficiaryCountryRaw>;
+
+export interface NormalizedIntBeneficiaryCountryFields {
+  methods: IntBeneficiaryMethodFields;
+  methodEntries: IntBeneficiaryMethodFields[];
+  defaultMethod: string;
+  flatFields: FormField[];
+}
+
+export type NormalizedIntBeneficiaryFormFields = Record<
+  string,
+  NormalizedIntBeneficiaryCountryFields
+>;
+
 export interface IUsBeneficiaryPayload {
   optionType: IUsBeneficiaryOptionType;
   label: string;
@@ -777,4 +797,69 @@ export interface IAPIKeyLogs {
 export interface IAPIKeyLogsResponse {
   logs: IAPIKeyLogs[];
   total: number;
+}
+
+export interface IAlipayWechatRateResponse {
+  channel: "alipay" | "wechat",
+  rate: string,
+  effective_at: string
+}
+
+export interface IAlipayWechatAmountQuoteResponse {
+  channel: "alipay" | "wechat",
+  destination_amount: string,
+  rate: string,
+  naira_amount: string
+}
+
+export interface ICreateAlipayWechatBeneficiaryPayload {
+  channel: "alipay" | "wechat",
+  name: string,
+  qr_code: File,
+  email: string,
+}
+
+export interface IAlipayWechatBeneficiary {
+alipay_wechat_beneficiary_id: string,
+  entity_id: string,
+  channel: "alipay" | "wechat",
+  name: string,
+  email: string,
+  phone_number: string,
+  qr_code_url: string,
+  ranking: number,
+  created_at: string,
+  updated_at: string
+}
+
+export interface IAlipayWechatBeneficiariesResponse {
+  pagination: IPagination;
+  beneficiaries: IAlipayWechatBeneficiary[];
+}
+
+
+export interface IAlipayWechatSendResponse {
+  alipay_wechat_transaction_request_id: string;
+  entity_id: string;
+  wallet_id: string;
+  beneficiary_id: string;
+  channel: "alipay" | "wechat";
+  destination_amount: string;
+  rate: string;
+  naira_amount: string;
+  status: "pending" | "completed" | "failed";
+  initiated_at: string;
+  liquidated_at: string | null;
+  transaction_report_id: string | null;
+  original_ledger_transaction_id: string | null;
+  reversal_ledger_transaction_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface IAlipayWechatSendPayload {
+  beneficiary_id: string;
+  channel: "alipay" | "wechat";
+  amount: string;
+  transaction_pin: string;
 }
