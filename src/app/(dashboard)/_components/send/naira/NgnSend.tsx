@@ -7,6 +7,7 @@ import { useSendStore } from "@/store/Send";
 import NgnToRaizers from "./toRaizers/NgnToRaizers";
 import { INGNSendOptions } from "@/types/misc";
 import NgnBankTransfer from "./toBanks/NgnBankTransfer";
+import AlipayWechatSend from "./alipayWechat/AlipayWechatSend";
 import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 
 const NgnSend = ({ close }: { close: () => void }) => {
@@ -45,14 +46,17 @@ const NgnSend = ({ close }: { close: () => void }) => {
         <Tabs
           options={[
             { label: "Send to Raizer", value: "to Raizer" },
-            { label: "Send to other bank", value: "to other bank" },
+            { label: "Send to bank", value: "to other bank" },
+            { label: "Alipay / WeChat", value: "alipay-wechat" },
           ]}
           selected={ngnSendType}
           onChange={handleTypeChange}
         />
       )}
       <div className="mb-5" />
-      {ngnSendType === "to Raizer" ? <NgnToRaizers /> : <NgnBankTransfer />}
+      {ngnSendType === "to Raizer" && <NgnToRaizers />}
+      {ngnSendType === "to other bank" && <NgnBankTransfer />}
+      {ngnSendType === "alipay-wechat" && <AlipayWechatSend close={close} />}
     </div>
   );
 };

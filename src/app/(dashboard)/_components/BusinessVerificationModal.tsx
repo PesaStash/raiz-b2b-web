@@ -1,9 +1,11 @@
 import Button from "@/components/ui/Button";
 import InputField from "@/components/ui/InputField";
+import SelectField from "@/components/ui/SelectField";
+import AddressAutocomplete from "@/components/ui/AddressAutocomplete";
 import { useFormik } from "formik";
-import React, { useRef } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import useCountryStore from "@/store/useCountryStore";
 import { z } from "zod";
-import { useLoadScript, Autocomplete, Libraries } from "@react-google-maps/api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BusinessVerificationApi } from "@/services/user";
 import { IBusinessVerificationPayload } from "@/types/services";
@@ -12,7 +14,7 @@ import { useUser } from "@/lib/hooks/useUser";
 import { sanitizeAddressField } from "@/utils/helpers";
 
 const nigerianRegNumberRegex = /^(RC|BN|IT|LP)?[\s-]*\d{4,9}$/i;
-const libraries: Libraries = ["places"];
+
 const BusinessSchema = z.object({
   business_name: z.string().min(1, "Business name is required"),
   business_registration_number: z
@@ -22,29 +24,51 @@ const BusinessSchema = z.object({
     .string()
     .email("Invalid email address")
     .min(1, "Email is required"),
-  address: z.string().min(1, "Address is required"),
-  country_code: z.string().optional(),
-  state: z.string().optional(),
+  address: z.string().optional(),
+  country_code: z.string().min(1, "Country is required"),
+  state: z.string().min(1, "State is required"),
   zip_code: z.string().optional(),
-  street: z.string().optional(),
+  street: z.string().min(1, "Street is required"),
   building_number: z.string().optional(),
-  city: z.string().optional(),
-  length_of_stay_months: z.number().min(6).optional(),
+  city: z.string().min(1, "City is required"),
+  length_of_stay_months: z.coerce
+    .number({ invalid_type_error: "Length of stay is required" })
+    .min(6, "Minimum length of stay is 6 months"),
 });
 
 type BusinessFormValues = z.infer<typeof BusinessSchema>;
 
+const mapZodFieldErrors = (
+  fieldErrors: Record<string, string[] | undefined>
+): Partial<Record<keyof BusinessFormValues, string>> =>
+  Object.fromEntries(
+    Object.entries(fieldErrors)
+      .filter((entry): entry is [string, string[]] => !!entry[1]?.length)
+      .map(([key, messages]) => [key, messages[0]])
+  ) as Partial<Record<keyof BusinessFormValues, string>>;
+
 const BusinessVerificationModal = ({ close }: { close: () => void }) => {
-  // Load Google Maps script
-  const { isLoaded } = useLoadScript({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API || "",
-    libraries,
-  });
+  const [useManualAddress, setUseManualAddress] = useState(false);
+  const { countries, fetchCountries, loading: countriesLoading } =
+    useCountryStore();
   const { user } = useUser();
+
+  useEffect(() => {
+    fetchCountries();
+  }, [fetchCountries]);
+
+  const countryOptions = useMemo(
+    () =>
+      countries.map((country) => ({
+        value: country.country_code,
+        label: country.country_name,
+      })),
+    [countries]
+  );
+
   const isNigerian =
     user?.business_account?.entity?.country?.country_name?.toLowerCase() ===
     "nigeria";
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const qc = useQueryClient();
   const BusinessVerificationMutation = useMutation({
     mutationFn: (payload: IBusinessVerificationPayload) =>
@@ -86,14 +110,15 @@ const BusinessVerificationModal = ({ close }: { close: () => void }) => {
       street: "",
       building_number: "",
       city: "",
-      length_of_stay_months: 0,
+      length_of_stay_months: undefined as unknown as number,
       address: "",
     },
+    validateOnChange: true,
     validate: (values) => {
       const result = getEffectiveSchema().safeParse(values);
 
       if (!result.success) {
-        return result.error.flatten().fieldErrors;
+        return mapZodFieldErrors(result.error.flatten().fieldErrors);
       }
     },
     onSubmit: (values) => {
@@ -112,43 +137,31 @@ const BusinessVerificationModal = ({ close }: { close: () => void }) => {
     },
   });
 
-  const handlePlaceChanged = () => {
-    const place = autocompleteRef.current?.getPlace();
-    if (!place || !place.address_components) return;
-    console.log("places", place.address_components);
+  const selectedCountry = useMemo(
+    () =>
+      countryOptions.find(
+        (option) => option.value === formik.values.country_code
+      ) ?? null,
+    [countryOptions, formik.values.country_code]
+  );
 
-    const components: Record<string, string> = {
-      street: "",
-      city: "",
-      state: "",
-      zip_code: "",
-      country_code: "",
-      building_number: "",
-    };
+  const hasRequiredAddress =
+    !!formik.values.city &&
+    !!formik.values.state &&
+    !!formik.values.street &&
+    !!formik.values.country_code;
 
-    for (const component of place.address_components) {
-      const types = component.types;
-      if (types.includes("street_number"))
-        components.building_number = component.long_name;
-      if (types.includes("route")) components.street = component.long_name;
-      if (types.includes("administrative_area_level_2"))
-        components.city = component.long_name;
-      if (types.includes("administrative_area_level_1"))
-        components.state = component.long_name;
-      if (types.includes("postal_code"))
-        components.zip_code = component.long_name;
-      if (types.includes("country"))
-        components.country_code = component.short_name;
-    }
-
-    formik.setValues({
-      ...formik.values,
-      address: place.formatted_address ?? "",
-      ...components,
-    });
+  const fieldError = (name: keyof BusinessFormValues) => {
+    const error = formik.touched[name] && formik.errors[name];
+    if (!error) return null;
+    return Array.isArray(error) ? (error.length ? "error" : null) : "error";
   };
 
-  if (!isLoaded) return <div>Loading...</div>;
+  const fieldErrorMessage = (name: keyof BusinessFormValues) => {
+    const error = formik.touched[name] && formik.errors[name];
+    if (!error) return undefined;
+    return Array.isArray(error) ? error[0] : error;
+  };
 
   return (
     <form
@@ -162,81 +175,135 @@ const BusinessVerificationModal = ({ close }: { close: () => void }) => {
         <InputField
           label="Business Name"
           {...formik.getFieldProps("business_name")}
-          status={
-            formik.touched.business_name && formik.errors.business_name
-              ? "error"
-              : null
-          }
-          errorMessage={
-            formik.touched.business_name && formik.errors.business_name
-          }
+          status={fieldError("business_name")}
+          errorMessage={fieldErrorMessage("business_name")}
         />
         <InputField
           label="Business Registration Number"
           {...formik.getFieldProps("business_registration_number")}
-          status={
-            formik.touched.business_registration_number &&
-            formik.errors.business_registration_number
-              ? "error"
-              : null
-          }
-          errorMessage={
-            formik.touched.business_registration_number &&
-            formik.errors.business_registration_number
-          }
+          status={fieldError("business_registration_number")}
+          errorMessage={fieldErrorMessage("business_registration_number")}
         />
         <InputField
           label="Business Email"
           type="email"
           {...formik.getFieldProps("business_email")}
-          status={
-            formik.touched.business_email && formik.errors.business_email
-              ? "error"
+          status={fieldError("business_email")}
+          errorMessage={fieldErrorMessage("business_email")}
+        />
+            <SelectField
+          label="Country"
+          name="country_code"
+          placeholder="Select country"
+          options={countryOptions}
+          value={selectedCountry}
+          isLoading={countriesLoading}
+          onChange={(option) => {
+            const code =
+              option?.value != null ? String(option.value) : "";
+            formik.setFieldValue("country_code", code, true);
+            formik.setFieldTouched("country_code", true, false);
+          }}
+          status={fieldError("country_code")}
+          helper={
+            fieldErrorMessage("country_code")
+              ? String(fieldErrorMessage("country_code"))
               : null
           }
-          errorMessage={
-            formik.touched.business_email && formik.errors.business_email
-          }
         />
-        {/* Address Autocomplete */}
-        <label className="text-sm font-medium text-gray-700">
-          Business Address
-        </label>
-        <Autocomplete
-          onLoad={(autocomplete) => (autocompleteRef.current = autocomplete)}
-          onPlaceChanged={handlePlaceChanged}
-        >
-          <input
-            type="text"
-            placeholder="Start typing address..."
-            className={`w-full p-[15px] h-[50px] text-sm text-raiz-gray-950  border bg-raiz-gray-100 focus:bg-white focus:border-raiz-gray-600 active:border-raiz-gray-600  outline-none rounded-lg leading-tight placeholder:text-raiz-gray-400 placeholder:text-sm border-raiz-gray-100`}
+
+        <div className="flex items-center justify-between gap-2">
+          <label className="text-sm font-medium text-gray-700">
+            Business Address
+          </label>
+          <button
+            type="button"
+            onClick={() => setUseManualAddress((prev) => !prev)}
+            className="text-sm text-raiz-purple-90 font-semibold hover:underline shrink-0"
+          >
+            {useManualAddress
+              ? "Search address instead"
+              : "Enter address manually"}
+          </button>
+        </div>
+
+        {useManualAddress ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <InputField
+              label="Building / Unit No"
+              {...formik.getFieldProps("building_number")}
+              status={fieldError("building_number")}
+              errorMessage={fieldErrorMessage("building_number")}
+            />
+            <InputField
+              label="Street"
+              {...formik.getFieldProps("street")}
+              status={fieldError("street")}
+              errorMessage={fieldErrorMessage("street")}
+            />
+            <InputField
+              label="City"
+              {...formik.getFieldProps("city")}
+              status={fieldError("city")}
+              errorMessage={fieldErrorMessage("city")}
+            />
+            <InputField
+              label="State / Region"
+              {...formik.getFieldProps("state")}
+              status={fieldError("state")}
+              errorMessage={fieldErrorMessage("state")}
+            />
+            <InputField
+              label="ZIP / Postal Code"
+              {...formik.getFieldProps("zip_code")}
+              status={fieldError("zip_code")}
+              errorMessage={fieldErrorMessage("zip_code")}
+            />
+          </div>
+        ) : (
+          <AddressAutocomplete
+            value={formik.values.address}
+            onChange={(value) => formik.setFieldValue("address", value)}
+            onAddressSelect={(components) => {
+              formik.setValues({
+                ...formik.values,
+                address: components.address ?? formik.values.address,
+                building_number:
+                  components.building_number ?? formik.values.building_number,
+                street: components.street ?? formik.values.street,
+                city: components.city ?? formik.values.city,
+                state: components.state ?? formik.values.state,
+                zip_code: components.zip_code ?? formik.values.zip_code,
+                country_code:
+                  components.country_code ?? formik.values.country_code,
+              });
+            }}
+            placeholder="Start typing your business address..."
+            touched={formik.touched.street || formik.touched.city}
+            error={
+              !hasRequiredAddress &&
+              (formik.touched.address || formik.submitCount > 0)
+                ? "Select an address from the suggestions"
+                : false
+            }
           />
-        </Autocomplete>
-        {formik.touched.address && formik.errors.address && (
-          <p className="text-red-500 text-xs">{formik.errors.address}</p>
         )}
+
+    
 
         <InputField
           label="Length of Stay (Months)"
           {...formik.getFieldProps("length_of_stay_months")}
           type="number"
-          status={
-            formik.touched.length_of_stay_months &&
-            formik.errors.length_of_stay_months
-              ? "error"
-              : null
-          }
-          errorMessage={
-            formik.touched.length_of_stay_months &&
-            formik.errors.length_of_stay_months
-          }
+          min={6}
+          status={fieldError("length_of_stay_months")}
+          errorMessage={fieldErrorMessage("length_of_stay_months")}
         />
       </div>
       <Button
         disabled={
           !formik.dirty ||
-          !formik.values.city ||
-          !formik.values.state ||
+          !hasRequiredAddress ||
           BusinessVerificationMutation.isPending
         }
         loading={BusinessVerificationMutation.isPending}
