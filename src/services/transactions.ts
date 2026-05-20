@@ -3,6 +3,12 @@ import { AuthAxios, CustomAxiosRequestConfig } from "@/lib/authAxios";
 import { PublicAxios } from "@/lib/publicAxios";
 import {
   IAcceptRequestPayload,
+  IAlipayWechatAmountQuoteResponse,
+  IAlipayWechatBeneficiariesResponse,
+  IAlipayWechatBeneficiary,
+  IAlipayWechatRateResponse,
+  IAlipayWechatSendPayload,
+  IAlipayWechatSendResponse,
   IBeneficiariestResponse,
   IBillRequestMetricsResponse,
   IBillRequestParams,
@@ -30,8 +36,10 @@ import {
   IUsBeneficiariesParams,
   IUsBeneficiariesResponse,
   IUsBeneficiaryPayload,
+  NormalizedIntBeneficiaryFormFields,
   VolumeAndActivityData,
 } from "@/types/services";
+import { normalizeRemittanceFormFields } from "@/utils/remittanceFormFields";
 import {
   INgnTempPaymentLinkPayload,
   IRate,
@@ -393,11 +401,12 @@ export const SendCryptoApi = async (
   return response?.data;
 };
 
-export const GetIntBeneficiaryFormFields = async () => {
+export const GetIntBeneficiaryFormFields =
+  async (): Promise<NormalizedIntBeneficiaryFormFields> => {
   const response = await AuthAxios.get(
     `/business/transactions/remittance/form-fields/`,
   );
-  return response?.data;
+  return normalizeRemittanceFormFields(response?.data);
 };
 
 export const FetchIntBeneficiariesApi = async (
@@ -688,3 +697,31 @@ export const GetUsdAmountTempPaymentLink = async (amount: string) => {
   );
   return response.data;
 };
+
+
+export const GetAlipayWechatRateApi = async (channel: "alipay" | "wechat"): Promise<IAlipayWechatRateResponse> => {
+  const response = await AuthAxios.get(`/business/transactions/alipay-wechat/rate/?channel=${channel}`);
+  return response.data;
+}
+
+export const AlipayWechatAmountQuoteApi = async ({ payload }: { payload: { channel: "alipay" | "wechat", amount: number } }): Promise<IAlipayWechatAmountQuoteResponse> => {
+  const response = await AuthAxios.post(`/business/transactions/alipay-wechat/amount/`, payload);
+  return response.data;
+}
+
+export const CreateAlipayWechatBeneficiaryApi = async (formData: FormData): Promise<IAlipayWechatBeneficiary> => {
+  const response = await AuthAxios.post(`/business/transactions/alipay-wechat/beneficiaries/`, formData, {headers: { "Content-Type": "multipart/form-data" }});
+  return response.data;
+}
+
+export const GetAlipayWechatBeneficiariesApi = async (params: { page?: number; limit?: number }): Promise<IAlipayWechatBeneficiariesResponse> => {
+  const queryParams = Object.fromEntries(Object.entries(params).filter(([, v]) => v != null));
+  const response = await AuthAxios.get(`/business/transactions/alipay-wechat/beneficiaries/`, { params: queryParams, silent: true } as CustomAxiosRequestConfig);
+  return response.data;
+}
+
+
+export const AlipayWechatSendApi = async (payload: IAlipayWechatSendPayload): Promise<IAlipayWechatSendResponse> => {
+  const response = await AuthAxios.post(`/business/transactions/alipay-wechat/send/`, payload);
+  return response.data;
+}

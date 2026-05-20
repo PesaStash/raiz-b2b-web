@@ -55,7 +55,7 @@ export type IUSDSendOptions =
   | "to zelle"
   | "to cashapp";
 
-export type INGNSendOptions = "to Raizer" | "to other bank";
+export type INGNSendOptions = "to Raizer" | "to other bank" | "alipay-wechat";
 
 export interface ICountry {
   country_name: string;
