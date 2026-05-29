@@ -14,6 +14,8 @@ const TopUp = ({ close }: Props) => {
   const { selectedCurrency, selectedWallet } = useCurrencyStore();
   const NGNAcct = findWalletByCurrency(user, "NGN");
   const USDAcct = findWalletByCurrency(user, "USD");
+  const GBPAcct = findWalletByCurrency(user, "GBP");
+  const EURAcct = findWalletByCurrency(user, "EUR");
 
   const getCurrentWallet = () => {
     if (selectedWallet) {
@@ -23,13 +25,27 @@ const TopUp = ({ close }: Props) => {
         return NGNAcct;
       } else if (selectedCurrency.name === "USD") {
         return USDAcct;
+      } else if (selectedCurrency.name === "GBP") {
+        return GBPAcct;
+      } else if (selectedCurrency.name === "EUR") {
+        return EURAcct;
       }
     }
   };
 
   const isUSD = selectedCurrency.name === "USD";
+  const isGBP = selectedCurrency.name === "GBP";
+  const isEUR = selectedCurrency.name === "EUR";
+  const isForeign = isGBP || isEUR;
 
   const currentWallet = getCurrentWallet();
+  const accountNumber =
+    isEUR ? currentWallet?.iban || currentWallet?.account_number : currentWallet?.account_number;
+  const sortCode =
+    currentWallet?.sort_code ||
+    currentWallet?.routing?.find((route) => route.routing_type_name === "FASTER_PAYMENTS")
+      ?.routing;
+
   return (
     <div className="pb-8 flex flex-col justify-between xl:h-[95vh]">
       <div className="mb-3 ">
@@ -66,18 +82,16 @@ const TopUp = ({ close }: Props) => {
               <span
                 className={`text-center justify-start text-raiz-gray-600  font-normal leading-normal`}
               >
-                Account Number
+                {isEUR ? "IBAN" : "Account Number"}
               </span>
               <div className="flex items-center gap-2">
                 <p
                   className={`${isUSD ? "text-right" : "text-center text-lg"} justify-start text-raiz-gray-950  font-semibold  leading-normal`}
                 >
-                  {currentWallet?.account_number || ""}
+                  {accountNumber || ""}
                 </p>
                 <button
-                  onClick={() =>
-                    copyToClipboard(currentWallet?.account_number || "")
-                  }
+                  onClick={() => copyToClipboard(accountNumber || "")}
                 >
                   <Image
                     src={"/icons/copy.svg"}
@@ -88,6 +102,26 @@ const TopUp = ({ close }: Props) => {
                 </button>
               </div>
             </div>
+            {isGBP && (
+              <div className="w-full flex flex-col justify-center items-center">
+                <span className="text-center justify-start text-raiz-gray-600 font-normal leading-normal">
+                  Sort Code
+                </span>
+                <div className="flex items-center gap-2">
+                  <p className="text-center text-lg justify-start text-raiz-gray-950 font-semibold leading-normal">
+                    {sortCode || ""}
+                  </p>
+                  <button onClick={() => copyToClipboard(sortCode || "")}>
+                    <Image
+                      src={"/icons/copy.svg"}
+                      alt={"copy"}
+                      width={16}
+                      height={16}
+                    />
+                  </button>
+                </div>
+              </div>
+            )}
             {/* Routing Number (ACH) */}
             {selectedCurrency.name === "USD" && (
               <div className="w-full flex  justify-between text-[15px] items-center">
@@ -154,9 +188,31 @@ const TopUp = ({ close }: Props) => {
                 </div>
               </div>
             )}
+            {isEUR && (
+              <div className="w-full flex flex-col justify-center items-center">
+                <span className="text-center justify-start text-raiz-gray-600 font-normal leading-normal">
+                  BIC
+                </span>
+                <div className="flex items-center gap-2">
+                  <p className="text-center text-lg justify-start text-raiz-gray-950 font-semibold leading-normal">
+                    {currentWallet?.bic || ""}
+                  </p>
+                  <button
+                    onClick={() => copyToClipboard(currentWallet?.bic || "")}
+                  >
+                    <Image
+                      src={"/icons/copy.svg"}
+                      alt={"copy"}
+                      width={16}
+                      height={16}
+                    />
+                  </button>
+                </div>
+              </div>
+            )}
             {/* Currency */}
             <div
-              className={`w-full flex ${selectedCurrency.name === "NGN" ? "flex-col" : "justify-between"} items-center text-[15px]`}
+              className={`w-full flex ${!isUSD ? "flex-col" : "justify-between"} items-center text-[15px]`}
             >
               <span className="text-center justify-start text-raiz-gray-600  font-normal leading-normal">
                 Currency
@@ -165,6 +221,16 @@ const TopUp = ({ close }: Props) => {
                 {currentWallet?.wallet_type.currency || ""}
               </p>
             </div>
+            {isForeign && (
+              <div className="w-full flex flex-col justify-center items-center">
+                <span className="text-center justify-start text-raiz-gray-600 text-[15px] font-normal leading-normal">
+                  Bank Address
+                </span>
+                <p className="text-center text-raiz-gray-950 text-[15px] font-semibold leading-normal">
+                  {currentWallet?.bank_address || ""}
+                </p>
+              </div>
+            )}
             {/*  Address */}
             {selectedCurrency.name === "USD" && (
               <div className="w-full flex  justify-between items-center">

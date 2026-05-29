@@ -3,11 +3,16 @@ import React from "react";
 import Image from "next/image";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CreateUSDWalletApi } from "@/services/business";
+import { CreateForeignAccountApi, CreateUSDWalletApi } from "@/services/business";
 import { toast } from "sonner";
-import { findWalletByCurrency, truncateString } from "@/utils/helpers";
+import {
+  findWalletByCurrency,
+  getApiErrorMessage,
+  truncateString,
+} from "@/utils/helpers";
 import { useUser } from "@/lib/hooks/useUser";
 import { useSendStore } from "@/store/Send";
+import { ForeignCurrency } from "@/types/services";
 
 interface Props {
   close: () => void;
@@ -16,20 +21,40 @@ interface Props {
 }
 
 const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
-  const { user } = useUser();
+  const { user, refetch } = useUser();
   const { actions } = useSendStore();
   const { selectedCurrency, setSelectedCurrency } = useCurrencyStore();
   const NGNAcct = findWalletByCurrency(user, "NGN");
   const USDAcct = findWalletByCurrency(user, "USD");
+  const GBPAcct = findWalletByCurrency(user, "GBP");
+  const EURAcct = findWalletByCurrency(user, "EUR");
   const CryptoAcct = findWalletByCurrency(user, "SBC");
 
   const qc = useQueryClient();
   const USDWalletMutation = useMutation({
     mutationFn: CreateUSDWalletApi,
-    onSuccess: (response) => {
+    onSuccess: async (response) => {
       toast.success(response?.message);
-      qc.invalidateQueries({ queryKey: ["user"] });
+      await qc.invalidateQueries({ queryKey: ["user"] });
+      const refreshedUser = await refetch();
+      setSelectedCurrency("USD", refreshedUser.data || user);
+      actions.selectCurrency("USD");
       close();
+    },
+  });
+
+  const foreignAccountMutation = useMutation({
+    mutationFn: (currency: ForeignCurrency) => CreateForeignAccountApi(currency),
+    onSuccess: async (_, currency) => {
+      toast.success(`${currency} account created successfully`);
+      await qc.invalidateQueries({ queryKey: ["user"] });
+      const refreshedUser = await refetch();
+      setSelectedCurrency(currency, refreshedUser.data || user);
+      actions.selectCurrency(currency);
+      close();
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, "Unable to create account"));
     },
   });
   const handleNgn = () => {
@@ -59,6 +84,23 @@ const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
     } else {
       openCryptoModal();
     }
+  };
+
+  const handleForeign = (currency: ForeignCurrency) => {
+    const account = currency === "GBP" ? GBPAcct : EURAcct;
+    if (account) {
+      setSelectedCurrency(currency, user);
+      actions.selectCurrency(currency);
+      close();
+      return;
+    }
+
+    if (!USDAcct) {
+      toast.warning("Set up your USD account first.");
+      return;
+    }
+
+    foreignAccountMutation.mutate(currency);
   };
 
   const isNigerian =
@@ -146,6 +188,86 @@ const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
             </button>
           )}
           {/* Crypto */}
+          <button
+            onClick={() => handleForeign("GBP")}
+            className={`px-3 py-4 justify-between items-center gap-10 w-full rounded-[20px] inline-flex ${
+              selectedCurrency.name === "GBP" && GBPAcct
+                ? "bg-[#eaecff]/60"
+                : "bg-white"
+            }`}
+          >
+            <div className="flex gap-3">
+              <Image
+                src={"/icons/flag-gb.png"}
+                alt="GBP"
+                width={40}
+                height={40}
+                className="rounded-full"
+              />
+              <div className="flex flex-col items-start">
+                <p className="text-raiz-gray-900 text-base font-medium font-brSonoma leading-tight">
+                  {GBPAcct
+                    ? GBPAcct.account_number || GBPAcct.iban || "GBP Account"
+                    : foreignAccountMutation.isPending &&
+                        foreignAccountMutation.variables === "GBP"
+                      ? "Creating your GBP account..."
+                      : "Get GBP Account"}
+                </p>
+                <p className="opacity-50 text-raiz-gray-950 text-[13px] font-normal leading-tight">
+                  {GBPAcct?.wallet_type.wallet_type_name || "GBP Account"}
+                </p>
+              </div>
+            </div>
+            {selectedCurrency.name === "GBP" && GBPAcct && (
+              <Image
+                src={"/icons/tick-circle.svg"}
+                alt=""
+                width={24}
+                height={24}
+              />
+            )}
+          </button>
+
+          <button
+            onClick={() => handleForeign("EUR")}
+            className={`px-3 py-4 justify-between items-center gap-10 w-full rounded-[20px] inline-flex ${
+              selectedCurrency.name === "EUR" && EURAcct
+                ? "bg-[#eaecff]/60"
+                : "bg-white"
+            }`}
+          >
+            <div className="flex gap-3">
+              <Image
+                src={"/icons/flag-fr.png"}
+                alt="EUR"
+                width={40}
+                height={40}
+                className="rounded-full"
+              />
+              <div className="flex flex-col items-start">
+                <p className="text-raiz-gray-900 text-base font-medium font-brSonoma leading-tight">
+                  {EURAcct
+                    ? EURAcct.iban || EURAcct.account_number || "EUR Account"
+                    : foreignAccountMutation.isPending &&
+                        foreignAccountMutation.variables === "EUR"
+                      ? "Creating your EUR account..."
+                      : "Get EUR Account"}
+                </p>
+                <p className="opacity-50 text-raiz-gray-950 text-[13px] font-normal leading-tight">
+                  {EURAcct?.wallet_type.wallet_type_name || "EUR Account"}
+                </p>
+              </div>
+            </div>
+            {selectedCurrency.name === "EUR" && EURAcct && (
+              <Image
+                src={"/icons/tick-circle.svg"}
+                alt=""
+                width={24}
+                height={24}
+              />
+            )}
+          </button>
+
           <button
             onClick={handleCrypto}
             className={`px-3 py-4  justify-between items-center gap-10 w-full rounded-[20px]  inline-flex ${

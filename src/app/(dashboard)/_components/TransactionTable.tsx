@@ -32,6 +32,7 @@ import Button from "@/components/ui/Button";
 import { useSendStore } from "@/store/Send";
 import NgnSend from "./send/naira/NgnSend";
 import UsdSend from "./send/usd/UsdSend";
+import ForeignSend from "./send/foreign/ForeignSend";
 import { AnimatePresence } from "motion/react";
 import SideModalWrapper from "./SideModalWrapper";
 import Pagination from "@/components/ui/Pagination";
@@ -72,8 +73,9 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
   const { selectedCurrency } = useCurrencyStore();
   const NGNAcct = findWalletByCurrency(user, "NGN");
   const USDAcct = findWalletByCurrency(user, "USD");
+  const GBPAcct = findWalletByCurrency(user, "GBP");
+  const EURAcct = findWalletByCurrency(user, "EUR");
   const SBCAcct = findWalletByCurrency(user, "SBC");
-  const { currency } = useSendStore();
   const [showSend, setShowSend] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [showDateRange, setShowDateRange] = useState(false);
@@ -223,6 +225,10 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
       return NGNAcct;
     } else if (selectedCurrency.name === "USD") {
       return USDAcct;
+    } else if (selectedCurrency.name === "GBP") {
+      return GBPAcct;
+    } else if (selectedCurrency.name === "EUR") {
+      return EURAcct;
     } else if (selectedCurrency.name === "SBC") {
       return SBCAcct;
     }
@@ -546,13 +552,17 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
           </CenterModalWrapper>
         )}
         {showSend ? (
-          currency === "NGN" ? (
+          selectedCurrency.name === "NGN" ? (
             <CenterModalWrapper close={() => setShowSend(false)}>
               <NgnSend close={() => setShowSend(false)} />
             </CenterModalWrapper>
-          ) : (
+          ) : selectedCurrency.name === "USD" ? (
             <CenterModalWrapper close={() => setShowSend(false)}>
               <UsdSend close={() => setShowSend(false)} />
+            </CenterModalWrapper>
+          ) : (
+            <CenterModalWrapper close={() => setShowSend(false)}>
+              <ForeignSend close={() => setShowSend(false)} />
             </CenterModalWrapper>
           )
         ) : null}

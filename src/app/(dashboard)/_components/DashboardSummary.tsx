@@ -32,6 +32,8 @@ import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 import CryptoSwap from "./crypto/swap/CryptoSwap";
 import { ACCOUNT_CURRENCIES } from "@/constants/misc";
 import CryptoSend from "./crypto/send/CryptoSend";
+import ForeignSend from "./send/foreign/ForeignSend";
+import ForeignAcctInfo from "./acctInfo/ForeignAcctInfo";
 
 type actionBtnKeytype = "send" | "request" | "topUp" | "details";
 
@@ -55,6 +57,8 @@ const DashboardSummary = () => {
   const pathName = usePathname();
   const NGNAcct = findWalletByCurrency(user, "NGN");
   const USDAcct = findWalletByCurrency(user, "USD");
+  const GBPAcct = findWalletByCurrency(user, "GBP");
+  const EURAcct = findWalletByCurrency(user, "EUR");
   const SBCAcct = findWalletByCurrency(user, "SBC");
   const verificationStatus =
     user?.business_account?.business_verifications?.[0]?.verification_status;
@@ -72,6 +76,10 @@ const DashboardSummary = () => {
       return NGNAcct;
     } else if (selectedCurrency.name === "USD") {
       return USDAcct;
+    } else if (selectedCurrency.name === "GBP") {
+      return GBPAcct;
+    } else if (selectedCurrency.name === "EUR") {
+      return EURAcct;
     } else if (selectedCurrency.name === "SBC") {
       return SBCAcct;
     }
@@ -98,6 +106,10 @@ const DashboardSummary = () => {
         "You do not have an account for this currency. Create one first!",
       );
     } else if (action === "details") {
+      if (selectedCurrency.name === "SBC") {
+        toast.warning("Account details are not available for your crypto wallet.");
+        return;
+      }
       setShowAcctInfo(true);
     } else {
       setOpenModal(action);
@@ -121,9 +133,11 @@ const DashboardSummary = () => {
       return;
     }
 
-    actions.switchSwapWallet(swapPair.toCurrency, walletData);
-    // Use the combined store's validation
-    const success = actions.switchSwapWallet(swapPair.toCurrency, walletData);
+    const success = actions.switchSwapWallet(
+      swapPair.toCurrency,
+      walletData,
+      swapPair.fromCurrency,
+    );
 
     if (success) {
       setOpenModal("swap");
@@ -147,12 +161,10 @@ const DashboardSummary = () => {
           <NgnSend close={closeModal} />
         ) : selectedCurrency?.name === "SBC" ? (
           <CryptoSend close={closeModal} />
-        ) : (
-          // selectedCurrency?.name === "SBC" ? (
-          //   <CryptoSend close={closeModal} />
-          // )
-          // :
+        ) : selectedCurrency?.name === "USD" ? (
           <UsdSend close={closeModal} />
+        ) : (
+          <ForeignSend close={closeModal} />
         );
       case "request":
         return <Request close={closeModal} />;
@@ -163,10 +175,7 @@ const DashboardSummary = () => {
           <Swap close={closeSwapModal} />
         );
       case "topUp":
-        return currency === "NGN" && <TopUp close={closeModal} />;
-      // ) : (
-      //   <UsdTopUp close={closeModal} />
-      // );
+        return selectedCurrency?.name !== "USD" ? <TopUp close={closeModal} /> : null;
       case "createNGN":
         return (
           <CreateNgnAcct
@@ -189,6 +198,10 @@ const DashboardSummary = () => {
         return "hover:!bg-primary2";
       case "sbc":
         return "hover:!bg-raiz-crypto-primary";
+      case "gbp":
+        return "hover:!bg-raiz-gbp-primary";
+      case "eur":
+        return "hover:!bg-raiz-eur-primary";
       default:
         return "hover:!bg-primary2";
     }
@@ -457,7 +470,7 @@ const DashboardSummary = () => {
       <AnimatePresence>
         {openModal !== null &&
         openModal !== "selectAcct" &&
-        (openModal !== "topUp" || currency === "NGN") ? (
+        (openModal !== "topUp" || selectedCurrency?.name !== "USD") ? (
           <CenterModalWrapper
             close={closeModal}
             wrapperStyle={
@@ -465,7 +478,11 @@ const DashboardSummary = () => {
                 ? "!bg-primary2"
                 : openModal === "createCrypto"
                   ? "!bg-raiz-crypto-primary"
-                  : ""
+                  // : selectedCurrency?.name === "GBP"
+                  //   ? "!bg-raiz-gbp-primary"
+                  //   : selectedCurrency?.name === "EUR"
+                  //     ? "!bg-raiz-eur-primary"
+                      : ""
             }
           >
             {displayScreen()}
@@ -479,14 +496,22 @@ const DashboardSummary = () => {
           openCryptoModal={openCryptoModal}
         />
       )}
-      {openModal === "topUp" && currency !== "NGN" && (
+      {openModal === "topUp" && selectedCurrency?.name === "USD" && (
         <UsdTopUp close={closeModal} />
       )}
       {showAcctInfo && selectedCurrency ? (
         selectedCurrency.name === "NGN" ? (
           <NGNAcctInfo close={() => setShowAcctInfo(false)} />
-        ) : (
+        ) : selectedCurrency.name === "USD" ? (
           <USDAcctInfo close={() => setShowAcctInfo(false)} />
+        ) : selectedCurrency.name === "GBP" ||
+          selectedCurrency.name === "EUR" ? (
+          <ForeignAcctInfo
+            close={() => setShowAcctInfo(false)}
+            currency={selectedCurrency.name}
+          />
+        ) : (
+          <></>
         )
       ) : null}
       {/* {successful && <NgnSuccessModal close={() => setSuccessful(false)} />} */}
