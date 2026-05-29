@@ -18,7 +18,7 @@ interface Props {
   data: IBusinessPaymentData;
 }
 
-type CurrencyType = "NGN" | "SBC" | "USD" | "GBP"
+type CurrencyType = "NGN" | "SBC" | "USD" | "GBP";
 
 const PayDetails = ({ setScreen, data }: Props) => {
   const NGNAcct = data?.wallets?.find(
@@ -43,14 +43,14 @@ const PayDetails = ({ setScreen, data }: Props) => {
     ?.filter((acct) => {
       const allowedType = allowedWalletTypeCodes.includes(acct?.wallet_type?.wallet_type_code);
       const notEmail = !isEmail(acct.account_number || "");
-      return allowedType && notEmail;
+      return allowedType && notEmail && acct.wallet_type.currency !== "EUR";
     })
     .map((acct) => ({
       label: `${acct.wallet_type.currency !== "SBC"
         ? acct.wallet_type.currency
         : "Crypto"
         } Transfer`,
-      value: acct.wallet_type.currency,
+      value: acct.wallet_type.currency as CurrencyType,
     })) ?? [];
 
 
@@ -59,7 +59,9 @@ const PayDetails = ({ setScreen, data }: Props) => {
     value: acct.crypto_id,
   }))
 
-  const [type, setType] = useState<CurrencyType>(availablepaymentOptsArr?.[0].value || "");
+  const [type, setType] = useState<CurrencyType>(
+    availablepaymentOptsArr?.[0]?.value || "USD",
+  );
   const [sbcType, setSbcType] = useState(secondarySBCAccts?.[0].value || "")
   const handleType = (value: CurrencyType) => {
     // actions.selectCurrency(value === "ngn" ? "NGN" : "USD");

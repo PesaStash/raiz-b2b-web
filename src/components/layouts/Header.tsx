@@ -23,6 +23,7 @@ import {
 import { useOutsideClick } from "@/lib/hooks/useOutsideClick";
 import NgnSend from "@/app/(dashboard)/_components/send/naira/NgnSend";
 import UsdSend from "@/app/(dashboard)/_components/send/usd/UsdSend";
+import ForeignSend from "@/app/(dashboard)/_components/send/foreign/ForeignSend";
 import { useSendStore } from "@/store/Send";
 import CenterModalWrapper from "./CenterModalWrapper";
 import Request from "@/app/(dashboard)/_components/request/Request";
@@ -96,9 +97,11 @@ const Header = () => {
   const params = useParams();
   const NGNAcct = findWalletByCurrency(user, "NGN");
   const USDAcct = findWalletByCurrency(user, "USD");
+  const GBPAcct = findWalletByCurrency(user, "GBP");
+  const EURAcct = findWalletByCurrency(user, "EUR");
   const SBCAcct = findWalletByCurrency(user, "SBC");
   const invoiceNo = params?.invoiceNo as string | undefined;
-  const { currency, actions: sendActions } = useSendStore();
+  const { actions: sendActions } = useSendStore();
   const { actions } = useSwapStore();
   const { actions: topupActions } = useTopupStore();
   const { selectedCurrency } = useCurrencyStore();
@@ -116,6 +119,10 @@ const Header = () => {
       return NGNAcct;
     } else if (selectedCurrency.name === "USD") {
       return USDAcct;
+    } else if (selectedCurrency.name === "GBP") {
+      return GBPAcct;
+    } else if (selectedCurrency.name === "EUR") {
+      return EURAcct;
     } else if (selectedCurrency.name === "SBC") {
       return SBCAcct;
     }
@@ -219,10 +226,12 @@ const Header = () => {
       case "createCrypto":
         return <CreateCryptoWallet close={handleCloseModal} />;
       case "send":
-        return currency === "NGN" ? (
+        return selectedCurrency?.name === "NGN" ? (
           <NgnSend close={handleCloseModal} />
-        ) : (
+        ) : selectedCurrency?.name === "USD" ? (
           <UsdSend close={handleCloseModal} />
+        ) : (
+          <ForeignSend close={handleCloseModal} />
         );
       case "request":
         return <Request close={handleCloseModal} />;
@@ -233,7 +242,9 @@ const Header = () => {
           <Swap close={handleCloseModal} />
         );
       case "topUp":
-        return currency === "NGN" && <TopUp close={handleCloseModal} />;
+        return selectedCurrency?.name !== "USD" ? (
+          <TopUp close={handleCloseModal} />
+        ) : null;
       default:
         break;
     }
@@ -280,8 +291,11 @@ const Header = () => {
       return;
     }
 
-    // Use the combined store's validation
-    const success = actions.switchSwapWallet(swapPair.toCurrency, walletData);
+    const success = actions.switchSwapWallet(
+      swapPair.toCurrency,
+      walletData,
+      swapPair.fromCurrency,
+    );
 
     if (success) {
       setShowModal("swap");
@@ -519,7 +533,9 @@ const Header = () => {
         </Link>
       </div>
       <AnimatePresence>
-        {showModal !== null && showModal !== "selectAcct" && (
+        {showModal !== null &&
+        showModal !== "selectAcct" &&
+        (showModal !== "topUp" || selectedCurrency?.name !== "USD") && (
           <CenterModalWrapper
             close={handleCloseModal}
             wrapperStyle={
@@ -527,7 +543,11 @@ const Header = () => {
                 ? "!bg-primary2"
                 : showModal === "createCrypto"
                   ? "!bg-raiz-crypto-primary"
-                  : ""
+                  // : selectedCurrency?.name === "GBP"
+                  //   ? "!bg-raiz-gbp-primary"
+                  //   : selectedCurrency?.name === "EUR"
+                  //     ? "!bg-raiz-eur-primary"
+                      : ""
             }
           >
             {displayModal()}
@@ -549,7 +569,7 @@ const Header = () => {
           openCryptoModal={openCryptoModal}
         />
       )}
-      {showModal === "topUp" && currency !== "NGN" && (
+      {showModal === "topUp" && selectedCurrency?.name === "USD" && (
         <UsdTopUp close={handleCloseModal} />
       )}
       {successful && <NgnSuccessModal close={() => setSuccessful(false)} />}

@@ -42,6 +42,13 @@ const SwapDetail = ({
     swapFromWallet,
     swapToWallet,
   } = useSwapStore();
+
+  // Always read the from-wallet balance live from the user object so it
+  // reflects the real balance and updates immediately when direction changes.
+  const liveFromWallet = user?.business_account?.wallets?.find(
+    (w) => w.wallet_type.currency === swapFromCurrency,
+  );
+  const fromBalance = liveFromWallet?.account_balance ?? swapFromWallet?.account_balance ?? 0;
   const [showCurrency, setShowCurrency] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [rawAmount, setRawAmount] = useState("");
@@ -54,8 +61,7 @@ const SwapDetail = ({
     })
     .refine(
       (val) => {
-        const totalAvailable = swapFromWallet?.account_balance || 0;
-        return parseFloat(val) <= totalAvailable;
+        return parseFloat(val) <= fromBalance;
       },
       {
         message: `Amount cannot exceed available balance`,
@@ -186,7 +192,7 @@ const SwapDetail = ({
               <span className="text-zinc-900 text-xs font-bold leading-tight">
                 {" "}
                 {getCurrencySymbol(swapFromCurrency)}
-                {swapFromWallet?.account_balance.toLocaleString()}{" "}
+                {fromBalance.toLocaleString()}{" "}
               </span>
               <span>({swapFromCurrency})</span>
             </p>
@@ -200,13 +206,17 @@ const SwapDetail = ({
           <div className="flex justify-between items-center p-3.5 bg-gray-100 rounded-xl">
             <div className="flex gap-1 items-center">
               <Image
-                src={`/icons/${
+                src={
                   swapToCurrency === "NGN"
-                    ? "ngn"
+                    ? "/icons/ngn.svg"
                     : swapToCurrency === "USD"
-                      ? "dollar"
-                      : "bsc"
-                }.svg`}
+                      ? "/icons/dollar.svg"
+                      : swapToCurrency === "GBP"
+                        ? "/icons/flag-gb.png"
+                        : swapToCurrency === "EUR"
+                          ? "/icons/flag-fr.png"
+                          : "/icons/bsc.svg"
+                }
                 width={24}
                 height={24}
                 alt={swapToCurrency}

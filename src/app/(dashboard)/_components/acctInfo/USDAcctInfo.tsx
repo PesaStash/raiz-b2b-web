@@ -3,6 +3,7 @@ import React from "react";
 import Image from "next/image";
 import { copyToClipboard, findWalletByCurrency } from "@/utils/helpers";
 import { useUser } from "@/lib/hooks/useUser";
+import CopyButton from "@/components/ui/CopyButton";
 
 interface Props {
   close: () => void;
@@ -167,6 +168,20 @@ const USDAcctInfo = ({ close }: Props) => {
             <span className="text-sm font-semibold leading-none">
               {USDAcct?.wallet_type.currency}
             </span>
+          </div>
+
+          {/* Addresss */}
+          <div className="flex justify-between items-center border-b border-[#e4e0ea] pb-3">
+            <span className="text-[13px] font-normal leading-tight">
+              Address
+            </span>
+            <div className="flex gap-1 items-center">
+              {" "}
+              <span className="text-sm font-semibold leading-none">
+                {USDAcct?.bank_address}
+              </span>
+              <CopyButton value={USDAcct?.bank_address || ""} />
+            </div>
           </div>
         </div>
       </div>

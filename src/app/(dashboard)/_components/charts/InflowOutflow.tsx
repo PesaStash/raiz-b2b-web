@@ -42,6 +42,8 @@ const InflowOutflow = () => {
   const { user } = useUser();
   const NGNAcct = findWalletByCurrency(user, "NGN");
   const USDAcct = findWalletByCurrency(user, "USD");
+  const GBPAcct = findWalletByCurrency(user, "GBP");
+  const EURAcct = findWalletByCurrency(user, "EUR");
   const SBCAcct = findWalletByCurrency(user, "SBC");
   const { selectedCurrency } = useCurrencyStore();
   const [numberOfDays, setNumberOfDays] = useState(30);
@@ -51,6 +53,10 @@ const InflowOutflow = () => {
       return NGNAcct;
     } else if (selectedCurrency.name === "USD") {
       return USDAcct;
+    } else if (selectedCurrency.name === "GBP") {
+      return GBPAcct;
+    } else if (selectedCurrency.name === "EUR") {
+      return EURAcct;
     } else if (selectedCurrency.name === "SBC") {
       return SBCAcct;
     }

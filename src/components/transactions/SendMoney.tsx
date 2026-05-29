@@ -35,6 +35,7 @@ const SendMoney = ({
     purpose,
     actions,
     usdBeneficiary,
+    foreignBeneficiary,
   } = useSendStore();
   const { user, refetch } = useUser();
   const { selectedCurrency } = useCurrencyStore();
@@ -148,9 +149,10 @@ const SendMoney = ({
   const recipient = useMemo(() => {
     if (selectedUser) return selectedUser;
     if (usdBeneficiary) return usdBeneficiary;
+    if (foreignBeneficiary) return foreignBeneficiary;
     if (externalUser) return externalUser;
     return null;
-  }, [selectedUser, usdBeneficiary, externalUser]);
+  }, [selectedUser, usdBeneficiary, foreignBeneficiary, externalUser]);
 
   const recipientName = useMemo(() => {
     if (!recipient) return "";

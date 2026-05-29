@@ -65,6 +65,11 @@ const SuccessStatus = ({
       });
     },
   });
+
+  const canSaveAsBeneficiary =
+    !!beneficiary &&
+    ("selfie_image" in beneficiary || "bank_account_number" in beneficiary);
+
   const handleSwitch = () => {
     if (
       !currentWallet ||
@@ -73,9 +78,7 @@ const SuccessStatus = ({
     )
       return;
 
-    // Determine if the beneficiary is ISearchedUser or IExternalAccount
-    if (beneficiary && "entity_id" in beneficiary) {
-      // Handle ISearchedUser (P2P beneficiary)
+    if (beneficiary && "selfie_image" in beneficiary) {
       const beneficiaryId = beneficiary.entity_id;
       if (!beneficiaryId) {
         toast.error("Beneficiary ID is missing.");
@@ -86,7 +89,7 @@ const SuccessStatus = ({
         wallet_id: currentWallet.wallet_id,
         beneficiary_entity_id: beneficiaryId,
       });
-    } else {
+    } else if (beneficiary && "bank_account_number" in beneficiary) {
       const payload: IExternalBeneficiaryPayload = {
         bank_short_code: beneficiary?.bank_short_code || null,
         bank_account_number: beneficiary?.bank_account_number || null,
@@ -119,7 +122,7 @@ const SuccessStatus = ({
           </p>
         </div>
         <div className="w-full">
-          {beneficiary && (
+          {canSaveAsBeneficiary && (
             <div className="flex gap-3 mb-4 items-center justify-center">
               <p className="text-gray-100 text-xs font-normal leading-tight">
                 Save beneficiary for future actions?
