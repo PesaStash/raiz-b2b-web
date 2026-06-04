@@ -3,120 +3,30 @@ import { SettingsMenus } from "@/constants/SettingsMenuData";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import LevelsModal from "../../_components/rewards/LevelsModal";
 import RaizScoreModal from "./RaizScoreModal";
 import FreezeAcctModal from "./FreezeAcctModal";
 import RaizTagModal from "./RaizTagModal";
 import { toast } from "sonner";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FetchUserRewardsApi, UploadProfilePicture } from "@/services/user";
+import { useQuery } from "@tanstack/react-query";
+import { FetchUserRewardsApi } from "@/services/user";
 import { useUser } from "@/lib/hooks/useUser";
 import dayjs from "dayjs";
+import ProfileAvatarUpload from "./ProfileAvatarUpload";
 
 const SideLayout = () => {
   const [showLevels, setShowLevels] = useState(false);
   const [showRaizScore, setShowRaizScore] = useState(false);
   const [showRaizTag, setShowRaizTag] = useState(false);
   const [navModal, setNavModal] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
   const pathName = usePathname();
-  const inputRef = useRef<HTMLInputElement>(null);
   const { user } = useUser();
   const [freezeType, setFreezeType] = useState<"enable" | "disable">("disable");
-
-  const queryClient = useQueryClient();
-
-  const displayImage =
-    previewUrl ||
-    user?.business_account?.business_image ||
-    "/images/default-pfp.svg";
 
   const closeLevelsModal = () => {
     setShowLevels(false);
     setShowRaizScore(true);
-  };
-
-  const uploadImgMutation = useMutation({
-    mutationFn: (imageUrl: string) => UploadProfilePicture(imageUrl),
-    onSuccess: (response) => {
-      toast.success(response?.message);
-      queryClient.invalidateQueries({ queryKey: ["user"] });
-      setPreviewUrl(null);
-    },
-    onError: (error) => {
-      // toast.error("Failed to update profile picture");
-      console.error("Mutation error:", error);
-      setPreviewUrl(null); // Clear preview on error
-    },
-  });
-
-  useEffect(() => {
-    return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
-    };
-  }, [previewUrl]);
-
-  const uploadFile = useCallback(
-    async (selectedFile: File) => {
-      if (!selectedFile) return;
-      setIsUploading(true);
-      try {
-        const formData = new FormData();
-        formData.append("file", selectedFile);
-
-        const response = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!response.ok) {
-          throw new Error(`Upload failed with status: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        // Set preview URL temporarily until the mutation completes and user data refreshes
-        if (previewUrl) {
-          URL.revokeObjectURL(previewUrl);
-        }
-        const newPreviewUrl = URL.createObjectURL(selectedFile);
-        setPreviewUrl(newPreviewUrl);
-        uploadImgMutation.mutate(data.url);
-      } catch (err: unknown) {
-        console.error("Upload error:", err);
-        toast.error(`Failed to upload image: ${(err as Error)?.message}`);
-        setPreviewUrl(null);
-      } finally {
-        setIsUploading(false);
-      }
-    },
-    [previewUrl, uploadImgMutation],
-  );
-
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = event.target.files?.[0];
-    if (!selectedFile) return;
-
-    // Validation
-    if (selectedFile.size > 5 * 1024 * 1024) {
-      toast.warning("Image size should be less than 5MB");
-      return;
-    }
-
-    const validTypes = ["image/jpeg", "image/png", "image/jpg"];
-    if (!validTypes.includes(selectedFile.type)) {
-      toast.warning("Please upload a valid image file (JPEG, PNG, JPG)");
-      return;
-    }
-
-    uploadFile(selectedFile);
-    if (inputRef.current) {
-      inputRef.current.value = "";
-    }
   };
 
   const { data: pointsData } = useQuery({
@@ -143,49 +53,9 @@ const SideLayout = () => {
   }, [user?.business_account?.entity]);
 
   return (
-    <section className="w-[23%]  h-full py-5 pr-2 no-scrollbar">
-      {/* Profile Info */}
+    <section className="w-full h-full py-5 pr-2 no-scrollbar">
       <div className="mb-10">
-        {/* Picture */}
-        <div className="flex relative w-16 h-16">
-          <Image
-            src={displayImage}
-            width={64}
-            height={64}
-            alt="Profile Picture"
-            className="h-16 w-16 rounded-full object-cover"
-            onError={() => setPreviewUrl("/images/default-pfp.svg")}
-          />
-          <button
-            onClick={() => inputRef.current?.click()}
-            disabled={isUploading || uploadImgMutation.isPending}
-            className={`w-6 h-6 bg-raiz-gray-700 rounded-full border border-[#fefefe] absolute bottom-0 right-0 flex items-center justify-center ${
-              isUploading || uploadImgMutation.isPending
-                ? "opacity-50 cursor-not-allowed"
-                : ""
-            }`}
-            aria-label="Upload profile picture"
-          >
-            {isUploading || uploadImgMutation.isPending ? (
-              <span className="animate-spin">⌀</span>
-            ) : (
-              <Image
-                src={"/icons/camera.svg"}
-                width={14}
-                height={14}
-                alt="Upload picture"
-              />
-            )}
-            <input
-              ref={inputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/jpg"
-              className="sr-only"
-              onChange={handleImageUpload}
-              disabled={isUploading || uploadImgMutation.isPending}
-            />
-          </button>
-        </div>
+        <ProfileAvatarUpload size="md" />
         <div className="flex flex-col gap-1 mt-3">
           <p className="text-raiz-gray-950 text-lg font-semibold leading-snug">
             {`${user?.first_name || ""} ${user?.last_name || ""}`}

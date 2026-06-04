@@ -49,7 +49,7 @@ const Overlay = ({
           width: isMobile ? "90%" : width || "auto",
           height: height || "auto",
         }}
-        className="bg-white rounded-[36px] overflow-y-auto no-scrollbar"
+        className="bg-white rounded-[36px] overflow-y-auto no-scrollbar w-full max-w-[95vw] md:max-w-none min-w-0"
       >
         {children}
       </motion.section>

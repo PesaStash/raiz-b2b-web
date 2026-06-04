@@ -15,10 +15,11 @@ const SetPassword = ({ goBack, formik }: RegisterFormProps) => {
           alt="back"
           width={18.48}
           height={18.48}
+          className="size-3 md:size-[18px]"
         />
       </button>
       <header className="flex items-center justify-between mt-2">
-        <h2 className="text-raiz-gray-950 text-[23px] font-semibold  leading-10">
+        <h2 className="text-raiz-gray-950 md:text-[23px] text-xl font-semibold  leading-10">
           Set your password
         </h2>
         <svg width="40" height="41" viewBox="0 0 40 41" fill="none">
@@ -41,11 +42,11 @@ const SetPassword = ({ goBack, formik }: RegisterFormProps) => {
           />
         </svg>
       </header>
-      <p className="text-raiz-gray-700 text-[15px] font-normal  leading-snug">
+      <p className="text-raiz-gray-700 text-sm md:text-[15px] font-normal  leading-snug">
         Create a password to use when signing in
       </p>
 
-      <div className="mt-8 xl:mt-[44px]">
+      <div className="md:mt-8 mt-5 xl:mt-[44px]">
         <div className="flex flex-col xl:pb-20">
           <InputField
             label="Password"
@@ -90,7 +91,7 @@ const SetPassword = ({ goBack, formik }: RegisterFormProps) => {
                 )}
               </div>
               <span
-                className={` text-[13px] font-normal  leading-[18px] ${
+                className={` text-xs md:text-[13px] font-normal  md:leading-[18px] leading-tight ${
                   formik.errors.password &&
                   formik.touched.password &&
                   formik.errors.password.includes(
@@ -136,7 +137,7 @@ const SetPassword = ({ goBack, formik }: RegisterFormProps) => {
                 )}
               </div>
               <span
-                className={`text-raiz-gray-700 text-[13px] font-normal  leading-[18px] ${
+                className={`text-raiz-gray-700 text-xs md:text-[13px] font-normal  md:leading-[18px] leading-tight ${
                   formik.errors.password &&
                   formik.touched.password &&
                   formik.errors.password.includes(

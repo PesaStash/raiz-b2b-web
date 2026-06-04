@@ -49,3 +49,50 @@
 .rdrEndEdge {
   background: #4b0082;
 }
+
+/* Responsive date range — fit narrow viewports */
+.date-range-picker-responsive {
+  width: 100%;
+}
+
+.date-range-picker-responsive .rdrDateRangeWrapper,
+.date-range-picker-responsive .rdrCalendarWrapper {
+  width: 100% !important;
+  max-width: 100% !important;
+  display: block !important;
+}
+
+.date-range-picker-responsive .rdrMonth {
+  width: 100% !important;
+  padding-bottom: 0.25rem !important;
+}
+
+.date-range-picker-responsive .rdrMonths,
+.date-range-picker-responsive .rdrDays {
+  width: 100%;
+}
+
+@media (max-width: 767px) {
+  .date-range-picker-responsive .rdrMonth {
+    padding: 0 0.5rem 0.25rem !important;
+  }
+
+  .date-range-picker-responsive .rdrMonthAndYearWrapper {
+    height: auto;
+    min-height: 48px;
+    padding-top: 0.25rem;
+  }
+
+  .date-range-picker-responsive .rdrDateDisplayWrapper {
+    margin: 0.5rem;
+  }
+
+  .date-range-picker-responsive .rdrDay {
+    height: 2.5em;
+    line-height: 2.5em;
+  }
+
+  .date-range-picker-responsive .rdrWeekDay {
+    line-height: 2em;
+  }
+}

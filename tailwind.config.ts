@@ -50,6 +50,12 @@ export default {
           crypto: {
             primary: "#0055CC",
           },
+          gbp: {
+            primary: "#4F46E5",
+          },
+          eur: {
+            primary: "#C8102E",
+          },
           purple: {
             90: "#54098b",
           },

@@ -27,11 +27,11 @@ const IntCountriesModal = ({ close, setCountry }: Props) => {
   };
   return (
     <Overlay close={close} width="400px">
-      <div className="flex flex-col  h-full py-8 px-5 ">
-        <h5 className="text-raiz-gray-950 text-xl font-bold  leading-normal">
+      <div className="flex flex-col  h-full md:py-8 py-4 md:px-5 px-4 ">
+        <h5 className="text-raiz-gray-950 md:text-xl text-lg font-semibold md:font-bold  leading-normal">
           Country
         </h5>
-        <div className="relative h-12 min-w-[300px]  mt-[15px] mb-[30px]">
+        <div className="relative h-12 w-full min-w-0  md:mt-[15px] mt-3 mb-[30px]">
           <Image
             className="absolute top-3.5 left-3"
             src={"/icons/search.svg"}
@@ -46,7 +46,7 @@ const IntCountriesModal = ({ close, setCountry }: Props) => {
             className="pl-10 h-full bg-[#fcfcfc] rounded-[20px] border border-raiz-gray-200 justify-start items-center gap-2 inline-flex w-full outline-none text-sm"
           />
         </div>
-        <div className="flex flex-col gap-[20px] font-brSonoma h-[350px] overflow-y-scroll ">
+        <div className="flex flex-col md:gap-5 gap-3 font-brSonoma md:h-[350px] h-[300px] overflow-y-scroll ">
           {filteredCountries.length > 0 ? (
             filteredCountries.map((country, index) => (
               <button

@@ -11,7 +11,7 @@ const LoginPage = () => {
   const [password, setPassword] = useState("");
 
   return (
-    <section className="p-6 md:p-12 lg:px-8 xl:px-12 h-[calc(100vh-2rem)] md:h-full min-h-[100vh]">
+    <section className="p-4 md:p-12 lg:px-8 xl:px-12 h-[calc(100vh-2rem)] md:h-full min-h-[100vh]">
       <div className="flex flex-col  md:flex-row  h-full gap-8">
         <Slider />
         <AnimatePresence>

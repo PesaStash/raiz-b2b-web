@@ -18,6 +18,8 @@ const LoadingStatus: React.FC<LoadingStatusProps> = ({
       if ("account_name" in user) return user.account_name; // ISearchedUser
       if ("bank_account_name" in user) return user?.bank_account_name || ""; // IExternalAccount
       if ("usd_beneficiary" in user) return user.usd_beneficiary.account_name; // EntityBeneficiary
+      if ("foreign_currency_beneficiary" in user)
+        return user.foreign_currency_beneficiary.account_name;
       if ("foreign_payout_beneficiary" in user)
         return user.foreign_payout_beneficiary.beneficiary_name; // EntityForeignPayout
     }

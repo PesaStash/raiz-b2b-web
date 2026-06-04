@@ -91,12 +91,18 @@ const AnalyticsPage = () => {
   const { user } = useUser();
   const NGNAcct = findWalletByCurrency(user, "NGN");
   const USDAcct = findWalletByCurrency(user, "USD");
+  const GBPAcct = findWalletByCurrency(user, "GBP");
+  const EURAcct = findWalletByCurrency(user, "EUR");
   const SBCAcct = findWalletByCurrency(user, "SBC");
   const getCurrentWallet = () => {
     if (selectedCurrency.name === "NGN") {
       return NGNAcct;
     } else if (selectedCurrency.name === "USD") {
       return USDAcct;
+    } else if (selectedCurrency.name === "GBP") {
+      return GBPAcct;
+    } else if (selectedCurrency.name === "EUR") {
+      return EURAcct;
     } else if (selectedCurrency.name === "SBC") {
       return SBCAcct;
     }
@@ -160,37 +166,41 @@ const AnalyticsPage = () => {
   };
 
   return (
-    <section className="mt-4">
-      <div className="rounded-[20px] bg-raiz-gray-50 p-6">
-        <div className="flex justify-between items-center mb-8">
-          <h2 className="text-zinc-900 text-2xl font-bold  leading-7 ">
+    <section className="mt-0 md:mt-4 min-w-0">
+      <div className="rounded-none md:rounded-[20px] bg-transparent md:bg-raiz-gray-50 p-0 md:p-6">
+        <div className="flex items-center justify-between gap-2 mb-3 md:mb-8">
+          <h2 className="hidden md:block text-zinc-900 text-xl md:text-2xl font-bold leading-7">
             Report & Analytics
           </h2>
+          <p className="md:hidden text-[11px] font-semibold uppercase tracking-widest text-raiz-gray-500">
+            Overview
+          </p>
           <button
             onClick={handleOpenRange}
-            className="h-8 px-3.5 py-2.5 bg-gray-100 rounded-2xl inline-flex justify-start items-center gap-2"
+            className="h-9 max-w-[55vw] sm:max-w-none px-3 py-2 bg-white md:bg-gray-100 border border-raiz-gray-100 md:border-0 rounded-xl md:rounded-2xl inline-flex justify-start items-center gap-1.5 shadow-sm md:shadow-none shrink-0"
           >
-            <span className="text-zinc-900 text-xs font-medium font-brSonoma leading-tight">
+            <span className="text-zinc-900 text-xs font-medium font-brSonoma leading-tight truncate">
               {selectedRange.label}
             </span>
-            <IoIosArrowDown className="text-[#443852] w-4 h-4 " />
+            <IoIosArrowDown className="text-[#443852] w-4 h-4 shrink-0" />
           </button>
         </div>
-        <div className="flex gap-4 pt-5 mb-8">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 md:mb-8">
           {/* income total */}
-          <div className="rounded-[20px] shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] pl-5 py-3.5  w-1/2 border border-raiz-gray-100 inline-flex flex-col justify-start items-start gap-2 xl:gap-3.5">
-            <div className="w-12 h-12 flex items-center justify-center relative bg-violet-100/60 rounded-3xl ">
+          <div className="rounded-2xl shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] p-3.5 sm:pl-5 sm:py-3.5 border border-raiz-gray-100 flex flex-col justify-start items-start gap-2 bg-white md:bg-transparent">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-sky-50 rounded-2xl sm:rounded-3xl">
               <Image
                 src={"/icons/income.svg"}
                 width={28.8}
                 height={28.8}
                 alt="income"
+                className="size-6 sm:size-7"
               />
             </div>
-            <p className=" text-raiz-gray-600 font-semibold text-sm leading-4">
+            <p className="text-raiz-gray-600 font-semibold text-xs sm:text-sm leading-4">
               Income
             </p>
-            <p className="text-raiz-gray-950 text-xs xl:text-base font-bold leading-6">
+            <p className="text-raiz-gray-950 text-sm sm:text-base font-bold leading-tight truncate w-full">
               {selectedCurrency.sign}
               {isLoading ? (
                 <Skeleton height={15} width={60} />
@@ -200,19 +210,20 @@ const AnalyticsPage = () => {
             </p>
           </div>
           {/* expense total */}
-          <div className="rounded-[20px] shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] pl-5 py-3.5  w-1/2 border border-raiz-gray-100 inline-flex flex-col justify-start items-start gap-2 xl:gap-3.5">
-            <div className="w-12 h-12 flex items-center justify-center relative bg-violet-100/60 rounded-3xl ">
+          <div className="rounded-2xl shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] p-3.5 sm:pl-5 sm:py-3.5 border border-raiz-gray-100 flex flex-col justify-start items-start gap-2 bg-white md:bg-transparent">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-violet-100/60 rounded-2xl sm:rounded-3xl">
               <Image
                 src={"/icons/expense.svg"}
                 width={28.8}
                 height={28.8}
                 alt="expense"
+                className="size-6 sm:size-7"
               />
             </div>
-            <p className=" text-raiz-gray-600 font-semibold text-sm leading-4">
+            <p className="text-raiz-gray-600 font-semibold text-xs sm:text-sm leading-4">
               Expenses
             </p>
-            <p className="text-zinc-900 text-xs xl:text-base font-bold leading-tight">
+            <p className="text-zinc-900 text-sm sm:text-base font-bold leading-tight truncate w-full">
               {selectedCurrency.sign}
               {isLoading ? (
                 <Skeleton height={15} width={60} />
@@ -237,52 +248,55 @@ const AnalyticsPage = () => {
         />
       </div>
       {/* Expenses Categories */}
-      <div className="my-8 bg-raiz-gray-50 p-8 relative rounded-[20px] shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)]    border border-raiz-gray-100">
-        <div className="flex items-center w-full justify-between mb-7">
-          <h5 className="text-raiz-gray-950 text-lg font-semibold leading-5">
+      <div className="my-4 md:my-8 bg-white md:bg-raiz-gray-50 p-4 sm:p-6 lg:p-8 relative rounded-2xl md:rounded-[20px] shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] border border-raiz-gray-100">
+        <div className="flex items-center w-full justify-between gap-2 mb-4 sm:mb-7">
+          <h5 className="text-raiz-gray-950 text-base sm:text-lg font-semibold leading-5">
             All Expenses
           </h5>
           <button
             onClick={() => setShowCategoryRange(true)}
-            className="h-8 px-3.5 py-2.5 bg-gray-100 rounded-2xl inline-flex justify-start items-center gap-2"
+            className="h-8 max-w-[48vw] sm:max-w-none px-2.5 sm:px-3.5 py-2 bg-gray-100 rounded-xl sm:rounded-2xl inline-flex justify-start items-center gap-1.5 shrink-0"
           >
-            <span className="text-zinc-900 text-xs font-medium font-brSonoma leading-tight">
+            <span className="text-zinc-900 text-xs font-medium font-brSonoma leading-tight truncate">
               {selectedCategoryRange.label}
             </span>
-            <IoIosArrowDown className="text-[#443852] w-4 h-4 " />
+            <IoIosArrowDown className="text-[#443852] w-4 h-4 shrink-0" />
           </button>
         </div>
         {!showCustomCalendar && categoryLoading ? (
-          <div className="grid grid-cols-2 gap-[17px]">
-            <Skeleton height={100} />
-            <Skeleton height={100} />
+          <div className="flex flex-col gap-2 sm:grid sm:grid-cols-2 lg:grid-cols-3">
+            <Skeleton height={64} className="sm:!h-[100px]" />
+            <Skeleton height={64} className="sm:!h-[100px]" />
+            <Skeleton height={64} className="sm:!h-[100px]" />
           </div>
         ) : categoryData && categoryData?.length > 0 ? (
-          <div className="grid sm:grid-cols-3 xl:grid-cols-4 gap-[17px]">
+          <div className="flex flex-col gap-2 sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:gap-[17px]">
             {categoryData?.map((each, index) => (
               <div
                 key={index}
-                className="px-5 py-3.5 rounded-[20px] shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] border border-raiz-gray-100 inline-flex flex-col justify-start items-start"
+                className="flex items-center gap-3 sm:flex-col sm:items-start px-3 py-3 sm:px-5 sm:py-3.5 rounded-xl sm:rounded-[20px] shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] border border-raiz-gray-100 bg-white"
               >
                 <Image
-                  className="mb-[15px]"
+                  className="shrink-0 sm:mb-[15px]"
                   src={each?.category_emoji || "/icons/notif-promo.svg"}
                   width={32}
                   height={32}
                   alt=""
                 />
 
-                <p className="opacity-50 text-zinc-900 text-xs leading-tight">
-                  {each?.transaction_category}
-                </p>
-                <div className="flex justify-between items-center w-full mt-2">
-                  <p className="text-zinc-900 text-sm mb-1 font-bold leading-none">
-                    {selectedCurrency.sign}
-                    {each.total_amount.toLocaleString()}
+                <div className="flex-1 min-w-0 sm:w-full">
+                  <p className="text-zinc-500 sm:opacity-50 text-xs leading-tight truncate">
+                    {each?.transaction_category}
                   </p>
-                  <p className=" text-zinc-900 text-sm font-bold leading-none">
-                    {each.percentage}%
-                  </p>
+                  <div className="flex justify-between items-center w-full mt-1 sm:mt-2 gap-2">
+                    <p className="text-zinc-900 text-sm font-bold leading-none truncate">
+                      {selectedCurrency.sign}
+                      {each.total_amount.toLocaleString()}
+                    </p>
+                    <p className="text-zinc-900 text-sm font-bold leading-none shrink-0">
+                      {each.percentage}%
+                    </p>
+                  </div>
                 </div>
               </div>
             ))}

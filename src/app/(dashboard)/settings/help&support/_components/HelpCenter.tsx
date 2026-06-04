@@ -5,16 +5,17 @@ import Image from "next/image";
 const HelpCenter = ({ setPart }: PartChildProps) => {
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mt-3 md:mt-0">
         <button onClick={() => setPart(0)}>
           <Image
             src="/icons/arrow-left.svg"
             alt="arrow-left"
             width={18}
             height={18}
+            className="size-3 md:size-[18px]"
           />
         </button>
-        <span className="text-raiz-gray-950 font-bold leading-tight">
+        <span className="text-raiz-gray-950 text-sm md:text-base font-bold leading-tight">
           Help Center
         </span>
         <div />

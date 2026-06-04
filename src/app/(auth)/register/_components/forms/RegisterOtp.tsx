@@ -32,10 +32,11 @@ const RegisterOtp = ({ goBack, formik }: RegisterFormProps) => {
             alt="back"
             width={18.48}
             height={18.48}
+            className="size-3 md:size-[18px]"
           />
         </button>
         <header className="flex items-center justify-between mt-2">
-          <h2 className="text-raiz-gray-950 text-[23px] font-semibold  leading-10">
+          <h2 className="text-raiz-gray-950 md:text-[23px] text-xl font-semibold  leading-10">
             Enter OTP
           </h2>
           <svg width="40" height="41" viewBox="0 0 40 41" fill="none">
@@ -54,7 +55,7 @@ const RegisterOtp = ({ goBack, formik }: RegisterFormProps) => {
             />
           </svg>
         </header>
-        <p className="text-raiz-gray-700 text-[15px] font-normal  leading-snug mb-[44px]">
+        <p className="text-raiz-gray-700 text-sm md:text-[15px] font-normal  leading-snug mb-[44px]">
           Please enter the OTP code sent to your Email Address
         </p>
         <OtpInputWithTimer
@@ -68,7 +69,7 @@ const RegisterOtp = ({ goBack, formik }: RegisterFormProps) => {
           length={6}
         />
       </div>
-      <p className="text-raiz-gray-600 text-[13px] font-normal leading-tight">
+      <p className="text-raiz-gray-600 text-xs md:text-[13px] font-normal leading-tight">
         **Do not forget to check your spam/junk email folder.
       </p>
     </AnimatedSection>

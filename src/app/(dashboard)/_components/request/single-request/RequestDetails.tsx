@@ -76,10 +76,10 @@ const RequestDetails = ({
   return (
     <div className="flex flex-col h-full mb-8">
       <CenterModalHeader close={goBack} />
-      <h2 className="text-xl font-semibold text-raiz-gray-950 leading-10 mb-4">
+      <h2 className="text-lg md:text-xl font-semibold text-raiz-gray-950 leading-7 md:leading-10 mb-3 md:mb-4">
         Request Money
       </h2>
-      <div className="flex flex-col h-full  justify-between items-center rounded-[20px] bg-raiz-gray-50 p-6 overflow-y-auto">
+      <div className="flex flex-col h-full justify-between items-center rounded-2xl md:rounded-[20px] bg-raiz-gray-50 p-4 md:p-6 overflow-y-auto">
         <div className="flex flex-col justify-center items-center">
           <div className="relative w-10 h-10">
             <Image
@@ -112,16 +112,16 @@ const RequestDetails = ({
               />
             </svg>
           </div>
-          <p className="text-center mt-4 justify-start text-zinc-900 text-sm font-bold  leading-none">
+          <p className="text-center mt-4 text-zinc-900 text-[13px] md:text-sm font-bold leading-none">
             {selectedUser?.account_name}
           </p>
-          <p className="text-center justify-start text-zinc-900 text-base mb-3 mt-5">
+          <p className="text-center text-zinc-900 text-xs md:text-base mb-3 mt-4 md:mt-5">
             How much do you want to send?
           </p>
           <input
             ref={inputRef}
             autoFocus
-            className="outline-none h-[91px] bg-transparent w-fit mx-auto text-center text-zinc-900 placeholder:text-zinc-900 text-3xl font-semibold leading-10"
+            className="outline-none h-16 md:h-[91px] bg-transparent w-full max-w-[280px] mx-auto text-center text-zinc-900 placeholder:text-zinc-900 text-2xl md:text-3xl font-semibold leading-8 md:leading-10"
             placeholder={`${selectedCurrency.sign}0.00`}
             value={displayValue()}
             onChange={handleAmountChange}
@@ -130,7 +130,7 @@ const RequestDetails = ({
           />
           {error && <ErrorMessage message={error} />}
           <input
-            className="outline-none w-full h-7 bg-transparent  mx-auto text-center text-zinc-900 placeholder:text-zinc-700 text-base font-normal  leading-normal"
+            className="outline-none w-full h-7 bg-transparent mx-auto text-center text-zinc-900 placeholder:text-zinc-700 text-sm md:text-base font-normal leading-normal"
             placeholder={`What is the purpose?`}
             value={narration}
             onChange={(e) => setNarration(e.target.value)}
@@ -139,6 +139,7 @@ const RequestDetails = ({
         <Button
           onClick={goNext}
           disabled={!amount || error !== null || !narration}
+          className="w-full"
         >
           Continue
         </Button>

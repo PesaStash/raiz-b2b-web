@@ -68,7 +68,6 @@ const NgnToRaizers = () => {
     actions.reset("NGN");
     actions.selectNGNSendOption("to Raizer");
     setStep("select-user");
-    close();
   };
 
   const displayStep = () => {
