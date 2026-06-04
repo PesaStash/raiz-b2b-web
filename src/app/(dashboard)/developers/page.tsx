@@ -9,14 +9,14 @@ const DevelopersPage = () => {
   const [showModal, setShowModal] = useState(false);
   return (
     <>
-      <section className=" p-6 rounded-[20px] h-full flex flex-col">
-        <div className="flex justify-between items-center mb-8 shrink-0">
-          <h2 className="text-raiz-gray-950 text-[23px] font-bold leading-7">
+      <section className="p-0  rounded-none md:rounded-[20px] h-full flex flex-col min-w-0">
+        <div className="flex flex-wrap justify-between items-center gap-3 mb-6 md:mb-8 shrink-0">
+          <h2 className="hidden md:block text-raiz-gray-950 text-xl md:text-[23px] font-bold leading-7">
             API Keys
           </h2>
           <Button
             onClick={() => setShowModal(true)}
-            className="px-5 py-2.5 h-10 gap-2 rounded-full flex items-center w-[188px]"
+            className="px-5 py-2.5 h-10 gap-2 rounded-full flex items-center w-full sm:w-auto sm:min-w-[188px]"
             icon={
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                 <path

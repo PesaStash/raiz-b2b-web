@@ -169,9 +169,9 @@ const SwapDetail = ({
         titleColor="text-zinc-900"
         backArrow={false}
       />
-      <div className="flex flex-col justify-between xl:h-[75vh] bg-raiz-gray-50 rounded-[20px] p-6">
+      <div className="flex flex-col justify-between xl:h-[75vh] bg-raiz-gray-50 rounded-[20px] p-2 md:p-6">
         <div className="mt-5">
-          <h6 className="text-center justify-start text-zinc-900 text-base font-normal leading-normal">
+          <h6 className="text-center justify-start text-zinc-900 md:text-base text-sm font-normal leading-normal">
             How much do you want to swap?
           </h6>
           <div className="flex flex-col items-center">
@@ -199,8 +199,8 @@ const SwapDetail = ({
           </div>
         </div>
 
-        <div className="pb-5">
-          <p className="text-zinc-900 text-sm font-medium mb-3 font-brSonoma leading-normal">
+        <div className="pb-5 mt-2 md:mt-0">
+          <p className="text-zinc-900 md:text-sm text-xs font-medium mb-3 font-brSonoma leading-normal">
             Swap Destination
           </p>
           <div className="flex justify-between items-center p-3.5 bg-gray-100 rounded-xl">

@@ -81,7 +81,7 @@ const BillRow = ({
       <div className="flex w-full justify-between items-center gap-2">
         <button
           onClick={handleReject}
-          className="w-1/2 h-10 px-5 py-2 bg-[#f1e0cb] rounded-3xl justify-center items-center gap-1.5 inline-flex"
+          className="w-full sm:w-1/2 h-10 px-5 py-2 bg-[#f1e0cb] rounded-3xl justify-center items-center gap-1.5 inline-flex"
         >
           <span className="text-raiz-gray-800 text-sm font-medium font-brSonoma leading-[16.80px]">
             Reject
@@ -89,7 +89,7 @@ const BillRow = ({
         </button>
         <button
           onClick={handleAccept}
-          className="w-1/2 h-10 px-5 py-2 bg-[#3c2875] rounded-3xl justify-center items-center gap-1.5 inline-flex"
+          className="w-full sm:w-1/2 h-10 px-5 py-2 bg-[#3c2875] rounded-3xl justify-center items-center gap-1.5 inline-flex"
         >
           <svg
             className="w-6 h-4"

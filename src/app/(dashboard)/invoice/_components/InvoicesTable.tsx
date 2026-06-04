@@ -48,6 +48,7 @@ import { useDebounce } from "@/lib/hooks/useDebounce";
 import EmptyInvoiceTable from "./EmptyInvoiceTable";
 import { useOutsideClick } from "@/lib/hooks/useOutsideClick";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
+import MobileInvoiceCards from "@/components/mobile/MobileInvoiceCards";
 
 const columnHelper = createColumnHelper<IInvoice>();
 type DateFilterType = "date_created" | "date_issued" | "due_date";
@@ -406,198 +407,163 @@ const InvoicesTable = () => {
     // setDateFilterType(null)
     setShowDateOpts(false);
   };
-  // const customerBtnRef = useRef<HTMLButtonElement>(null);
-  const dropdownRef = useOutsideClick(() => closeCalendar());
-  return (
-    <section className="w-full h-full">
-      {/* {InvoiceList?.length > 0 && ( */}
-      <div className="flex gap-3 items-center mb-6">
-        {/* Customer search */}
-        {/* <div className="relative">
-          <button
-            ref={customerBtnRef}
-            onClick={() => setShowSearchBox(!showSearchBox)}
-            className="w-48 gap-2  px-3.5 py-2.5 rounded-lg shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] border  border-zinc-200 inline-flex justify-between items-center"
+  const dateLabel =
+    dateRange.startDate && dateRange.endDate
+      ? `${format(dateRange.startDate, "dd MMM")} - ${format(
+          dateRange.endDate,
+          "dd MMM",
+        )}`
+      : null;
+
+  const renderDateFilterMenu = () =>
+    showDateOpts ? (
+      <div className="bg-[#FCFCFD] py-2 w-full min-w-[200px] max-w-[220px] border border-[#F3F1F6] rounded-md shadow-md absolute top-full mt-1 right-0 z-50">
+        {dateFilterArr?.map((item) => (
+          <div
+            key={item.value}
+            onClick={() => {
+              setDateFilterType(item.value as DateFilterType);
+              setShowDateOpts(false);
+              setShowDateRange(true);
+            }}
+            className={`px-4 py-2 text-sm text-raiz-gray-700 flex justify-between items-center cursor-pointer hover:bg-[#EAECFF99] ${dateFilterType === item.value && "bg-[#EAECFF99]"}`}
           >
-            <span className="text-zinc-800 text-sm font-bold  leading-none">
-              {selectedCustomer ? selectedCustomer?.full_name : "Customers"}
-            </span>
-            <Image
-              src={"/icons/search.svg"}
-              alt="search"
-              width={20}
-              height={20}
-            />
-          </button>
-          {showSearchBox && (
-            <CustomerSearchBox
-              setShowSearchBox={setShowSearchBox}
-              btnRef={customerBtnRef}
-              addNew={() => setShowAddCustomer(true)}
-              onSelectCustomer={(customer) => {
-                setSelectedCustomer(customer);
-              }}
-              selectedCustomerId={selectedCustomer?.customer_id}
-              onUnselectCustomer={() => setSelectedCustomer(null)}
-            />
-          )}
-        </div> */}
-        <SearchBox
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="!w-[285px] !h-10 rounded-lg shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] outline outline-1 outline-offset-[-1px] outline-zinc-200 "
-          inputClassName="rounded-lg bg-white"
-          iconClassName="top-[9.5px]"
-        />
-        {/* Status */}
-        <SelectField
-          placeholder="Status"
-          options={statusOptions}
-          // value={status}
-          value={
-            status
-              ? statusOptions.find((option) => option.value === status) || null
-              : null
-          }
-          onChange={(i) => setStatus(i?.value as string)}
-          bgColor="#fff"
-          width="160px"
-          style={{
-            height: "40px",
-          }}
-          minHeight="40px"
-          height="40px"
-          placeholderStyle={{
-            fontWeight: "bold",
-            color: "#2C2435",
-          }}
-        />
-        {/* dates */}
-        <div className="relative" ref={dropdownRef}>
-          <button
-            onClick={() => setShowDateOpts(!showDateOpts)}
-            className="flex h-10 gap-1.5 items-center px-3.5 py-2.5 rounded-lg shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] outline outline-1 outline-offset-[-1px] outline-zinc-200 "
-          >
-            <Image
-              src={"/icons/calendar.svg"}
-              alt="calendar"
-              width={20}
-              height={20}
-            />
-            <span className="text-zinc-800 text-sm font-bold leading-none">
-              {dateRange.startDate && dateRange.endDate
-                ? `${format(dateRange.startDate, "dd MMM")} - ${format(
-                    dateRange.endDate,
-                    "dd MMM",
-                  )}`
-                : "Select dates"}
-            </span>
-            {dateFilterType ? (
-              <svg
-                width="16"
-                height="17"
-                viewBox="0 0 16 17"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
+            <span>{item.label}</span>
+            {dateFilterType === item.value && (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                 <path
-                  opacity="0.4"
-                  d="M13.7333 3.73336V5.20002C13.7333 5.73336 13.4 6.40002 13.0667 6.73336L10.2 9.26669C9.8 9.60002 9.53334 10.2667 9.53334 10.8V13.6667C9.53334 14.0667 9.26667 14.6 8.93334 14.8L8 15.4C7.13334 15.9334 5.93334 15.3334 5.93334 14.2667V10.7334C5.93334 10.2667 5.66667 9.66669 5.4 9.33336L4.73334 8.63336L8.61334 2.40002H12.4C13.1333 2.40002 13.7333 3.00002 13.7333 3.73336Z"
-                  fill="#6F5B86"
-                />
-                <path
-                  d="M7.53333 2.40002L4.08 7.94002L2.86666 6.66669C2.53333 6.33336 2.26666 5.73336 2.26666 5.33336V3.80002C2.26666 3.00002 2.86666 2.40002 3.6 2.40002H7.53333Z"
-                  fill="#6F5B86"
-                />
-                <circle cx="12.5" cy="2.5" r="2.5" fill="#DC180D" />
-              </svg>
-            ) : (
-              <svg
-                width="16"
-                height="17"
-                viewBox="0 0 16 17"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  opacity="0.4"
-                  d="M13.7333 3.73336V5.20002C13.7333 5.73336 13.4 6.40002 13.0667 6.73336L10.2 9.26669C9.8 9.60002 9.53334 10.2667 9.53334 10.8V13.6667C9.53334 14.0667 9.26667 14.6 8.93334 14.8L8 15.4C7.13334 15.9334 5.93334 15.3334 5.93334 14.2667V10.7334C5.93334 10.2667 5.66667 9.66669 5.4 9.33336L4.73334 8.63336L8.61334 2.40002H12.4C13.1333 2.40002 13.7333 3.00002 13.7333 3.73336Z"
-                  fill="#6F5B86"
-                />
-                <path
-                  d="M7.53333 2.40002L4.08 7.94002L2.86666 6.66669C2.53333 6.33336 2.26666 5.73336 2.26666 5.33336V3.80002C2.26666 3.00002 2.86666 2.40002 3.6 2.40002H7.53333Z"
-                  fill="#6F5B86"
+                  d="M12 2C6.49 2 2 6.49 2 12C2 17.51 6.49 22 12 22C17.51 22 22 17.51 22 12C22 6.49 17.51 2 12 2ZM16.78 9.7L11.11 15.37C10.97 15.51 10.78 15.59 10.58 15.59C10.38 15.59 10.19 15.51 10.05 15.37L7.22 12.54C6.93 12.25 6.93 11.77 7.22 11.48C7.51 11.19 7.99 11.19 8.28 11.48L10.58 13.78L15.72 8.64C16.01 8.35 16.49 8.35 16.78 8.64C17.07 8.93 17.07 9.4 16.78 9.7Z"
+                  fill="#443852"
                 />
               </svg>
             )}
-          </button>
-          {showDateOpts && (
-            <div className="bg-[#FCFCFD] py-2 w-[220px] border border-[#F3F1F6] rounded-md shadow-md absolute top-12 right-0 z-50">
-              {dateFilterArr?.map((item) => (
-                <div
-                  key={item.value}
-                  onClick={() => {
-                    setDateFilterType(item.value as DateFilterType);
-                    setShowDateOpts(false);
-                    setShowDateRange(true);
-                  }}
-                  className={`px-4 py-2 text-sm text-raiz-gray-700 flex justify-between items-center cursor-pointer hover:bg-[#EAECFF99] ${dateFilterType === item.value && "bg-[#EAECFF99]"}`}
-                >
-                  <span>{item.label}</span>
-                  {dateFilterType === item.value && (
-                    <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M12 2C6.49 2 2 6.49 2 12C2 17.51 6.49 22 12 22C17.51 22 22 17.51 22 12C22 6.49 17.51 2 12 2ZM16.78 9.7L11.11 15.37C10.97 15.51 10.78 15.59 10.58 15.59C10.38 15.59 10.19 15.51 10.05 15.37L7.22 12.54C6.93 12.25 6.93 11.77 7.22 11.48C7.51 11.19 7.99 11.19 8.28 11.48L10.58 13.78L15.72 8.64C16.01 8.35 16.49 8.35 16.78 8.64C17.07 8.93 17.07 9.4 16.78 9.7Z"
-                        fill="#443852"
-                      />
-                    </svg>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-          {dateFilterType && showDateRange && (
-            <DateRange
-              onApply={setDateRange}
-              onClose={() => setShowDateRange(false)}
+          </div>
+        ))}
+      </div>
+    ) : null;
+
+  const renderDateFilterIcon = () =>
+    dateFilterType ? (
+      <svg width="16" height="17" viewBox="0 0 16 17" fill="none" className="shrink-0">
+        <path
+          opacity="0.4"
+          d="M13.7333 3.73336V5.20002C13.7333 5.73336 13.4 6.40002 13.0667 6.73336L10.2 9.26669C9.8 9.60002 9.53334 10.2667 9.53334 10.8V13.6667C9.53334 14.0667 9.26667 14.6 8.93334 14.8L8 15.4C7.13334 15.9334 5.93334 15.3334 5.93334 14.2667V10.7334C5.93334 10.2667 5.66667 9.66669 5.4 9.33336L4.73334 8.63336L8.61334 2.40002H12.4C13.1333 2.40002 13.7333 3.00002 13.7333 3.73336Z"
+          fill="#6F5B86"
+        />
+        <path
+          d="M7.53333 2.40002L4.08 7.94002L2.86666 6.66669C2.53333 6.33336 2.26666 5.73336 2.26666 5.33336V3.80002C2.26666 3.00002 2.86666 2.40002 3.6 2.40002H7.53333Z"
+          fill="#6F5B86"
+        />
+        <circle cx="12.5" cy="2.5" r="2.5" fill="#DC180D" />
+      </svg>
+    ) : (
+      <svg width="16" height="17" viewBox="0 0 16 17" fill="none" className="shrink-0">
+        <path
+          opacity="0.4"
+          d="M13.7333 3.73336V5.20002C13.7333 5.73336 13.4 6.40002 13.0667 6.73336L10.2 9.26669C9.8 9.60002 9.53334 10.2667 9.53334 10.8V13.6667C9.53334 14.0667 9.26667 14.6 8.93334 14.8L8 15.4C7.13334 15.9334 5.93334 15.3334 5.93334 14.2667V10.7334C5.93334 10.2667 5.66667 9.66669 5.4 9.33336L4.73334 8.63336L8.61334 2.40002H12.4C13.1333 2.40002 13.7333 3.00002 13.7333 3.73336Z"
+          fill="#6F5B86"
+        />
+        <path
+          d="M7.53333 2.40002L4.08 7.94002L2.86666 6.66669C2.53333 6.33336 2.26666 5.73336 2.26666 5.33336V3.80002C2.26666 3.00002 2.86666 2.40002 3.6 2.40002H7.53333Z"
+          fill="#6F5B86"
+        />
+      </svg>
+    );
+
+  // const customerBtnRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useOutsideClick(() => closeCalendar());
+  return (
+    <section className="w-full h-full min-w-0">
+      <div className="flex flex-col lg:flex-row lg:flex-wrap gap-2 lg:gap-3 items-stretch lg:items-center mb-3 lg:mb-6">
+        <SearchBox
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="!w-full lg:!w-[285px] !h-10 rounded-xl lg:rounded-lg shadow-sm lg:shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] outline outline-1 outline-offset-[-1px] outline-raiz-gray-100 lg:outline-zinc-200"
+          inputClassName="rounded-xl lg:rounded-lg bg-white text-sm"
+          iconClassName="top-[9.5px]"
+        />
+        <div className="flex gap-2 lg:contents">
+          <div className="flex-1 min-w-0 lg:w-[160px] lg:flex-none">
+            <SelectField
+              placeholder="Status"
+              options={statusOptions}
+              value={
+                status
+                  ? statusOptions.find((option) => option.value === status) ||
+                    null
+                  : null
+              }
+              onChange={(i) => setStatus(i?.value as string)}
+              bgColor="#fff"
+              width="100%"
+              height="40px"
+              minHeight="40px"
+              style={{ height: "40px" }}
+              placeholderStyle={{
+                fontWeight: "600",
+                color: "#2C2435",
+                fontSize: "12px",
+              }}
             />
+          </div>
+          <div className="relative flex-1 min-w-0 lg:flex-none" ref={dropdownRef}>
+            <button
+              type="button"
+              onClick={() => setShowDateOpts(!showDateOpts)}
+              className="flex w-full lg:w-auto h-9 lg:h-10 items-center justify-center lg:justify-start gap-1.5 rounded-xl lg:rounded-lg bg-white border border-raiz-gray-100 lg:border-0 px-2 lg:px-3.5 py-2 lg:py-2.5 text-xs lg:text-sm font-semibold lg:font-bold text-raiz-gray-800 lg:text-zinc-800 shadow-sm lg:shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] lg:outline lg:outline-1 lg:outline-offset-[-1px] lg:outline-zinc-200"
+            >
+              <Image
+                src="/icons/calendar.svg"
+                alt="calendar"
+                width={16}
+                height={16}
+                className="shrink-0 lg:hidden"
+              />
+              <Image
+                src="/icons/calendar.svg"
+                alt="calendar"
+                width={20}
+                height={20}
+                className="shrink-0 hidden lg:block"
+              />
+              <span className="truncate lg:whitespace-nowrap">
+                {dateLabel ?? (
+                  <>
+                    <span className="lg:hidden">Dates</span>
+                    <span className="hidden lg:inline">Select dates</span>
+                  </>
+                )}
+              </span>
+              {renderDateFilterIcon()}
+            </button>
+            {renderDateFilterMenu()}
+            {dateFilterType && showDateRange && (
+              <DateRange
+                onApply={setDateRange}
+                onClose={() => setShowDateRange(false)}
+              />
+            )}
+          </div>
+          {dateRange.startDate && (
+            <button
+              type="button"
+              onClick={() => {
+                setDateRange({});
+                setDateFilterType(null);
+              }}
+              className="flex shrink-0 items-center justify-center size-9 lg:w-10 lg:h-10 rounded-xl lg:rounded-lg bg-white lg:bg-transparent border border-raiz-gray-100 lg:border-0 shadow-sm lg:shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] lg:outline lg:outline-1 lg:outline-offset-[-1px] lg:outline-zinc-200"
+              aria-label="Clear dates"
+            >
+              <LiaTimesSolid className="text-sm" />
+            </button>
           )}
         </div>
-        {dateRange.startDate && (
-          <button
-            onClick={() => {
-              setDateRange({});
-              setDateFilterType(null);
-            }}
-            className="flex items-center justify-center w-10 h-10 rounded-lg shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] outline outline-1 outline-offset-[-1px] outline-zinc-200"
-          >
-            <LiaTimesSolid />
-          </button>
-        )}
-
-        {/* export */}
-        {/* <button className="flex h-11 gap-1.5 items-center px-3.5 py-2.5 rounded-lg shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] outline outline-1 outline-offset-[-1px] outline-zinc-200 ">
-          <Image
-            src={"/icons/export.svg"}
-            alt="Export"
-            width={20}
-            height={20}
-          />
-          <span className="text-zinc-800 text-sm font-bold leading-none">
-            Export
-          </span>
-        </button> */}
       </div>
-      {/* )} */}
       {isLoading ? (
-        <div className="w-full overflow-x-auto ">
-          <table className="min-w-full text-left text-sm">
+        <>
+          <MobileInvoiceCards invoices={[]} onSelect={() => {}} isLoading />
+          <div className="hidden lg:block w-full overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
             <thead className="border-b ">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id} className="whitespace-nowrap ">
@@ -624,9 +590,14 @@ const InvoicesTable = () => {
             </tbody>
           </table>
         </div>
+        </>
       ) : InvoiceList.length > 0 ? (
         <>
-          <div className="w-full overflow-x-auto">
+          <MobileInvoiceCards
+            invoices={InvoiceList}
+            onSelect={(invoice) => router.push(`/invoice/${invoice.invoice_id}`)}
+          />
+          <div className="hidden lg:block w-full overflow-x-auto">
             <table className="min-w-full text-left text-sm">
               <thead className="border-b ">
                 {table.getHeaderGroups().map((headerGroup) => (

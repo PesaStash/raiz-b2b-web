@@ -110,8 +110,8 @@ const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
   return (
     <Overlay close={close} width="375px">
       <div className="flex flex-col  h-full py-8 px-5  text-raiz-gray-950">
-        <h4 className="text-xl font-semibold">Select Account</h4>
-        <div className="flex flex-col mt-4">
+        <h4 className="text-lg md:text-xl font-medium md:font-semibold">Select Account</h4>
+        <div className="flex flex-col mt-3 md:mt-4">
           {/* USD */}
           <button
             onClick={handleUsd}
@@ -125,18 +125,19 @@ const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
               <Image
                 src={"/icons/dollar.svg"}
                 alt="USD"
-                width={40}
-                height={40}
+                width={32}
+                height={32}
+                className="size-8 md:size-10 rounded-full"
               />
               <div className="flex flex-col items-start">
-                <p className="text-raiz-gray-900 text-base font-medium font-brSonoma leading-tight">
+                <p className="text-raiz-gray-900 text-sm md:text-base font-medium font-brSonoma leading-tight">
                   {USDAcct
                     ? USDAcct?.account_number
                     : USDWalletMutation.isPending
                       ? "Creating your USD account..."
                       : "Get USD Account"}
                 </p>
-                <p className="opacity-50 text-raiz-gray-950 text-[13px] font-normal  leading-tight">
+                <p className="opacity-50 text-raiz-gray-950 text-xs md:text-[13px] font-normal  leading-tight">
                   {USDAcct?.wallet_type.wallet_type_name || "USD Account"}
                 </p>
               </div>
@@ -165,14 +166,15 @@ const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
                 <Image
                   src={"/icons/ngn.svg"}
                   alt="NGN"
-                  width={40}
-                  height={40}
+                  width={32}
+                  height={32}
+                  className="size-8 md:size-10 rounded-full"
                 />
                 <div className="flex flex-col items-start">
-                  <p className="text-raiz-gray-900 text-base font-medium font-brSonoma leading-tight">
+                  <p className="text-raiz-gray-900 text-sm md:text-base font-medium font-brSonoma leading-tight">
                     {NGNAcct ? NGNAcct.account_number : "Get NGN Account"}
                   </p>
-                  <p className="opacity-50 text-raiz-gray-950 text-[13px] font-normal  leading-tight">
+                  <p className="opacity-50 text-raiz-gray-950 text-xs md:text-[13px] font-normal  leading-tight">
                     {NGNAcct?.wallet_type.wallet_type_name || "NGN Account"}
                   </p>
                 </div>
@@ -199,13 +201,13 @@ const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
             <div className="flex gap-3">
               <Image
                 src={"/icons/flag-gb.png"}
-                alt="GBP"
-                width={40}
-                height={40}
-                className="rounded-full"
+                alt="GBP" 
+                width={32}
+                height={32}
+                className="size-8 md:size-10 rounded-full"
               />
               <div className="flex flex-col items-start">
-                <p className="text-raiz-gray-900 text-base font-medium font-brSonoma leading-tight">
+                <p className="text-raiz-gray-900 text-sm md:text-base font-medium font-brSonoma leading-tight">
                   {GBPAcct
                     ? GBPAcct.account_number || GBPAcct.iban || "GBP Account"
                     : foreignAccountMutation.isPending &&
@@ -213,7 +215,7 @@ const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
                       ? "Creating your GBP account..."
                       : "Get GBP Account"}
                 </p>
-                <p className="opacity-50 text-raiz-gray-950 text-[13px] font-normal leading-tight">
+                <p className="opacity-50 text-raiz-gray-950 text-xs md:text-[13px] font-normal leading-tight">
                   {GBPAcct?.wallet_type.wallet_type_name || "GBP Account"}
                 </p>
               </div>
@@ -240,12 +242,12 @@ const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
               <Image
                 src={"/icons/flag-fr.png"}
                 alt="EUR"
-                width={40}
-                height={40}
-                className="rounded-full"
+                width={32}
+                height={32}
+                className="size-8 md:size-10 rounded-full"
               />
               <div className="flex flex-col items-start">
-                <p className="text-raiz-gray-900 text-base font-medium font-brSonoma leading-tight">
+                <p className="text-raiz-gray-900 text-sm md:text-base font-medium font-brSonoma leading-tight">
                   {EURAcct
                     ? EURAcct.iban || EURAcct.account_number || "EUR Account"
                     : foreignAccountMutation.isPending &&
@@ -253,7 +255,7 @@ const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
                       ? "Creating your EUR account..."
                       : "Get EUR Account"}
                 </p>
-                <p className="opacity-50 text-raiz-gray-950 text-[13px] font-normal leading-tight">
+                <p className="opacity-50 text-raiz-gray-950 text-xs md:text-[13px] font-normal leading-tight">
                   {EURAcct?.wallet_type.wallet_type_name || "EUR Account"}
                 </p>
               </div>
@@ -280,16 +282,17 @@ const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
               <Image
                 src={"/icons/usd-coin.svg"}
                 alt=""
-                width={40}
-                height={40}
+                width={32}
+                height={32}
+                className="size-8 md:size-10 rounded-full"
               />
               <div className="flex flex-col items-start">
-                <p className="text-raiz-gray-900 text-base font-medium font-brSonoma leading-tight">
+                <p className="text-raiz-gray-900 text-sm md:text-base font-medium font-brSonoma leading-tight">
                   {CryptoAcct
                     ? truncateString(CryptoAcct?.account_number, 20)
                     : "Get USDC & USDT Wallet"}
                 </p>
-                <p className="opacity-50 text-raiz-gray-950 text-[13px] font-normal  leading-tight">
+                <p className="opacity-50 text-raiz-gray-950 text-xs md:text-[13px] font-normal  leading-tight">
                   {CryptoAcct?.wallet_type.wallet_type_name || "Crypto Wallet"}
                 </p>
               </div>

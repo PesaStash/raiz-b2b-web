@@ -8,7 +8,6 @@ import Avatar from "@/components/ui/Avatar";
 import {
   FetchBillRequestApi,
   FetchSentRequestApi,
-  FetchTransactionCategoriesApi,
 } from "@/services/transactions";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { IBillRequestParams, IP2pTransferResponse } from "@/types/services";
@@ -23,7 +22,7 @@ import RaizReceipt from "@/components/transactions/RaizReceipt";
 import SideModalWrapper from "@/app/(dashboard)/_components/SideModalWrapper";
 import { ACCOUNT_CURRENCIES } from "@/constants/misc";
 import Pagination from "@/components/ui/Pagination";
-import Image from "next/image";
+import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -147,22 +146,24 @@ const ActionButtons = ({
   onAccept: (r: IBillRequest) => void;
   onReject: (r: IBillRequest) => void;
 }) => (
-  <div className="flex items-center gap-2">
+  <div className="flex flex-wrap items-center gap-2">
     <button
+      type="button"
       onClick={(e) => {
         e.stopPropagation();
         onReject(request);
       }}
-      className="h-8 px-4 bg-orange-100 rounded-full text-xs font-medium text-raiz-gray-800 whitespace-nowrap"
+      className="h-9 px-4 bg-orange-100 rounded-full text-xs font-medium text-raiz-gray-800 whitespace-nowrap active:opacity-80"
     >
       Reject
     </button>
     <button
+      type="button"
       onClick={(e) => {
         e.stopPropagation();
         onAccept(request);
       }}
-      className="h-8 px-4 bg-[#3c2875] rounded-full flex items-center gap-1.5 text-xs font-medium text-white whitespace-nowrap"
+      className="h-9 px-4 bg-[#3c2875] rounded-full flex items-center gap-1.5 text-xs font-medium text-white whitespace-nowrap active:opacity-80"
     >
       <svg width="14" height="14" viewBox="0 0 17 16" fill="none">
         <path
@@ -200,32 +201,33 @@ const GridCard = ({
   return (
     <div
       onClick={onClick}
-      className={`w-full px-4 py-4 rounded-2xl border cursor-pointer transition-all ${
+      className={`w-full px-3 py-3 md:px-4 md:py-4 rounded-2xl border cursor-pointer transition-all ${
         isSelected
           ? "border-[#3c2875] bg-white shadow-md"
           : "border-raiz-gray-100 bg-white hover:shadow-sm"
       }`}
     >
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between mb-2 md:mb-3">
         <Avatar
           name={request.third_party_account?.account_name}
           src={request.third_party_account?.selfie_image}
+          size={36}
         />
         <span
-          className={`flex items-center gap-1.5 text-xs font-medium ${statusInfo.color}`}
+          className={`flex items-center gap-1 text-[10px] md:text-xs font-medium ${statusInfo.color}`}
         >
           <span className={`w-1.5 h-1.5 rounded-full ${statusInfo.dot}`} />
           {statusInfo.label}
         </span>
       </div>
-      <p className="text-raiz-gray-900 text-sm font-semibold leading-snug">
+      <p className="text-raiz-gray-900 text-[13px] md:text-sm font-semibold leading-snug truncate">
         {request.third_party_account?.account_name}
       </p>
-      <p className="text-raiz-gray-900 text-lg font-bold leading-tight mt-0.5">
+      <p className="text-raiz-gray-900 text-base md:text-lg font-bold leading-tight mt-0.5 tabular-nums">
         {getCurrencySymbol(request.currency)}
         {request.transaction_amount?.toLocaleString()}
       </p>
-      <p className="text-raiz-gray-500 text-xs mt-2">
+      <p className="text-raiz-gray-500 text-[11px] md:text-xs mt-1.5 md:mt-2">
         {isSent ? "Outbound" : "Inbound"} • {date.format("MMM D, h:mm A")}
       </p>
 
@@ -281,18 +283,17 @@ const DetailPanel = ({
   );
 
   return (
-    <div className="flex-1 bg-white rounded-2xl border border-raiz-gray-100 p-6 flex flex-col gap-6">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-raiz-gray-950 text-sm mb-1 font-semibold">
+    <div className="flex-1 bg-white rounded-2xl border border-raiz-gray-100 p-4 sm:p-6 flex flex-col gap-4 sm:gap-6 min-w-0">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-raiz-gray-950 text-xs md:text-sm mb-1 font-semibold">
             Bill Request
           </p>
-          <p className="text-raiz-gray-900 text-2xl font-bold">
+          <p className="text-raiz-gray-900 text-lg md:text-2xl font-bold break-words tabular-nums">
             {getCurrencySymbol(request.currency)}
             {formatAmount(request.transaction_amount)}
           </p>
-          <p className="text-raiz-gray-700 font-brSonoma text-sm mt-1 leading-5">
+          <p className="text-raiz-gray-700 font-brSonoma text-xs md:text-sm mt-1 leading-5">
             {isSent ? "Sent Request" : "Received Request"}
           </p>
         </div>
@@ -307,17 +308,18 @@ const DetailPanel = ({
 
       <hr className="border-raiz-gray-100" />
 
-      {/* Meta */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <p className="text-raiz-gray-700 text-sm mb-1">Requester</p>
-          <p className="text-raiz-gray-700 text-base font-semibold">
+          <p className="text-raiz-gray-700 text-xs md:text-sm mb-1">Requester</p>
+          <p className="text-raiz-gray-700 text-sm md:text-base font-semibold break-words">
             {isSent ? "You" : request.third_party_account?.account_name}
           </p>
         </div>
         <div>
-          <p className="text-raiz-gray-700 text-sm mb-1">Submitted Date</p>
-          <p className="text-raiz-gray-700 text-base font-semibold">
+          <p className="text-raiz-gray-700 text-xs md:text-sm mb-1">
+            Submitted Date
+          </p>
+          <p className="text-raiz-gray-700 text-sm md:text-base font-semibold">
             {submittedDate}
           </p>
         </div>
@@ -328,10 +330,10 @@ const DetailPanel = ({
       {/* Description */}
       {request.narration && (
         <div>
-          <p className="text-raiz-gray-700 text-sm font-bold mb-2">
+          <p className="text-raiz-gray-700 text-xs md:text-sm font-bold mb-2">
             Description
           </p>
-          <p className="text-raiz-gray-700 text-base leading-relaxed">
+          <p className="text-raiz-gray-700 text-sm md:text-base leading-relaxed">
             {request.narration}
           </p>
         </div>
@@ -357,13 +359,6 @@ const TableRow = ({
   const statusKey = request.status?.status?.toLowerCase() ?? "pending";
   const isPending = statusKey === "pending";
   const statusInfo = normalizeStatus(request.status?.status);
-
-  const { data } = useQuery({
-    queryKey: ["transactions-category"],
-    queryFn: () => FetchTransactionCategoriesApi(),
-  });
-
-  console.log("data", data);
 
   return (
     <tr className="border-b border-raiz-gray-100 hover:bg-gray-50 transition-colors">
@@ -450,7 +445,7 @@ const TableRow = ({
 // ─── Loading skeletons ────────────────────────────────────────────────────────
 
 const GridSkeleton = () => (
-  <div className="grid grid-cols-[300px_1fr] gap-4">
+  <div className="flex flex-col lg:grid lg:grid-cols-[300px_1fr] gap-4">
     <div className="flex flex-col gap-3">
       {[...Array(4)].map((_, i) => (
         <div
@@ -494,6 +489,7 @@ const TableSkeleton = () => (
 
 const BillRequestsHistory = () => {
   const { selectedCurrency } = useCurrencyStore();
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
   const [activeTab, setActiveTab] = useState<TabType>("all");
   const [viewType, setViewType] = useState<ViewType>("grid");
   const [currentPage, setCurrentPage] = useState(1);
@@ -515,7 +511,12 @@ const BillRequestsHistory = () => {
   const currencyDropdownRef = useRef<HTMLDivElement>(null);
   const dateDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdowns on outside click
+  useEffect(() => {
+    if (!isDesktop) {
+      setViewType("grid");
+    }
+  }, [isDesktop]);
+
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (
@@ -639,16 +640,15 @@ const BillRequestsHistory = () => {
     filterCurrency === "all" ? "All currencies" : filterCurrency;
 
   return (
-    <div className="mt-6 p-6 bg-raiz-gray-50 rounded-[20px]">
-      {/* ── Controls ── */}
-      <div className="flex items-center justify-between mb-6">
-        {/* Tabs */}
-        <div className="flex items-center gap-6">
+    <div className="p-4 md:p-6 bg-white md:bg-raiz-gray-50 rounded-2xl md:rounded-[20px] min-w-0 border border-raiz-gray-100 md:border-0 shadow-sm md:shadow-none">
+      <div className="flex flex-col gap-4 mb-4 md:mb-6">
+        <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto no-scrollbar -mx-1 px-1">
           {(["all", "received", "sent"] as TabType[]).map((tab) => (
             <button
+              type="button"
               key={tab}
               onClick={() => handleTabChange(tab)}
-              className={`flex items-center gap-2 pb-2 text-sm font-semibold border-b-2 transition-colors ${
+              className={`flex items-center gap-1.5 md:gap-2 pb-2 text-xs md:text-sm font-semibold border-b-2 transition-colors whitespace-nowrap shrink-0 ${
                 activeTab === tab
                   ? "border-primary2  text-primary2"
                   : "border-transparent text-raiz-gray-500 hover:text-raiz-gray-700"
@@ -658,7 +658,7 @@ const BillRequestsHistory = () => {
                 ? "All Requests"
                 : tab.charAt(0).toUpperCase() + tab.slice(1)}
               {tab === "all" && pendingCount > 0 && (
-                <span className="min-w-[20px] h-5 px-1.5 bg-[#DC180D] text-raiz-gray-50 rounded-full text-xs font-semibold flex items-center justify-center">
+                <span className="min-w-[18px] h-[18px] md:min-w-[20px] md:h-5 px-1 md:px-1.5 bg-[#DC180D] text-raiz-gray-50 rounded-full text-[10px] md:text-xs font-semibold flex items-center justify-center">
                   {pendingCount}
                 </span>
               )}
@@ -666,10 +666,8 @@ const BillRequestsHistory = () => {
           ))}
         </div>
 
-        {/* Right controls */}
-        <div className="flex items-center gap-3">
-          {/* Table / Grid toggle */}
-          <div className="flex items-center gap-1 p-1 border border-raiz-gray-200 rounded-xl overflow-hidden">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div className="hidden lg:flex items-center gap-1 p-1 border border-raiz-gray-200 rounded-xl overflow-hidden shrink-0">
             <button
               onClick={() => setViewType("table")}
               className={`flex items-center gap-1.5 px-2 rounded-lg py-1.5 text-xs font-bold transition-colors ${
@@ -751,14 +749,14 @@ const BillRequestsHistory = () => {
             </button>
           </div>
 
-          {/* Currency filter */}
-          <div ref={currencyDropdownRef} className="relative">
+          <div ref={currencyDropdownRef} className="relative flex-1 sm:flex-none min-w-[calc(50%-4px)] sm:min-w-0">
             <button
+              type="button"
               onClick={() => {
                 setCurrencyDropdownOpen((v) => !v);
                 setDateDropdownOpen(false);
               }}
-              className={`flex items-center gap-2 h-9 px-4 text-xs font-medium border rounded-xl transition-colors ${
+              className={`flex items-center justify-center sm:justify-start gap-1.5 md:gap-2 h-9 md:h-10 w-full sm:w-auto px-2.5 md:px-4 text-[11px] md:text-xs font-medium border rounded-xl transition-colors truncate ${
                 currencyDropdownOpen || filterCurrency !== "all"
                   ? "border-[#3c2875] text-[#3c2875] bg-[#3c2875]/5"
                   : "border-raiz-gray-200 text-raiz-gray-700 hover:border-raiz-gray-300"
@@ -826,7 +824,7 @@ const BillRequestsHistory = () => {
             </button>
 
             {currencyDropdownOpen && (
-              <div className="absolute right-0 top-full mt-1.5 z-50 min-w-[160px] bg-white border border-raiz-gray-100 rounded-xl shadow-lg py-1 overflow-hidden">
+              <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1.5 z-50 w-full sm:min-w-[160px] bg-white border border-raiz-gray-100 rounded-xl shadow-lg py-1 overflow-hidden">
                 {CURRENCY_OPTIONS.map(({ key, label }) => (
                   <button
                     key={key}
@@ -860,14 +858,14 @@ const BillRequestsHistory = () => {
             )}
           </div>
 
-          {/* Date filter */}
-          <div ref={dateDropdownRef} className="relative">
+          <div ref={dateDropdownRef} className="relative flex-1 sm:flex-none min-w-[calc(50%-4px)] sm:min-w-0">
             <button
+              type="button"
               onClick={() => {
                 setDateDropdownOpen((v) => !v);
                 setCurrencyDropdownOpen(false);
               }}
-              className={`flex items-center gap-2 h-9 px-4 text-xs font-medium border rounded-xl transition-colors ${
+              className={`flex items-center justify-center sm:justify-start gap-1.5 md:gap-2 h-9 md:h-10 w-full sm:w-auto px-2.5 md:px-4 text-[11px] md:text-xs font-medium border rounded-xl transition-colors truncate ${
                 dateDropdownOpen
                   ? "border-[#3c2875] text-[#3c2875] bg-[#3c2875]/5"
                   : "border-raiz-gray-200 text-raiz-gray-700 hover:border-raiz-gray-300"
@@ -909,7 +907,7 @@ const BillRequestsHistory = () => {
             </button>
 
             {dateDropdownOpen && (
-              <div className="absolute right-0 top-full mt-1.5 z-50 min-w-[170px] bg-white border border-raiz-gray-100 rounded-xl shadow-lg py-1 overflow-hidden">
+              <div className="absolute left-0 sm:left-auto sm:right-0 top-full mt-1.5 z-50 w-full sm:min-w-[170px] bg-white border border-raiz-gray-100 rounded-xl shadow-lg py-1 overflow-hidden">
                 {DATE_PRESETS.map(({ key, label }) => (
                   <button
                     key={key}
@@ -947,18 +945,48 @@ const BillRequestsHistory = () => {
 
       {/* ── Content ── */}
       {isLoading ? (
-        viewType === "grid" ? (
+        viewType === "grid" || !isDesktop ? (
           <GridSkeleton />
         ) : (
           <TableSkeleton />
         )
       ) : currentRequests.length === 0 ? (
-        <EmptyList text="No bill requests found" />
-      ) : viewType === "grid" ? (
-        // ── Grid view ──
-        <div className="flex gap-4">
-          {/* Cards list */}
-          <div className="w-[300px] flex-shrink-0 flex flex-col gap-3 max-h-[600px] overflow-y-auto pr-1 no-scrollbar">
+        <div className="py-12 flex justify-center">
+          <EmptyList text="No bill requests found" />
+        </div>
+      ) : viewType === "grid" || !isDesktop ? (
+        <div className="flex flex-col lg:flex-row gap-4 min-w-0">
+          {selectedRequest && !isDesktop && (
+            <div className="lg:hidden order-first">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs md:text-sm font-semibold text-raiz-gray-700">
+                  Request details
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setSelectedRequest(null)}
+                  className="text-xs md:text-sm font-medium text-primary2 px-2 py-1"
+                >
+                  Close
+                </button>
+              </div>
+              <DetailPanel
+                request={selectedRequest}
+                onAccept={handleAccept}
+                onReject={handleReject}
+                isSent={
+                  isSentTab ||
+                  sentRequests.some(
+                    (s) =>
+                      s.request_transfer_id ===
+                      selectedRequest.request_transfer_id,
+                  )
+                }
+              />
+            </div>
+          )}
+
+          <div className="w-full lg:w-[300px] lg:shrink-0 flex flex-col gap-3 lg:max-h-[600px] lg:overflow-y-auto lg:pr-1 no-scrollbar">
             {currentRequests.map((request) => (
               <GridCard
                 key={request.request_transfer_id}
@@ -979,33 +1007,39 @@ const BillRequestsHistory = () => {
                 }
               />
             ))}
+            {!selectedRequest && !isDesktop && currentRequests.length > 0 && (
+              <p className="text-center text-xs text-raiz-gray-400 py-1">
+                Tap a request to view details
+              </p>
+            )}
           </div>
 
-          {/* Detail panel */}
           {selectedRequest ? (
-            <DetailPanel
-              request={selectedRequest}
-              onAccept={handleAccept}
-              onReject={handleReject}
-              isSent={
-                isSentTab ||
-                sentRequests.some(
-                  (s) =>
-                    s.request_transfer_id ===
-                    selectedRequest.request_transfer_id,
-                )
-              }
-            />
+            <div className="hidden lg:block flex-1 min-w-0">
+              <DetailPanel
+                request={selectedRequest}
+                onAccept={handleAccept}
+                onReject={handleReject}
+                isSent={
+                  isSentTab ||
+                  sentRequests.some(
+                    (s) =>
+                      s.request_transfer_id ===
+                      selectedRequest.request_transfer_id,
+                  )
+                }
+              />
+            </div>
           ) : (
-            <div className="flex-1 bg-white rounded-2xl border border-raiz-gray-100 flex items-center justify-center text-raiz-gray-400 text-sm">
+            <div className="hidden lg:flex flex-1 bg-white rounded-2xl border border-raiz-gray-100 items-center justify-center text-raiz-gray-400 text-sm min-h-[200px]">
               Select a request to view details
             </div>
           )}
         </div>
       ) : (
-        // ── Table view ──
-        <div className="bg-white rounded-2xl border border-raiz-gray-100 overflow-hidden">
-          <table className="w-full">
+        <div className="hidden lg:block bg-white rounded-2xl border border-raiz-gray-100 overflow-hidden">
+          <div className="w-full overflow-x-auto">
+          <table className="w-full min-w-[640px]">
             <thead>
               <tr className="border-b border-raiz-gray-100 bg-[#F8F7FA]">
                 <th className="text-left py-3 pl-4 pr-3 text-[13px] font-medium text-raiz-gray-700">
@@ -1044,6 +1078,7 @@ const BillRequestsHistory = () => {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 

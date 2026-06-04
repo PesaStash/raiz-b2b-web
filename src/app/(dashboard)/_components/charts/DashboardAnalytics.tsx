@@ -123,12 +123,12 @@ const DashboardAnalytics = () => {
 
   return (
     <>
-      <section className=" w-1/2 flex flex-col  justify-between gap-5 bg-white rounded-2xl border border-[#F3F1F6]">
+      <section className="w-full  flex flex-col justify-between gap-5 bg-white rounded-2xl border border-[#F3F1F6] min-w-0">
         {/* Balance info */}
         <div className="gap-3 flex flex-col p-4 ">
           <div className="flex justify-between items-center">
             <div className="flex gap-2 items-center">
-              <p className="text-raiz-gray-950 text-[29px] font-semibold  leading-9">
+              <p className="text-raiz-gray-950 text-2xl lg:text-[29px] font-semibold leading-9">
                 {showBalance
                   ? `${currentWallet ? selectedCurrency.sign : ""} ${
                       currentWallet?.account_balance.toLocaleString() || "0.00"

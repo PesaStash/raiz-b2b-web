@@ -104,36 +104,36 @@ const Infos = () => {
       onAction: () => setShowModal("getNgn"),
       ctaLabel: "Create NGN Account",
     },
-    {
-      key: "getGbp",
-      condition:
-        verificationStatus === "completed" &&
-        !!USDAcct &&
-        !GBPAcct &&
-        !!hasTransactionPin,
-      icon: (
-        <Image src="/icons/flag-gb.png" alt="GBP" width={22} height={22} className="rounded-full" />
-      ),
-      label: "GBP",
-      sublabel: "British Pound",
-      onAction: () => setShowModal("getGbp"),
-      ctaLabel: "Create GBP Account",
-    },
-    {
-      key: "getEur",
-      condition:
-        verificationStatus === "completed" &&
-        !!USDAcct &&
-        !EURAcct &&
-        !!hasTransactionPin,
-      icon: (
-        <Image src="/icons/flag-fr.png" alt="EUR" width={22} height={22} className="rounded-full" />
-      ),
-      label: "EUR",
-      sublabel: "Euro account",
-      onAction: () => setShowModal("getEur"),
-      ctaLabel: "Create EUR Account",
-    },
+    // {
+    //   key: "getGbp",
+    //   condition:
+    //     verificationStatus === "completed" &&
+    //     !!USDAcct &&
+    //     !GBPAcct &&
+    //     !!hasTransactionPin,
+    //   icon: (
+    //     <Image src="/icons/flag-gb.png" alt="GBP" width={22} height={22} className="rounded-full" />
+    //   ),
+    //   label: "GBP",
+    //   sublabel: "British Pound",
+    //   onAction: () => setShowModal("getGbp"),
+    //   ctaLabel: "Create GBP Account",
+    // },
+    // {
+    //   key: "getEur",
+    //   condition:
+    //     verificationStatus === "completed" &&
+    //     !!USDAcct &&
+    //     !EURAcct &&
+    //     !!hasTransactionPin,
+    //   icon: (
+    //     <Image src="/icons/flag-fr.png" alt="EUR" width={22} height={22} className="rounded-full" />
+    //   ),
+    //   label: "EUR",
+    //   sublabel: "Euro account",
+    //   onAction: () => setShowModal("getEur"),
+    //   ctaLabel: "Create EUR Account",
+    // },
   ];
 
   const visibleItems = allItems.filter((item) => item.condition);
@@ -171,7 +171,7 @@ const Infos = () => {
           Add more accounts
         </p>
 
-<div className="flex  justify-between items-center gap-2.5">
+<div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         {/* Pill selector */}
         <div className="flex flex-wrap gap-2">
           {visibleItems.map((item) => {

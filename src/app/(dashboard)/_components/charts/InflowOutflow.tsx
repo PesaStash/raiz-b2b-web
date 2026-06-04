@@ -211,7 +211,7 @@ const InflowOutflow = () => {
   return (
     <div className="bg-white rounded-lg ">
       {/* Header with stats */}
-      <div className="flex items-center justify-between mb-6 px-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-6 px-4">
         <div className="relative">
           <select
             value={numberOfDays}
@@ -241,7 +241,7 @@ const InflowOutflow = () => {
           </svg>
         </div>
 
-        <div className="flex items-center gap-5">
+        <div className="flex flex-wrap items-center gap-3 md:gap-5">
           {isLoading ? (
             <Skeleton width={100} height={20} count={2} inline />
           ) : (

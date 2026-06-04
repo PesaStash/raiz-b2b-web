@@ -27,6 +27,8 @@ import AddNewTax from "../../_components/AddNewTax";
 import SideModalWrapper from "@/app/(dashboard)/_components/SideModalWrapper";
 import { ACCOUNT_CURRENCIES } from "@/constants/misc";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
+import InvoiceMobileBack from "../../_components/InvoiceMobileBack";
+import Link from "next/link";
 
 const invoiceSchema = z
   .object({
@@ -303,9 +305,10 @@ const EditInvoicePage = () => {
 
   if (isLoading) {
     return (
-      <section className="mt-10 h-full p-6 bg-white">
-        <div className="flex justify-center items-center h-64">
-          <p className="text-zinc-700">Loading invoice...</p>
+      <section className=" sm:p-6 bg-transparent md:bg-raiz-gray-50 rounded-none md:rounded-[20px] min-w-0">
+        <InvoiceMobileBack href={`/invoice/${invoiceNo}`} label="Invoice" />
+        <div className="flex justify-center items-center h-48">
+          <p className="text-zinc-700 text-sm">Loading invoice...</p>
         </div>
       </section>
     );
@@ -313,9 +316,10 @@ const EditInvoicePage = () => {
 
   if (isError) {
     return (
-      <section className="mt-10 h-full p-6 bg-white">
-        <div className="flex justify-center items-center h-64">
-          <p className="text-red-600">
+      <section className=" sm:p-6 bg-transparent md:bg-raiz-gray-50 rounded-none md:rounded-[20px] min-w-0">
+        <InvoiceMobileBack href="/invoice" label="Invoices" />
+        <div className="flex justify-center items-center h-48 rounded-xl border border-raiz-gray-100 bg-white">
+          <p className="text-red-600 text-sm">
             Error loading invoice. Please try again.
           </p>
         </div>
@@ -324,20 +328,21 @@ const EditInvoicePage = () => {
   }
 
   return (
-    <section className="mt-10 h-full p-6 bg-white">
-      <div className="flex justify-between items-center">
-        <h2 className="text-zinc-900 text-2xl font-bold leading-7 mb-8">
+    <section className=" sm:p-6 bg-transparent md:bg-raiz-gray-50 rounded-none md:rounded-[20px] min-w-0">
+      <InvoiceMobileBack href={`/invoice/${invoiceNo}`} label="Invoice" />
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+        <h2 className="text-zinc-900 text-xl sm:text-2xl font-bold leading-7 mb-4 sm:mb-8">
           Edit Invoice
         </h2>
-        <div className="relative">
+        <div className="relative shrink-0 mb-4 sm:mb-8">
           <button
             ref={currencyBtnRef}
             onClick={() => setShowCurrencyDropdown(!showCurrencyDropdown)}
             type="button"
-            className="px-3 py-1.5 bg-violet-100/60 rounded-3xl flex gap-2 items-center hover:bg-violet-200/60 transition-colors"
+            className="px-3 py-1.5 bg-violet-100/60 rounded-3xl flex gap-2 items-center hover:bg-violet-200/60 transition-colors max-w-full"
           >
-            <span className="text-zinc-700 text-sm font-medium leading-tight font-brSonoma">
-              {`Select Currency (${currency})`}
+            <span className="text-zinc-700 text-xs sm:text-sm font-medium leading-tight font-brSonoma truncate">
+              {`Currency (${currency})`}
             </span>
             <Image
               src="/icons/arrow-down.svg"
@@ -398,7 +403,7 @@ const EditInvoicePage = () => {
           return (
             <form onSubmit={formik.handleSubmit} className="space-y-5">
               {/* Customer Info */}
-              <div className="grid grid-cols-2 gap-x-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4">
                 <div>
                   <InputLabel content="Customer Name*" />
                   <div className="relative">
@@ -450,7 +455,7 @@ const EditInvoicePage = () => {
               </div>
 
               {/* Dates */}
-              <div className="grid grid-cols-2 gap-x-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4">
                 <InputField
                   label="Date Issued*"
                   type="date"
@@ -480,7 +485,7 @@ const EditInvoicePage = () => {
               </div>
 
               {/* Discount and Tax Type Selection */}
-              <div className="grid grid-cols-2 gap-x-10 !mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4 !mb-8">
                 <div className="flex flex-col gap-2.5">
                   <InputLabel content="Discount" />
                   <div className="flex gap-2 items-center">
@@ -503,12 +508,12 @@ const EditInvoicePage = () => {
                 </div>
                 <div className="flex flex-col gap-2.5">
                   <InputLabel content="Tax" />
-                  <div className="flex gap-3 items-center">
+                  <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
                     <SelectField
                       height="44px"
                       minHeight="44px"
                       options={taxOpts}
-                      width={taxType === "noTax" ? "100%" : "50%"}
+                      width="100%"
                       value={
                         taxType
                           ? taxOpts.find(
@@ -519,7 +524,7 @@ const EditInvoicePage = () => {
                       onChange={(i) => setTaxType(i?.value as "tax" | "noTax")}
                     />
                     {taxType === "tax" && (
-                      <div className="w-1/2">
+                      <div className="w-full sm:flex-1">
                         <TaxSelect
                           value={String(formik.values.tax_rate_id || "")}
                           onChange={(val) => {
@@ -541,8 +546,8 @@ const EditInvoicePage = () => {
               </div>
 
               {/* Items */}
-              <div className="border-t pt-4">
-                <div className="flex w-full gap-4 mt-4 bg-violet-100/60 h-11 items-center">
+              <div className="border-t pt-4 min-w-0">
+                <div className="hidden lg:flex w-full gap-4 mt-4 bg-violet-100/60 h-11 items-center">
                   <div className="w-[45%] pl-6">
                     <h5 className="text-xs text-zinc-700">Item Details</h5>
                   </div>
@@ -564,76 +569,136 @@ const EditInvoicePage = () => {
                   return (
                     <div
                       key={index}
-                      className="flex w-full gap-4 mt-4 items-center"
+                      className="mt-3 lg:mt-4 rounded-xl lg:rounded-none border border-raiz-gray-100 lg:border-0 bg-white lg:bg-transparent p-4 lg:p-0 shadow-sm lg:shadow-none"
                     >
-                      <div className="w-[45%]">
-                        <InputField
-                          placeholder="type an item"
-                          className="!bg-white"
-                          {...formik.getFieldProps(
-                            `items[${index}].description`,
-                          )}
-                          status={
-                            formik.touched.items?.[index]?.description &&
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            (formik.errors.items?.[index] as any)?.description
-                              ? "error"
-                              : null
+                      <div className="flex items-center justify-between mb-3 lg:hidden">
+                        <span className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+                          Item {index + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            formik.setFieldValue(
+                              "items",
+                              formik.values.items.filter((_, i) => i !== index),
+                            )
                           }
-                          errorMessage={
-                            formik.touched.items?.[index]?.description &&
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            (formik.errors.items?.[index] as any)?.description
-                          }
-                        />
-                      </div>
-                      <div className="w-[15%]">
-                        <InputField
-                          className="!bg-white"
-                          type="number"
-                          min="1"
-                          {...formik.getFieldProps(`items[${index}].quantity`)}
-                        />
-                      </div>
-                      <div className="w-[20%]">
-                        <InputField
-                          className="!bg-white"
-                          type="number"
-                          min="0"
-                          {...formik.getFieldProps(`items[${index}].unitPrice`)}
-                        />
-                      </div>
-                      <div className="w-[20%]">
-                        <InputField
-                          className="!bg-white"
-                          disabled
-                          type="number"
-                          value={itemAmount.toFixed(2)}
-                          name={`items[${index}].amount`}
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          formik.setFieldValue(
-                            "items",
-                            formik.values.items.filter((_, i) => i !== index),
-                          )
-                        }
-                      >
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 12 12"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
+                          className="size-9 flex items-center justify-center rounded-lg text-red-600 bg-red-50 active:bg-red-100"
+                          aria-label={`Remove item ${index + 1}`}
                         >
-                          <path
-                            d="M12 1.20857L10.7914 0L6 4.79143L1.20857 0L0 1.20857L4.79143 6L0 10.7914L1.20857 12L6 7.20857L10.7914 12L12 10.7914L7.20857 6L12 1.20857Z"
-                            fill="#DC180D"
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 12 12"
+                            fill="none"
+                            aria-hidden
+                          >
+                            <path
+                              d="M12 1.20857L10.7914 0L6 4.79143L1.20857 0L0 1.20857L4.79143 6L0 10.7914L1.20857 12L6 7.20857L10.7914 12L12 10.7914L7.20857 6L12 1.20857Z"
+                              fill="currentColor"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+
+                      <div className="flex flex-col lg:flex-row w-full gap-3 lg:gap-4 lg:items-center">
+                        <div className="w-full lg:w-[45%]">
+                          <p className="lg:hidden text-xs font-medium text-zinc-600 mb-1.5">
+                            Item Details
+                          </p>
+                          <InputField
+                            placeholder="type an item"
+                            className="!bg-white"
+                            {...formik.getFieldProps(
+                              `items[${index}].description`,
+                            )}
+                            status={
+                              formik.touched.items?.[index]?.description &&
+                              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                              (formik.errors.items?.[index] as any)?.description
+                                ? "error"
+                                : null
+                            }
+                            errorMessage={
+                              formik.touched.items?.[index]?.description &&
+                              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                              (formik.errors.items?.[index] as any)?.description
+                            }
                           />
-                        </svg>
-                      </button>
+                        </div>
+                        <div className="grid grid-cols-2 lg:flex gap-3 lg:gap-4 lg:flex-1">
+                          <div className="w-full lg:w-[15%]">
+                            <p className="lg:hidden text-xs font-medium text-zinc-600 mb-1.5">
+                              Qty
+                            </p>
+                            <InputField
+                              className="!bg-white"
+                              type="number"
+                              min="1"
+                              {...formik.getFieldProps(
+                                `items[${index}].quantity`,
+                              )}
+                            />
+                          </div>
+                          <div className="w-full lg:w-[20%]">
+                            <p className="lg:hidden text-xs font-medium text-zinc-600 mb-1.5">
+                              Unit Price
+                            </p>
+                            <InputField
+                              className="!bg-white"
+                              type="number"
+                              min="0"
+                              {...formik.getFieldProps(
+                                `items[${index}].unitPrice`,
+                              )}
+                            />
+                          </div>
+                          <div className="hidden lg:block w-[20%]">
+                            <InputField
+                              className="!bg-white"
+                              disabled
+                              type="number"
+                              value={itemAmount.toFixed(2)}
+                              name={`items[${index}].amount`}
+                            />
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            formik.setFieldValue(
+                              "items",
+                              formik.values.items.filter((_, i) => i !== index),
+                            )
+                          }
+                          className="hidden lg:flex shrink-0 self-center p-2"
+                          aria-label={`Remove item ${index + 1}`}
+                        >
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 12 12"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M12 1.20857L10.7914 0L6 4.79143L1.20857 0L0 1.20857L4.79143 6L0 10.7914L1.20857 12L6 7.20857L10.7914 12L12 10.7914L7.20857 6L12 1.20857Z"
+                              fill="#DC180D"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+
+                      <div className="lg:hidden flex items-center justify-between mt-3 pt-3 border-t border-raiz-gray-100">
+                        <span className="text-sm text-zinc-600">Amount</span>
+                        <span className="text-sm font-bold text-zinc-900">
+                          {getCurrencySymbol(currency)}
+                          {itemAmount.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </span>
+                      </div>
                     </div>
                   );
                 })}
@@ -675,15 +740,15 @@ const EditInvoicePage = () => {
                     </svg>
                   }
                   iconPosition="left"
-                  className="mt-8 !bg-violet-100/60 !text-sm w-[140px] h-9 text-zinc-900"
+                  className="mt-4 lg:mt-8 !bg-violet-100/60 !text-sm w-full sm:w-[140px] h-10 text-zinc-900"
                 >
                   Add Item
                 </Button>
               </div>
 
               {/* Note, terms & Totals */}
-              <div className="flex justify-between gap-8 items-end -mt-[36px] pb-8">
-                <div className="flex gap-4 items-center w-1/2">
+              <div className="flex flex-col lg:flex-row lg:justify-between gap-6 lg:gap-8 lg:items-end pb-6 lg:pb-8">
+                <div className="flex flex-col gap-4 items-stretch w-full lg:w-1/2">
                   <TextareaField
                     label="Terms and Conditions"
                     placeholder="Enter the terms and conditions of your business"
@@ -710,7 +775,7 @@ const EditInvoicePage = () => {
                   />
                 </div>
                 {/* Totals */}
-                <div className="border-t pt-4 font-medium w-1/2 flex flex-col gap-5 text-zinc-700 font-brSonoma text-sm border border-gray-100 max-w-96 p-6 bg-white/60 rounded-lg">
+                <div className="border-t pt-4 font-medium w-full lg:w-1/2 flex flex-col gap-5 text-zinc-700 font-brSonoma text-sm border border-gray-100 max-w-full lg:max-w-96 p-6 bg-white/60 rounded-lg">
                   <div className="flex items-center justify-between">
                     <span>Subtotal:</span>
                     <span>{`${getCurrencySymbol(currency)}${formatAmount(
@@ -753,9 +818,9 @@ const EditInvoicePage = () => {
               </div>
 
               {/* Buttons */}
-              <div className="flex justify-between border-t border-gray-100 py-[30px] gap-8 items-center">
-                <div className="flex gap-3 font-brSonoma text-zinc-700 flex-col">
-                  <p className="font-bold text-xl">
+              <div className="flex flex-col-reverse lg:flex-row lg:justify-between border-t border-gray-100 py-6 lg:py-[30px] gap-5 lg:gap-8 items-stretch lg:items-center">
+                <div className="flex gap-2 font-brSonoma text-zinc-700 flex-col">
+                  <p className="font-bold text-lg sm:text-xl">
                     Total Amount:{" "}
                     {`${getCurrencySymbol(currency)}${formatAmount(total)}`}
                   </p>
@@ -767,16 +832,21 @@ const EditInvoicePage = () => {
                     )}
                   </p>
                 </div>
-                <div className="flex items-center gap-[15px]">
-                  <Button
-                    onClick={() => router.back()}
-                    type="button"
-                    variant="secondary"
+                <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-[15px] w-full lg:w-auto">
+                  <Link
+                    href={`/invoice/${invoiceNo}`}
+                    className="w-full sm:w-auto"
                   >
-                    Cancel
-                  </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="w-full sm:w-auto"
+                    >
+                      Cancel
+                    </Button>
+                  </Link>
                   <Button
-                    className="whitespace-nowrap"
+                    className="whitespace-nowrap w-full sm:w-auto"
                     type="button"
                     loading={submitType === "draft" && UpdateMutation.isPending}
                     disabled={UpdateMutation.isPending}
@@ -798,7 +868,7 @@ const EditInvoicePage = () => {
                       submitType === "preview" && UpdateMutation.isPending
                     }
                     disabled={UpdateMutation.isPending}
-                    className="whitespace-nowrap"
+                    className="whitespace-nowrap w-full sm:w-auto"
                   >
                     Preview & Save
                   </Button>

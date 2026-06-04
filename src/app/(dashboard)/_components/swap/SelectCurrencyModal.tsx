@@ -175,7 +175,7 @@ const SelectCurrencyModal = ({ close }: Props) => {
         </p>
 
         {/* Search Input */}
-        <div className="relative h-12 min-w-[300px] mb-6">
+        <div className="relative h-12 w-full min-w-0 mb-6">
           <Image
             className="absolute top-3.5 left-3"
             src={"/icons/search.svg"}

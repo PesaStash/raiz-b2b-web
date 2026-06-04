@@ -124,14 +124,14 @@ const FormContent = ({
     >
       <div className="flex flex-col gap-[15px]">
         <div className="flex justify-between w-full">
-          <h4 className="text-zinc-900 text-sm font-bold leading-none">
+          <h4 className="text-zinc-900 md:text-sm text-xs font-bold leading-none">
             Add Beneficiary
           </h4>
           {beneficiaries?.length > 0 && (
             <button
               type="button"
               onClick={() => setShowBeneficiary(true)}
-              className=" text-indigo-900 text-xs font-bold leading-tight"
+              className=" text-indigo-900 md:text-xs text-xs font-bold leading-tight"
             >
               Choose Beneficiary
             </button>
@@ -487,11 +487,11 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
   return (
     <div>
       <CenterModalHeader close={close} />
-      <h2 className="text-xl font-bold text-raiz-gray-950 mb-10">US Bank</h2>
+      <h2 className="md:text-xl text-lg font-semibold md:font-bold text-raiz-gray-950 md:mb-10 mb-4">US Bank</h2>
       <div className="flex-1  flex flex-col justify-between gap-4 h-[65vh] xl:h-[70vh]">
-        <div className="bg-raiz-gray-50 p-6 overflow-y-auto rounded-[20px]">
-          <div className="mb-11">
-            <h5 className="text-raiz-gray-950 text-sm font-bold  leading-[16.80px] mb-[15px]">
+        <div className="bg-raiz-gray-50 md:p-6 p-3 overflow-y-auto rounded-[20px]">
+          <div className="md:mb-11 mb-7">
+            <h5 className="text-raiz-gray-950 md:text-sm text-xs font-bold  leading-[16.80px] mb-[15px]">
               Beneficiary
             </h5>
             {isLoading ? (
@@ -508,10 +508,10 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
                       src={""}
                       name={user?.usd_beneficiary?.account_name}
                     />
-                    <p className="text-center text-raiz-gray-950 text-[13px] font-semibold leading-none">
+                    <p className="text-center text-raiz-gray-950 md:text-[13px] text-xs font-semibold leading-none">
                       {user?.label}
                     </p>
-                    <p className="text-center text-raiz-gray-700 text-xs leading-[18px]">
+                    <p className="text-center text-raiz-gray-700 md:text-xs text-xs leading-[18px]">
                       {" "}
                       {truncateString(
                         user?.usd_beneficiary?.account_name || "",

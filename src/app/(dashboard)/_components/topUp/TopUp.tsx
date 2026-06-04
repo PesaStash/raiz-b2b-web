@@ -49,19 +49,19 @@ const TopUp = ({ close }: Props) => {
   return (
     <div className="pb-8 flex flex-col justify-between xl:h-[95vh]">
       <div className="mb-3 ">
-        <CenterModalHeader close={close} />
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-raiz-gray-950 mb-4">
+        <CenterModalHeader close={close} title="Add Funds" titleClassname="md:hidden" />
+        <div className="hidden md:flex justify-between items-center mb-4">
+          <h2 className="md:text-xl text-lg font-bold text-raiz-gray-950 mb-4">
             Add Funds
           </h2>
           <div />
         </div>
-        <div className="p-6 bg-raiz-gray-50 rounded-[20px]">
+        <div className="md:p-6 p-4 bg-raiz-gray-50 rounded-[20px]">
           <p className="text-slate-800 text-sm font-normal leading-snug">
             Make a bank transfer from another account using these details. The
             account number provided is unique to your Raiz account
           </p>
-          <div className="p-7 bg-violet-100/60 rounded-[20px] inline-flex flex-col justify-center items-center gap-5 w-full my-[30px]">
+          <div className="md:p-7 p-4 bg-violet-100/60 rounded-[20px] inline-flex flex-col justify-center items-center gap-5 w-full my-[30px]">
             {/* Bank details */}
             <div
               className={`w-full flex   items-center ${isUSD ? "text-[15px] justify-between" : "flex-col justify-center"}`}

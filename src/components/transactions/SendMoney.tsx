@@ -12,6 +12,8 @@ import Button from "../ui/Button";
 import Avatar from "../ui/Avatar";
 import { toast } from "sonner";
 import CenterModalHeader from "../layouts/CenterModalHeader";
+import MobileSheetHeader from "../mobile/MobileSheetHeader";
+import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 
 interface Props {
   goBack: () => void;
@@ -168,20 +170,28 @@ const SendMoney = ({
     return "";
   }, [recipient]);
 
-  return (
-    <div
-      className="w-full flex flex-col h-full pb-5 overflow-y-scroll no-scrollbar
-    "
-    >
-      <CenterModalHeader close={goBack} />
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
-      <SideWrapperHeader
-        close={goBack}
-        title="Send Money"
-        titleColor="text-zinc-900"
-        backArrow={false}
-      />
-      <div className="flex flex-col h-full justify-between rounded-[20px] overflow-y-scroll no-scrollbar items-center w-full bg-raiz-gray-50 p-6">
+  return (
+    <div className="w-full flex flex-col h-full min-h-0 pb-5 overflow-y-auto no-scrollbar">
+      {isMobile ? (
+        <MobileSheetHeader title="Send Money" onBack={goBack} />
+      ) : (
+        <>
+          <CenterModalHeader close={goBack} />
+          <SideWrapperHeader
+            close={goBack}
+            title="Send Money"
+            titleColor="text-zinc-900"
+            backArrow={false}
+          />
+        </>
+      )}
+      <div
+        className={`flex flex-col flex-1 justify-between overflow-y-auto no-scrollbar items-center w-full ${
+          isMobile ? "gap-4" : "rounded-[20px] bg-raiz-gray-50 p-6"
+        }`}
+      >
         <div className="w-full h-full mb-3">
           <div className="flex flex-col justify-center items-center">
             <div className="relative w-10 h-10">
@@ -223,14 +233,14 @@ const SendMoney = ({
             <p className="text-center mt-4 justify-start text-zinc-900 text-sm font-bold  leading-none">
               {recipientName}
             </p>
-            <p className="text-center mt-10 justify-start text-zinc-900 text-base mb-3">
+            <p className="text-center mt-6 md:mt-10 text-zinc-900 text-sm md:text-base mb-2 md:mb-3">
               How much do you want to send?
             </p>
-            <div className="flex items-center">
+            <div className="flex items-center justify-center w-full">
               <input
                 ref={inputRef}
                 autoFocus
-                className="outline-none h-[91px] bg-transparent w-fit xl:mx-auto text-center text-zinc-900 placeholder:text-zinc-900 text-3xl font-semibold leading-10"
+                className="outline-none h-16 md:h-[91px] bg-transparent w-full max-w-[280px] text-center text-zinc-900 placeholder:text-zinc-400 text-3xl font-semibold leading-10"
                 placeholder={`${selectedCurrency.sign}0.00`}
                 value={displayValue()}
                 onChange={handleAmountChange}

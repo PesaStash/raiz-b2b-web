@@ -61,7 +61,7 @@ const LoginOtp = ({ setStep, from, email, password }: Props) => {
         from === "login" ? "lg:w-[50%] xl:w-[46%]" : "w-full"
       }  h-full flex flex-col justify-between gap-[60px]`}
     >
-      <Image src={"/icons/Logo.svg"} width={91.78} height={32} alt="Logo" />
+      <Image className="w-[80px] md:w-[91.78px]" src={"/icons/Logo.svg"} width={91.78} height={32} alt="Logo" />
       <div className="flex flex-col h-full  justify-between">
         <section className="h-full flex flex-col justify-between -mt-2 ">
           <div>
@@ -74,7 +74,7 @@ const LoginOtp = ({ setStep, from, email, password }: Props) => {
               />
             </button>
             <header className="flex items-center justify-between mt-2">
-              <h2 className="text-raiz-gray-950 text-[23px] font-semibold  leading-10">
+              <h2 className="text-raiz-gray-950 text-xl md:text-[23px] font-semibold  leading-10">
                 Enter OTP
               </h2>
               <svg width="40" height="41" viewBox="0 0 40 41" fill="none">
@@ -93,7 +93,7 @@ const LoginOtp = ({ setStep, from, email, password }: Props) => {
                 />
               </svg>
             </header>
-            <p className="text-raiz-gray-700 text-[15px] font-normal  leading-snug mb-[44px]">
+            <p className="text-raiz-gray-700 text-xs md:text-[15px] font-normal  leading-snug mb-3 md:mb-[44px]">
               Please enter the OTP code sent to your Email Address
             </p>
             <OtpInputWithTimer
@@ -115,7 +115,7 @@ const LoginOtp = ({ setStep, from, email, password }: Props) => {
             />
           </div>
           <div>
-            <p className="text-raiz-gray-600 text-[13px] font-normal leading-tight mb-3">
+            <p className="text-raiz-gray-600 text-xs md:text-[13px] font-normal leading-tight mb-3">
               **Do not forget to check your spam/junk email folder.
             </p>
             <Button

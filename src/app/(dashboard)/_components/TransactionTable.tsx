@@ -46,6 +46,7 @@ import FilterHistory from "./transaction-history/FilterHistory";
 import { GetTransactionClasses } from "@/services/transactions";
 import { toast } from "sonner";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
+import MobileTransactionCards from "@/components/mobile/MobileTransactionCards";
 
 type customDateType = {
   day: string;
@@ -317,16 +318,73 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
   };
   return (
     <section
-      className={`w-full ${topRightOpts === "opts" ? "mt-8 p-6 bg-raiz-gray-50 rounded-[20px]" : ""}`}
+      className={`w-full min-w-0 ${topRightOpts === "opts" ? "lg:mt-8 lg:p-6 lg:bg-raiz-gray-50 lg:rounded-[20px]" : ""}`}
     >
-      <div className="flex justify-between items-center">
+      {topRightOpts === "opts" && (
+        <div className="lg:hidden mb-3 space-y-2">
+          <div className="relative h-10 w-full">
+            <Image
+              className="absolute top-2.5 left-3 opacity-50"
+              src="/icons/search.svg"
+              alt=""
+              width={18}
+              height={18}
+            />
+            <input
+              readOnly
+              placeholder="Search transactions..."
+              className="w-full h-full pl-10 pr-4 bg-white border border-raiz-gray-100 rounded-xl text-sm placeholder:text-raiz-gray-400 shadow-sm"
+              onFocus={() => setShowFilter(true)}
+            />
+          </div>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <button
+                type="button"
+                onClick={() => setShowDateRange(!showDateRange)}
+                className="flex w-full h-9 items-center justify-center gap-1.5 rounded-xl bg-white border border-raiz-gray-100 text-xs font-semibold text-raiz-gray-800 shadow-sm"
+              >
+                <Image
+                  src="/icons/calendar.svg"
+                  alt=""
+                  width={16}
+                  height={16}
+                />
+                <span className="truncate">
+                  {dateRange.startDate && dateRange.endDate
+                    ? `${format(dateRange.startDate, "dd MMM")} - ${format(dateRange.endDate, "dd MMM")}`
+                    : "Dates"}
+                </span>
+              </button>
+              {showDateRange && (
+                <DateRange
+                  onApply={setDateRange}
+                  onClose={() => setShowDateRange(false)}
+                />
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowFilter(true)}
+              className="relative flex h-9 items-center justify-center gap-1.5 rounded-xl bg-white border border-raiz-gray-100 px-4 text-xs font-semibold text-raiz-gray-800 shadow-sm shrink-0"
+            >
+              <Image src="/icons/filter.svg" alt="" width={16} height={16} />
+              Filter
+              {paramPresent ? (
+                <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-red-600" />
+              ) : null}
+            </button>
+          </div>
+        </div>
+      )}
+      <div className="hidden lg:flex flex-wrap justify-between items-center gap-2">
         {topRightOpts === "opts" && (
-          <h3 className="text-lg font-bold  leading-snug text-raiz-gray-900">
+          <h3 className="text-lg font-bold leading-snug text-raiz-gray-900">
             Transaction history
           </h3>
         )}
-        {topRightOpts === "link" ? null : ( // </Link> //   See more // > //   href={"/transactions"} //   className="text-raiz-gray-700 text-sm font-bold py-2 px-3.5  border border-[#E4E0EA] shadow rounded-md" // <Link
-          <div className="flex gap-3 items-center">
+        {topRightOpts === "link" ? null : (
+          <div className="flex flex-wrap gap-2 md:gap-3 items-center">
             {/* dates */}
             <div className="relative">
               <button
@@ -399,38 +457,48 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
         )}
       </div>
       {isLoading ? (
-        <div className="w-full overflow-x-auto ">
-          <table className="min-w-full text-left text-sm">
-            <thead className="border-b ">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id} className="whitespace-nowrap">
-                  {headerGroup.headers.map((header) => (
-                    <th
-                      key={header.id}
-                      className="py-3 px-4 text-raiz-gray-700 bg-[#F8F7FA] text-[13px] font-normal font-monzo"
-                    >
-                      {flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
-                      )}
-                    </th>
-                  ))}
+        <>
+          <MobileTransactionCards
+            transactions={[]}
+            onSelect={handleViewDetails}
+            isLoading
+          />
+          <div className="hidden lg:block w-full overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="border-b">
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <tr key={headerGroup.id} className="whitespace-nowrap">
+                    {headerGroup.headers.map((header) => (
+                      <th
+                        key={header.id}
+                        className="py-3 px-4 text-raiz-gray-700 bg-[#F8F7FA] text-[13px] font-normal font-monzo"
+                      >
+                        {flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
+                      </th>
+                    ))}
+                  </tr>
+                ))}
+              </thead>
+              <tbody className="divide-y">
+                <tr>
+                  <td colSpan={6}>
+                    <Skeleton count={4} className="mb-3" height={48} />
+                  </td>
                 </tr>
-              ))}
-              <tr />
-            </thead>
-            <tbody className="divide-y">
-              <tr>
-                <td colSpan={6}>
-                  <Skeleton count={4} className="mb-3" height={48} />
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+              </tbody>
+            </table>
+          </div>
+        </>
       ) : transactions.length > 0 ? (
         <>
-          <div className="w-full overflow-x-auto h-full mt-6">
+          <MobileTransactionCards
+            transactions={paginatedTransactions}
+            onSelect={handleViewDetails}
+          />
+          <div className="hidden lg:block w-full overflow-x-auto h-full mt-6">
             <table className="min-w-full text-left text-sm">
               <thead className="border-b ">
                 {table.getHeaderGroups().map((headerGroup) => (
@@ -469,26 +537,28 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
             </table>
           </div>
           {topRightOpts === "link" && (
-            <div className="w-full flex justify-center mt-3">
+            <div className="hidden lg:flex w-full justify-center mt-3">
               <Link
                 href={"/transactions"}
-                className="text-raiz-gray-700 text-sm font-bold   mx-auto w-fit"
+                className="text-raiz-gray-700 text-sm font-bold mx-auto w-fit"
               >
                 See all
               </Link>
             </div>
-          )}{" "}
+          )}
           {pagination && totalPages > 1 && (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={(page) => setCurrentPage(page)}
-            />
+            <div className="mt-4">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={(page) => setCurrentPage(page)}
+              />
+            </div>
           )}
         </>
       ) : (
-        <div className="flex flex-col justify-center  items-center bg-[url('/images/txnBg.png')] bg-no-repeat bg-bottom py-6 pb-12">
-          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+        <div className="flex flex-col justify-center items-center bg-[url('/images/txnBg.png')] bg-no-repeat bg-bottom py-10 rounded-2xl lg:rounded-none border border-raiz-gray-100 lg:border-0 bg-white lg:bg-transparent shadow-sm lg:shadow-none">
+          <svg className="mb-3" width="32" height="32" viewBox="0 0 32 32" fill="none">
             <path
               d="M15.9998 29.3332C23.3636 29.3332 29.3332 23.3636 29.3332 15.9998C29.3332 8.63604 23.3636 2.6665 15.9998 2.6665C8.63604 2.6665 2.6665 8.63604 2.6665 15.9998C2.6665 23.3636 8.63604 29.3332 15.9998 29.3332Z"
               fill="#ECC8FF"
@@ -498,7 +568,7 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
               fill="#B35EE1"
             />
           </svg>
-          <h2 className="text-raiz-gray-950 text-sm font-semibold mb-[14px]">
+          <h2 className="text-raiz-gray-950 text-sm font-semibold mb-2 md:mb-[14px]">
             {paramPresent || dateRange.startDate || dateRange.endDate
               ? "No transactions found"
               : "No transactions yet"}

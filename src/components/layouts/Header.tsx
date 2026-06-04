@@ -56,7 +56,7 @@ const searchItems = [
   { name: "Create NGN Account", type: "modal" },
   { name: "Rewards", type: "modal" },
   { name: "Notifications", type: "modal" },
-  { name: "Profile settings", type: "route", path: "/settings" },
+  { name: "Profile settings", type: "route", path: "/settings/profile" },
   {
     name: "Password & Security",
     type: "route",
@@ -305,9 +305,9 @@ const Header = () => {
   };
 
   return (
-    <div className="flex  justify-between pb-5 gap-2">
+    <div className="flex flex-wrap justify-between items-center pb-4 md:pb-5 gap-2 min-w-0">
       {!pathName.includes("invoice") && (
-        <div className="relative h-12 w-[285px] xl:w-[312px] ">
+        <div className="relative h-12 w-full max-w-[285px] xl:max-w-[312px] hidden md:block shrink-0">
           <Image
             className="absolute top-3.5 left-3"
             src={"/icons/search.svg"}
@@ -395,7 +395,7 @@ const Header = () => {
               }  text-sm font-medium font-brSonoma leading-tight `}
               href={`/invoice/${invoiceNo}`}
             >
-              {invoiceNo}
+             Details
             </Link>
           ) : (
             <Link
@@ -411,10 +411,10 @@ const Header = () => {
           )}
         </div>
       )}
-      <div ref={actionDropdownRef} className="relative">
+      <div ref={actionDropdownRef} className="relative hidden sm:block">
         <button
           onClick={() => setShowActionOpts((prev) => !prev)}
-          className="flex justify-between items-center gap-3 min-w-[175px] xl:min-w-[220px] px-4 h-12 bg-raiz-gray-50 rounded-[20px] transition-all duration-200 outline outline-1 outline-offset-[-1px] outline-white"
+          className="flex justify-between items-center gap-2 min-w-0 w-auto px-3 lg:min-w-[175px] lg:px-4 xl:min-w-[220px] h-12 bg-raiz-gray-50 rounded-[20px] transition-all duration-200 outline outline-1 outline-offset-[-1px] outline-white"
         >
           <span className="text-sm font-medium text-raiz-gray-800">
             Move money
@@ -465,7 +465,7 @@ const Header = () => {
         </AnimatePresence>
       </div>
 
-      <div className="flex gap-4 items-center">
+      <div className="flex gap-2 md:gap-4 items-center ml-auto shrink-0">
         <button
           onClick={() => setShowModal("rewards")}
           className="py-2 px-5 bg-raiz-gray-50 hover:bg-raiz-gray-200 transition-colors duration-300 group h-12  rounded-[20px] justify-center items-center gap-2 inline-flex"
@@ -486,8 +486,8 @@ const Header = () => {
           <span className="text-raiz-gray-900 text-sm font-semibold  leading-[20px]">
             {pointsData?.point || 0}
           </span>
-          <span className="size-1.5 bg-raiz-gray-200 group-hover:bg-raiz-gray-300 transition-colors duration-300 rounded-full" />
-          <span className="text-raiz-gray-900 text-sm font-semibold  leading-[20px]">
+          <span className="size-1.5 hidden md:block bg-raiz-gray-200 group-hover:bg-raiz-gray-300 transition-colors duration-300 rounded-full" />
+          <span className="text-raiz-gray-900 hidden md:block text-sm font-semibold  leading-[20px]">
             {currentTier?.level || ""}
           </span>
         </button>
