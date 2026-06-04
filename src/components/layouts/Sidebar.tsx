@@ -102,7 +102,7 @@ const Sidebar = () => {
         key={index}
         href={isLocked ? "#" : item.link}
         tabIndex={isLocked ? -1 : 0}
-        className={`flex items-center justify-between gap-3 py-2 px-2 xl:px-3  text-sm leading-tight outline-none
+        className={`flex items-center justify-center lg:justify-between gap-3 py-2 px-2 xl:px-3 text-sm leading-tight outline-none
         ${
           isLocked
             ? "cursor-not-allowed pointer-events-none opacity-60"
@@ -113,13 +113,14 @@ const Sidebar = () => {
             ? "bg-[#eaecff]/40 rounded-[6px] text-primary2 font-bold"
             : "text-raiz-gray-600 font-medium"
         }`}
+        title={item.name}
       >
-        <div className="flex gap-3 items-center">
+        <div className="flex gap-3 items-center justify-center lg:justify-start">
           {item.icon(isActive)}
-          {item.name}
+          <span className="hidden lg:inline">{item.name}</span>
         </div>
         {isLocked && (
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <svg className="hidden lg:block" width="20" height="20" viewBox="0 0 20 20" fill="none">
             <path
               opacity="0.35"
               d="M15 17.5002H5C3.61917 17.5002 2.5 16.381 2.5 15.0002V8.3335C2.5 6.95266 3.61917 5.8335 5 5.8335H15C16.3808 5.8335 17.5 6.95266 17.5 8.3335V15.0002C17.5 16.381 16.3808 17.5002 15 17.5002Z"
@@ -454,29 +455,30 @@ const Sidebar = () => {
   ];
 
   return (
-    <aside className="w-[19.444%] pt-8 hidden lg:block  fixed top-0 bottom-0 left-0 z-20 bg-raiz-gray-50 border-r-2 border-raiz-gray-100 h-[100vh] overflow-x-hidden overflow-y-scroll">
-      <div className="px-6">
+    <aside className="hidden md:flex flex-col w-16 lg:w-[19.444%] pt-6 lg:pt-8 fixed top-0 bottom-0 left-0 z-20 bg-raiz-gray-50 border-r-2 border-raiz-gray-100 h-[100vh] overflow-x-hidden overflow-y-auto">
+      <div className="px-2 lg:px-6 flex justify-center lg:justify-start">
         <Image
-          className="w-12 h-12"
+          className="w-10 h-10 lg:w-12 lg:h-12"
           src={"/icons/Logo-2.svg"}
           width={48}
           height={48}
           alt="Raiz logo"
         />
       </div>
-      <section className="flex flex-col justify-between h-[85%] mt-8 px-4 gap-8">
-        <nav className="flex flex-col gap-5">
+      <section className="flex flex-col justify-between flex-1 mt-6 lg:mt-8 px-1 lg:px-4 gap-4 lg:gap-8 min-h-0">
+        <nav className="flex flex-col gap-2.5">
           {SidebarMenus.map((item, index) => renderMenuItem(item, index))}
           <button
             onClick={() => setShowFeedbacks(true)}
-            className={`flex items-center justify-between gap-2 py-2 px-2 xl:px-3 text-sm leading-tight outline-none hover:bg-[#eaecff]/40 hover:rounded-md  }
+            title="Feedback & Requests"
+            className={`flex items-center justify-center lg:justify-between gap-2 py-2 px-2 xl:px-3 text-sm leading-tight outline-none hover:bg-[#eaecff]/40 hover:rounded-md
         ${
           showFeedbacks
             ? "bg-[#eaecff]/40 rounded-[6px] text-primary2 font-bold"
             : "text-raiz-gray-600 font-medium"
         }`}
           >
-            <div className="flex gap-3 items-center">
+            <div className="flex gap-3 items-center justify-center lg:justify-start">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                 <path
                   d="M17 18.43H13L8.54999 21.39C7.88999 21.83 7 21.36 7 20.56V18.43C4 18.43 2 16.43 2 13.43V7.42993C2 4.42993 4 2.42993 7 2.42993H17C20 2.42993 22 4.42993 22 7.42993V13.43C22 16.43 20 18.43 17 18.43Z"
@@ -501,13 +503,16 @@ const Sidebar = () => {
                   strokeLinejoin="round"
                 />
               </svg>
-              <span className=" text-left"> Feedback & Requests</span>
+              <span className="hidden lg:inline text-left">
+                {" "}
+                Feedback & Requests
+              </span>
             </div>
           </button>
         </nav>
 
-        {/* User status Info */}
-        <div>
+        {/* User status Info — desktop only (hidden on tablet icon bar) */}
+        <div className="hidden lg:block">
           {!verificationStatus
             ? null
             : statuses.map((status, index) =>
@@ -543,20 +548,20 @@ const Sidebar = () => {
               </div>
             </button>
           </div> */}
-          <div className="flex justify-between items-center gap-2 mt-6 w-full pb-5 pt-4 border-t border-[#eaecf0]">
-            <div className="flex items-center gap-1.5  ">
+          <div className="hidden lg:flex justify-between items-center gap-2 mt-6 w-full pb-5 pt-4 border-t border-[#eaecf0]">
+            <div className="flex items-center gap-1.5 min-w-0">
               <Avatar src={userPfp} name="pfp" size={isXLarge ? 40 : 30} />
-              <div className="flex flex-col gap-0.5">
-                <span className="text-raiz-gray-700 font-semibold lg:text-xs xl:text-sm">
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <span className="text-raiz-gray-700 font-semibold lg:text-xs xl:text-sm truncate">
                   {user?.business_account?.business_name}
                 </span>
-                <span className="text-raiz-gray-600 lg:text-xs xl:text-sm">
+                <span className="text-raiz-gray-600 lg:text-xs xl:text-sm truncate">
                   {truncateString(user?.email || "", isXLarge ? 20 : 15)}
                 </span>
               </div>
             </div>
             <button
-              className="flex gap-[15px] items-center w-9 h-9 absolute right-2"
+              className="flex gap-[15px] items-center w-9 h-9 shrink-0"
               onClick={() => setShowLogoutModal(true)}
             >
               <svg width="36" height="36" viewBox="0 0 36 36" fill="none">

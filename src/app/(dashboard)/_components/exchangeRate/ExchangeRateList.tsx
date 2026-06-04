@@ -10,6 +10,7 @@ import Checkbox from "@/components/ui/Checkbox";
 import Button from "@/components/ui/Button";
 import { toast } from "sonner";
 import CenterModalHeader from "@/components/layouts/CenterModalHeader";
+import { truncateString } from "@/utils/helpers";
 
 interface ExchangeRateListProps {
   close: () => void;
@@ -91,7 +92,7 @@ const ExchangeRateList: React.FC<ExchangeRateListProps> = ({ close }) => {
       <CenterModalHeader close={close} />
       <div className="w-full  xl:max-h-[85vh] lg:max-h-[80vh] flex flex-col font-brSonoma">
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-raiz-gray-950 mb-4">
+          <h2 className="text-lg md:text-xl font-semibold md:font-bold text-raiz-gray-950 mb-3 md:mb-4">
             Exchange Rates
           </h2>
           <div className="relative">
@@ -112,8 +113,8 @@ const ExchangeRateList: React.FC<ExchangeRateListProps> = ({ close }) => {
           </div>
         </div>
 
-        <div className="flex-1 rounded-[20px] bg-raiz-gray-50 p-6 overflow-y-auto mb-6 no-scrollbar">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+        <div className="flex-1 rounded-[20px] bg-raiz-gray-50 p-2 md:p-6 overflow-y-auto mb-6 no-scrollbar">
+          <div className="grid grid-cols-2 gap-x-8 gap-y-6">
             {isLoading ? (
               <div className="col-span-full py-10 text-center text-raiz-gray-500">
                 Loading rates...
@@ -126,7 +127,7 @@ const ExchangeRateList: React.FC<ExchangeRateListProps> = ({ close }) => {
               filteredRates.map((rate, index) => {
                 const isChecked = tempSelected.includes(rate.currency);
                 return (
-                  <div key={index} className="flex items-center gap-3">
+                  <div key={index} className="flex items-start md:items-center gap-3">
                     <Checkbox
                       checked={isChecked}
                       onChange={() => handleToggle(rate.currency)}
@@ -134,7 +135,7 @@ const ExchangeRateList: React.FC<ExchangeRateListProps> = ({ close }) => {
                       className=""
                     />
                     <div className="flex flex-col">
-                      <div className="flex items-center gap-3 mb-0.5">
+                      <div className="flex items-start md:items-center gap-3 mb-0.5">
                         <Image
                           src={getFlag(rate.currency)}
                           alt={rate.currency}
@@ -142,8 +143,8 @@ const ExchangeRateList: React.FC<ExchangeRateListProps> = ({ close }) => {
                           height={16}
                           className="rounded-full object-cover size-4"
                         />
-                        <span className="text-sm font-brSonoma leading-5 font-semibold text-raiz-gray-950">
-                          {rate.country_name || rate.currency}
+                        <span title={rate.country_name} className="text-sm font-brSonoma leading-5 font-semibold text-raiz-gray-950">
+                          {truncateString(rate.country_name, 10) || rate.currency}
                         </span>
                       </div>
                       <span className="text-xs text-raiz-gray-800 font-normal">

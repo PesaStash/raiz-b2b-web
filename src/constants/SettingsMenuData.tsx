@@ -3,7 +3,7 @@ import { getAppRatingLink } from "@/utils/helpers";
 export const SettingsMenus = [
   {
     name: "Your profile",
-    link: "/settings",
+    link: "/settings/profile",
     icon: () => (
       <svg
         width="40"

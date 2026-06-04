@@ -34,6 +34,11 @@ const Swap = ({ close }: Props) => {
     (swapFromCurrency === ACCOUNT_CURRENCIES.SBC.name &&
       swapToCurrency === ACCOUNT_CURRENCIES.USD.name);
 
+  const rateCurrency =
+    swapFromCurrency === ACCOUNT_CURRENCIES.USD.name
+      ? swapToCurrency
+      : swapFromCurrency;
+
   const {
     data: exchangeRateData,
     isLoading,
@@ -41,8 +46,8 @@ const Swap = ({ close }: Props) => {
     isFetching,
     isError: exchangeRateError,
   } = useQuery({
-    queryKey: ["exchange-rate", "NGN"],
-    queryFn: () => GetExchangeRate("NGN"),
+    queryKey: ["exchange-rate", rateCurrency],
+    queryFn: () => GetExchangeRate(rateCurrency),
     staleTime: 1000 * 60, // 1 minute
     retry: 2,
     enabled: !isUsdSbcSwap,
@@ -85,10 +90,16 @@ const Swap = ({ close }: Props) => {
       return 1;
     }
 
-    if (swapToCurrency === ACCOUNT_CURRENCIES.NGN.name) {
+    // Selling USD → foreign currency: use sell_rate
+    if (
+      swapToCurrency === ACCOUNT_CURRENCIES.NGN.name ||
+      swapToCurrency === ACCOUNT_CURRENCIES.GBP.name ||
+      swapToCurrency === ACCOUNT_CURRENCIES.EUR.name
+    ) {
       return exchangeRateData?.sell_rate || 0;
     }
 
+    // Buying USD with foreign currency: use buy_rate
     if (swapToCurrency === ACCOUNT_CURRENCIES.USD.name) {
       return exchangeRateData?.buy_rate || 0;
     }
@@ -115,7 +126,12 @@ const Swap = ({ close }: Props) => {
 
     if (!exchangeRateData) return "0.00";
 
-    if (swapToCurrency === ACCOUNT_CURRENCIES.NGN.name) {
+    // USD → foreign currency: amount × sell_rate
+    if (
+      swapToCurrency === ACCOUNT_CURRENCIES.NGN.name ||
+      swapToCurrency === ACCOUNT_CURRENCIES.GBP.name ||
+      swapToCurrency === ACCOUNT_CURRENCIES.EUR.name
+    ) {
       return (
         Number(safeAmount * Number(exchangeRateData.sell_rate)).toLocaleString(
           undefined,
@@ -127,6 +143,7 @@ const Swap = ({ close }: Props) => {
       );
     }
 
+    // Foreign currency → USD: amount / buy_rate (i.e. amount × (1/buy_rate))
     if (swapToCurrency === ACCOUNT_CURRENCIES.USD.name) {
       return (
         Number(safeAmount / Number(exchangeRateData.buy_rate)).toLocaleString(

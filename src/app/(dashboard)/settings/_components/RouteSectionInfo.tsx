@@ -8,7 +8,7 @@ interface RouteSectionInfoProps {
 
 const RouteSectionInfo = ({ title, subtitle, icon }: RouteSectionInfoProps) => {
   return (
-    <div className="w-[30%]">
+    <div className="shrink-0 w-full max-w-[200px]">
       {icon}
       <h1 className="text-raiz-gray-950 text-[22px] font-semibold leading-10 mt-1.5">
         {title}

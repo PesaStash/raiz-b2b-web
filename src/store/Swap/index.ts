@@ -17,13 +17,16 @@ const isValidSwapPair = (
 export const useSwapStore = create<SwapSlice>((set) => ({
   ...initialSwapState,
   actions: {
-    switchSwapWallet: (clickedCurrency, walletData) => {
+    switchSwapWallet: (clickedCurrency, walletData, fromCurrency) => {
       set((state) => {
-        let finalFrom = state.swapFromCurrency;
+        // When fromCurrency is explicitly provided (e.g. on first open), use it
+        // directly and skip the reverse-detection heuristic.
+        let finalFrom = fromCurrency ?? state.swapFromCurrency;
         let finalTo = clickedCurrency;
 
-        //REVERSE CASE
-        if (clickedCurrency === state.swapFromCurrency) {
+        // REVERSE CASE: only applies when re-clicking the current source in the
+        // destination selector (no explicit fromCurrency supplied).
+        if (!fromCurrency && clickedCurrency === state.swapFromCurrency) {
           finalFrom = state.swapToCurrency;
           finalTo = state.swapFromCurrency;
         }

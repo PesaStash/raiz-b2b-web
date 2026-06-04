@@ -6,16 +6,17 @@ import Link from "next/link";
 const SocialMedia = ({ setPart }: PartChildProps) => {
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mt-3 md:mt-0">
         <button onClick={() => setPart(0)}>
           <Image
             src="/icons/arrow-left.svg"
             alt="arrow-left"
             width={18}
             height={18}
+            className="size-3 md:size-[18px]"
           />
         </button>
-        <span className="text-raiz-gray-950 font-bold leading-tight">
+        <span className="text-raiz-gray-950 text-sm md:text-base font-bold leading-tight">
           Social Media
         </span>
         <div />
@@ -42,12 +43,15 @@ const SocialMedia = ({ setPart }: PartChildProps) => {
               Facebook
             </span>
           </div>
-          <Image
-            src="/icons/arrow-right.svg"
-            alt="arrow-right"
-            width={18}
-            height={18}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path
+            d="M14 5H19V10M19 5L10 14M19 14V19H5V5H10"
+            stroke="#A89AB9"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           />
+        </svg>
         </Link>
         <Link
           target="_blank"
@@ -68,12 +72,15 @@ const SocialMedia = ({ setPart }: PartChildProps) => {
               Instagram
             </span>
           </div>
-          <Image
-            src="/icons/arrow-right.svg"
-            alt="arrow-right"
-            width={18}
-            height={18}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path
+            d="M14 5H19V10M19 5L10 14M19 14V19H5V5H10"
+            stroke="#A89AB9"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           />
+        </svg>
         </Link>
         <Link
           target="_blank"
@@ -94,12 +101,15 @@ const SocialMedia = ({ setPart }: PartChildProps) => {
               Website
             </span>
           </div>
-          <Image
-            src="/icons/arrow-right.svg"
-            alt="arrow-right"
-            width={18}
-            height={18}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path
+            d="M14 5H19V10M19 5L10 14M19 14V19H5V5H10"
+            stroke="#A89AB9"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           />
+        </svg>
         </Link>
       </div>
     </div>

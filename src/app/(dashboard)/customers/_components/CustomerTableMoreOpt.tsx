@@ -26,42 +26,49 @@ const CustomerTableMoreOpt = ({
 
   const handleToggle = () => setIsOpen(!isOpen);
   return (
-    <div className="relative" ref={dropdownRef}>
-      <button onClick={handleToggle}>
+    <div className="relative shrink-0" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={handleToggle}
+        className="size-9 flex items-center justify-center rounded-lg hover:bg-raiz-gray-100 active:bg-raiz-gray-200"
+        aria-label="Customer options"
+      >
         <Image
           src="/icons/more.svg"
-          alt="more options"
+          alt=""
           width={20}
           height={20}
         />
       </button>
       {isOpen && (
         <div
-          className={`absolute right-0 w-48 bg-white rounded-md shadow-lg z-10 ${
+          className={`absolute right-0 w-48 bg-white rounded-xl border border-raiz-gray-100 shadow-lg z-20 overflow-hidden ${
             isLast ? "bottom-full mb-2" : "mt-2"
           }`}
         >
           <ul className="py-1">
             <li>
               <button
-                onClick={() => {
-                  onDelete(customer);
-                  setIsOpen(false);
-                }}
-                className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-              >
-                Delete
-              </button>
-            </li>
-            <li>
-              <button
+                type="button"
                 onClick={() => {
                   onEdit(customer);
                   setIsOpen(false);
                 }}
-                className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                className="w-full text-left block px-4 py-3 text-sm font-medium text-raiz-gray-900 hover:bg-raiz-gray-50 active:bg-raiz-gray-100"
               >
                 Edit Customer
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
+                onClick={() => {
+                  onDelete(customer);
+                  setIsOpen(false);
+                }}
+                className="w-full text-left block px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 active:bg-red-100"
+              >
+                Delete
               </button>
             </li>
           </ul>

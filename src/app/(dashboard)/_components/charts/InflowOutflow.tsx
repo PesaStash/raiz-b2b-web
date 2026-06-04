@@ -42,6 +42,8 @@ const InflowOutflow = () => {
   const { user } = useUser();
   const NGNAcct = findWalletByCurrency(user, "NGN");
   const USDAcct = findWalletByCurrency(user, "USD");
+  const GBPAcct = findWalletByCurrency(user, "GBP");
+  const EURAcct = findWalletByCurrency(user, "EUR");
   const SBCAcct = findWalletByCurrency(user, "SBC");
   const { selectedCurrency } = useCurrencyStore();
   const [numberOfDays, setNumberOfDays] = useState(30);
@@ -51,6 +53,10 @@ const InflowOutflow = () => {
       return NGNAcct;
     } else if (selectedCurrency.name === "USD") {
       return USDAcct;
+    } else if (selectedCurrency.name === "GBP") {
+      return GBPAcct;
+    } else if (selectedCurrency.name === "EUR") {
+      return EURAcct;
     } else if (selectedCurrency.name === "SBC") {
       return SBCAcct;
     }
@@ -205,7 +211,7 @@ const InflowOutflow = () => {
   return (
     <div className="bg-white rounded-lg ">
       {/* Header with stats */}
-      <div className="flex items-center justify-between mb-6 px-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-6 px-4">
         <div className="relative">
           <select
             value={numberOfDays}
@@ -235,7 +241,7 @@ const InflowOutflow = () => {
           </svg>
         </div>
 
-        <div className="flex items-center gap-5">
+        <div className="flex flex-wrap items-center gap-3 md:gap-5">
           {isLoading ? (
             <Skeleton width={100} height={20} count={2} inline />
           ) : (

@@ -9,12 +9,12 @@ interface Props {
 
 const InvoiceActivity = ({ activities }: Props) => {
   return (
-    <div className="w-full py-[30px] h-full">
-      <h3 className="mb-6 text-zinc-900 text-base font-bold leading-tight">
+    <div className="w-full py-4 sm:py-[30px] h-full">
+      <h3 className="mb-4 sm:mb-6 text-zinc-900 text-base font-bold leading-tight">
         Activities
       </h3>
 
-      <div className="flex flex-col relative max-h-[70%] overflow-y-auto no-scrollbar">
+      <div className="flex flex-col relative max-h-none lg:max-h-[70%] overflow-y-auto no-scrollbar">
         {activities?.map((activity, index) => (
           <div
             key={activity.invoice_activity_log_id}

@@ -1,7 +1,9 @@
 import { AuthAxios, CustomAxiosRequestConfig } from "@/lib/authAxios";
 import {
+  ForeignCurrency,
   FinalizeAfricaPayinResponse,
   IBusinessPaymentData,
+  ICreateForeignAccountResponse,
   InitiateAfricaPayinPayload,
   InitiateAfricaPayinResponse,
   INotificationParams,
@@ -178,6 +180,15 @@ export const GetKYBLinksApi = async (): Promise<IKYBLinksStatus> => {
     {
       silent: true,
     } as CustomAxiosRequestConfig
+  );
+  return response?.data;
+};
+
+export const CreateForeignAccountApi = async (
+  currency: ForeignCurrency,
+): Promise<ICreateForeignAccountResponse> => {
+  const response = await AuthAxios.post(
+    `/business/entities/accounts/${currency}/`,
   );
   return response?.data;
 };

@@ -1,5 +1,4 @@
 "use client";
-import SideWrapperHeader from "@/components/SideWrapperHeader";
 import Button from "@/components/ui/Button";
 import InputField from "@/components/ui/InputField";
 import { useFormik } from "formik";
@@ -112,14 +111,14 @@ const AddNewCustomer = ({ close }: Props) => {
   ];
 
   return (
-    <form onSubmit={formik.handleSubmit} className="h-full flex flex-col">
+    <form onSubmit={formik.handleSubmit} className="h-full flex flex-col min-h-0">
       <CenterModalHeader close={close} />
 
-      <h2 className="text-xl font-bold text-raiz-gray-950 mb-4">
+      <h2 className="text-lg sm:text-xl font-bold text-raiz-gray-950 mb-3 sm:mb-4">
         New Customer
       </h2>
-      <div className="flex-1 overflow-y-auto flex flex-col justify-between">
-        <div className="flex flex-col gap-4 rounded-[20px] bg-raiz-gray-50 p-6">
+      <div className="flex-1 overflow-y-auto flex flex-col justify-between min-h-0 gap-4">
+        <div className="flex flex-col gap-4 rounded-2xl bg-raiz-gray-50 p-4 sm:p-6">
           <SelectField
             placeholder="Customer Type"
             options={customerTypeOpt}
@@ -200,7 +199,7 @@ const AddNewCustomer = ({ close }: Props) => {
             </>
           )}
         </div>
-        <div className="space-y-[15px]">
+        <div className="flex flex-col gap-3 pt-2 shrink-0">
           <Button
             disabled={
               !formik.dirty ||
@@ -210,10 +209,16 @@ const AddNewCustomer = ({ close }: Props) => {
             }
             loading={AddMutation.isPending}
             type="submit"
+            className="w-full"
           >
             Save and Continue
           </Button>
-          <Button type="button" onClick={close} variant="secondary">
+          <Button
+            type="button"
+            onClick={close}
+            variant="secondary"
+            className="w-full"
+          >
             Cancel
           </Button>
         </div>

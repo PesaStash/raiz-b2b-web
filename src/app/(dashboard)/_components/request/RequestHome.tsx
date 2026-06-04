@@ -14,13 +14,15 @@ export interface RequestStepsProps {
 const RequestHome = ({ close, setStep }: RequestStepsProps) => {
   return (
     <>
-      <CenterModalHeader close={close} />
+      <CenterModalHeader close={close} title="Request" />
       <div className="h-full  flex flex-col">
-        <h2 className="text-xl font-bold text-raiz-gray-950 mb-4">Request</h2>
+        {/* <h2 className="text-lg md:text-xl font-bold text-raiz-gray-950 mb-3 md:mb-4">
+          Request
+        </h2> */}
         <div className="flex flex-col justify-between h-full pb-[30px]">
           <div className="flex flex-col justify-center items-center  gap-3">
-            <div className="my-10 flex  gap-6 flex-col justify-center items-center">
-              <div className="flex flex-col bg-raiz-gray-50 p-6 rounded-[20px] w-full">
+            <div className="md:my-10 mt-0 mb-5 md:mb-0 md:mt-10 flex  gap-6 flex-col justify-center items-center">
+              <div className="flex flex-col bg-raiz-gray-50 items-center md:items-start p-4 md:p-6 rounded-2xl md:rounded-[20px] w-full">
                 <svg
                   width="48"
                   height="48"
@@ -47,15 +49,15 @@ const RequestHome = ({ close, setStep }: RequestStepsProps) => {
                     fill="#608200"
                   />
                 </svg>
-                <h3 className=" text-raiz-gray-950 text-xl font-bold leading-normal mt-5 mb-3">
+                <h3 className="text-raiz-gray-950 text-sm md:text-xl font-bold leading-normal mt-4 md:mt-5 mb-2 md:mb-3">
                   How Request Works
                 </h3>
-                <p className=" text-raiz-gray-900 text-sm font-normal  leading-tight">
+                <p className="text-raiz-gray-900 text-center md:text-left text-xs md:text-sm font-normal leading-relaxed">
                   Request allows you to ask for money from a single user or a
                   group of users
                 </p>
               </div>
-              <div className="flex flex-col bg-raiz-gray-50 p-6 rounded-[20px] w-full">
+              <div className="flex flex-col bg-raiz-gray-50 p-0 md:p-6 rounded-2xl md:rounded-[20px] w-full">
                 {/* Single request */}
                 <div className="flex gap-4">
                   <Image
@@ -65,10 +67,10 @@ const RequestHome = ({ close, setStep }: RequestStepsProps) => {
                     alt=""
                   />
                   <div className="flex flex-col justify-start items-start gap-1">
-                    <h6 className="text-raiz-gray-950 text-sm font-bold  leading-none">
+                    <h6 className="text-raiz-gray-950 text-[13px] md:text-sm font-bold leading-none">
                       Single Request
                     </h6>
-                    <p className=" text-raiz-gray-950 text-xs font-normal leading-tight text-left">
+                    <p className="text-raiz-gray-950 text-[11px] md:text-xs font-normal leading-relaxed text-left">
                       Single request money allows you to ask a single user for a
                       payment
                     </p>
@@ -98,7 +100,7 @@ const RequestHome = ({ close, setStep }: RequestStepsProps) => {
           </div>
           <Button
             onClick={() => setStep("requests")}
-            className="!bg-pink-600 text-raiz-gray-50 hover:!bg-pink-700  "
+            className="w-full !bg-pink-600 text-raiz-gray-50 hover:!bg-pink-700 mt-5 md:mt-0 text-sm md:text-base"
           >
             Continue
           </Button>

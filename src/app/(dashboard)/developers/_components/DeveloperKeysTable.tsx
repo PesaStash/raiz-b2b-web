@@ -100,7 +100,7 @@ const DeveloperKeysTable = ({ onGenerateKey }: DeveloperKeysTableProps) => {
         cell: (info) => {
           const permissions = info.getValue() || [];
           return (
-            <div className="flex flex-wrap gap-2 min-w-[350px] max-w-[450px]">
+            <div className="flex flex-wrap gap-2 min-w-[200px] lg:min-w-[350px] max-w-full lg:max-w-[450px]">
               {permissions.map((perm: string, i: number) => {
                 let label = perm;
                 if (perm === "customers:write" || perm === "Cust... write")
@@ -200,7 +200,7 @@ const DeveloperKeysTable = ({ onGenerateKey }: DeveloperKeysTableProps) => {
 
   return (
     <div className="w-full flex flex-col flex-1 bg-white rounded-[20px] shadow-[0px_4px_30px_0px_rgba(0,0,0,0.03)] border border-gray-50 mt-6 p-6">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-wrap justify-between items-center gap-2 mb-6">
         <h3 className="text-[18px] font-bold text-zinc-900">Your Keys</h3>
         {/* <div className="flex gap-3">
           <div className="relative">

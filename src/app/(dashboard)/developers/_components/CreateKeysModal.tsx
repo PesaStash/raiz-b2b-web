@@ -99,11 +99,11 @@ const CreateKeysModal = ({ close }: Props) => {
     <>
       <CenterModalHeader close={close} />
       <div className="w-full xl:max-h-[85vh] lg:max-h-[80vh] flex flex-col font-brSonoma">
-        <h2 className="mb-6 text-xl font-bold text-raiz-gray-950">
+        <h2 className="mb-6 text-base md:text-xl font-bold text-raiz-gray-950">
           Generate new API key
         </h2>
 
-        <div className="bg-raiz-gray-50 rounded-[20px] flex flex-col flex-1 overflow-y-auto no-scrollbar gap-6 p-6">
+        <div className="bg-raiz-gray-50 rounded-[20px] flex flex-col flex-1 overflow-y-auto no-scrollbar gap-6 p-1 sm:p-6">
           <div className="flex flex-col gap-2">
             <label className="text-sm font-semibold text-raiz-gray-950">
               Key Name

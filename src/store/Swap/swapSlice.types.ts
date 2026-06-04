@@ -6,7 +6,20 @@ import { IWallet } from "@/types/user";
 
 export type CurrencyTypeKey = keyof typeof ACCOUNT_CURRENCIES;
 
-export const INVALID_SWAP_PAIRS = new Set(["SBC-NGN", "NGN-SBC"]);
+export const INVALID_SWAP_PAIRS = new Set([
+  "SBC-NGN",
+  "NGN-SBC",
+  "GBP-EUR",
+  "EUR-GBP",
+  "GBP-NGN",
+  "NGN-GBP",
+  "GBP-SBC",
+  "SBC-GBP",
+  "EUR-NGN",
+  "NGN-EUR",
+  "EUR-SBC",
+  "SBC-EUR",
+]);
 
 export interface SwapState {
   swapFromWallet: Record<any, any> | null;
@@ -25,7 +38,8 @@ export interface SwapState {
 export interface SwapActions {
   switchSwapWallet: (
     clickedCurrency: CurrencyTypeKey,
-    walletData?: IWallet[]
+    walletData?: IWallet[],
+    fromCurrency?: CurrencyTypeKey,
   ) => boolean;
   setAmount: (amount: string) => void;
   setTransactionPin: (pin: string) => void;

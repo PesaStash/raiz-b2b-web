@@ -37,16 +37,16 @@ const CreateAccount = ({ formik }: RegisterFormProps) => {
         />
       </svg>
       <header className="flex items-center justify-between ">
-        <h2 className="text-raiz-gray-950 text-[23px] font-semibold  leading-10">
+        <h2 className="text-raiz-gray-950 md:text-[23px] text-xl font-semibold  leading-10">
           Create your account
         </h2>
       </header>
-      <p className="text-raiz-gray-700 text-[15px] font-normal  leading-snug">
+      <p className="text-raiz-gray-700 text-sm md:text-[15px]  font-normal  leading-snug">
         Let&#39;s start by getting to know you
       </p>
       <div className="flex flex-col justify-between h-full">
         <div>
-          <div className="mt-[44px] flex flex-col gap-5 ">
+          <div className="md:mt-[44px] mt-8 flex flex-col md:gap-5 gap-2 ">
             <div className="flex flex-col gap-2">
               <div className="flex gap-2 items-center">
                 <InputLabel content="Country of Origin" />

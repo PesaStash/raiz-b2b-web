@@ -45,6 +45,18 @@ export const copyToClipboard = (value: string) => {
     });
 };
 
+export const getApiErrorMessage = (
+  error: unknown,
+  fallback = "Something went wrong",
+) => {
+  const errorData =
+    (error as { data?: { detail?: string; message?: string } })?.data ||
+    (error as { response?: { data?: { detail?: string; message?: string } } })
+      ?.response?.data;
+
+  return errorData?.detail || errorData?.message || fallback;
+};
+
 export const getInitials = (firstName: string, lastName: string): string => {
   const firstInitial = firstName.charAt(0).toUpperCase();
   const lastInitial = lastName.charAt(0).toUpperCase();
@@ -528,15 +540,30 @@ export const determineSwapPair = (
   // Check what wallets the user has
   const hasUSD = availableCurrencies.includes("USD");
   const hasNGN = availableCurrencies.includes("NGN");
+  const hasGBP = availableCurrencies.includes("GBP");
+  const hasEUR = availableCurrencies.includes("EUR");
   const hasSBC = availableCurrencies.includes("SBC");
 
   switch (currentCurrency) {
     case "USD":
-      // USD can swap to NGN or SBC (prioritize NGN if both exist)
+      // USD can swap to any supported non-USD wallet, but never directly
+      // between two non-USD currencies.
       if (hasNGN) {
         return {
           fromCurrency: "USD",
           toCurrency: "NGN",
+          isValid: true,
+        };
+      } else if (hasGBP) {
+        return {
+          fromCurrency: "USD",
+          toCurrency: "GBP",
+          isValid: true,
+        };
+      } else if (hasEUR) {
+        return {
+          fromCurrency: "USD",
+          toCurrency: "EUR",
           isValid: true,
         };
       } else if (hasSBC) {
@@ -550,7 +577,7 @@ export const determineSwapPair = (
         fromCurrency: "USD",
         toCurrency: "NGN",
         isValid: false,
-        message: "You need an NGN or SBC wallet to swap from USD",
+        message: "You need another supported wallet to swap from USD",
       };
 
     case "NGN" as CurrencyTypeKey:
@@ -567,6 +594,36 @@ export const determineSwapPair = (
         toCurrency: "USD",
         isValid: false,
         message: "You need a USD wallet to swap from NGN",
+      };
+
+    case "GBP":
+      if (hasUSD) {
+        return {
+          fromCurrency: "GBP",
+          toCurrency: "USD",
+          isValid: true,
+        };
+      }
+      return {
+        fromCurrency: "GBP",
+        toCurrency: "USD",
+        isValid: false,
+        message: "You need a USD wallet to swap from GBP",
+      };
+
+    case "EUR":
+      if (hasUSD) {
+        return {
+          fromCurrency: "EUR",
+          toCurrency: "USD",
+          isValid: true,
+        };
+      }
+      return {
+        fromCurrency: "EUR",
+        toCurrency: "USD",
+        isValid: false,
+        message: "You need a USD wallet to swap from EUR",
       };
 
     case "SBC":
@@ -605,13 +662,23 @@ export const getAvailableSwapDestinations = (
 
   switch (fromCurrency) {
     case "USD":
-      // USD can swap to both NGN and SBC
       return availableCurrencies.filter(
-        (c): c is CurrencyTypeKey => c === "NGN" || c === "SBC"
+        (c): c is CurrencyTypeKey =>
+          c === "NGN" || c === "GBP" || c === "EUR" || c === "SBC"
       );
 
     case "NGN":
       // NGN can only swap to USD
+      return availableCurrencies.filter(
+        (c): c is CurrencyTypeKey => c === "USD"
+      );
+
+    case "GBP":
+      return availableCurrencies.filter(
+        (c): c is CurrencyTypeKey => c === "USD"
+      );
+
+    case "EUR":
       return availableCurrencies.filter(
         (c): c is CurrencyTypeKey => c === "USD"
       );

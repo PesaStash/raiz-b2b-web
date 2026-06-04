@@ -166,10 +166,10 @@ const BusinessVerificationModal = ({ close }: { close: () => void }) => {
   return (
     <form
       onSubmit={formik.handleSubmit}
-      className="flex gap-3 flex-col h-full justify-between"
+      className="flex flex-col gap-4 min-h-0"
     >
       <div className="flex flex-col gap-3">
-        <h2 className="text-raiz-gray-950 font-bold text-xl my-2">
+        <h2 className="text-raiz-gray-950 font-bold text-lg md:text-xl my-1 md:my-2">
           Basic Business Verification
         </h2>
         <InputField
@@ -300,6 +300,7 @@ const BusinessVerificationModal = ({ close }: { close: () => void }) => {
           errorMessage={fieldErrorMessage("length_of_stay_months")}
         />
       </div>
+      <div className="shrink-0 sticky bottom-0 z-10 bg-raiz-gray-50 pt-3 md:static md:bg-transparent md:pt-0">
       <Button
         disabled={
           !formik.dirty ||
@@ -313,6 +314,7 @@ const BusinessVerificationModal = ({ close }: { close: () => void }) => {
           ? "Loading...."
           : "Verify Business"}
       </Button>
+      </div>
     </form>
   );
 };
