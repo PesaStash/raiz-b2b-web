@@ -405,10 +405,96 @@ export interface IUsBeneficiariesResponse {
   beneficiaries: EntityBeneficiary[];
 }
 
+export type ForeignCurrency = "GBP" | "EUR";
+
+export interface IForeignAccountRouting {
+  account: string | null;
+  routing: string | null;
+  routing_id: string;
+  routing_type_name: string;
+  wallet_id: string;
+}
+
+export interface IForeignCurrencyBeneficiary {
+  foreign_currency_beneficiary_id: string;
+  currency: ForeignCurrency;
+  account_name: string;
+  account_number: string | null;
+  routing_number: string | null;
+  iban: string | null;
+  bic: string | null;
+  payment_rail: string;
+  bank_name: string;
+}
+
+export interface IForeignBeneficiary {
+  entity_foreign_currency_beneficiary_id: string;
+  entity_id: string;
+  foreign_currency_beneficiary_id: string;
+  label: string;
+  ranking: number;
+  is_otc: boolean;
+  created_at: string;
+  updated_at: string;
+  foreign_currency_beneficiary: IForeignCurrencyBeneficiary;
+}
+
+export interface IForeignBeneficiariesParams {
+  label?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface IForeignBeneficiariesResponse {
+  pagination_details: {
+    page: number;
+    limit: number;
+    total: number;
+    total_pages: number;
+  };
+  beneficiaries: IForeignBeneficiary[];
+}
+
+interface IForeignBeneficiaryBasePayload {
+  bank_name: string;
+  account_owner_name: string;
+  first_name?: string;
+  last_name?: string;
+}
+
+export interface IForeignGbpBeneficiaryPayload
+  extends IForeignBeneficiaryBasePayload {
+  account_number: string;
+  sort_code: string;
+}
+
+export interface IForeignEurBeneficiaryPayload
+  extends IForeignBeneficiaryBasePayload {
+  iban: string;
+  bic?: string | null;
+  country: string;
+  street_line_1: string;
+  city: string;
+  postal_code: string;
+  state?: string | null;
+}
+
+export type IForeignBeneficiaryPayload =
+  | IForeignGbpBeneficiaryPayload
+  | IForeignEurBeneficiaryPayload;
+
 export interface ISendMoneyUsBankPayload {
   amount: number;
   transaction_pin: string;
   usd_beneficiary_id: string | null;
+  transaction_reason: string;
+  transaction_category_id: number;
+}
+
+export interface IForeignWithdrawalPayload {
+  amount: number;
+  transaction_pin: string;
+  foreign_currency_beneficiary_id: string;
   transaction_reason: string;
   transaction_category_id: number;
 }
@@ -862,4 +948,19 @@ export interface IAlipayWechatSendPayload {
   channel: "alipay" | "wechat";
   amount: string;
   transaction_pin: string;
+}
+
+export interface ICreateForeignAccountResponse {
+  wallet_id: string;
+  currency: ForeignCurrency;
+  status: "activated" | "active" | "inactive";
+  virtual_account_id: string;
+  account_name: string;
+  account_number: string | null;
+  sort_code: string | null;
+  iban: string | null;
+  bic: string | null;
+  bank_name: string;
+  bank_address: string | null;
+  routing: IForeignAccountRouting[];
 }

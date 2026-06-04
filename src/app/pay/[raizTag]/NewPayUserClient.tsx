@@ -175,7 +175,7 @@ const RaizPaymentPage = () => {
           acct?.wallet_type?.wallet_type_code,
         );
         const notEmail = !isEmail(acct.account_number || "");
-        return allowedType && notEmail;
+        return allowedType && notEmail && acct.wallet_type.currency !== "EUR";
       })
       .map((acct) => ({
         label: `${
@@ -183,7 +183,7 @@ const RaizPaymentPage = () => {
             ? acct.wallet_type.currency
             : "Crypto"
         } Transfer`,
-        value: acct.wallet_type.currency,
+        value: acct.wallet_type.currency as TransferCurrencyType,
       })) ?? [];
 
   const hasNgnAcct = data?.wallets?.find(

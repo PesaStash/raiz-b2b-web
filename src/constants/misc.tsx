@@ -58,6 +58,8 @@ export const nigeriaStates = [
 export const ACCOUNT_CURRENCIES = {
   USD: { name: "USD", sign: "$", logo: "/icons/flag-us.webp" } as const,
   NGN: { name: "NGN", sign: "₦", logo: "/icons/flag-ng.png" } as const,
+  GBP: { name: "GBP", sign: "£", logo: "/icons/flag-gb.png" } as const,
+  EUR: { name: "EUR", sign: "€", logo: "/icons/flag-fr.png" } as const,
   SBC: { name: "SBC", sign: "$", logo: "/icons/sbc.svg" } as const,
 } as const;
 

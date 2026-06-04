@@ -1,13 +1,15 @@
 "use client";
 import { usePathname } from "next/navigation";
-import React, { ReactNode, useEffect, useState } from "react";
+import React, { ReactNode } from "react";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 import { useAutoLogout } from "@/lib/hooks/useAutoLogout";
-import MobileScreen from "./MobileScreen";
+import MobileBottomNav from "./MobileBottomNav";
+import MobileHeader from "./MobileHeader";
+import MobileDrawer from "./MobileDrawer";
+import { MobileNavProvider } from "@/context/MobileNavContext";
 
 const MainLayout = ({ children }: { children: ReactNode }) => {
-  const [screenSize, setScreenSize] = useState<number | null>(null);
   const pathName = usePathname();
   useAutoLogout();
 
@@ -26,40 +28,35 @@ const MainLayout = ({ children }: { children: ReactNode }) => {
     (route) => pathName === route || pathName.startsWith(route + "/"),
   );
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const handleResize = () => setScreenSize(window.innerWidth);
-
-      window.addEventListener("resize", handleResize);
-      handleResize();
-      return () => window.removeEventListener("resize", handleResize);
-    }
-  }, []);
-
-  if (screenSize === null) {
-    return null;
-  }
-
   return (
-    <>
-      {screenSize < 1024 && !!shouldShowSideNav ? (
-        <MobileScreen />
-      ) : (
-        <section className="w-full flex h-full">
-          {shouldShowSideNav && <Sidebar />}
-          <main
-            className={`${
-              shouldShowSideNav
-                ? "w-[80.555%] left-[19.444%] bg-[#F8F7FA] relative min-h-[100vh] px-4 xl:px-8 pt-[30px] "
-                : "w-full p-0"
-            } `}
-          >
-            {shouldShowSideNav && <Header />}
-            {children}
-          </main>
-        </section>
-      )}
-    </>
+    <MobileNavProvider>
+      <section className="w-full flex min-h-screen bg-[#F8F7FA]">
+        {shouldShowSideNav && <Sidebar />}
+        <main
+          className={`flex-1 min-w-0 ${
+            shouldShowSideNav
+              ? "md:ml-16 lg:ml-[19.444%] min-h-screen px-4 md:px-4 xl:px-8 pt-0 md:pt-[30px] pb-[88px] md:pb-8"
+              : "w-full p-0"
+          }`}
+        >
+          {shouldShowSideNav && (
+            <>
+              <MobileHeader />
+              <div className="hidden md:block">
+                <Header />
+              </div>
+            </>
+          )}
+          {children}
+        </main>
+        {shouldShowSideNav && (
+          <>
+            <MobileBottomNav />
+            <MobileDrawer />
+          </>
+        )}
+      </section>
+    </MobileNavProvider>
   );
 };
 

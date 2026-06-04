@@ -21,6 +21,7 @@ const SendSummary = ({ goBack, goNext, fee }: Props) => {
     purpose,
     user: selectedUser,
     usdBeneficiary,
+    foreignBeneficiary,
     externalUser,
   } = useSendStore();
   const { selectedCurrency } = useCurrencyStore();
@@ -30,15 +31,18 @@ const SendSummary = ({ goBack, goNext, fee }: Props) => {
   const recipient = useMemo(() => {
     if (selectedUser) return selectedUser;
     if (usdBeneficiary) return usdBeneficiary;
+    if (foreignBeneficiary) return foreignBeneficiary;
     if (externalUser) return externalUser;
     return null;
-  }, [selectedUser, usdBeneficiary, externalUser]);
+  }, [selectedUser, usdBeneficiary, foreignBeneficiary, externalUser]);
 
   const recipientName = useMemo(() => {
     if (!recipient) return "";
     if ("account_name" in recipient) return recipient.account_name || "";
     if ("usd_beneficiary" in recipient)
       return recipient.usd_beneficiary.account_name || "";
+    if ("foreign_currency_beneficiary" in recipient)
+      return recipient.foreign_currency_beneficiary.account_name || "";
     if ("bank_account_name" in recipient)
       return recipient.bank_account_name || "";
     return "";
@@ -49,6 +53,12 @@ const SendSummary = ({ goBack, goNext, fee }: Props) => {
     // if ("account_number" in recipient) return recipient.account_number || "";
     if ("usd_beneficiary" in recipient)
       return recipient.usd_beneficiary?.account_number || "";
+    if ("foreign_currency_beneficiary" in recipient)
+      return (
+        recipient.foreign_currency_beneficiary?.account_number ||
+        recipient.foreign_currency_beneficiary?.iban ||
+        ""
+      );
     if ("bank_account_number" in recipient)
       return recipient.bank_account_number || "";
     return "";
@@ -104,6 +114,14 @@ const SendSummary = ({ goBack, goNext, fee }: Props) => {
                 title="Payment Rail"
                 value={convertField(
                   usdBeneficiary?.usd_beneficiary?.payment_rail,
+                )}
+              />
+            )}
+            {foreignBeneficiary && (
+              <ListDetailItem
+                title="Payment Rail"
+                value={convertField(
+                  foreignBeneficiary?.foreign_currency_beneficiary?.payment_rail,
                 )}
               />
             )}

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import NGNAcctInfo from "./acctInfo/NGNAcctInfo";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import USDAcctInfo from "./acctInfo/USDAcctInfo";
+import ForeignAcctInfo from "./acctInfo/ForeignAcctInfo";
 import TopUp from "./topUp/TopUp";
 import Analytics from "./analytics/page";
 import { findWalletByCurrency } from "@/utils/helpers";
@@ -47,15 +48,22 @@ const QuickLinks = () => {
 
   const NGNAcct = findWalletByCurrency(user, "NGN");
   const USDAcct = findWalletByCurrency(user, "USD");
+  const GBPAcct = findWalletByCurrency(user, "GBP");
+  const EURAcct = findWalletByCurrency(user, "EUR");
   const CryptoAcct = findWalletByCurrency(user, "SBC");
 
-  const hasAtLeastOneWallet = NGNAcct || USDAcct || CryptoAcct;
+  const hasAtLeastOneWallet =
+    NGNAcct || USDAcct || GBPAcct || EURAcct || CryptoAcct;
 
   const handleQuickLinkClick = (key: key) => {
     if (!hasAtLeastOneWallet) {
       toast.warning(
         "You need to have at least one wallet (NGN, USD, or Crypto) to use Quick Links."
       );
+      return;
+    }
+    if (key === "acct-info" && selectedCurrency.name === "SBC") {
+      toast.warning("Account details are not available for your crypto wallet.");
       return;
     }
     setOpenModal(key);
@@ -70,8 +78,16 @@ const QuickLinks = () => {
       case "acct-info":
         return selectedCurrency.name === "NGN" ? (
           <NGNAcctInfo close={closeModal} />
-        ) : (
+        ) : selectedCurrency.name === "USD" ? (
           <USDAcctInfo close={closeModal} />
+        ) : selectedCurrency.name === "GBP" ||
+          selectedCurrency.name === "EUR" ? (
+          <ForeignAcctInfo
+            close={closeModal}
+            currency={selectedCurrency.name}
+          />
+        ) : (
+          <></>
         );
       // case "card":
       //   return <SelectCardModal close={closeModal} />;

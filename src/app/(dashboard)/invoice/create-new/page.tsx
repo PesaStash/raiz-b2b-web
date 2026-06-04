@@ -33,6 +33,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CreateInvoiceApi, FetchInvoiceIndexApi } from "@/services/invoice";
 import { useRouter } from "next/navigation";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
+import InvoiceMobileBack from "../_components/InvoiceMobileBack";
 
 const invoiceSchema = z
   .object({
@@ -275,20 +276,21 @@ const CreateInvoicePage = () => {
   };
 
   return (
-    <section className="p-6 bg-raiz-gray-50 rounded-[20px]">
-      <div className="flex justify-between items-center">
-        <h2 className="text-zinc-900 text-2xl font-bold leading-7 mb-8">
+    <section className=" sm:p-6 bg-transparent md:bg-raiz-gray-50 rounded-none md:rounded-[20px] min-w-0">
+      <InvoiceMobileBack href="/invoice" label="Invoices" />
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+        <h2 className="text-zinc-900 text-xl sm:text-2xl font-bold leading-7 mb-4 sm:mb-8">
           New Invoice
         </h2>
-        <div className="relative">
+        <div className="relative shrink-0 mb-4 sm:mb-8">
           <button
             ref={currencyBtnRef}
             onClick={() => setShowCurrencyDropdown(!showCurrencyDropdown)}
             type="button"
-            className="px-3 py-1.5 bg-violet-100/60 rounded-3xl flex gap-2 items-center hover:bg-violet-200/60 transition-colors"
+            className="px-3 py-1.5 bg-violet-100/60 rounded-3xl flex gap-2 items-center hover:bg-violet-200/60 transition-colors max-w-full"
           >
-            <span className="text-zinc-700 text-sm font-medium leading-tight font-brSonoma">
-              {`Select Currency (${currency})`}
+            <span className="text-zinc-700 text-xs sm:text-sm font-medium leading-tight font-brSonoma truncate">
+              {`Currency (${currency})`}
             </span>
             <Image
               src="/icons/arrow-down.svg"
@@ -349,7 +351,7 @@ const CreateInvoicePage = () => {
           return (
             <form onSubmit={formik.handleSubmit} className="space-y-5">
               {/* Customer Info */}
-              <div className="grid grid-cols-2 gap-x-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4">
                 <div>
                   <InputLabel content="Customer Name*" />
                   <div className="relative">
@@ -402,7 +404,7 @@ const CreateInvoicePage = () => {
               </div>
 
               {/* Dates */}
-              <div className="grid grid-cols-2 gap-x-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4">
                 <InputField
                   label="Date Issued*"
                   type="date"
@@ -433,14 +435,10 @@ const CreateInvoicePage = () => {
               </div>
 
               {/* Discount and Tax Type Selection */}
-              <div className="grid grid-cols-2 gap-x-10 !mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4 !mb-8">
                 <div className="flex flex-col gap-2.5">
                   <InputLabel content="Discount" />
-                  <div
-                    className={`flex gap-2 items-center ${
-                      discountType === "discount"
-                    } ? "": "`}
-                  >
+                  <div className="flex gap-2 items-center">
                     <SelectField
                       height="44px"
                       minHeight="44px"
@@ -460,12 +458,12 @@ const CreateInvoicePage = () => {
                 </div>
                 <div className="flex flex-col gap-2.5">
                   <InputLabel content="Tax" />
-                  <div className={`flex gap-3 items-center `}>
+                  <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
                     <SelectField
                       height="44px"
                       minHeight="44px"
                       options={taxOpts}
-                      width={taxType === "noTax" ? "100%" : "50%"}
+                      width={taxType === "noTax" ? "100%" : "100%"}
                       value={
                         taxType
                           ? taxOpts.find(
@@ -476,7 +474,7 @@ const CreateInvoicePage = () => {
                       onChange={(i) => setTaxType(i?.value as "tax" | "noTax")}
                     />
                     {taxType === "tax" && (
-                      <div className="w-1/2">
+                      <div className="w-full sm:flex-1">
                         <TaxSelect
                           value={String(formik.values.tax_rate_id || "")}
                           onChange={(val) => {
@@ -498,8 +496,8 @@ const CreateInvoicePage = () => {
               </div>
 
               {/* Items */}
-              <div className="border-t pt-4">
-                <div className="flex w-full gap-4 mt-4 bg-violet-100/60 h-11 items-center">
+              <div className="border-t pt-4 min-w-0">
+                <div className="hidden lg:flex w-full gap-4 mt-4 bg-violet-100/60 h-11 items-center">
                   <div className="w-[45%] pl-6">
                     <h5 className="text-xs text-zinc-700">Item Details</h5>
                   </div>
@@ -521,79 +519,136 @@ const CreateInvoicePage = () => {
                   return (
                     <div
                       key={index}
-                      className="flex w-full gap-4 mt-4 items-center"
+                      className="mt-3 lg:mt-4 rounded-xl lg:rounded-none border border-raiz-gray-100 lg:border-0 bg-white lg:bg-transparent p-4 lg:p-0 shadow-sm lg:shadow-none"
                     >
-                      <div className="w-[45%]">
-                        <InputField
-                          placeholder="type an item"
-                          className="!bg-white"
-                          {...formik.getFieldProps(
-                            `items[${index}].description`,
-                          )}
-                          status={
-                            formik.touched.items?.[index]?.description &&
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            (formik.errors.items?.[index] as any)?.description
-                              ? "error"
-                              : null
+                      <div className="flex items-center justify-between mb-3 lg:hidden">
+                        <span className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+                          Item {index + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            formik.setFieldValue(
+                              "items",
+                              formik.values.items.filter((_, i) => i !== index),
+                            )
                           }
-                          errorMessage={
-                            formik.touched.items?.[index]?.description &&
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            (formik.errors.items?.[index] as any)?.description
-                          }
-                        />
-                      </div>
-                      <div className="w-[15%]">
-                        <InputField
-                          className="!bg-white"
-                          type="number"
-                          min="1"
-                          {...formik.getFieldProps(`items[${index}].quantity`)}
-                        />
-                      </div>
-                      <div className="w-[20%]">
-                        <InputField
-                          className="!bg-white"
-                          type="number"
-                          min="0"
-                          {...formik.getFieldProps(`items[${index}].unitPrice`)}
-                        />
-                      </div>
-                      <div className={`w-[20%]`}>
-                        <InputField
-                          className="!bg-white"
-                          disabled
-                          type="number"
-                          value={itemAmount.toFixed(2)}
-                          name={`items[${index}].amount`}
-                        />
-                      </div>
-                      {/* {index > 0 && ( */}
-                      <button
-                        type="button"
-                        onClick={() =>
-                          formik.setFieldValue(
-                            "items",
-                            formik.values.items.filter((_, i) => i !== index),
-                          )
-                        }
-                        className=""
-                      >
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 12 12"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
+                          className="size-9 flex items-center justify-center rounded-lg text-red-600 bg-red-50 active:bg-red-100"
+                          aria-label={`Remove item ${index + 1}`}
                         >
-                          <path
-                            d="M12 1.20857L10.7914 0L6 4.79143L1.20857 0L0 1.20857L4.79143 6L0 10.7914L1.20857 12L6 7.20857L10.7914 12L12 10.7914L7.20857 6L12 1.20857Z"
-                            fill="#DC180D"
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 12 12"
+                            fill="none"
+                            aria-hidden
+                          >
+                            <path
+                              d="M12 1.20857L10.7914 0L6 4.79143L1.20857 0L0 1.20857L4.79143 6L0 10.7914L1.20857 12L6 7.20857L10.7914 12L12 10.7914L7.20857 6L12 1.20857Z"
+                              fill="currentColor"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+
+                      <div className="flex flex-col lg:flex-row w-full gap-3 lg:gap-4 lg:items-center">
+                        <div className="w-full lg:w-[45%]">
+                          <p className="lg:hidden text-xs font-medium text-zinc-600 mb-1.5">
+                            Item Details
+                          </p>
+                          <InputField
+                            placeholder="type an item"
+                            className="!bg-white"
+                            {...formik.getFieldProps(
+                              `items[${index}].description`,
+                            )}
+                            status={
+                              formik.touched.items?.[index]?.description &&
+                              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                              (formik.errors.items?.[index] as any)?.description
+                                ? "error"
+                                : null
+                            }
+                            errorMessage={
+                              formik.touched.items?.[index]?.description &&
+                              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                              (formik.errors.items?.[index] as any)?.description
+                            }
                           />
-                        </svg>
-                      </button>
-                      {/* )} */}
+                        </div>
+                        <div className="grid grid-cols-2 lg:flex gap-3 lg:gap-4 lg:flex-1">
+                          <div className="w-full lg:w-[15%]">
+                            <p className="lg:hidden text-xs font-medium text-zinc-600 mb-1.5">
+                              Qty
+                            </p>
+                            <InputField
+                              className="!bg-white"
+                              type="number"
+                              min="1"
+                              {...formik.getFieldProps(
+                                `items[${index}].quantity`,
+                              )}
+                            />
+                          </div>
+                          <div className="w-full lg:w-[20%]">
+                            <p className="lg:hidden text-xs font-medium text-zinc-600 mb-1.5">
+                              Unit Price
+                            </p>
+                            <InputField
+                              className="!bg-white"
+                              type="number"
+                              min="0"
+                              {...formik.getFieldProps(
+                                `items[${index}].unitPrice`,
+                              )}
+                            />
+                          </div>
+                          <div className="hidden lg:block w-[20%]">
+                            <InputField
+                              className="!bg-white"
+                              disabled
+                              type="number"
+                              value={itemAmount.toFixed(2)}
+                              name={`items[${index}].amount`}
+                            />
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            formik.setFieldValue(
+                              "items",
+                              formik.values.items.filter((_, i) => i !== index),
+                            )
+                          }
+                          className="hidden lg:flex shrink-0 self-center p-2"
+                          aria-label={`Remove item ${index + 1}`}
+                        >
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 12 12"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M12 1.20857L10.7914 0L6 4.79143L1.20857 0L0 1.20857L4.79143 6L0 10.7914L1.20857 12L6 7.20857L10.7914 12L12 10.7914L7.20857 6L12 1.20857Z"
+                              fill="#DC180D"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+
+                      <div className="lg:hidden flex items-center justify-between mt-3 pt-3 border-t border-raiz-gray-100">
+                        <span className="text-sm text-zinc-600">Amount</span>
+                        <span className="text-sm font-bold text-zinc-900">
+                          {getCurrencySymbol(currency)}
+                          {itemAmount.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </span>
+                      </div>
                     </div>
                   );
                 })}
@@ -635,15 +690,15 @@ const CreateInvoicePage = () => {
                     </svg>
                   }
                   iconPosition="left"
-                  className="mt-8 !bg-violet-100/60 !text-sm w-[140px] h-9 text-zinc-900"
+                  className="mt-4 lg:mt-8 !bg-violet-100/60 !text-sm w-full sm:w-[140px] h-10 text-zinc-900"
                 >
                   Add Item
                 </Button>
               </div>
 
               {/* Note, terms & Totals */}
-              <div className="flex justify-between gap-8 items-end -mt-[36px]  pb-8">
-                <div className="flex gap-4 items-center w-1/2">
+              <div className="flex flex-col lg:flex-row lg:justify-between gap-6 lg:gap-8 lg:items-end pb-6 lg:pb-8">
+                <div className="flex flex-col gap-4 items-stretch w-full lg:w-1/2">
                   <TextareaField
                     label="Terms and Conditions"
                     placeholder="Enter the terms and conditions of your business"
@@ -670,7 +725,7 @@ const CreateInvoicePage = () => {
                   />
                 </div>
                 {/* Totals */}
-                <div className="border-t pt-4 font-medium w-1/2 flex flex-col gap-5 text-zinc-700 font-brSonoma text-sm border  border-gray-100 max-w-96 p-6 bg-white/60 rounded-lg">
+                <div className="border-t pt-4 font-medium w-full lg:w-1/2 flex flex-col gap-5 text-zinc-700 font-brSonoma text-sm border border-gray-100 max-w-full lg:max-w-96 p-6 bg-white/60 rounded-lg">
                   <div className="flex items-center justify-between">
                     <span>Subtotal:</span>
                     <span>{`${getCurrencySymbol(currency)}${formatAmount(
@@ -930,32 +985,9 @@ const CreateInvoicePage = () => {
               </div> */}
 
               {/* Buttons */}
-              <div className="flex justify-between border-t border-gray-100 py-[30px] gap-8 items-center">
-                {/* <div className="flex gap-[15px] items-center"> */}
-                {/* <button
-                    type="button"
-                    onClick={() => setShowSideModal("settings")}
-                    className="w-10 h-10 relative flex justify-center items-center bg-white rounded-2xl border border-gray-100 hover:border-gray-300"
-                  >
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                      <path
-                        d="M3 9.10998V14.88C3 17 3 17 5 18.35L10.5 21.53C11.33 22.01 12.68 22.01 13.5 21.53L19 18.35C21 17 21 17 21 14.89V9.10998C21 6.99998 21 6.99999 19 5.64999L13.5 2.46999C12.68 1.98999 11.33 1.98999 10.5 2.46999L5 5.64999C3 6.99999 3 6.99998 3 9.10998Z"
-                        stroke="#0D6494"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z"
-                        stroke="#0D6494"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button> */}
-                <div className="flex gap-3 font-brSonoma text-zinc-700 flex-col">
-                  <p className="font-bold text-xl">
+              <div className="flex flex-col-reverse lg:flex-row lg:justify-between border-t border-gray-100 py-6 lg:py-[30px] gap-5 lg:gap-8 items-stretch lg:items-center">
+                <div className="flex gap-2 font-brSonoma text-zinc-700 flex-col">
+                  <p className="font-bold text-lg sm:text-xl">
                     Total Amount:{" "}
                     {`${getCurrencySymbol(currency)}${total.toFixed(2)}`}
                   </p>
@@ -967,15 +999,14 @@ const CreateInvoicePage = () => {
                     )}
                   </p>
                 </div>
-                {/* </div> */}
-                <div className="flex items-center gap-[15px]">
-                  <Link href={"/invoice"}>
-                    <Button type="button" variant="secondary">
+                <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-[15px] w-full lg:w-auto">
+                  <Link href={"/invoice"} className="w-full sm:w-auto">
+                    <Button type="button" variant="secondary" className="w-full sm:w-auto">
                       Cancel
                     </Button>
                   </Link>
                   <Button
-                    className="whitespace-nowrap"
+                    className="whitespace-nowrap w-full sm:w-auto"
                     type="button"
                     loading={submitType === "draft" && CreateMutation.isPending}
                     disabled={CreateMutation.isPending || indexLoading}
@@ -997,7 +1028,7 @@ const CreateInvoicePage = () => {
                       submitType === "preview" && CreateMutation.isPending
                     }
                     disabled={CreateMutation.isPending || indexLoading}
-                    className="whitespace-nowrap"
+                    className="whitespace-nowrap w-full sm:w-auto"
                   >
                     Preview & Save
                   </Button>

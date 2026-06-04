@@ -64,7 +64,7 @@ export interface IRoutingInfo {
   account: string;
   routing: string;
   routing_id: string;
-  routing_type_name: "ACH" | "RTP" | "WIRE";
+  routing_type_name: "ACH" | "RTP" | "WIRE" | "FASTER_PAYMENTS" | "SEPA" | string;
   wallet_id: string;
 }
 
@@ -94,9 +94,16 @@ export interface ICryptoWallet {
 export interface IWallet {
   account_balance: number;
   account_number: string;
+  account_name?: string | null;
   bank_name: string;
+  bank_address?: string | null;
+  bic?: string | null;
   entity_id: string;
+  iban?: string | null;
   routing: IRoutingInfo[];
+  sort_code?: string | null;
+  status?: string | null;
+  virtual_account_id?: string | null;
   wallet_account_type: string;
   wallet_id: string;
   wallet_name: string;

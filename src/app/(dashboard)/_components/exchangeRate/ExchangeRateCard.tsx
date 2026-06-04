@@ -50,20 +50,21 @@ const ExchangeRateCard = () => {
 
   return (
     <>
-      <div className="bg-white rounded-[24px]  border border-gray-100 px-3 pb-5 desktop:px-5 shadow-sm w-1/2">
-        <div className="flex justify-between items-center pt-5  pb-7">
-          <h2 className="text-lg font-bold text-raiz-gray-950 leading-5">
+      <div className="bg-white rounded-2xl md:rounded-[24px] border border-raiz-gray-100 px-3 pb-4 md:pb-5 desktop:px-5 shadow-sm w-full lg:w-1/2 min-w-0">
+        <div className="flex justify-between items-center pt-4 md:pt-5 pb-4 md:pb-7">
+          <h2 className="text-[11px] md:text-lg font-semibold md:font-bold uppercase md:normal-case tracking-widest md:tracking-normal text-raiz-gray-500 md:text-raiz-gray-950 leading-5">
             Exchange rates
           </h2>
           <button
             onClick={() => setShowMore(true)}
-            className="px-3.5 py-2 border border-raiz-gray-200 rounded-lg text-xs font-bold text-raiz-gray-800 hover:bg-gray-50 transition-colors"
+            className="text-xs font-bold text-primary2 md:px-3.5 md:py-2 md:border md:border-raiz-gray-200 md:rounded-lg md:text-raiz-gray-800 hover:opacity-80 md:hover:bg-gray-50 transition-colors"
           >
-            See more
+            <span className="md:hidden">Manage</span>
+            <span className="hidden md:inline">See more</span>
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-28 xl:gap-x-10  gap-y-7 overflow-x-auto">
+        <div className="flex md:grid md:grid-cols-2 gap-3 md:gap-x-28 xl:md:gap-x-10 md:gap-y-7 overflow-x-auto pb-1 md:pb-0 snap-x snap-mandatory no-scrollbar">
           {isLoading ? (
             <>
               <Skeleton
@@ -82,12 +83,12 @@ const ExchangeRateCard = () => {
               />
             </>
           ) : (
-            displayedRates.map((rate, index) => (
+            displayedRates.slice(0, 8).map((rate, index) => (
               <div
                 key={index}
-                className="flex items-center gap-4 font-brSonoma leading-5"
+                className="snap-start shrink-0 min-w-[140px] md:min-w-0 flex flex-col md:flex-row md:items-center gap-2 md:gap-4 p-3 md:p-0 rounded-xl md:rounded-none border border-raiz-gray-100 md:border-0 bg-white md:bg-transparent font-brSonoma leading-5"
               >
-                <div className="flex items-center gap-2 min-w-[90px] whitespace-nowrap">
+                <div className="flex items-center gap-2 min-w-[90px] justify-center md:justify-start whitespace-nowrap">
                   <Image
                     src={getFlag(rate.currency)}
                     alt={rate.currency}
@@ -95,12 +96,13 @@ const ExchangeRateCard = () => {
                     height={16}
                     className="size-4 rounded-full object-cover"
                   />
-                  <span className="lg:text-xs desktop:text-sm font-medium text-raiz-gray-950">
+                  <span className="text-xs desktop:text-sm font-medium text-raiz-gray-950">
                     {rate.currency} {rate.buy_rate.toFixed(2)}
                   </span>
                 </div>
-                <div className="size-4 mr-3">
+                <div className="size-4 md:mr-3 mx-auto md:mx-0">
                   <svg
+                  className="rotate-90 md:rotate-0"
                     width="16"
                     height="16"
                     viewBox="0 0 16 16"
@@ -113,7 +115,7 @@ const ExchangeRateCard = () => {
                     />
                   </svg>
                 </div>
-                <div className="flex items-center justify-end gap-2">
+                <div className="flex items-center justify-center md:justify-end gap-2">
                   <Image
                     src="/icons/flag-us.webp"
                     alt="USD"
@@ -121,7 +123,7 @@ const ExchangeRateCard = () => {
                     height={16}
                     className="size-4 rounded-full object-cover"
                   />
-                  <span className="lg:text-xs desktop:text-sm font-medium text-raiz-gray-950 text-right whitespace-nowrap">
+                  <span className="text-xs desktop:text-sm font-medium text-raiz-gray-950 text-right whitespace-nowrap">
                     $1 USD
                   </span>
                 </div>

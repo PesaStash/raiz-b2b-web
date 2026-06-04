@@ -41,7 +41,17 @@ const Avatar: React.FC<AvatarProps> = ({
     <div
       className={`relative group flex items-center justify-center overflow-hidden 
         rounded-full text-white 
-        ${selectedCurrency.name === "USD" ? "bg-raiz-usd-primary" : "bg-primary"}
+        ${
+          selectedCurrency.name === "USD"
+            ? "bg-raiz-usd-primary"
+            : selectedCurrency.name === "SBC"
+              ? "bg-raiz-crypto-primary"
+              : selectedCurrency.name === "GBP"
+                ? "bg-raiz-gbp-primary"
+                : selectedCurrency.name === "EUR"
+                  ? "bg-raiz-eur-primary"
+                  : "bg-primary"
+        }
         ${className ?? ""}
       `}
       style={{ width: size, height: size, fontSize: size / 3 }}

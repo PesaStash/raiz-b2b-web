@@ -6,8 +6,8 @@ import Link from "next/link";
 
 const EmptyInvoiceTable = () => {
   return (
-    <div className="flex  flex-col justify-between h-[80%]  ">
-      <div className="flex h-1/2  flex-col justify-center items-center bg-[url('/images/empty-spiral.png')] bg-no-repeat bg-bottom">
+    <div className="flex flex-col justify-between min-h-[320px] sm:h-[80%]">
+      <div className="flex flex-col justify-center items-center bg-[url('/images/empty-spiral.png')] bg-no-repeat bg-bottom py-8 px-4">
         <svg
           width="48"
           height="48"
@@ -54,9 +54,9 @@ const EmptyInvoiceTable = () => {
           You haven&apos;t created any invoices yet. Start by sending your first
           one to a client.
         </p>
-        <Link href={"/invoice/create-new"}>
+        <Link href={"/invoice/create-new"} className="w-full max-w-[214px]">
           <Button
-            className="w-[214px] mt-6"
+            className="w-full mt-6"
             icon={
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                 <path
@@ -71,11 +71,11 @@ const EmptyInvoiceTable = () => {
           </Button>
         </Link>
       </div>
-      <div className="h-1/2 px-16 bg-gray-100 flex flex-col py-[56px] w-[81vw] relative left-[-24%]  translate-x-[20%]">
-        <h4 className="text-center justify-start text-zinc-900 mb-16 text-base font-bold leading-tight">
+      <div className="mt-8 sm:mt-0 px-4 sm:px-8 lg:px-16 py-8 sm:py-[56px] bg-gray-100 flex flex-col w-full rounded-2xl lg:rounded-none">
+        <h4 className="text-center text-zinc-900 mb-8 sm:mb-16 text-base font-bold leading-tight">
           Life Cycle of Invoice
         </h4>
-        <div className="flex flex-col md:flex-row justify-center items-center gap-10 md:gap-20">
+        <div className="flex flex-col md:flex-row justify-center items-center gap-8 md:gap-10 lg:gap-20">
           {[
             {
               icon: "/icons/draft-icon.svg",

@@ -27,7 +27,7 @@ const LogoutModal = ({ close }: { close: () => void }) => {
     logoutMutation.mutate();
   };
   return (
-    <Overlay width="375px" close={close}>
+    <Overlay width="375px" close={close} className="!z-[110]">
       <div className="flex flex-col justify-center items-center  h-full py-8 px-5  text-center ">
         <svg width="49" height="48" viewBox="0 0 49 48" fill="none">
           <path

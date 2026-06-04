@@ -396,13 +396,13 @@ const GlobalBeneficiary = ({ close }: Props) => {
   return (
     <div className="flex flex-col h-full">
       <CenterModalHeader close={close} />
-      <h2 className="text-xl font-bold text-raiz-gray-950 mb-10">
+      <h2 className="md:text-xl text-lg font-semibold md:font-bold text-raiz-gray-950 md:mb-10 mb-4">
         International Remittance
       </h2>
       <div className="flex-1  flex flex-col justify-between gap-4 h-[65vh] xl:h-[70vh]">
-        <div className="bg-raiz-gray-50 p-6 overflow-y-auto rounded-[20px]">
+        <div className="bg-raiz-gray-50 md:p-6 p-3 overflow-y-auto rounded-[20px]">
           <div className="mb-11">
-            <h5 className="text-raiz-gray-950 text-sm font-bold  leading-[16.80px] mb-[15px]">
+            <h5 className="text-raiz-gray-950 md:text-sm text-xs font-bold  leading-[16.80px] mb-[15px]">
               Beneficiary
             </h5>
             {isLoading ? (
@@ -434,14 +434,14 @@ const GlobalBeneficiary = ({ close }: Props) => {
                       )}
                     </div>
 
-                    <p className="text-center text-raiz-gray-950 text-[13px] font-semibold leading-none">
+                    <p className="text-center text-raiz-gray-950 md:text-[13px] text-xs font-semibold leading-none">
                       {truncateString(
                         user?.foreign_payout_beneficiary?.beneficiary_name ||
                           "",
                         15,
                       )}
                     </p>
-                    <p className="text-center text-raiz-gray-700 text-xs leading-[18px]">
+                    <p className="text-center text-raiz-gray-700 md:text-xs text-xs leading-[18px]">
                       {truncateString(
                         user?.foreign_payout_beneficiary
                           ?.beneficiary_account_number || "",
@@ -456,14 +456,14 @@ const GlobalBeneficiary = ({ close }: Props) => {
             )}
           </div>
           <div className="flex justify-between w-full mb-[15px]">
-            <h4 className="text-zinc-900 text-sm font-bold leading-none">
+            <h4 className="text-zinc-900 md:text-sm text-xs font-bold leading-none">
               Add Beneficiary
             </h4>
             {beneficiaries?.length > 0 && (
               <button
                 type="button"
                 onClick={() => setShowModal("beneficiary")}
-                className="text-indigo-900 text-xs font-bold leading-tight"
+                className="text-indigo-900 md:text-xs text-xs font-bold leading-tight"
               >
                 Choose Beneficiary
               </button>
@@ -481,7 +481,7 @@ const GlobalBeneficiary = ({ close }: Props) => {
           {Object.keys(countryMethods).length > 1 &&
             formik.values.country?.value !== "GB" &&
             formik.values.country?.value !== "CN" && (
-              <div className="mt-4">
+              <div className="mt-3 md:mt-4">
                 <InputLabel content="Payout Method" />
                 <select
                   className="w-full mt-2 rounded-xl border border-raiz-gray-200 px-4 py-3 bg-white text-raiz-gray-900"

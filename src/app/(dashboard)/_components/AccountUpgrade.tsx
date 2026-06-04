@@ -7,7 +7,7 @@ import {
 import { convertToTitle } from "@/utils/helpers";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useState } from "react";
-import { FaCheck, FaCircle } from "react-icons/fa";
+import { FaCheck } from "react-icons/fa";
 import { toast } from "sonner";
 import BusinessVerificationModal from "./BusinessVerificationModal";
 import CreateNgnAcct from "./createNgnAcct/CreateNgnAcct";
@@ -112,16 +112,16 @@ const AccountUpgrade = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-white mt-8  font-sans">
-        <div className=" bg-[#FFF3E666] rounded-lg px-4 py-5">
+      <div className="min-w-0 font-sans md:min-h-screen md:bg-white md:mt-8">
+        <div className="bg-[#FFF3E666] rounded-2xl md:rounded-lg px-3 py-4 md:px-4 md:py-5">
           {/* Header Section */}
-          <div className="flex items-start gap-4 mb-10">
+          <div className="flex items-start gap-3 md:gap-4 mb-6 md:mb-10">
             <svg
-              width="48"
-              height="48"
+              className="shrink-0 w-10 h-10 md:w-12 md:h-12"
               viewBox="0 0 48 48"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
+              aria-hidden
             >
               <g clipPath="url(#clip0_30032_36282)">
                 <rect width="48" height="48" rx="24" fill="#FCFCFD" />
@@ -159,11 +159,11 @@ const AccountUpgrade = () => {
                 </clipPath>
               </defs>
             </svg>
-            <div>
-              <h1 className="text-base font-bold text-gray-900">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-sm md:text-base font-bold text-gray-900 leading-snug">
                 Complete Account Set Up
               </h1>
-              <p className="text-[#6F5B86] mt-1 text-sm">
+              <p className="text-[#6F5B86] mt-1 text-xs md:text-sm leading-relaxed">
                 Complete your account setup and verify your details to unlock
                 full access to all features.
               </p>
@@ -171,17 +171,17 @@ const AccountUpgrade = () => {
           </div>
 
           {/* Steps Container */}
-          <div className="relative px-10">
+          <div className="relative px-0 md:px-10">
             {/* Step 1: Basic Business Information (Completed) */}
             <Step
               status={step1Status}
               title="Basic Business Information"
               description="Tell us a bit about your business to get started."
             >
-              <div className="mt-4">
+              <div className="mt-3 md:mt-4">
                 <Button
                   onClick={() => setShowModal("acctSetup")}
-                  className="w-fit h-[41px]"
+                  className="w-full sm:w-fit h-10 md:h-[41px]"
                   disabled={verificationStatus !== "not_started"}
                 >
                   {verificationStatus === "not_started"
@@ -197,11 +197,11 @@ const AccountUpgrade = () => {
               title="Accept Terms & Conditions"
               description="Please review and accept our business terms to proceed with your application"
             >
-              <div className="mt-4">
+              <div className="mt-3 md:mt-4">
                 <Button
                   onClick={handleAcceptTOS}
                   disabled={tosApproved || !data?.tos_status}
-                  className="px-6 py-2.5 w-fit h-[41px]"
+                  className="px-6 py-2.5 w-full sm:w-fit h-10 md:h-[41px]"
                 >
                   {tosApproved ? "Accepted" : "Review & Accept"}
                 </Button>
@@ -216,11 +216,11 @@ const AccountUpgrade = () => {
               description="We need to verify your business identity. Here's what you'll need to have ready:"
             >
               {/* Inner Card */}
-              <div className="mt-6 bg-white border border-gray-100 rounded-xl p-6 shadow-sm">
-                <h4 className="text-sm font-semibold text-[#443852] mb-4">
+              <div className="mt-4 md:mt-6 bg-white border border-gray-100 rounded-xl p-4 md:p-6 shadow-sm">
+                <h4 className="text-sm font-semibold text-[#443852] mb-3 md:mb-4">
                   Required Submissions
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-y-2.5 md:gap-y-3 gap-x-8">
                   <RequirementItem text="Certificate of Inc." />
                   <RequirementItem text="Government ID" />
                   <RequirementItem text="Ultimate Beneficial Owners (UBOs) Identity Verification" />
@@ -229,11 +229,11 @@ const AccountUpgrade = () => {
                   <RequirementItem text="Proof of Business Activity" />
                 </div>
               </div>
-              <div className="mt-6">
+              <div className="mt-4 md:mt-6">
                 <button
                   onClick={() => window.open(data?.kyc_link)}
                   disabled={!tosApproved || !kycNotStarted}
-                  className="px-6 py-2.5 h-[41px] bg-white border-2 border-[#F8F7FA] text-[#3C2875] font-bold rounded-3xl text-sm hover:bg-gray-50 transition-colors  disabled:opacity-50"
+                  className="w-full sm:w-fit px-6 py-2.5 h-10 md:h-[41px] bg-white border-2 border-[#F8F7FA] text-[#3C2875] font-bold rounded-3xl text-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
                 >
                   {verificationStatus === "completed"
                     ? "KYB Completed"
@@ -244,7 +244,7 @@ const AccountUpgrade = () => {
                         : "Start KYB Process"}
                 </button>
                 {kycAwaitingUbo && (
-                  <p className="text-raiz-gray-500 text-sm mt-1 leading-relaxed">
+                  <p className="text-raiz-gray-500 text-xs md:text-sm mt-2 leading-relaxed">
                     {" "}
                     Note: Verification links have been sent to the email
                     addresses of all UBOs provided.
@@ -261,11 +261,11 @@ const AccountUpgrade = () => {
                 title="Check your Verification Status (For Staging Only)"
                 description="Monitor your verification status here once submitted."
               >
-                <div className="mt-4">
+                <div className="mt-3 md:mt-4">
                   <button
                     onClick={() => CheckBridgeVerification.mutate()}
                     disabled={CheckBridgeVerification.isPending}
-                    className="px-6 py-2.5 h-[41px] bg-white border-2 border-[#F8F7FA] text-[#3C2875] font-bold rounded-3xl text-sm hover:bg-gray-50 transition-colors  disabled:opacity-50"
+                    className="w-full sm:w-fit px-6 py-2.5 h-10 md:h-[41px] bg-white border-2 border-[#F8F7FA] text-[#3C2875] font-bold rounded-3xl text-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
                   >
                     {CheckBridgeVerification.isPending
                       ? "Checking..."
@@ -303,14 +303,14 @@ type StepProps = {
 
 const Step = ({ status, title, description, children, isLast }: StepProps) => {
   return (
-    <div className="flex gap-4">
+    <div className="flex gap-3 md:gap-4 min-w-0">
       {/* Icon Column */}
-      <div className="flex flex-col items-center">
+      <div className="flex flex-col items-center shrink-0">
         <div
           className={`
           flex items-center justify-center w-6 h-6 rounded-full z-10 shrink-0
           ${status === "completed" ? "bg-[#9BCF53] text-white" : ""}
-          ${status === "active" ? "bg-[#3B6D98] ring-4 ring-blue-100" : ""}
+          ${status === "active" ? "bg-[#3B6D98] ring-2 md:ring-4 ring-blue-100" : ""}
           ${status === "pending" ? "bg-gray-200" : ""}
         `}
         >
@@ -328,9 +328,13 @@ const Step = ({ status, title, description, children, isLast }: StepProps) => {
       </div>
 
       {/* Content Column */}
-      <div className={`pb-12 ${isLast ? "pb-0" : ""} pt-0.5 w-full`}>
-        <h3 className="text-sm font-semibold text-raiz-gray-950">{title}</h3>
-        <p className="text-raiz-gray-950 text-sm mt-1 leading-relaxed">
+      <div
+        className={`pb-8 md:pb-12 min-w-0 flex-1 ${isLast ? "pb-0" : ""} pt-0.5`}
+      >
+        <h3 className="text-[13px] md:text-sm font-semibold text-raiz-gray-950 leading-snug">
+          {title}
+        </h3>
+        <p className="text-raiz-gray-950 text-xs md:text-sm mt-1 leading-relaxed">
           {description}
         </p>
         {children}
@@ -340,8 +344,8 @@ const Step = ({ status, title, description, children, isLast }: StepProps) => {
 };
 
 const RequirementItem = ({ text }: { text: string }) => (
-  <div className="flex items-center gap-2 ">
-    <div className="size-4">
+  <div className="flex items-start gap-2">
+    <div className="size-4 shrink-0 mt-0.5">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
         <path
           d="M8.00016 14.6668C11.6668 14.6668 14.6668 11.6668 14.6668 8.00016C14.6668 4.3335 11.6668 1.3335 8.00016 1.3335C4.3335 1.3335 1.3335 4.3335 1.3335 8.00016C1.3335 11.6668 4.3335 14.6668 8.00016 14.6668Z"
@@ -359,7 +363,7 @@ const RequirementItem = ({ text }: { text: string }) => (
         />
       </svg>
     </div>
-    <span className="text-sm  text-[#443852]">{text}</span>
+    <span className="text-xs md:text-sm text-[#443852] leading-snug">{text}</span>
   </div>
 );
 

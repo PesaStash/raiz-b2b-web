@@ -37,21 +37,22 @@ const EnterNewPinForm = ({ setStep, formik, loading }: Props) => {
   };
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mt-3 md:mt-0">
         <button onClick={handleBackButton}>
           <Image
             src="/icons/arrow-left.svg"
             alt="arrow-left"
             width={18}
             height={18}
+            className="size-3 md:size-[18px]"
           />
         </button>
-        <span className="text-raiz-gray-950 font-bold leading-tight">
+        <span className="text-raiz-gray-950 text-sm md:text-base font-bold leading-tight">
           Change Transaction PIN
         </span>
         <div />
       </div>
-      <p className="text-raiz-gray-950 text-sm font-medium font-brSonoma leading-normal mb-3 mt-5">
+      <p className="text-raiz-gray-950 text-sm md:text-base font-medium font-brSonoma leading-normal mb-3 mt-5">
         {`${formState === "pin" ? "Enter" : "Confirm"} New PIN`}
       </p>
       <form
@@ -82,6 +83,7 @@ const EnterNewPinForm = ({ setStep, formik, loading }: Props) => {
           }
           onClick={handleSubmitButton}
           loading={loading}
+          className="mt-2 lg:mt-0"
         >
           {formState === "pin" ? "Continue" : "Submit Changes"}
         </Button>

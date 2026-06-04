@@ -225,12 +225,12 @@ const Analytics = ({ close }: Props) => {
                 </button>
               </div>
               {categoryLoading ? (
-                <div className="grid grid-cols-2 gap-[17px]">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-[17px]">
                   <Skeleton height={100} />
                   <Skeleton height={100} />
                 </div>
               ) : categoryData && categoryData?.length > 0 ? (
-                <div className="grid grid-cols-2 gap-[17px]">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-[17px]">
                   {categoryData?.map((each, index) => (
                     <div
                       key={index}

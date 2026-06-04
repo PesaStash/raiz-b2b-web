@@ -1,9 +1,5 @@
 "use client";
 import React, { useState } from "react";
-// import Image from "next/image";
-// import { format } from "date-fns";
-// import DateRange from "../transactions/_components/DateRange";
-// import { LiaTimesSolid } from "react-icons/lia";
 import SearchBox from "@/components/ui/SearchBox";
 import {
   ColumnDef,
@@ -23,27 +19,25 @@ import Pagination from "@/components/ui/Pagination";
 import { ICustomer } from "@/types/invoice";
 import EmptyList from "@/components/ui/EmptyList";
 import { AnimatePresence } from "motion/react";
-import SideModalWrapper from "../../_components/SideModalWrapper";
 import EditCustomer from "./EditCustomer";
 import DeleteCustomer from "./DeleteCustomer";
 import Overlay from "@/components/ui/Overlay";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
+import MobileCustomerCards, {
+  MobileCustomerCardsSkeleton,
+} from "@/components/mobile/MobileCustomerCards";
 
 const columnHelper = createColumnHelper<ICustomer>();
 
 const CustomersTable = () => {
-  // const [showDateRange, setShowDateRange] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  // const [dateRange, setDateRange] = useState<{
-  //   startDate?: Date;
-  //   endDate?: Date;
-  // }>({});
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCustomer, setSelectedCustomer] = useState<ICustomer | null>(
     null,
   );
   const [showEdit, setShowEdit] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+
   const handleEditCustomer = (customer: ICustomer) => {
     setSelectedCustomer(customer);
     setShowEdit(true);
@@ -65,7 +59,6 @@ const CustomersTable = () => {
   };
 
   const pageSize = 10;
-
   const debouncedSearch = useDebounce(searchTerm, 500);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -90,7 +83,7 @@ const CustomersTable = () => {
 
         return (
           <div className="flex items-center gap-2 font-brSonoma">
-            <Avatar name="" src={""} />
+            <Avatar name={displayName} src="" />
             <span className="text-sm font-medium text-raiz-gray-950">
               {truncateString(displayName, 28)}
             </span>
@@ -157,8 +150,7 @@ const CustomersTable = () => {
       },
     ],
     queryFn: ({ queryKey }) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const [_, params] = queryKey as [
+      const [, params] = queryKey as [
         string,
         {
           search?: string;
@@ -169,111 +161,73 @@ const CustomersTable = () => {
       return FetchCustomers(params);
     },
   });
-  console.log("data customers", data);
 
   const customers = data?.customers || [];
   const totalPages = data?.pagination?.total_pages
     ? data.pagination.total_pages
     : Math.ceil(customers?.length / pageSize) || 1;
+
   const table = useReactTable({
     data: customers,
     columns,
     getCoreRowModel: getCoreRowModel(),
   });
 
+  const hasCustomers = customers.length > 0;
+
   return (
-    <section className="w-full h-full">
-      <div className="flex gap-3 items-center mb-6">
-        {/* dates */}
-        {/* <div className="relative ">
-          <button
-            onClick={() => setShowDateRange(!showDateRange)}
-            className="flex h-10 gap-1.5 items-center px-3.5 py-2.5 rounded-lg shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] outline outline-1 outline-offset-[-1px] outline-zinc-200 "
-          >
-            <Image
-              src={"/icons/calendar.svg"}
-              alt="calendar"
-              width={20}
-              height={20}
-            />
-            <span className="text-zinc-800 text-sm font-bold leading-none">
-              {dateRange.startDate && dateRange.endDate
-                ? `${format(dateRange.startDate, "dd MMM")} - ${format(
-                    dateRange.endDate,
-                    "dd MMM"
-                  )}`
-                : "Select dates"}
-            </span>
-          </button>
-          {showDateRange && (
-            <DateRange
-              onApply={setDateRange}
-              onClose={() => setShowDateRange(false)}
-            />
-          )}
-        </div>
-        {dateRange.startDate && (
-          <button
-            onClick={() => setDateRange({})}
-            className="flex items-center justify-center w-10 h-10 rounded-lg shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] outline outline-1 outline-offset-[-1px] outline-zinc-200"
-          >
-            <LiaTimesSolid />
-          </button>
-        )} */}
+    <section className="w-full min-w-0">
+      <div className="mb-4 lg:mb-6 p-3 sm:p-0 bg-white lg:bg-transparent rounded-2xl lg:rounded-none border border-raiz-gray-100 lg:border-0 shadow-sm lg:shadow-none">
         <SearchBox
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="!w-[285px] !h-10 rounded-lg shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] outline outline-1 outline-offset-[-1px] outline-zinc-200 "
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setCurrentPage(1);
+          }}
+          placeholder="Search customers..."
+          className="!w-full !max-w-none !h-11 rounded-lg shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] outline outline-1 outline-offset-[-1px] outline-zinc-200"
           inputClassName="rounded-lg bg-white"
-          iconClassName="top-[9.5px]"
+          iconClassName="top-[11px]"
         />
-        {/* export */}
-        {/* <button className="flex h-10 gap-1.5 items-center px-3.5 py-2.5 rounded-lg shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] outline outline-1 outline-offset-[-1px] outline-zinc-200 ">
-          <Image
-            src={"/icons/export.svg"}
-            alt="Export"
-            width={20}
-            height={20}
-          />
-          <span className="text-zinc-800 text-sm font-bold leading-none">
-            Export
-          </span>
-        </button> */}
       </div>
+
       {isLoading ? (
-        <div className="w-full overflow-x-auto ">
-          <table className="min-w-full text-left text-sm">
-            <thead className="border-b ">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id} className="whitespace-nowrap ">
-                  {headerGroup.headers.map((header) => (
-                    <th
-                      key={header.id}
-                      className="py-3 px-4 text-raiz-gray-700 bg-[#EAECFF99] text-[13px] font-normal font-monzo"
-                    >
-                      {flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
-                      )}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody className="divide-y">
-              <tr>
-                <td colSpan={5}>
-                  <Skeleton count={4} className="mb-3" height={48} />
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      ) : customers?.length > 0 ? (
         <>
-          <div className="w-full overflow-x-auto h-full ">
+          <div className="hidden lg:block w-full overflow-x-auto">
             <table className="min-w-full text-left text-sm">
-              <thead className="border-b ">
+              <thead className="border-b">
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <tr key={headerGroup.id} className="whitespace-nowrap">
+                    {headerGroup.headers.map((header) => (
+                      <th
+                        key={header.id}
+                        className="py-3 px-4 text-raiz-gray-700 bg-[#EAECFF99] text-[13px] font-normal font-monzo"
+                      >
+                        {flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
+                      </th>
+                    ))}
+                  </tr>
+                ))}
+              </thead>
+              <tbody>
+                <tr>
+                  <td colSpan={7}>
+                    <Skeleton count={4} className="mb-3" height={48} />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <MobileCustomerCardsSkeleton />
+        </>
+      ) : hasCustomers ? (
+        <>
+          <div className="hidden lg:block w-full overflow-x-auto rounded-xl border border-raiz-gray-100 bg-white">
+            <table className="min-w-full text-left text-sm">
+              <thead className="border-b">
                 {table.getHeaderGroups().map((headerGroup) => (
                   <tr key={headerGroup.id} className="whitespace-nowrap">
                     {headerGroup.headers.map((header) => (
@@ -297,7 +251,7 @@ const CustomersTable = () => {
                     className="hover:bg-gray-50 whitespace-nowrap"
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-4 py-3 ">
+                      <td key={cell.id} className="px-4 py-3">
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext(),
@@ -309,19 +263,35 @@ const CustomersTable = () => {
               </tbody>
             </table>
           </div>
+
+          <MobileCustomerCards
+            customers={customers}
+            onEdit={handleEditCustomer}
+            onDelete={handleDeleteCustomer}
+          />
+
           {totalPages > 1 && (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={(page) => setCurrentPage(page)}
-            />
+            <div className="mt-4">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={(page) => setCurrentPage(page)}
+              />
+            </div>
           )}
         </>
       ) : (
-        <div className="flex   justify-center items-center">
-          <EmptyList text="No customers added yet" />
+        <div className="flex justify-center items-center py-12 lg:py-16 bg-white lg:bg-transparent rounded-2xl lg:rounded-none border border-raiz-gray-100 lg:border-0">
+          <EmptyList
+            text={
+              debouncedSearch
+                ? "No customers match your search"
+                : "No customers added yet"
+            }
+          />
         </div>
       )}
+
       <AnimatePresence>
         {showEdit && selectedCustomer ? (
           <CenterModalWrapper close={handleCloseEdit}>

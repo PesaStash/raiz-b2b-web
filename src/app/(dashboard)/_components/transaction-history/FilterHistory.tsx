@@ -281,11 +281,11 @@ const FilterHistory = ({
   return (
     <div className="flex flex-col h-full">
       <CenterModalHeader close={close} />
-      <h2 className="text-zinc-900 text-2xl font-bold  leading-7 mb-8">
+      <h2 className="text-zinc-900 text-xl md:text-2xl  font-semibold md:font-bold  leading-7 lg:mb-8 mb-3">
         Transaction History
       </h2>
       <div className="flex flex-col justify-between gap-5 h-full">
-        <div className="flex flex-col bg-raiz-gray-50 rounded-[20px] p-6 w-full">
+        <div className="flex flex-col bg-raiz-gray-50 rounded-[20px] p-2 md:p-6 w-full">
           {/* activity */}
           {/* <div className="">
             <h4 className="text-zinc-900 text-xs font-bold leading-tight mb-[9px]">

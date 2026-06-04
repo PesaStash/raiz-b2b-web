@@ -17,6 +17,11 @@ import {
   IExternalBeneficiariesResponse,
   IExternalBeneficiaryPayload,
   IExternalTransferPayload,
+  ForeignCurrency,
+  IForeignBeneficiariesParams,
+  IForeignBeneficiariesResponse,
+  IForeignBeneficiaryPayload,
+  IForeignWithdrawalPayload,
   IInitialPayoutResponse,
   IIntBeneficiariesParams,
   IIntBeneficiariesResponse,
@@ -373,6 +378,39 @@ export const FetchUsBeneficiariesApi = async (
   return response?.data;
 };
 
+export const CreateForeignBeneficiaryApi = async ({
+  currency,
+  label,
+  data,
+}: {
+  currency: ForeignCurrency;
+  label?: string;
+  data: IForeignBeneficiaryPayload;
+}) => {
+  const response = await AuthAxios.post(
+    `/business/transactions/withdrawal/${currency}/beneficiaries/?label=${encodeURIComponent(label ?? "")}`,
+    data,
+  );
+  return response?.data;
+};
+
+export const FetchForeignBeneficiariesApi = async (
+  currency: ForeignCurrency,
+  params: IForeignBeneficiariesParams,
+): Promise<IForeignBeneficiariesResponse> => {
+  const queryParams = Object.fromEntries(
+    Object.entries(params).filter(
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      ([_, value]) => value !== undefined && value !== null,
+    ),
+  );
+  const response = await AuthAxios.get(
+    `/business/transactions/withdrawal/${currency}/beneficiaries/`,
+    { params: queryParams },
+  );
+  return response?.data;
+};
+
 export const GetCanadianBanks = async (): Promise<ICanadianBank[]> => {
   const response = await AuthAxios.get(
     `/business/transactions/withdrawal/usd/beneficiaries/canada/banks/`,
@@ -385,6 +423,17 @@ export const SendMoneyUSBankApi = async (
 ): Promise<IP2pTransferResponse> => {
   const response = await AuthAxios.post(
     "/business/transactions/withdrawal/usd/initiate/",
+    data,
+  );
+  return response?.data;
+};
+
+export const InitiateForeignWithdrawalApi = async (
+  currency: ForeignCurrency,
+  data: IForeignWithdrawalPayload,
+): Promise<IP2pTransferResponse> => {
+  const response = await AuthAxios.post(
+    `/business/transactions/withdrawal/${currency}/initiate/`,
     data,
   );
   return response?.data;

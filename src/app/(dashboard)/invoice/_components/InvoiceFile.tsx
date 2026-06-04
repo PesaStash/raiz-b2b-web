@@ -14,12 +14,12 @@ const InvoiceFile = forwardRef<HTMLDivElement, Props>(({ data }, ref) => {
   return (
     <section
       ref={ref}
-      className="max-w-[1200px] px-14  w-full bg-white rounded-3xl border border-gray-200 inline-flex flex-col justify-start items-start overflow-hidden"
-    >
+      className="max-w-full md:max-w-[1200px] px-4 sm:px-8 md:px-14 w-full bg-white rounded-2xl md:rounded-3xl border border-gray-200 inline-flex flex-col justify-start items-start overflow-hidden min-w-0"
+      >
       {/* Header Section */}
-      <div className="w-full">
-        <div className="w-full  pt-14 pb-5 flex justify-between items-end">
-          <div className="flex flex-col gap-3">
+      <div className="w-full min-w-0">
+        <div className="w-full pt-8 sm:pt-14 pb-5 flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
+          <div className="flex flex-col gap-3 min-w-0">
             <Avatar
               className="size-6"
               src={
@@ -47,39 +47,39 @@ const InvoiceFile = forwardRef<HTMLDivElement, Props>(({ data }, ref) => {
               </p>
             </div>
           </div>
-          <div className="flex flex-col items-end">
-            <h2 className=" text-zinc-900 text-4xl font-semibold  leading-10">
+          <div className="flex flex-col items-start sm:items-end shrink-0">
+            <h2 className="text-zinc-900 text-2xl sm:text-4xl font-semibold leading-tight sm:leading-10">
               INVOICE
             </h2>
           </div>
         </div>
-        <p className=" text-zinc-900 text-sm font-bold  mb-12 text-right">
+        <p className="text-zinc-900 text-sm font-bold mb-8 sm:mb-12 text-left sm:text-right">
           {data?.invoice_number}
         </p>
       </div>
 
       {/* Bill To Section */}
-      <div className="w-full pb-12 flex justify-between items-start">
-        <div>
+      <div className="w-full pb-8 sm:pb-12 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-6">
+        <div className="min-w-0">
           <p className="text-zinc-700 text-sm mb-2">Bill To:</p>
-          <p className="text-zinc-900 text-base font-semibold">
+          <p className="text-zinc-900 text-base font-semibold break-words">
             {data?.customer?.full_name || data?.customer?.business_name || ""}
           </p>
         </div>
-        <div className="flex flex-col gap-3 items-end">
-          <div className="flex gap-20">
-            <span className=" text-zinc-800 text-sm font-semibold ">
+        <div className="flex flex-col gap-3 items-start sm:items-end w-full sm:w-auto">
+          <div className="flex justify-between sm:justify-end gap-4 sm:gap-20 w-full sm:w-auto">
+            <span className="text-zinc-800 text-sm font-semibold shrink-0">
               Issue Date:
             </span>
-            <span className="text-zinc-700 text-sm leading-tight">
+            <span className="text-zinc-700 text-sm leading-tight text-right">
               {data?.issue_date}
             </span>
           </div>
-          <div className="flex gap-20">
-            <span className=" text-zinc-800 text-sm font-semibold ">
+          <div className="flex justify-between sm:justify-end gap-4 sm:gap-20 w-full sm:w-auto">
+            <span className="text-zinc-800 text-sm font-semibold shrink-0">
               Due Date:
             </span>
-            <span className="text-zinc-700 text-sm leading-tight">
+            <span className="text-zinc-700 text-sm leading-tight text-right">
               {data?.due_date}
             </span>
           </div>
@@ -87,8 +87,8 @@ const InvoiceFile = forwardRef<HTMLDivElement, Props>(({ data }, ref) => {
       </div>
 
       {/* Table Section */}
-      <div className="w-full  pb-8">
-        <table className="w-full">
+      <div className="w-full pb-8 overflow-x-auto">
+        <table className="w-full min-w-[500px]">
           <thead className="text-zinc-700 text-xs">
             <tr className="bg-violet-100/60 border-t border-b border-gray-200">
               <th className="text-left py-4 px-4 text-zinc-700 text-xs font-normal w-12">
@@ -138,19 +138,19 @@ const InvoiceFile = forwardRef<HTMLDivElement, Props>(({ data }, ref) => {
       </div>
 
       {/* Footer Section */}
-      <div className="w-full pb-12 gap-8 flex justify-between items-end">
-        <div className="flex-1 flex flex-col justify-between ">
-          <p className="text-zinc-900 text-sm mb-6">{data?.note}</p>
+      <div className="w-full pb-8 sm:pb-12 gap-6 lg:gap-8 flex flex-col lg:flex-row lg:justify-between lg:items-end min-w-0">
+        <div className="flex-1 flex flex-col justify-between min-w-0">
+          <p className="text-zinc-900 text-sm mb-6 break-words">{data?.note}</p>
           <div className="mt-5">
             <h3 className="text-zinc-900 text-base font-semibold mb-2">
               Terms & Conditions
             </h3>
-            <p className="text-zinc-700 text-xs leading-relaxed max-w-sm">
+            <p className="text-zinc-700 text-xs leading-relaxed max-w-full sm:max-w-sm break-words">
               {data?.terms_and_conditions}
             </p>
           </div>
         </div>
-        <div className="flex flex-col gap-5 min-w-80 font-medium text-sm  text-zinc-700 font-brSonoma border border-b-0 rounded-t-lg border-gray-100 rounded-b-lg  ">
+        <div className="flex flex-col gap-5 w-full lg:min-w-80 lg:w-auto font-medium text-sm text-zinc-700 font-brSonoma border border-b-0 rounded-t-lg border-gray-100 rounded-b-lg shrink-0">
           <div className="flex justify-between pt-6 px-6">
             <span className="">Sub Total:</span>
             <span className="">{`${getCurrencySymbol(
@@ -183,7 +183,7 @@ const InvoiceFile = forwardRef<HTMLDivElement, Props>(({ data }, ref) => {
       </div>
 
       {/* Contact Footer */}
-      <div className="w-full  py-8 flex gap-8 text-zinc-800 font-semibold text-sm border-t border-gray-100 ">
+      <div className="w-full py-6 sm:py-8 flex flex-col sm:flex-row gap-3 sm:gap-8 text-zinc-800 font-semibold text-sm border-t border-gray-100 break-all">
         <span>{user?.business_account?.business_phone_number}</span>
         <span>{user?.email}</span>
         {/* <span>{data?.customer?.website}</span> */}

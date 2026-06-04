@@ -31,12 +31,12 @@ const RejectBill = ({ close, request }: Props) => {
   });
   return (
     <Overlay close={close} width="400px">
-      <div className="flex flex-col justify-center items-center h-full py-8 px-5 w-full">
-        <h3 className="text-zinc-900 text-xl text-left w-full font-bold leading-normal mb-5">
+      <div className="flex flex-col justify-center items-center h-full py-6 sm:py-8 px-4 sm:px-5 w-full max-h-[90vh] overflow-y-auto">
+        <h3 className="text-zinc-900 text-lg md:text-xl text-left w-full font-bold leading-normal mb-4 md:mb-5">
           Reject Bill
         </h3>
         <Avatar name={user?.account_name} src={user?.selfie_image} />
-        <p className="text-zinc-900 text-sm text-center my-4 leading-tight">
+        <p className="text-zinc-700 md:text-zinc-900 text-xs md:text-sm text-center my-4 leading-relaxed">
           Can we know the reason you want to delete this bill request?
         </p>
         <div className="w-full">
@@ -53,11 +53,11 @@ const RejectBill = ({ close, request }: Props) => {
             disabled={DeclineRquestMutation.isPending || !reason}
             loading={DeclineRquestMutation.isPending}
             onClick={DeclineRquestMutation.mutate}
-            className="bg-pink-600 "
+            className="w-full bg-pink-600"
           >
             Reject
           </Button>
-          <Button onClick={close} className="bg-zinc-200 text-zinc-900 ">
+          <Button onClick={close} className="w-full bg-zinc-200 text-zinc-900">
             Cancel
           </Button>
         </div>

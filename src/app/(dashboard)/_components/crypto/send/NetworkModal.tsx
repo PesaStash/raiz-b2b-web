@@ -37,7 +37,7 @@ const NetworkModal = ({ close, formik }: Props) => {
         <h3 className="text-raiz-gray-950 text-xl font-bold  leading-normal">
           Network of Recipient
         </h3>
-        <div className="relative h-12 min-w-[300px]  mt-[15px] mb-[30px]">
+        <div className="relative h-12 w-full min-w-0  mt-[15px] mb-[30px]">
           <Image
             className="absolute top-3.5 left-3"
             src={"/icons/search.svg"}

@@ -9,7 +9,7 @@ interface DiscountInputProps {
   onChange: (val: number) => void;
   onModeChange?: (mode: "percent" | "value") => void;
   className?: string;
-  currency: "NGN" | "USD" | "SBC";
+  currency: "NGN" | "USD" | "GBP" | "EUR" | "SBC";
 }
 
 const DiscountInput: React.FC<DiscountInputProps> = ({

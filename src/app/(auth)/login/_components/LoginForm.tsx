@@ -63,13 +63,13 @@ const LoginForm = ({
       key="login-form"
       className="py-4 px-0 md:px-3 xl:px-8 w-full md:w-[50%] xl:w-[46%] h-full flex flex-col  justify-between gap-[30px] xl:gap-[60px]"
     >
-      <Image src={"/icons/Logo.svg"} width={91.78} height={32} alt="Logo" />
+      <Image className="w-[80px] md:w-[91.78px]" src={"/icons/Logo.svg"} width={91.78} height={32} alt="Logo" />
       <div className="flex flex-col h-full  justify-between">
         <div>
-          <h1 className="text-raiz-gray-950 text-[23px] font-semibold  leading-10">
+          <h1 className="text-raiz-gray-950 text-xl md:text-[23px] font-semibold  leading-10">
             Welcome Back
           </h1>
-          <h6 className="text-raiz-gray-600 text-sm  leading-snug">Log in</h6>
+          <h6 className="text-raiz-gray-600 text-xs md:text-sm  leading-snug">Log in</h6>
           <form
             onSubmit={formik.handleSubmit}
             className="flex flex-col gap-5 mt-8 xl:mt-[44px]"
@@ -85,7 +85,7 @@ const LoginForm = ({
             <div className="flex justify-between items-center">
               <InputLabel content="Password" />
               <Link
-                className="text-right text-raiz-purple-90 text-sm font-semibold  leading-[16.80px] hover:underline"
+                className="text-right text-raiz-purple-90 text-xs md:text-sm font-semibold  leading-[16.80px] hover:underline"
                 href={"/forgot-password"}
               >
                 Forgot your password?

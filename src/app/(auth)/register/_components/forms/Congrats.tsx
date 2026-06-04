@@ -280,16 +280,16 @@ const Congrats = () => {
           />
         </svg>
 
-        <h2 className="text-raiz-gray-950 text-[22px] font-semibold  leading-7">
+        <h2 className="text-raiz-gray-950 md:text-[22px] text-xl font-semibold  leading-7">
           Congratulations, you&#39;ve been Raized!
         </h2>
-        <p className="text-raiz-gray-700 text-[15px] font-normal leading-snug mt-1">
+        <p className="text-raiz-gray-700 text-sm md:text-[15px] font-normal leading-snug mt-1">
           Your Raiz account set up is almost complete. Here&#39;s a list of some
           of what Raiz offers.! 🌟💰
         </p>
       </header>
 
-      <div className="mt-[44px] flex flex-col gap-4 xl:gap-6">
+      <div className="md:mt-[44px] mt-8 flex flex-col md:gap-4 gap-2 xl:gap-6">
         {GetRaizedinfo.map((each, index) => (
           <div key={index} className="flex gap-4">
             {each.svg}

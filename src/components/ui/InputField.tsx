@@ -64,7 +64,7 @@ const InputField: React.FC<InputProps> = ({
             />
 
             {/* Custom Placeholder */}
-            <div className={`w-full text-sm text-[#667085] py-1 ${className}`}>
+            <div className={`w-full text-xs md:text-sm text-[#667085] py-1 ${className}`}>
               {label || "Choose a file"}
             </div>
 
@@ -96,7 +96,7 @@ const InputField: React.FC<InputProps> = ({
             {label && <InputLabel content={label} labelClass={labelClass} />}
             <div className={`flex items-center  ${label ? "mt-2" : ""} `}>
               <input
-                className={`w-full p-[15px] h-[50px] text-sm text-raiz-gray-950  border bg-raiz-gray-100 focus:bg-white focus:border-raiz-gray-600 active:border-raiz-gray-600  outline-none rounded-lg leading-tight placeholder:text-raiz-gray-400 placeholder:text-sm ${className} ${getBorderColor()}`}
+                className={`w-full p-[15px] h-[50px] text-[13px] md:text-sm text-raiz-gray-950  border bg-raiz-gray-100 focus:bg-white focus:border-raiz-gray-600 active:border-raiz-gray-600  outline-none rounded-lg leading-tight placeholder:text-raiz-gray-400 placeholder:text-sm ${className} ${getBorderColor()}`}
                 name={name}
                 type={type}
                 placeholder={label || ""}

@@ -43,7 +43,7 @@ const CreateNgnAcct = ({ close }: { close: () => void }) => {
     <>
       <div className="w-full  xl:max-h-[85vh] lg:max-h-[80vh] flex flex-col font-brSonoma">
         <CenterModalHeader close={close} />
-        <h2 className="text-xl font-bold text-raiz-gray-950 mb-4">
+        <h2 className="text-xl font-bold text-white mb-4">
           Create NGN Account
         </h2>
         <div className="flex flex-col justify-between gap-8 h-full pb-[30px]">

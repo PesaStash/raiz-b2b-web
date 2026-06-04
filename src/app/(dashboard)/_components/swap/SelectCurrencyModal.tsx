@@ -34,14 +34,25 @@ const SelectCurrencyModal = ({ close }: Props) => {
 
     switch (swapFromCurrency) {
       case "USD":
-        // USD can swap to NGN, SBC, or itself (to trigger reverse swap)
+        // USD can swap to any supported non-USD wallet, or itself to reverse.
         return availableCurrencies.filter(
-          (c) => c === "NGN" || c === "SBC" || c === "USD"
+          (c) =>
+            c === "NGN" ||
+            c === "GBP" ||
+            c === "EUR" ||
+            c === "SBC" ||
+            c === "USD"
         );
 
       case "NGN":
         // NGN can swap to USD or itself (to trigger reverse swap)
         return availableCurrencies.filter((c) => c === "USD" || c === "NGN");
+
+      case "GBP":
+        return availableCurrencies.filter((c) => c === "USD" || c === "GBP");
+
+      case "EUR":
+        return availableCurrencies.filter((c) => c === "USD" || c === "EUR");
 
       case "SBC":
         // SBC can swap to USD or itself (to trigger reverse swap)
@@ -104,6 +115,10 @@ const SelectCurrencyModal = ({ close }: Props) => {
         return "/icons/dollar.svg";
       case "NGN":
         return "/icons/ngn.svg";
+      case "GBP":
+        return "/icons/flag-gb.png";
+      case "EUR":
+        return "/icons/flag-fr.png";
       case "SBC":
         return "/icons/bsc.svg";
       default:
@@ -128,6 +143,22 @@ const SelectCurrencyModal = ({ close }: Props) => {
         type: "info",
       };
     }
+    if (swapFromCurrency === "GBP") {
+      return {
+        show: true,
+        message:
+          "GBP can only be swapped to USD. Direct GBP to EUR, NGN, or SBC swaps are not allowed.",
+        type: "info",
+      };
+    }
+    if (swapFromCurrency === "EUR") {
+      return {
+        show: true,
+        message:
+          "EUR can only be swapped to USD. Direct EUR to GBP, NGN, or SBC swaps are not allowed.",
+        type: "info",
+      };
+    }
     return { show: false, message: "", type: "" };
   };
 
@@ -144,7 +175,7 @@ const SelectCurrencyModal = ({ close }: Props) => {
         </p>
 
         {/* Search Input */}
-        <div className="relative h-12 min-w-[300px] mb-6">
+        <div className="relative h-12 w-full min-w-0 mb-6">
           <Image
             className="absolute top-3.5 left-3"
             src={"/icons/search.svg"}

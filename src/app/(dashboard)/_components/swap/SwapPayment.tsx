@@ -39,6 +39,38 @@ const getSwapAPI = (
     };
   }
 
+  // GBP → USD (Buy Dollar)
+  if (fromCurrency === "GBP" && toCurrency === "USD") {
+    return {
+      api: BuyDollarApi,
+      currency: "GBP" as const,
+    };
+  }
+
+  // USD → GBP (Sell Dollar)
+  if (fromCurrency === "USD" && toCurrency === "GBP") {
+    return {
+      api: SellDollarApi,
+      currency: "GBP" as const,
+    };
+  }
+
+  // EUR → USD (Buy Dollar)
+  if (fromCurrency === "EUR" && toCurrency === "USD") {
+    return {
+      api: BuyDollarApi,
+      currency: "EUR" as const,
+    };
+  }
+
+  // USD → EUR (Sell Dollar)
+  if (fromCurrency === "USD" && toCurrency === "EUR") {
+    return {
+      api: SellDollarApi,
+      currency: "EUR" as const,
+    };
+  }
+
   // USD → SBC (Buy StableCoin)
   if (fromCurrency === "USD" && toCurrency === "SBC") {
     return {
@@ -70,6 +102,8 @@ const SwapPayment = ({ goNext, setPaymentError, close }: Props) => {
     swapToCurrency
   );
 
+  console.log("swpFrom", swapFromCurrency, "swpTo", swapToCurrency);
+
   const SwapMoneyMutation = useMutation({
     mutationFn: () =>
       swapAPI({
@@ -85,7 +119,7 @@ const SwapPayment = ({ goNext, setPaymentError, close }: Props) => {
       qc.refetchQueries({ queryKey: ["user"] });
       qc.invalidateQueries({ queryKey: ["user"] });
       qc.invalidateQueries({ queryKey: ["transactions-report"] });
-
+qc.invalidateQueries({ queryKey: ["income-expense-chart"] });
       if (response?.transaction_status?.transaction_status === "completed") {
         actions.setStatus("success");
       } else if (

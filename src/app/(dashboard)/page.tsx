@@ -1,42 +1,39 @@
 "use client";
 import React from "react";
-// import Header from "./_components/Header";
+import Link from "next/link";
 import DashboardSummary from "./_components/DashboardSummary";
-// import QuickLinks from "./_components/QuickLinks";
-// import Transactions from "./_components/Transactions";
-// import BillRequests from "./_components/BillRequests";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
-import CryptoDashboard from "./_components/crypto/dashboard/CryptoDashboard";
 import { useUser } from "@/lib/hooks/useUser";
-// import { useCurrentWallet } from "@/lib/hooks/useCurrentWallet";
 import TransactionTable from "./_components/TransactionTable";
-import BillRequests from "./_components/BillRequests";
 import CryptoDeposit from "./_components/crypto/dashboard/CryptoDeposit";
 
 export default function Home() {
   const { selectedCurrency } = useCurrencyStore();
   const { user } = useUser();
-  // const currentWallet = useCurrentWallet(user);
-  // if (selectedCurrency.name === "SBC") {
-  //   return <CryptoDashboard />;
-  // }
   const verificationStatus =
     user?.business_account?.business_verifications?.[0]?.verification_status;
 
   return (
-    <>
-      <section className="p-5 xl:p-8 bg-raiz-gray-50 w-full items-center rounded-[20px] inline-flex flex-col justify-start  gap-8">
+    <div className="flex flex-col gap-5 md:gap-0 min-w-0">
+      <section className="md:p-6 md:xl:p-8 md:bg-raiz-gray-50 md:w-full md:items-center md:rounded-[20px] md:inline-flex md:flex-col md:justify-start md:gap-8 min-w-0">
         <DashboardSummary />
       </section>
       {selectedCurrency?.name === "SBC" && <CryptoDeposit />}
-      <section className="p-8 mt-10 bg-raiz-gray-50 w-full items-center rounded-[20px] inline-flex flex-col justify-start  gap-8">
-        {verificationStatus === "completed" && (
-          <>
-            {/* <BillRequests /> */}
+      {verificationStatus === "completed" && (
+        <section className="min-w-0">
+          <div className="flex items-center justify-between mb-3 md:hidden px-0.5">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-raiz-gray-500">
+              Recent activity
+            </p>
+            <Link href="/transactions" className="text-xs font-bold text-primary2">
+              View all →
+            </Link>
+          </div>
+          <div className="md:p-6 md:xl:p-8 md:mt-10 md:bg-raiz-gray-50 md:w-full md:items-center md:rounded-[20px] md:inline-flex md:flex-col md:justify-start md:gap-8">
             <TransactionTable topRightOpts="link" />
-          </>
-        )}
-      </section>
-    </>
+          </div>
+        </section>
+      )}
+    </div>
   );
 }

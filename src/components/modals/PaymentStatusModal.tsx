@@ -11,13 +11,15 @@ import {
   EntityBeneficiary,
   EntityForeignPayoutBeneficiary,
   IExternalAccount,
+  IForeignBeneficiary,
 } from "@/types/services";
 
 export type BeneficiaryType =
   | ISearchedUser
   | IExternalAccount
   | EntityBeneficiary
-  | EntityForeignPayoutBeneficiary;
+  | EntityForeignPayoutBeneficiary
+  | IForeignBeneficiary;
 interface Props {
   status: PaymentStatusType;
   amount: number;
@@ -33,6 +35,11 @@ interface Props {
 const getAccountName = (user: BeneficiaryType): string => {
   if ("account_name" in user) return user.account_name;
   if ("bank_account_name" in user) return user?.bank_account_name || "";
+  if ("usd_beneficiary" in user) return user.usd_beneficiary.account_name || "";
+  if ("foreign_currency_beneficiary" in user)
+    return user.foreign_currency_beneficiary.account_name || "";
+  if ("foreign_payout_beneficiary" in user)
+    return user.foreign_payout_beneficiary.beneficiary_name || "";
   return "Unknown Account";
 };
 

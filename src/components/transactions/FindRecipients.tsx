@@ -12,6 +12,8 @@ import { useUser } from "@/lib/hooks/useUser";
 import Avatar from "../ui/Avatar";
 import { findWalletByCurrency } from "@/utils/helpers";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
+import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
+import MobileSheetHeader from "../mobile/MobileSheetHeader";
 
 interface Props {
   recentUsers: ISearchedUser[];
@@ -30,18 +32,20 @@ const RecipientRow = ({
   setSelectedUser: (arg: ISearchedUser) => void;
 }) => {
   return (
-    <li
-      className="p-2 hover:bg-gray-100 cursor-pointer rounded-2xl flex gap-2 items-center"
-      onClick={() => setSelectedUser(user)}
-    >
-      {/* <Avatar src={user?.selfie_image} name={user?.account_name} /> */}
-      <Avatar src={""} name={user?.account_name} />
-      <div>
-        <p className="text-sm font-semibold">
-          {user.account_name || "Unknown User"}
-        </p>
-        <p className="text-xs text-gray-500">@{user.username}</p>
-      </div>
+    <li>
+      <button
+        type="button"
+        className="w-full p-3 flex gap-3 items-center rounded-xl bg-white active:bg-raiz-gray-100 transition-colors text-left"
+        onClick={() => setSelectedUser(user)}
+      >
+        <Avatar src={user?.selfie_image} name={user?.account_name} size={44} />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-raiz-gray-950 truncate">
+            {user.account_name || "Unknown User"}
+          </p>
+          <p className="text-xs text-raiz-gray-500 truncate">@{user.username}</p>
+        </div>
+      </button>
     </li>
   );
 };
@@ -55,6 +59,7 @@ const FindRecipients = ({
   emptyStateTitle = "You haven't Sent Money to any Raizers",
 }: Props) => {
   const { user } = useUser();
+  const isMobile = useMediaQuery("(max-width: 768px)");
   const NGNAcct = findWalletByCurrency(user, "NGN");
   const USDAcct = findWalletByCurrency(user, "USD");
   const SBCAcct = findWalletByCurrency(user, "SBC");
@@ -100,7 +105,6 @@ const FindRecipients = ({
     setSuggestions(data?.results || []);
   }, [data]);
 
-  // Cleanup debounce on unmount
   useEffect(() => {
     return () => debouncedSetQueryTerm.cancel();
   }, [debouncedSetQueryTerm]);
@@ -111,122 +115,90 @@ const FindRecipients = ({
     debouncedSetQueryTerm(value);
   };
 
-  //   console.log("userssss", suggestions);
+  const recentsLayout = isMobile ? "list" : "grid";
+  const hasHistory = recentUsers.length > 0 || beneficiaries.length > 0;
 
   return (
-    <div className="overflow-y-scroll no-scrollbar pb-5">
-      {header && (
-        <div>
-          <button onClick={goBack}>
-            <Image
-              src={"/icons/arrow-left.svg"}
-              alt="back"
-              width={18.48}
-              height={18.48}
-            />
-          </button>
-          <header className="flex justify-between items-center mt-5 mb-9">
-            <h2 className=" text-zinc-900 text-base font-bold  leading-tight">
-              Find Recipient
-            </h2>
-            <button>
-              <Image
-                src={"/icons/qr.svg"}
-                width={18}
-                height={19.2}
-                alt="scan"
-              />
-            </button>
-          </header>
-        </div>
+    <div className="flex flex-col min-h-0 pb-2">
+      {header && goBack && (
+        <MobileSheetHeader title="Find Recipient" onBack={goBack} />
       )}
-      {/* search & suggestions */}
-      <div className="">
-        <div className="relative h-12 w-full">
-          <Image
-            className="absolute top-3.5 left-3"
-            src={"/icons/search.svg"}
-            alt="search"
-            width={22}
-            height={22}
-          />
-          <input
-            value={searchTerm}
-            onChange={handleInputChange}
-            placeholder="Enter a username or email address"
-            className="pl-10 h-full w-full bg-raiz-gray-50 text-sm rounded-[20px] border-raiz-gray-200 focus:outline-none outline-none border focus:border-2"
-          />
-        </div>
-        {/*loading */}
-        {isLoading && searchTerm && (
-          <ul className="mt-2 w-full">
-            {Array(3)
-              .fill("")
-              .map((_, index) => (
-                <li key={index} className="flex gap-3 mt-1">
-                  <div className="bg-gray-200 animate-pulse w-12 h-12 rounded-full" />
-                  <div className="p-2 bg-gray-200 animate-pulse rounded-md my-1 h-12 w-full" />
-                </li>
-              ))}
-          </ul>
-        )}
-        {/* Suggestions */}
-        {!isLoading &&
-          searchTerm &&
-          (suggestions.length > 0 ? (
-            <ul className="mt-5 w-full overflow-y-scroll flex flex-col py-5  rounded-[20px] bg-raiz-gray-50  px-6">
-              {suggestions.map((user, index) => (
+
+      <div className="relative w-full shrink-0">
+        <Image
+          className="absolute top-1/2 left-3.5 -translate-y-1/2 pointer-events-none"
+          src={"/icons/search.svg"}
+          alt=""
+          width={20}
+          height={20}
+        />
+        <input
+          value={searchTerm}
+          onChange={handleInputChange}
+          placeholder="Search username or email"
+          className="pl-11 pr-4 h-12 w-full bg-raiz-gray-50 text-sm rounded-2xl border border-raiz-gray-200 focus:outline-none focus:border-primary2/40 focus:ring-2 focus:ring-primary2/10"
+        />
+      </div>
+
+      {isLoading && searchTerm && (
+        <ul className="mt-3 w-full flex flex-col gap-2">
+          {Array(3)
+            .fill("")
+            .map((_, index) => (
+              <li key={index} className="flex gap-3 items-center p-2">
+                <div className="bg-raiz-gray-200 animate-pulse size-11 rounded-full shrink-0" />
+                <div className="p-2 bg-raiz-gray-200 animate-pulse rounded-xl h-11 flex-1" />
+              </li>
+            ))}
+        </ul>
+      )}
+
+      {!isLoading && searchTerm && (
+        <div className="mt-3">
+          {suggestions.length > 0 ? (
+            <ul className="w-full flex flex-col gap-1 rounded-2xl bg-raiz-gray-50 p-2">
+              {suggestions.map((user) => (
                 <RecipientRow
-                  key={index}
+                  key={user.entity_id ?? user.username}
                   user={user}
                   setSelectedUser={setSelectedUser}
                 />
               ))}
             </ul>
           ) : (
-            <div className="my-3">
-              <p className="text-center text-sm rounded-[20px] bg-raiz-gray-50 py-20 px-6">
-                No users found
-              </p>
-            </div>
-          ))}
-      </div>
-
-      {/* No history */}
-      {!searchTerm &&
-        recentUsers.length === 0 &&
-        beneficiaries.length === 0 && (
-          <div className="flex flex-col justify-center items-center text-center mt-10 text-zinc-900 rounded-[20px] bg-raiz-gray-50 py-20 px-6">
-            <Image
-              src={"/icons/send-3.svg"}
-              alt="send"
-              width={48}
-              height={48}
-            />
-            <h4 className=" text-base font-bold leading-tight mt-6 mb-[14px]">
-              {emptyStateTitle}
-            </h4>
-            <p className="  text-sm font-normal leading-tight">
-              Tap the <span className="font-bold leading-none">search</span>{" "}
-              icon{" "}
-              {/* <span className="font-bold leading-none">QR Code</span> icon */}
-              to send today!
+            <p className="text-center text-sm text-raiz-gray-600 rounded-2xl bg-raiz-gray-50 py-12 px-4">
+              No users found for &ldquo;{searchTerm}&rdquo;
             </p>
-          </div>
-        )}
+          )}
+        </div>
+      )}
 
-      {/* Recent Users and Beneficiaries */}
-      {(recentUsers.length > 0 || beneficiaries.length > 0) && (
-        <div className="mt-10 rounded-[20px] bg-raiz-gray-50 p-6 overflow-y-auto mb-6 no-scrollbar">
+      {!searchTerm && !hasHistory && (
+        <div className="flex flex-col justify-center items-center text-center mt-8 text-raiz-gray-950 rounded-2xl bg-raiz-gray-50 py-14 px-6">
+          <Image src={"/icons/send-3.svg"} alt="" width={48} height={48} />
+          <h4 className="text-base font-bold leading-tight mt-5 mb-2">
+            {emptyStateTitle}
+          </h4>
+          <p className="text-sm text-raiz-gray-600 leading-relaxed">
+            Search by username or email to send money to another Raizer.
+          </p>
+        </div>
+      )}
+
+      {!searchTerm && hasHistory && (
+        <div className="mt-5 rounded-2xl bg-raiz-gray-50 p-3 md:p-6">
           {!searchTerm && recentUsers.length > 0 && (
             <RecentUsers
               users={recentUsers}
               setSelectedUser={setSelectedUser}
               type="p2p"
+              layout={recentsLayout}
             />
           )}
           {!searchTerm && beneficiaries.length > 0 && (
-            <Beneficiaries users={beneficiaries} />
+            <div className={recentUsers.length > 0 ? "mt-5" : ""}>
+              <Beneficiaries users={beneficiaries} />
+            </div>
           )}
         </div>
       )}
