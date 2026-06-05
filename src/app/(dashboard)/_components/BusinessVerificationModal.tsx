@@ -47,7 +47,13 @@ const mapZodFieldErrors = (
       .map(([key, messages]) => [key, messages[0]])
   ) as Partial<Record<keyof BusinessFormValues, string>>;
 
-const BusinessVerificationModal = ({ close }: { close: () => void }) => {
+const BusinessVerificationModal = ({
+  close,
+  onVerificationSuccess,
+}: {
+  close: () => void;
+  onVerificationSuccess?: () => void;
+}) => {
   const [useManualAddress, setUseManualAddress] = useState(false);
   const { countries, fetchCountries, loading: countriesLoading } =
     useCountryStore();
@@ -79,6 +85,7 @@ const BusinessVerificationModal = ({ close }: { close: () => void }) => {
       );
       qc.invalidateQueries({ queryKey: ["user"] });
       qc.invalidateQueries({ queryKey: ["KYB-links"] });
+      onVerificationSuccess?.();
       close();
     },
   });

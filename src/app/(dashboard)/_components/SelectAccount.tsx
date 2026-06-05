@@ -10,6 +10,10 @@ import {
   getApiErrorMessage,
   truncateString,
 } from "@/utils/helpers";
+import {
+  canStartUsdVerification,
+  isNigerianBusiness,
+} from "@/utils/onboardingBranch";
 import { useUser } from "@/lib/hooks/useUser";
 import { useSendStore } from "@/store/Send";
 import { ForeignCurrency } from "@/types/services";
@@ -18,9 +22,17 @@ interface Props {
   close: () => void;
   openNgnModal: () => void;
   openCryptoModal: () => void;
+  isNgnBranch?: boolean;
+  onRequireKyb?: () => void;
 }
 
-const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
+const SelectAccount = ({
+  close,
+  openNgnModal,
+  openCryptoModal,
+  isNgnBranch = false,
+  onRequireKyb,
+}: Props) => {
   const { user, refetch } = useUser();
   const { actions } = useSendStore();
   const { selectedCurrency, setSelectedCurrency } = useCurrencyStore();
@@ -29,6 +41,10 @@ const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
   const GBPAcct = findWalletByCurrency(user, "GBP");
   const EURAcct = findWalletByCurrency(user, "EUR");
   const CryptoAcct = findWalletByCurrency(user, "SBC");
+  const verificationStatus =
+    user?.business_account?.business_verifications?.[0]?.verification_status;
+  const caseStage =
+    user?.business_account?.business_verifications?.[0]?.case_stage;
 
   const qc = useQueryClient();
   const USDWalletMutation = useMutation({
@@ -71,6 +87,10 @@ const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
       setSelectedCurrency("USD", user);
       actions.selectCurrency("USD");
       close();
+    } else if (!canStartUsdVerification(user, verificationStatus, caseStage)) {
+      toast.info("USD verification is not available in your current state.");
+    } else if (isNgnBranch) {
+      onRequireKyb?.();
     } else {
       USDWalletMutation.mutate();
     }
@@ -81,6 +101,8 @@ const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
       setSelectedCurrency("SBC", user);
       actions.selectCurrency("SBC");
       close();
+    } else if (isNgnBranch) {
+      onRequireKyb?.();
     } else {
       openCryptoModal();
     }
@@ -95,6 +117,11 @@ const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
       return;
     }
 
+    if (isNgnBranch) {
+      onRequireKyb?.();
+      return;
+    }
+
     if (!USDAcct) {
       toast.warning("Set up your USD account first.");
       return;
@@ -103,9 +130,7 @@ const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
     foreignAccountMutation.mutate(currency);
   };
 
-  const isNigerian =
-    user?.business_account?.entity?.country?.country_name?.toLowerCase() ===
-    "nigeria";
+  const isNigerian = isNigerianBusiness(user);
 
   return (
     <Overlay close={close} width="375px">

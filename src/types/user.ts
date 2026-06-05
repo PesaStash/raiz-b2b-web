@@ -55,7 +55,21 @@ export interface IBusinessVerification {
   is_phone_verified: boolean;
   is_address_verified: boolean;
   is_document_verified: boolean;
-  verification_status: "not_started" | "pending" | "completed" | "failed";
+  verification_status:
+    | "not_started"
+    | "pending"
+    | "kyc_tier_1"
+    | "completed"
+    | "failed";
+  case_stage:
+    | "not_started"
+    | "basic_verification"
+    | "bridge_verification"
+    | "awaiting_ubo"
+    | "bridge_rejected"
+    | "completed"
+    | string
+    | null;
   business_account_id: string;
   business_verification_id: string;
 }
@@ -103,6 +117,7 @@ export interface IWallet {
   routing: IRoutingInfo[];
   sort_code?: string | null;
   status?: string | null;
+  wallet_status?: string | null;
   virtual_account_id?: string | null;
   wallet_account_type: string;
   wallet_id: string;
