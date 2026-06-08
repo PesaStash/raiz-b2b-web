@@ -15,13 +15,11 @@ const actions: {
   label: string;
   onClick: (p: Props) => void;
   icon: React.ReactNode;
-  iconBg: string;
 }[] = [
   {
     key: "send",
     label: "Send",
     onClick: (p) => p.onSend(),
-    iconBg: "bg-violet-100",
     icon: (
       <svg
         width="20"
@@ -41,7 +39,6 @@ const actions: {
     key: "request",
     label: "Request",
     onClick: (p) => p.onReceive(),
-    iconBg: "bg-emerald-100",
     icon: (
       <svg
         width="24"
