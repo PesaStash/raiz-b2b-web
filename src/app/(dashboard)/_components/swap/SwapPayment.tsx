@@ -102,8 +102,6 @@ const SwapPayment = ({ goNext, setPaymentError, close }: Props) => {
     swapToCurrency
   );
 
-  console.log("swpFrom", swapFromCurrency, "swpTo", swapToCurrency);
-
   const SwapMoneyMutation = useMutation({
     mutationFn: () =>
       swapAPI({

@@ -55,6 +55,8 @@ export const nigeriaStates = [
   { value: "fct", label: "Federal Capital Territory" },
 ];
 
+export const FOREIGN_ACCOUNT_ACTIVATION_FEE_USD = 3;
+
 export const ACCOUNT_CURRENCIES = {
   USD: { name: "USD", sign: "$", logo: "/icons/flag-us.webp" } as const,
   NGN: { name: "NGN", sign: "₦", logo: "/icons/flag-ng.png" } as const,

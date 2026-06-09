@@ -67,11 +67,11 @@ const SendSummary = ({ goBack, goNext, fee }: Props) => {
   return (
     <div className="h-full flex flex-col overflow-auto no-scrollbar pb-5 lg:mb-12 xl:mb-0   ">
       <CenterModalHeader close={goBack} />
-      <h5 className=" text-raiz-gray-950 text-[22px] font-semibold leading-tight mb-10">
+      <h5 className=" text-raiz-gray-950 md:text-[22px] text-lg font-semibold leading-tight  mb-10">
         Send Summary
       </h5>
       <div className="flex h-full flex-col justify-between pb-5 ">
-        <div className="rounded-[20px] flex flex-col bg-raiz-gray-50 px-6 lg:py-6 xl:py-10 desktop:py-16  mb-6">
+        <div className="rounded-[20px] flex flex-col bg-raiz-gray-50 px-3 md:px-6 lg:py-6 xl:py-10 desktop:py-16  mb-6">
           <div className="flex flex-col items-center justify-center mb-4 text-zinc-900">
             <div className="w-12 h-12 mb-4 flex mx-auto items-center justify-center bg-violet-100 bg-opacity-60 rounded-3xl">
               <Image

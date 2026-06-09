@@ -1,5 +1,8 @@
+import { ACCOUNT_CURRENCIES } from "@/constants/misc";
+import { ICurrencyName } from "@/types/misc";
 import { IUser } from "@/types/user";
-import { findWalletByCurrency } from "@/utils/helpers";
+import { determineSwapPair, findWalletByCurrency } from "@/utils/helpers";
+import { CurrencyTypeKey } from "@/store/Swap/swapSlice.types";
 
 export type OnboardingCurrencyPath = "USD" | "NGN";
 
@@ -93,6 +96,96 @@ export function shouldPromptAddUsdAccount(
   if (hasCompletedUsdWallet(user)) return false;
   if (caseStage === "bridge_rejected") return false;
   return verificationStatus === "completed" || isNgnBranch;
+}
+
+export function userHasWalletCurrency(
+  user: IUser | undefined,
+  currency: ICurrencyName
+) {
+  return !!findWalletByCurrency(user, currency);
+}
+
+export function getDefaultAccountCurrency(
+  user: IUser | undefined,
+  verificationStatus?: VerificationStatus
+): ICurrencyName {
+  if (!user?.business_account?.wallets?.length) {
+    return "USD";
+  }
+
+  const status =
+    verificationStatus ??
+    user.business_account.business_verifications?.[0]?.verification_status;
+
+  const branchState = getOnboardingBranchState(user, status);
+
+  if (branchState.isNgnBranch && branchState.hasNgnWallet) {
+    return "NGN";
+  }
+
+  if (userHasWalletCurrency(user, "USD")) {
+    return "USD";
+  }
+
+  const firstWalletCurrency = user.business_account.wallets[0]?.wallet_type
+    ?.currency;
+
+  if (
+    firstWalletCurrency &&
+    firstWalletCurrency in ACCOUNT_CURRENCIES
+  ) {
+    return firstWalletCurrency as ICurrencyName;
+  }
+
+  return "USD";
+}
+
+export function resolveActiveAccountCurrency(
+  user: IUser | undefined,
+  selectedCurrency: ICurrencyName,
+  verificationStatus?: VerificationStatus
+): ICurrencyName {
+  const status =
+    verificationStatus ??
+    user?.business_account?.business_verifications?.[0]?.verification_status;
+
+  const branchState = getOnboardingBranchState(user, status);
+
+  if (
+    branchState.isNgnBranch &&
+    branchState.hasNgnWallet &&
+    !branchState.isVerificationComplete
+  ) {
+    return "NGN";
+  }
+
+  if (userHasWalletCurrency(user, selectedCurrency)) {
+    return selectedCurrency;
+  }
+
+  return getDefaultAccountCurrency(user, status);
+}
+
+export function getDefaultSwapCurrencies(user: IUser | undefined): {
+  from: ICurrencyName;
+  to: ICurrencyName;
+} {
+  const wallets = user?.business_account?.wallets ?? [];
+  if (wallets.length < 2) {
+    return { from: "USD", to: "NGN" };
+  }
+
+  const defaultCurrency = getDefaultAccountCurrency(user);
+  const pair = determineSwapPair(defaultCurrency as CurrencyTypeKey, wallets);
+
+  if (pair.isValid) {
+    return {
+      from: pair.fromCurrency,
+      to: pair.toCurrency,
+    };
+  }
+
+  return { from: "USD", to: "NGN" };
 }
 
 export function getOnboardingBranchState(

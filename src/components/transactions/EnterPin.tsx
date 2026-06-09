@@ -18,7 +18,7 @@ const EnterPin = ({ pin, setPin, close }: Props) => {
         }  py-8 px-5  text-raiz-gray-950 overflow-y-scroll`}
       >
         <div className="flex justify-between px-6">
-          <h2 className=" text-xl font-bold  leading-normal">Enter Pin</h2>
+          <h2 className=" text-lg md:text-xl font-bold  leading-normal">Enter Pin</h2>
           <button onClick={close}>
             <Image
               src={"/icons/close.svg"}

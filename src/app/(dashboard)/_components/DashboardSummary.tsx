@@ -9,7 +9,6 @@ import { determineSwapPair, findWalletByCurrency } from "@/utils/helpers";
 import { useUser } from "@/lib/hooks/useUser";
 import Request from "./request/Request";
 import { useSendStore } from "@/store/Send";
-import { useUserStore } from "@/store/useUserStore";
 import { toast } from "sonner";
 import Swap from "./swap/Swap";
 import { useSwapStore } from "@/store/Swap";
@@ -31,7 +30,6 @@ import { getOnboardingBranchState } from "@/utils/onboardingBranch";
 import ExchangeRateCard from "./exchangeRate/ExchangeRateCard";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 import CryptoSwap from "./crypto/swap/CryptoSwap";
-import { ACCOUNT_CURRENCIES } from "@/constants/misc";
 import CryptoSend from "./crypto/send/CryptoSend";
 import ForeignSend from "./send/foreign/ForeignSend";
 import ForeignAcctInfo from "./acctInfo/ForeignAcctInfo";
@@ -43,11 +41,10 @@ type actionBtnKeytype = "send" | "request" | "topUp" | "details";
 const DashboardSummary = () => {
   const { user, refetch, isLoading } = useUser();
   const walletData = user?.business_account?.wallets;
-  const { currency, actions: sendActions } = useSendStore();
-  const { actions, swapFromCurrency, swapToCurrency } = useSwapStore();
+  const { actions: sendActions } = useSendStore();
+  const { actions } = useSwapStore();
   const { actions: topupActions } = useTopupStore();
-  const { setShowBalance, showBalance } = useUserStore();
-  const { selectedCurrency, setSelectedCurrency } = useCurrencyStore();
+  const { selectedCurrency } = useCurrencyStore();
   const [openModal, setOpenModal] = useState<
     | actionBtnKeytype
     | "swap"
@@ -100,7 +97,7 @@ const DashboardSummary = () => {
 
   const closeSwapModal = () => {
     setOpenModal(null);
-    actions.reset();
+    actions.reset(user);
   };
 
   const canSwap = NGNAcct && USDAcct;
@@ -307,22 +304,6 @@ const DashboardSummary = () => {
   useEffect(() => {
     refetch();
   }, [pathName, refetch]);
-
-  useEffect(() => {
-    if (
-      branchState.isNgnBranch &&
-      branchState.hasNgnWallet &&
-      selectedCurrency.name !== "NGN"
-    ) {
-      setSelectedCurrency("NGN", user);
-    }
-  }, [
-    branchState.isNgnBranch,
-    branchState.hasNgnWallet,
-    selectedCurrency.name,
-    setSelectedCurrency,
-    user,
-  ]);
 
   return (
     <div className="w-full">

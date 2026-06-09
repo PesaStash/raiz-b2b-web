@@ -6,6 +6,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CreateForeignAccountApi, CreateUSDWalletApi } from "@/services/business";
 import { toast } from "sonner";
 import {
+  getInsufficientUsdForForeignAccountMessage,
+  hasSufficientUsdForForeignAccount,
+} from "@/utils/foreignAccount";
+import {
   findWalletByCurrency,
   getApiErrorMessage,
   truncateString,
@@ -127,6 +131,11 @@ const SelectAccount = ({
       return;
     }
 
+    if (!hasSufficientUsdForForeignAccount(user)) {
+      toast.warning(getInsufficientUsdForForeignAccountMessage());
+      return;
+    }
+
     foreignAccountMutation.mutate(currency);
   };
 
@@ -214,7 +223,7 @@ const SelectAccount = ({
               )}
             </button>
           )}
-          {/* Crypto */}
+        {/* GBP */}
           <button
             onClick={() => handleForeign("GBP")}
             className={`px-3 py-4 justify-between items-center gap-10 w-full rounded-[20px] inline-flex ${
@@ -225,7 +234,7 @@ const SelectAccount = ({
           >
             <div className="flex gap-3">
               <Image
-                src={"/icons/flag-gb.png"}
+                src={"/icons/pounds.svg"}
                 alt="GBP" 
                 width={32}
                 height={32}
@@ -255,6 +264,7 @@ const SelectAccount = ({
             )}
           </button>
 
+          {/* EUR */}
           <button
             onClick={() => handleForeign("EUR")}
             className={`px-3 py-4 justify-between items-center gap-10 w-full rounded-[20px] inline-flex ${
@@ -265,7 +275,7 @@ const SelectAccount = ({
           >
             <div className="flex gap-3">
               <Image
-                src={"/icons/flag-fr.png"}
+                src={"/icons/euro.svg"}
                 alt="EUR"
                 width={32}
                 height={32}
@@ -294,7 +304,7 @@ const SelectAccount = ({
               />
             )}
           </button>
-
+  {/* Crypto */}
           <button
             onClick={handleCrypto}
             className={`px-3 py-4  justify-between items-center gap-10 w-full rounded-[20px]  inline-flex ${

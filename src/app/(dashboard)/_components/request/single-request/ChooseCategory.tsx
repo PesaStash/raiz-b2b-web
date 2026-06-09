@@ -50,7 +50,7 @@ const ChooseCategory = ({ goBack, goNext, category, setCategory }: Props) => {
     <div className="flex flex-col h-full mb-12">
       <CenterModalHeader close={goBack} />
       <div className="flex flex-col gap-1  mb-10">
-        <h5 className="text-raiz-gray-950 text-[22px] font-semibold leading-tight">
+        <h5 className="text-raiz-gray-950 md:text-[22px] text-lg font-semibold leading-tight">
           Choose Categories
         </h5>
         <p className=" text-raiz-gray-700 text-sm font-normal leading-tight">
@@ -58,7 +58,7 @@ const ChooseCategory = ({ goBack, goNext, category, setCategory }: Props) => {
         </p>
       </div>
       <div className="flex flex-col h-full justify-between items-center">
-        <div className="w-full grid grid-cols-4 gap-y-5 xl:gap-y-10 gap-x-3 rounded-[20px] bg-raiz-gray-50 p-6 overflow-y-auto mb-6 no-scrollbar">
+        <div className="w-full grid grid-cols-4 gap-y-5 xl:gap-y-10 gap-x-3 rounded-[20px] bg-raiz-gray-50 p-3 md:p-6 overflow-y-auto mb-6 no-scrollbar">
           {isLoading ? (
             <Spinner />
           ) : (

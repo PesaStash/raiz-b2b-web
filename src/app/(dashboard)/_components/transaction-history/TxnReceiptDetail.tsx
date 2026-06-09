@@ -65,14 +65,14 @@ const TxnReceiptDetail = ({ close, transaction, goNext }: Props) => {
     <>
       <div className={`flex flex-col h-screen`}>
         <CenterModalHeader close={close} />
-        <h2 className="text-xl font-bold text-raiz-gray-950 mb-4">
+        <h2 className="md:text-xl text-base font-bold text-raiz-gray-950 mb-4">
           {transaction?.third_party_name}
         </h2>
         <div className="flex flex-col justify-between h-[90%] mt-2">
           <div className="w-full">
-            <div className="w-full mt-[26px] rounded-[20px] bg-raiz-gray-50  shadow-[0px_7.342465877532959px_22.02739715576172px_0px_rgba(170,170,170,0.12)] inline-flex flex-col justify-center items-center gap-5">
+            <div className="w-full md:mt-[26px] mt-3 rounded-[20px] bg-raiz-gray-50  shadow-[0px_7.342465877532959px_22.02739715576172px_0px_rgba(170,170,170,0.12)] inline-flex flex-col justify-center items-center gap-5">
               {/* Status */}
-              <div className="relative px-6 py-5 flex w-full flex-col justify-center items-center gap-1 pb-5 border-b border-dashed">
+              <div className="relative md:px-6 px-3 md:py-5 py-3 flex w-full flex-col justify-center items-center gap-2.5 pb-5 border-b border-dashed">
                 <Image
                   src={`/icons/status-${
                     status === "completed"
@@ -97,7 +97,7 @@ const TxnReceiptDetail = ({ close, transaction, goNext }: Props) => {
               </div>
 
               {/* Details */}
-              <div className="flex flex-col px-6 py-5 gap-3 w-full">
+              <div className="flex flex-col md:px-6 px-3 md:py-5 py-3 gap-3 w-full">
                 <ListDetailItem
                   title="Transaction Type"
                   value={transaction?.transaction_type.transaction_type}

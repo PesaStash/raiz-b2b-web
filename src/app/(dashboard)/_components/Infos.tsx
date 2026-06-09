@@ -5,9 +5,9 @@ import { CreateUSDWalletApi } from "@/services/business";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { findWalletByCurrency } from "@/utils/helpers";
 import {
+  canCreateNgnWallet,
   canStartUsdVerification,
   dismissInfosAddAccounts,
-  isNigerianBusiness,
   isInfosAddAccountsDismissed,
   resetInfosAddAccountsDismissed,
   shouldPromptAddUsdAccount,
@@ -255,12 +255,11 @@ const Infos = ({ isNgnBranch = false, onRequireKyb }: InfosProps) => {
     user?.business_account?.business_verifications?.[0]?.case_stage;
   const hasTransactionPin = user?.has_transaction_pin;
 
-  const NGNAcct = findWalletByCurrency(user, "NGN");
   const USDAcct = findWalletByCurrency(user, "USD");
   const GBPAcct = findWalletByCurrency(user, "GBP");
   const EURAcct = findWalletByCurrency(user, "EUR");
-  const isNigerian = isNigerianBusiness(user);
   const canStartUsd = canStartUsdVerification(user, verificationStatus, caseStage);
+  const showAddNgn = canCreateNgnWallet(user, verificationStatus);
   const showAddUsd = shouldPromptAddUsdAccount(
     user,
     verificationStatus,
@@ -322,13 +321,7 @@ const Infos = ({ isNgnBranch = false, onRequireKyb }: InfosProps) => {
     },
     {
       key: "getNgn",
-      condition:
-        (verificationStatus === "kyc_tier_1" ||
-          verificationStatus === "pending" ||
-          verificationStatus === "completed") &&
-        isNigerian &&
-        !NGNAcct &&
-        !!hasTransactionPin,
+      condition: showAddNgn,
       icon: (
         <Image
           src="/icons/flag-ng.png"
@@ -451,10 +444,7 @@ const Infos = ({ isNgnBranch = false, onRequireKyb }: InfosProps) => {
 
       <AnimatePresence>
         {showModal ? (
-          <CenterModalWrapper
-            close={handleCloseModal}
-            // wrapperStyle={showModal === "getNgn" ? "!bg-primary2" : ""}
-          >
+          <CenterModalWrapper close={handleCloseModal}>
             {displayModal()}
           </CenterModalWrapper>
         ) : null}

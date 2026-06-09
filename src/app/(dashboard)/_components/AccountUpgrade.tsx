@@ -496,11 +496,11 @@ const AccountUpgrade = ({
                 onClick={() => setSelectedCurrencyPath("USD")}
                 className={`border cursor-pointer ${
                   selectedCurrencyPath === "USD"
-                    ? "border-indigo-900"
-                    : "border-zinc-200"
-                } rounded-[20px] flex items-center justify-between w-full px-4 py-4 transition-colors hover:border-indigo-900`}
+                    ? "border-primary2"
+                    : "#E4E0EA"
+                } rounded-[20px] flex flex-col  relative items-center justify-between w-full px-4 py-4 transition-colors hover:border-indigo-900`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col items-center gap-3">
                   <Image
                     src="/icons/dollar.svg"
                     alt="USD"
@@ -508,18 +508,19 @@ const AccountUpgrade = ({
                     height={40}
                     className="size-10 rounded-full"
                   />
-                  <div className="text-left">
+                  <div className="text-center mt-2">
                     <p className="text-zinc-900 text-sm font-bold leading-none">
                       USD Account
                     </p>
-                    <p className="text-zinc-900 text-xs font-normal leading-tight mt-1">
-                      Create an USD account
+                    <p className="text-zinc-900 text-xs font-normal leading-tight mt-2">
+                      Business verification required to get a USD account
                     </p>
                   </div>
                 </div>
                 <Radio
                   checked={selectedCurrencyPath === "USD"}
                   onChange={() => setSelectedCurrencyPath("USD")}
+                  className="absolute top-5 right-5"
                 />
               </div>
 
@@ -529,11 +530,11 @@ const AccountUpgrade = ({
                 onClick={() => setSelectedCurrencyPath("NGN")}
                 className={`border cursor-pointer ${
                   selectedCurrencyPath === "NGN"
-                    ? "border-indigo-900"
-                    : "border-zinc-200"
-                } rounded-[20px] flex items-center justify-between w-full px-4 py-4 transition-colors hover:border-indigo-900`}
+                    ? "border-primary2"
+                    : "#E4E0EA"
+                } rounded-[20px] flex flex-col relative items-center justify-between w-full px-4 py-4 transition-colors hover:border-indigo-900`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col items-center gap-3">
                   <Image
                     src="/icons/ngn.svg"
                     alt="NGN"
@@ -541,18 +542,19 @@ const AccountUpgrade = ({
                     height={40}
                     className="size-10 rounded-full"
                   />
-                  <div className="text-left">
+                  <div className="text-center mt-2">
                     <p className="text-zinc-900 text-sm font-bold leading-none">
                       NGN Account
                     </p>
-                    <p className="text-zinc-900 text-xs font-normal leading-tight mt-1">
-                      Create a NGN account
+                    <p className="text-zinc-900 text-xs font-normal leading-tight mt-2">
+                    Get your NGN account instantly
                     </p>
                   </div>
                 </div>
                 <Radio
                   checked={selectedCurrencyPath === "NGN"}
                   onChange={() => setSelectedCurrencyPath("NGN")}
+                  className="absolute top-5 right-5"
                 />
               </div>
             </div>
@@ -564,7 +566,7 @@ const AccountUpgrade = ({
             >
               {USDVerificationMutation.isPending ? "Please wait..." : "Continue"}
             </Button>
-            <p className="text-center text-xs text-raiz-gray-500 mt-3">
+            <p className="text-center text-xs text-raiz-gray-600 mt-3">
               You can add the other currency later
             </p>
           </div>

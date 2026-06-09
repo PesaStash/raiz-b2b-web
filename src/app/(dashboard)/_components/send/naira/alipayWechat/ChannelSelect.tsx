@@ -39,11 +39,11 @@ const ChannelSelect = ({ onSelect }: Props) => {
   };
 
   return (
-    <div className="p-6 h-full overflow-y-auto no-scrollbar">
-      <h3 className="text-raiz-gray-950 text-base font-bold leading-tight mb-2">
+    <div className="md:p-6 h-full overflow-y-auto no-scrollbar">
+      <h3 className="text-raiz-gray-950 md:text-base text-sm font-bold leading-tight mb-2">
         Select payment channel
       </h3>
-      <p className="text-raiz-gray-500 text-sm leading-tight mb-8">
+      <p className="text-raiz-gray-500 md:text-sm text-xs leading-tight mb-8">
         Choose whether you want to pay via Alipay or WeChat Pay.
       </p>
 

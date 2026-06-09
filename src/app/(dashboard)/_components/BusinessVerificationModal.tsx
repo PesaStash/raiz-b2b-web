@@ -12,6 +12,7 @@ import { IBusinessVerificationPayload } from "@/types/services";
 import { toast } from "sonner";
 import { useUser } from "@/lib/hooks/useUser";
 import { sanitizeAddressField } from "@/utils/helpers";
+import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 
 const nigerianRegNumberRegex = /^(RC|BN|IT|LP)?[\s-]*\d{4,9}$/i;
 
@@ -176,7 +177,8 @@ const BusinessVerificationModal = ({
       className="flex flex-col gap-4 min-h-0"
     >
       <div className="flex flex-col gap-3">
-        <h2 className="text-raiz-gray-950 font-bold text-lg md:text-xl my-1 md:my-2">
+      <CenterModalHeader close={close} />
+        <h2 className="text-xl font-bold text-raiz-gray-950 mb-4">
           Basic Business Verification
         </h2>
         <InputField

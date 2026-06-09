@@ -2,7 +2,7 @@
 import { sbcType } from "@/app/(dashboard)/_components/crypto/send/CryptoSend";
 import { ACCOUNT_CURRENCIES, SWAP_ACCOUNT_CURRENCIES } from "@/constants/misc";
 import { PaymentStatusType } from "@/types/transactions";
-import { IWallet } from "@/types/user";
+import { IUser, IWallet } from "@/types/user";
 
 export type CurrencyTypeKey = keyof typeof ACCOUNT_CURRENCIES;
 
@@ -46,7 +46,7 @@ export interface SwapActions {
   setCoinType: (coinType: sbcType) => void;
   setStatus: (status: PaymentStatusType | null) => void;
   isValidSwapPair: (from: CurrencyTypeKey, to: CurrencyTypeKey) => boolean;
-  reset: () => void;
+  reset: (user?: IUser) => void;
 }
 
 export const initialSwapState: SwapState = {

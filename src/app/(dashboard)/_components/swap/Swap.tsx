@@ -12,6 +12,7 @@ import { useSwapStore } from "@/store/Swap";
 import { ACCOUNT_CURRENCIES } from "@/constants/misc";
 import SwapPayment from "./SwapPayment";
 import SwapStatusModal from "./SwapStatusModal";
+import { useUser } from "@/lib/hooks/useUser";
 import { formatAmount } from "@/utils/helpers";
 // import RaizReceipt from "@/components/transactions/RaizReceipt";
 
@@ -22,6 +23,7 @@ interface Props {
 }
 
 const Swap = ({ close }: Props) => {
+  const { user } = useUser();
   const [step, setStep] = useState<SwapStep>("detail");
   const [timeLeft, setTimeLeft] = useState<number>(119);
   const { amount, swapToCurrency, status, actions, swapFromCurrency } =
@@ -162,7 +164,7 @@ const Swap = ({ close }: Props) => {
   const recipientAmount = getRecipientAmount();
 
   const handleDone = () => {
-    actions.reset();
+    actions.reset(user);
     close();
   };
 

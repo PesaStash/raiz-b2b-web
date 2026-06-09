@@ -33,9 +33,14 @@ const handleError = async (error: CustomAxiosError) => {
 
   // Check for 401 status and redirect to login
   if (error.response?.status === 401) {
-    // If we're in the browser environment
     if (typeof window !== "undefined") {
-      window.location.href = "/login";
+      const authRoutes = ["/login", "/register", "/forgot-password", "/verify"];
+      const isAuthRoute = authRoutes.some((route) =>
+        window.location.pathname.startsWith(route),
+      );
+      if (!isAuthRoute) {
+        window.location.href = "/login";
+      }
     }
     return Promise.reject(error.response);
   }

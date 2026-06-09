@@ -96,7 +96,7 @@ const SelectUser = () => {
   return (
     <div className="flex flex-col h-full ">
       <div className="flex  flex-col justify-between gap-6">
-        <div className="bg-raiz-gray-50 rounded-[20px] p-6 ">
+        <div className="bg-raiz-gray-50 rounded-[20px] md:p-6 ">
           {recents.length !== 0 && (
             <RecentUsers
               type="external"
@@ -104,7 +104,7 @@ const SelectUser = () => {
               setSelectedUser={actions.selectExternalUser}
             />
           )}
-          <div className="w-full mt-[35px]">
+          <div className="w-full md:mt-[35px] mt-0">
             <div className="flex justify-between items-center mb-[15px]">
               <h5 className="text-zinc-900 text-sm font-bold leading-none">
                 Other Bank

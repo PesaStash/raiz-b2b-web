@@ -17,6 +17,10 @@ export const useSendStore = create<SendSlice>((set) => ({
       set(() => ({
         ngnSendType: option,
       })),
+    selectForeignSendOption: (option) =>
+      set(() => ({
+        foreignSendType: option,
+      })),
     selectUser: (user) =>
       set(() => ({
         user,

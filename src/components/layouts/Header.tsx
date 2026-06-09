@@ -73,15 +73,6 @@ const Header = () => {
     queryKey: ["reward-points"],
     queryFn: FetchUserRewardsApi,
   });
-  // const [userPfp, setUserPfp] = useState(
-  //   user?.business_account?.business_image || "/images/default-pfp.svg"
-  // );
-
-  // useEffect(() => {
-  //   if (user?.business_account?.business_image) {
-  //     setUserPfp(user.business_account.business_image);
-  //   }
-  // }, [user]);
   const { user } = useUser();
   const walletData = user?.business_account?.wallets;
   const [showModal, setShowModal] = useState<ModalKeys | null>(null);
@@ -105,14 +96,6 @@ const Header = () => {
   const { actions } = useSwapStore();
   const { actions: topupActions } = useTopupStore();
   const { selectedCurrency } = useCurrencyStore();
-  // const { selectedCurrency } = useCurrencyStore();
-  // const currentWallet = useMemo(() => {
-  //   if (!user || !user?.business_account?.wallets || !selectedCurrency?.name)
-  //     return null;
-  //   return user?.business_account?.wallets.find(
-  //     (wallet) => wallet.wallet_type.currency === selectedCurrency.name
-  //   );
-  // }, [user, selectedCurrency]);
   const { currentTier } = getTierInfo(pointsData?.point || 0);
   const getCurrentWallet = () => {
     if (selectedCurrency.name === "NGN") {
@@ -191,7 +174,7 @@ const Header = () => {
     setShowModal(null);
     sendActions.reset(selectedCurrency.name);
     topupActions.reset();
-    actions.reset();
+    actions.reset(user);
   };
   const openNGNModal = () => {
     setShowModal("createNGN");

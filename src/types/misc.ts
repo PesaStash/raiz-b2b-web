@@ -57,6 +57,8 @@ export type IUSDSendOptions =
 
 export type INGNSendOptions = "to Raizer" | "to other bank" | "alipay-wechat";
 
+export type IForeignSendOptions = "to Raizer" | "to bank";
+
 export interface ICountry {
   country_name: string;
   country_code: string;
