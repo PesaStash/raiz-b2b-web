@@ -70,7 +70,7 @@ const SideModalWrapper = ({ children, close, wrapperStyle }: Props) => {
   }
 
   return (
-    <Overlay close={close} disableAnimation>
+    <Overlay close={close} disableAnimation className="!z-[110]">
       <motion.div
         initial={{ opacity: 0, x: "100%" }}
         animate={{ opacity: 1, x: 0 }}

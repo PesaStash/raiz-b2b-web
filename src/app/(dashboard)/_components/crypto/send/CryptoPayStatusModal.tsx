@@ -55,7 +55,7 @@ const CryptoPayStatusModal = ({
     }
   };
   return (
-    <Overlay close={() => {}} width="400px">
+    <Overlay close={() => {}} width="400px" className="!z-[110]">
       <div className="flex flex-col h-[488px]  w-full from-indigo-900 to-violet-600">
         {renderStatus()}
       </div>

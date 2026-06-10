@@ -8,6 +8,7 @@ type Props = {
   onAddFunds: () => void;
   onSwap: () => void;
   hideSwap?: boolean;
+  hideAddFunds?: boolean;
 };
 
 const actions: {
@@ -98,11 +99,23 @@ const actions: {
   },
 ];
 
+const gridColsClass: Record<number, string> = {
+  2: "grid-cols-2",
+  3: "grid-cols-3",
+  4: "grid-cols-4",
+};
+
 const MobileQuickActions = (props: Props) => {
-  const visible = actions.filter((a) => a.key !== "swap" || !props.hideSwap);
+  const visible = actions.filter((action) => {
+    if (action.key === "swap" && props.hideSwap) return false;
+    if (action.key === "topUp" && props.hideAddFunds) return false;
+    return true;
+  });
 
   return (
-    <div className="lg:hidden grid grid-cols-4 gap-2 mt-5">
+    <div
+      className={`lg:hidden grid gap-2 mt-5 ${gridColsClass[visible.length] ?? "grid-cols-4"}`}
+    >
       {visible.map((action) => (
         <button
           key={action.key}

@@ -41,7 +41,7 @@ const BillsRequestsSummary = () => {
         </div>
         <Button
           onClick={() => setShowRequest(true)}
-          className="h-11 w-full sm:w-fit sm:shrink-0 px-[18px] py-2 rounded-3xl"
+          className="h-11 w-[175px] sm:shrink-0 px-[18px] py-2 rounded-3xl"
           icon={
             <svg
               width="16"
@@ -57,7 +57,7 @@ const BillsRequestsSummary = () => {
             </svg>
           }
         >
-          <span className="text-xs md:text-sm font-medium font-brSonoma">
+          <span className="text-xs ml-2 md:text-sm font-medium font-brSonoma">
             Send Request
           </span>
         </Button>

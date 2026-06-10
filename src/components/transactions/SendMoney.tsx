@@ -57,25 +57,39 @@ const SendMoney = ({
   useEffect(() => {
     refetch();
   }, []);
-  const amountSchema = z
-    .string()
-    .regex(/^\d*\.?\d{0,2}$/, "Enter a valid amount (max 2 decimal places)")
-    .refine((val) => parseFloat(val) >= 1, {
-      message: "Amount must be at least 1",
-    })
-    .refine(
-      (val) => {
-        const totalAvailable = currentWallet?.account_balance || 0;
-        return parseFloat(val) <= totalAvailable;
-      },
-      {
-        message: `Amount cannot exceed available balance`,
-      },
-    );
 
-  const purposeSchema = z
-    .string()
-    .min(3, { message: "Purpose must be at least 3 characters long" });
+  const effectiveMinAmount = minAmount ?? 1;
+
+  const amountSchema = useMemo(
+    () =>
+      z
+        .string()
+        .regex(/^\d*\.?\d{0,2}$/, "Enter a valid amount (max 2 decimal places)")
+        .refine((val) => parseFloat(val) >= effectiveMinAmount, {
+          message: `Amount must be at least ${effectiveMinAmount}`,
+        })
+        .refine(
+          (val) => {
+            const totalAvailable = currentWallet?.account_balance || 0;
+            return parseFloat(val) <= totalAvailable;
+          },
+          {
+            message: `Amount cannot exceed available balance`,
+          },
+        ),
+    [currentWallet, effectiveMinAmount],
+  );
+
+  const minPurposeLength =
+    selectedCurrency.name === "GBP" || selectedCurrency.name === "EUR" ? 6 : 3;
+
+  const purposeSchema = useMemo(
+    () =>
+      z.string().min(minPurposeLength, {
+        message: `Purpose must be at least ${minPurposeLength} characters long`,
+      }),
+    [minPurposeLength],
+  );
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/[^0-9.]/g, "");
