@@ -7,6 +7,7 @@ import Image from "next/image";
 import Button from "@/components/ui/Button";
 import SelectCurrencyModal from "./SelectCurrencyModal";
 import { formatAmount, getCurrencySymbol } from "@/utils/helpers";
+import { isCrossCurrencyNgnGbpEurSwap } from "@/store/Swap/swapSlice.types";
 import ErrorMessage from "@/components/ui/ErrorMessage";
 import { useUser } from "@/lib/hooks/useUser";
 import { toast } from "sonner";
@@ -126,6 +127,15 @@ const SwapDetail = ({
 
   // Dynamic rate display based on currency pair
   const getRateDisplay = () => {
+    if (isCrossCurrencyNgnGbpEurSwap(swapFromCurrency, swapToCurrency)) {
+      return {
+        base: `${getCurrencySymbol(swapFromCurrency)}1 (${swapFromCurrency})`,
+        quote: `${getCurrencySymbol(swapToCurrency)}${
+          exchangeRate?.toFixed(4) || "0.0000"
+        }`,
+      };
+    }
+
     // For USD-based pairs
     if (swapFromCurrency === "USD" || swapToCurrency === "USD") {
       const baseCurrency =

@@ -12,7 +12,9 @@ import { IBillRequest } from "@/types/transactions";
 import { useInfiniteQuery } from "@tanstack/react-query";
 // import { IBillRequestParams, IBillRequestResponse } from "@/types/services";
 import { FetchBillRequestApi } from "@/services/transactions";
+import { useUser } from "@/lib/hooks/useUser";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
+import { getDefaultAccountCurrency } from "@/utils/onboardingBranch";
 import Skeleton from "react-loading-skeleton";
 import Avatar from "@/components/ui/Avatar";
 import EmptyList from "@/components/ui/EmptyList";
@@ -31,7 +33,10 @@ const ReceivedRequests = ({
   openReject,
 }: Props) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const { user } = useUser();
   const { selectedCurrency } = useCurrencyStore();
+  const requestCurrency =
+    selectedCurrency?.name || getDefaultAccountCurrency(user);
   const limit = 10;
   const scrollDivRef = useRef<HTMLDivElement>(null);
 
@@ -41,7 +46,7 @@ const ReceivedRequests = ({
 
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useInfiniteQuery({
-      queryKey: ["bill-requests", selectedCurrency?.name || "USD", 2],
+      queryKey: ["bill-requests", requestCurrency, 2],
 
       queryFn: async ({ queryKey, pageParam = 1 }) => {
         const [, currency, status_id] = queryKey as [string, string, number];

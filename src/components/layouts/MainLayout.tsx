@@ -4,29 +4,34 @@ import React, { ReactNode } from "react";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 import { useAutoLogout } from "@/lib/hooks/useAutoLogout";
+import { useSyncSelectedCurrency } from "@/lib/hooks/useSyncSelectedCurrency";
 import MobileBottomNav from "./MobileBottomNav";
 import MobileHeader from "./MobileHeader";
 import MobileDrawer from "./MobileDrawer";
 import { MobileNavProvider } from "@/context/MobileNavContext";
 
-const MainLayout = ({ children }: { children: ReactNode }) => {
-  const pathName = usePathname();
-  useAutoLogout();
+const dashboardRoutes = [
+  "/",
+  "/settings",
+  "/transactions",
+  "/analytics",
+  "/invoice",
+  "/customers",
+  "/bill-requests",
+  "/developers",
+];
 
-  const dashboardRoutes = [
-    "/",
-    "/settings",
-    "/transactions",
-    "/analytics",
-    "/invoice",
-    "/customers",
-    "/bill-requests",
-    "/developers",
-  ];
-
-  const shouldShowSideNav = dashboardRoutes.some(
+const isDashboardRoute = (pathName: string) =>
+  dashboardRoutes.some(
     (route) => pathName === route || pathName.startsWith(route + "/"),
   );
+
+const MainLayout = ({ children }: { children: ReactNode }) => {
+  const pathName = usePathname();
+  const shouldShowSideNav = isDashboardRoute(pathName);
+
+  useAutoLogout();
+  useSyncSelectedCurrency({ enabled: shouldShowSideNav });
 
   return (
     <MobileNavProvider>

@@ -6,10 +6,18 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CreateForeignAccountApi, CreateUSDWalletApi } from "@/services/business";
 import { toast } from "sonner";
 import {
+  getInsufficientUsdForForeignAccountMessage,
+  hasSufficientUsdForForeignAccount,
+} from "@/utils/foreignAccount";
+import {
   findWalletByCurrency,
   getApiErrorMessage,
   truncateString,
 } from "@/utils/helpers";
+import {
+  canStartUsdVerification,
+  isNigerianBusiness,
+} from "@/utils/onboardingBranch";
 import { useUser } from "@/lib/hooks/useUser";
 import { useSendStore } from "@/store/Send";
 import { ForeignCurrency } from "@/types/services";
@@ -18,9 +26,17 @@ interface Props {
   close: () => void;
   openNgnModal: () => void;
   openCryptoModal: () => void;
+  isNgnBranch?: boolean;
+  onRequireKyb?: () => void;
 }
 
-const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
+const SelectAccount = ({
+  close,
+  openNgnModal,
+  openCryptoModal,
+  isNgnBranch = false,
+  onRequireKyb,
+}: Props) => {
   const { user, refetch } = useUser();
   const { actions } = useSendStore();
   const { selectedCurrency, setSelectedCurrency } = useCurrencyStore();
@@ -29,6 +45,10 @@ const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
   const GBPAcct = findWalletByCurrency(user, "GBP");
   const EURAcct = findWalletByCurrency(user, "EUR");
   const CryptoAcct = findWalletByCurrency(user, "SBC");
+  const verificationStatus =
+    user?.business_account?.business_verifications?.[0]?.verification_status;
+  const caseStage =
+    user?.business_account?.business_verifications?.[0]?.case_stage;
 
   const qc = useQueryClient();
   const USDWalletMutation = useMutation({
@@ -71,6 +91,10 @@ const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
       setSelectedCurrency("USD", user);
       actions.selectCurrency("USD");
       close();
+    } else if (!canStartUsdVerification(user, verificationStatus, caseStage)) {
+      toast.info("USD verification is not available in your current state.");
+    } else if (isNgnBranch) {
+      onRequireKyb?.();
     } else {
       USDWalletMutation.mutate();
     }
@@ -81,6 +105,8 @@ const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
       setSelectedCurrency("SBC", user);
       actions.selectCurrency("SBC");
       close();
+    } else if (isNgnBranch) {
+      onRequireKyb?.();
     } else {
       openCryptoModal();
     }
@@ -95,17 +121,28 @@ const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
       return;
     }
 
+    if (isNgnBranch) {
+      toast.info(
+        `You need a USD account before adding ${currency}. Complete USD verification first.`
+      );
+      onRequireKyb?.();
+      return;
+    }
+
     if (!USDAcct) {
       toast.warning("Set up your USD account first.");
+      return;
+    }
+
+    if (!hasSufficientUsdForForeignAccount(user)) {
+      toast.warning(getInsufficientUsdForForeignAccountMessage());
       return;
     }
 
     foreignAccountMutation.mutate(currency);
   };
 
-  const isNigerian =
-    user?.business_account?.entity?.country?.country_name?.toLowerCase() ===
-    "nigeria";
+  const isNigerian = isNigerianBusiness(user);
 
   return (
     <Overlay close={close} width="375px">
@@ -189,7 +226,7 @@ const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
               )}
             </button>
           )}
-          {/* Crypto */}
+        {/* GBP */}
           <button
             onClick={() => handleForeign("GBP")}
             className={`px-3 py-4 justify-between items-center gap-10 w-full rounded-[20px] inline-flex ${
@@ -200,7 +237,7 @@ const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
           >
             <div className="flex gap-3">
               <Image
-                src={"/icons/flag-gb.png"}
+                src={"/icons/pounds.svg"}
                 alt="GBP" 
                 width={32}
                 height={32}
@@ -230,6 +267,7 @@ const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
             )}
           </button>
 
+          {/* EUR */}
           <button
             onClick={() => handleForeign("EUR")}
             className={`px-3 py-4 justify-between items-center gap-10 w-full rounded-[20px] inline-flex ${
@@ -240,7 +278,7 @@ const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
           >
             <div className="flex gap-3">
               <Image
-                src={"/icons/flag-fr.png"}
+                src={"/icons/euro.svg"}
                 alt="EUR"
                 width={32}
                 height={32}
@@ -269,7 +307,7 @@ const SelectAccount = ({ close, openNgnModal, openCryptoModal }: Props) => {
               />
             )}
           </button>
-
+  {/* Crypto */}
           <button
             onClick={handleCrypto}
             className={`px-3 py-4  justify-between items-center gap-10 w-full rounded-[20px]  inline-flex ${

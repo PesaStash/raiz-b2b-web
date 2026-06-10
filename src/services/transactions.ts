@@ -43,6 +43,8 @@ import {
   IUsBeneficiaryPayload,
   NormalizedIntBeneficiaryFormFields,
   VolumeAndActivityData,
+  ICrossCurrencySwapRateResponse,
+  ICrossCurrencySwapPayload,
 } from "@/types/services";
 import { normalizeRemittanceFormFields } from "@/utils/remittanceFormFields";
 import {
@@ -50,6 +52,7 @@ import {
   IRate,
   ITransactionClass,
 } from "@/types/transactions";
+import { ICrossCurrencies } from "@/types/misc";
 
 export const FetchTransactionReportApi = async (
   params: ITransactionParams,
@@ -772,5 +775,16 @@ export const GetAlipayWechatBeneficiariesApi = async (params: { page?: number; l
 
 export const AlipayWechatSendApi = async (payload: IAlipayWechatSendPayload): Promise<IAlipayWechatSendResponse> => {
   const response = await AuthAxios.post(`/business/transactions/alipay-wechat/send/`, payload);
+  return response.data;
+}
+
+export const GetCrossCurrencySwapRateApi = async (params: { from_currency: ICrossCurrencies, to_currency: ICrossCurrencies, amount: number }): Promise<ICrossCurrencySwapRateResponse> => {
+  const queryParams = Object.fromEntries(Object.entries(params).filter(([, v]) => v != null));
+  const response = await AuthAxios.get(`/business/transactions/swap/cross-currency/exchange-rates/`, { params: queryParams });
+  return response.data;
+} 
+
+export const CrossCurrencySwapApi = async (payload: ICrossCurrencySwapPayload) => {
+  const response = await AuthAxios.post(`/business/transactions/swap/cross-currency/`, payload);
   return response.data;
 }

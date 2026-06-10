@@ -6,12 +6,14 @@ import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { useUser } from "@/lib/hooks/useUser";
 import TransactionTable from "./_components/TransactionTable";
 import CryptoDeposit from "./_components/crypto/dashboard/CryptoDeposit";
+import { getOnboardingBranchState } from "@/utils/onboardingBranch";
 
 export default function Home() {
   const { selectedCurrency } = useCurrencyStore();
   const { user } = useUser();
   const verificationStatus =
     user?.business_account?.business_verifications?.[0]?.verification_status;
+  const branchState = getOnboardingBranchState(user, verificationStatus);
 
   return (
     <div className="flex flex-col gap-5 md:gap-0 min-w-0">
@@ -19,7 +21,7 @@ export default function Home() {
         <DashboardSummary />
       </section>
       {selectedCurrency?.name === "SBC" && <CryptoDeposit />}
-      {verificationStatus === "completed" && (
+      {branchState.showDashboard && (
         <section className="min-w-0">
           <div className="flex items-center justify-between mb-3 md:hidden px-0.5">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-raiz-gray-500">

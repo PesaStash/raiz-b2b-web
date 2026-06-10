@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import CenterModalHeader from "../layouts/CenterModalHeader";
 import MobileSheetHeader from "../mobile/MobileSheetHeader";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
+import { formatAmount } from "@/utils/helpers";
 
 interface Props {
   goBack: () => void;
@@ -56,25 +57,39 @@ const SendMoney = ({
   useEffect(() => {
     refetch();
   }, []);
-  const amountSchema = z
-    .string()
-    .regex(/^\d*\.?\d{0,2}$/, "Enter a valid amount (max 2 decimal places)")
-    .refine((val) => parseFloat(val) >= 1, {
-      message: "Amount must be at least 1",
-    })
-    .refine(
-      (val) => {
-        const totalAvailable = currentWallet?.account_balance || 0;
-        return parseFloat(val) <= totalAvailable;
-      },
-      {
-        message: `Amount cannot exceed available balance`,
-      },
-    );
 
-  const purposeSchema = z
-    .string()
-    .min(3, { message: "Purpose must be at least 3 characters long" });
+  const effectiveMinAmount = minAmount ?? 1;
+
+  const amountSchema = useMemo(
+    () =>
+      z
+        .string()
+        .regex(/^\d*\.?\d{0,2}$/, "Enter a valid amount (max 2 decimal places)")
+        .refine((val) => parseFloat(val) >= effectiveMinAmount, {
+          message: `Amount must be at least ${effectiveMinAmount}`,
+        })
+        .refine(
+          (val) => {
+            const totalAvailable = currentWallet?.account_balance || 0;
+            return parseFloat(val) <= totalAvailable;
+          },
+          {
+            message: `Amount cannot exceed available balance`,
+          },
+        ),
+    [currentWallet, effectiveMinAmount],
+  );
+
+  const minPurposeLength =
+    selectedCurrency.name === "GBP" || selectedCurrency.name === "EUR" ? 6 : 3;
+
+  const purposeSchema = useMemo(
+    () =>
+      z.string().min(minPurposeLength, {
+        message: `Purpose must be at least ${minPurposeLength} characters long`,
+      }),
+    [minPurposeLength],
+  );
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/[^0-9.]/g, "");
@@ -161,8 +176,10 @@ const SendMoney = ({
     if ("account_name" in recipient) return recipient.account_name || "";
     if ("usd_beneficiary" in recipient) return recipient.usd_beneficiary.account_name || "";
     if ("bank_account_name" in recipient) return recipient.bank_account_name || "";
+    if ("foreign_currency_beneficiary" in recipient) return recipient.foreign_currency_beneficiary.account_name || "";
     return "";
   }, [recipient]);
+
 
   const recipientImage = useMemo(() => {
     if (!recipient) return "";
@@ -295,7 +312,7 @@ const SendMoney = ({
               <div className="h-0.5 w-[50%] px-4 bg-white"></div>
               <span className="text-zinc-900  text-xs font-semibold leading-none">
                 {selectedCurrency?.sign}
-                {parseFloat(amount || "0").toFixed(2)}
+                {formatAmount(Number(amount || "0"))}
               </span>
             </div>
             {fee ? (

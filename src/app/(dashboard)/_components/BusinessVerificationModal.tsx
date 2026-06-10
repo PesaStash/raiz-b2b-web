@@ -12,8 +12,9 @@ import { IBusinessVerificationPayload } from "@/types/services";
 import { toast } from "sonner";
 import { useUser } from "@/lib/hooks/useUser";
 import { sanitizeAddressField } from "@/utils/helpers";
+import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 
-const nigerianRegNumberRegex = /^(RC|BN|IT|LP)?[\s-]*\d{4,9}$/i;
+const nigerianRegNumberRegex = /^(RC|BN|IT|LP)?[\s-]*\d{6,7}$/i;
 
 const BusinessSchema = z.object({
   business_name: z.string().min(1, "Business name is required"),
@@ -47,7 +48,13 @@ const mapZodFieldErrors = (
       .map(([key, messages]) => [key, messages[0]])
   ) as Partial<Record<keyof BusinessFormValues, string>>;
 
-const BusinessVerificationModal = ({ close }: { close: () => void }) => {
+const BusinessVerificationModal = ({
+  close,
+  onVerificationSuccess,
+}: {
+  close: () => void;
+  onVerificationSuccess?: () => void;
+}) => {
   const [useManualAddress, setUseManualAddress] = useState(false);
   const { countries, fetchCountries, loading: countriesLoading } =
     useCountryStore();
@@ -79,6 +86,7 @@ const BusinessVerificationModal = ({ close }: { close: () => void }) => {
       );
       qc.invalidateQueries({ queryKey: ["user"] });
       qc.invalidateQueries({ queryKey: ["KYB-links"] });
+      onVerificationSuccess?.();
       close();
     },
   });
@@ -94,7 +102,7 @@ const BusinessVerificationModal = ({ close }: { close: () => void }) => {
       },
       {
         message:
-          "Invalid Nigerian business registration number. Must start with RC, BN, IT, or LP and contain 4–9 digits.",
+          "Invalid Nigerian business registration number. Must start with RC, BN, IT, or LP and contain 6-7 digits.",
         path: ["business_registration_number"],
       }
     );
@@ -169,7 +177,8 @@ const BusinessVerificationModal = ({ close }: { close: () => void }) => {
       className="flex flex-col gap-4 min-h-0"
     >
       <div className="flex flex-col gap-3">
-        <h2 className="text-raiz-gray-950 font-bold text-lg md:text-xl my-1 md:my-2">
+      <CenterModalHeader close={close} />
+        <h2 className="text-xl font-bold text-raiz-gray-950 mb-4">
           Basic Business Verification
         </h2>
         <InputField

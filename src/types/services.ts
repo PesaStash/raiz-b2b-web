@@ -1,5 +1,5 @@
 import { IBeneficiaryBank } from "@/app/(dashboard)/_components/send/usd/bankTransfer/toGlobal/BankSelectModal";
-import { IChain, IPagination } from "./misc";
+import { IChain, ICrossCurrencies, IPagination } from "./misc";
 import {
   IBillRequest,
   IPaymentMethod,
@@ -963,4 +963,21 @@ export interface ICreateForeignAccountResponse {
   bank_name: string;
   bank_address: string | null;
   routing: IForeignAccountRouting[];
+}
+
+export interface ICrossCurrencySwapRateResponse {
+  from_currency: ICrossCurrencies;
+  to_currency: ICrossCurrencies;
+  source_amount: number;
+  usd_amount: number;
+  destination_amount: number;
+  derived_rate: number;
+}
+
+export interface ICrossCurrencySwapPayload {
+  amount: number;
+  transaction_pin: string;
+  from_currency: ICrossCurrencies;
+  to_currency: ICrossCurrencies;
+  reward_quote_id: string | null;
 }

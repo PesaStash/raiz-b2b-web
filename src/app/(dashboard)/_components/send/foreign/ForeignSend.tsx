@@ -1,132 +1,70 @@
 "use client";
 
-import PaymentStatusModal from "@/components/modals/PaymentStatusModal";
-import Categories from "@/components/transactions/Categories";
-import RaizReceipt from "@/components/transactions/RaizReceipt";
-import SendMoney from "@/components/transactions/SendMoney";
-import SendSummary from "@/components/transactions/SendSummary";
+import CenterModalHeader from "@/components/layouts/CenterModalHeader";
+import SideWrapperHeader from "@/components/SideWrapperHeader";
+import MobileSheetHeader from "@/components/mobile/MobileSheetHeader";
+import Tabs from "@/components/ui/Tabs";
+import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { useSendStore } from "@/store/Send";
-import React, { useEffect, useState } from "react";
-import ForeignBeneficiaryForm from "./ForeignBeneficiaryForm";
-import ForeignSendPay from "./ForeignSendPay";
-
-export type ForeignSendStepsType =
-  | "add-beneficiary"
-  | "details"
-  | "category"
-  | "summary"
-  | "pay"
-  | "status"
-  | "receipt";
+import { useCurrencyStore } from "@/store/useCurrencyStore";
+import { IForeignSendOptions } from "@/types/misc";
+import React from "react";
+import ForeignBankSend from "./ForeignBankSend";
+import ForeignToRaizers from "./toRaizers/ForeignToRaizers";
 
 interface Props {
   close: () => void;
 }
 
 const ForeignSend = ({ close }: Props) => {
-  const [step, setStep] = useState<ForeignSendStepsType>("add-beneficiary");
-  const [paymentError, setPaymentError] = useState("");
-  const {
-    foreignBeneficiary,
-    actions,
-    amount,
-    currency,
-    status,
-    transactionDetail,
-  } = useSendStore();
+  const { actions, user, foreignBeneficiary, foreignSendType } = useSendStore();
+  const { selectedCurrency } = useCurrencyStore();
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
-  useEffect(() => {
-    if (foreignBeneficiary) {
-      setStep("details");
-    }
-  }, [foreignBeneficiary]);
-
-  const handleDone = () => {
-    actions.reset(currency || "USD");
-    close();
+  const handleTypeChange = (value: IForeignSendOptions) => {
+    actions.selectForeignSendOption(value);
   };
 
-  const displayStep = () => {
-    switch (step) {
-      case "add-beneficiary":
-        return <ForeignBeneficiaryForm close={close} goNext={() => setStep("details")} />;
-      case "details":
-        return (
-          <SendMoney
-            goBack={() => {
-              actions.selectForeignBeneficiary(null);
-              setStep("add-beneficiary");
-            }}
-            goNext={() => setStep("category")}
-            fee={0}
-            minAmount={1}
-          />
-        );
-      case "category":
-        return (
-          <Categories
-            goBack={() => setStep("details")}
-            goNext={() => setStep("summary")}
-            loading={false}
-          />
-        );
-      case "summary":
-        return (
-          <SendSummary
-            goBack={() => setStep("category")}
-            goNext={() => setStep("pay")}
-            fee={0}
-          />
-        );
-      case "pay":
-        return (
+  const showInitialScreen = !user && !foreignBeneficiary;
+  const bankTabLabel = `Send to ${selectedCurrency.name} bank`;
+
+  return (
+    <div className="flex flex-col h-full min-h-0">
+      {showInitialScreen &&
+        (isMobile ? (
+          <MobileSheetHeader title="Find Recipient" onBack={close} />
+        ) : (
           <>
-            <SendSummary
-              goBack={() => setStep("category")}
-              goNext={() => setStep("pay")}
-              fee={0}
-            />
-            <ForeignSendPay
-              goNext={() => setStep("status")}
-              close={() => setStep("summary")}
-              setPaymentError={setPaymentError}
+            <CenterModalHeader close={close} />
+            <SideWrapperHeader
+              title="Find Recipient"
+              close={() => actions.selectUser(null)}
+              titleColor="text-zinc-900 "
+              backArrow={false}
             />
           </>
-        );
-      case "status":
-        return (
-          currency &&
-          foreignBeneficiary && (
-            <>
-              <SendSummary
-                goBack={() => setStep("category")}
-                goNext={() => setStep("pay")}
-                fee={0}
-              />
-              <PaymentStatusModal
-                status={status}
-                amount={parseFloat(amount)}
-                currency={currency}
-                user={foreignBeneficiary}
-                close={handleDone}
-                error={paymentError}
-                tryAgain={() => setStep("summary")}
-                viewReceipt={() => setStep("receipt")}
-                type="external"
-              />
-            </>
-          )
-        );
-      case "receipt":
-        return (
-          transactionDetail && <RaizReceipt close={handleDone} data={transactionDetail} />
-        );
-      default:
-        return null;
-    }
-  };
+        ))}
 
-  return <>{displayStep()}</>;
+      {showInitialScreen && (
+        <Tabs
+          className="!mt-0 !mb-3"
+          options={[
+            { label: "Send to Raizer", shortLabel: "Raizer", value: "to Raizer" },
+            { label: bankTabLabel, shortLabel: "Bank", value: "to bank" },
+          ]}
+          selected={foreignSendType}
+          onChange={handleTypeChange}
+        />
+      )}
+
+      <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar">
+        {foreignSendType === "to Raizer" && <ForeignToRaizers />}
+        {foreignSendType === "to bank" && (
+          <ForeignBankSend close={close} hideBeneficiaryHeader={showInitialScreen} />
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default ForeignSend;
