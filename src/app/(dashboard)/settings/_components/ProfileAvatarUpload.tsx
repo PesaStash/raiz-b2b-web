@@ -107,7 +107,7 @@ const ProfileAvatarUpload = ({ size = "md", className = "" }: Props) => {
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={busy}
-        className={`${dims.btn} bg-raiz-gray-700 rounded-full border-2 border-white absolute flex items-center justify-center ${
+        className={`${dims.btn} bg-raiz-gray-700 rounded-full border-2 border-white absolute left-[20%] flex items-center justify-center ${
           busy ? "opacity-50 cursor-not-allowed" : "active:scale-95"
         }`}
         aria-label="Upload profile picture"

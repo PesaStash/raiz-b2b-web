@@ -12,7 +12,7 @@ interface Props {
 
 const EnterPin = ({ pin, setPin, close }: Props) => {
   return (
-    <Overlay width="385px" close={close}>
+    <Overlay width="385px" close={close} className="!z-[110]">
       <div
         className={`flex flex-col lg:h-[90%] xl:h-full
         }  py-8 px-5  text-raiz-gray-950 overflow-y-scroll`}

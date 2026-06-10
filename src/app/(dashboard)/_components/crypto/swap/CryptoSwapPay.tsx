@@ -33,6 +33,7 @@ const CryptoSwapPay = ({ goNext, setPaymentError, close }: Props) => {
       qc.refetchQueries({ queryKey: ["user"] });
       qc.invalidateQueries({ queryKey: ["user"] });
       qc.invalidateQueries({ queryKey: ["transactions-report"] });
+      qc.invalidateQueries({ queryKey: ["income-expense-chart"] });
       if (response?.transaction_status?.transaction_status === "completed") {
         actions.setStatus("success");
       } else if (

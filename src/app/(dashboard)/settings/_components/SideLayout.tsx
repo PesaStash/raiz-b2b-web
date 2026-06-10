@@ -8,6 +8,7 @@ import LevelsModal from "../../_components/rewards/LevelsModal";
 import RaizScoreModal from "./RaizScoreModal";
 import FreezeAcctModal from "./FreezeAcctModal";
 import RaizTagModal from "./RaizTagModal";
+import WalletTierModal from "./WalletTierModal";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { FetchUserRewardsApi } from "@/services/user";
@@ -19,6 +20,7 @@ const SideLayout = () => {
   const [showLevels, setShowLevels] = useState(false);
   const [showRaizScore, setShowRaizScore] = useState(false);
   const [showRaizTag, setShowRaizTag] = useState(false);
+  const [showWalletTier, setShowWalletTier] = useState(false);
   const [navModal, setNavModal] = useState<string | null>(null);
   const pathName = usePathname();
   const { user } = useUser();
@@ -67,7 +69,7 @@ const SideLayout = () => {
             )}
           </p>
           <div className="flex items-center gap-0.5">
-            <button
+            {/* <button
               onClick={() => setShowRaizScore(true)}
               className="h-[22px] px-[11px] py-0.5 bg-[#fcf6d5] rounded-3xl justify-center items-center gap-0.5 inline-flex"
             >
@@ -85,7 +87,7 @@ const SideLayout = () => {
               <span className="text-[13px] font-normal leading-[18.20px]">
                 {pointsData?.point}
               </span>
-            </button>
+            </button> */}
             <button
               onClick={() => setShowRaizTag(true)}
               className="px-2 h-[22px] bg-opacity-30 bg-neutral-300 flex gap-0.5 justify-center items-center rounded-3xl"
@@ -96,6 +98,17 @@ const SideLayout = () => {
                   : "Set username"}
               </span>
             </button>
+            {user?.business_account?.entity?.wallet_tier && (
+              <button
+                onClick={() => setShowWalletTier(true)}
+                className="h-[22px] px-2 bg-[#EAECFF] rounded-3xl justify-center items-center gap-0.5 inline-flex"
+              >
+               <Image src="/icons/layers.svg" alt="wallet tier icon" width={14} height={14} />
+                <span className="text-raiz-gray-950 text-[13px] font-normal leading-[18.20px]">
+                  Tier {user.business_account.entity.wallet_tier.wallet_tier_code}
+                </span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -194,6 +207,17 @@ const SideLayout = () => {
         <FreezeAcctModal close={() => setNavModal(null)} type={freezeType} />
       )}
       {showRaizTag && <RaizTagModal close={() => setShowRaizTag(false)} />}
+      {showWalletTier && (
+        <WalletTierModal
+          close={() => setShowWalletTier(false)}
+          tierName={
+            user?.business_account?.entity?.wallet_tier?.wallet_tier_name
+          }
+          tierCode={
+            user?.business_account?.entity?.wallet_tier?.wallet_tier_code
+          }
+        />
+      )}
     </section>
   );
 };

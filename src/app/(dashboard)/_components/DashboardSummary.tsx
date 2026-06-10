@@ -339,6 +339,7 @@ const DashboardSummary = () => {
             onAddFunds={() => handleActionButton("topUp")}
             onSwap={handleSwapClick}
             hideSwap={!canSwap || selectedCurrency.name === "SBC"}
+            hideAddFunds={selectedCurrency.name === "SBC"}
           />
         </div>
       )}

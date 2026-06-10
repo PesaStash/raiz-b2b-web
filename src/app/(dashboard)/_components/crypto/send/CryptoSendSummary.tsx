@@ -20,7 +20,7 @@ const CryptoSendSummary = ({ goBack, goNext, fee }: Props) => {
   const chain = CHAINS.find((i) => i.value === cryptoNetwork);
   const totalPayable = fee ? parseFloat(amount) + fee : amount;
   return (
-    <Overlay close={goBack} width="375px">
+    <Overlay close={goBack} width="375px" className="!z-[110]">
       <div className="h-full flex flex-col px-6 py-8">
         <div className="flex flex-col items-center justify-center mb-4 text-zinc-900">
           <div className="w-12 h-12 mb-4 flex mx-auto items-center justify-center bg-violet-100 bg-opacity-60 rounded-3xl">
