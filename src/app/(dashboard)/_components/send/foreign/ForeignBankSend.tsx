@@ -5,6 +5,7 @@ import Categories from "@/components/transactions/Categories";
 import RaizReceipt from "@/components/transactions/RaizReceipt";
 import SendMoney from "@/components/transactions/SendMoney";
 import SendSummary from "@/components/transactions/SendSummary";
+import { FOREIGN_MIN_SEND_AMOUNT } from "@/constants/misc";
 import { useSendStore } from "@/store/Send";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import React, { useEffect, useState } from "react";
@@ -70,7 +71,7 @@ const ForeignBankSend = ({ close, hideBeneficiaryHeader }: Props) => {
             }}
             goNext={() => setStep("category")}
             fee={FOREIGN_SEND_FEE}
-            minAmount={1}
+            minAmount={FOREIGN_MIN_SEND_AMOUNT}
           />
         );
       case "category":

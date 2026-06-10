@@ -6,6 +6,7 @@ import Categories from "@/components/transactions/Categories";
 import RaizReceipt from "@/components/transactions/RaizReceipt";
 import SendMoney from "@/components/transactions/SendMoney";
 import SendSummary from "@/components/transactions/SendSummary";
+import { FOREIGN_MIN_SEND_AMOUNT } from "@/constants/misc";
 import { useP2PBeneficiaries } from "@/lib/hooks/useP2pBeneficiaries";
 import { useUser } from "@/lib/hooks/useUser";
 import { ICurrencyName } from "@/types/misc";
@@ -80,6 +81,7 @@ const ForeignToRaizers = () => {
             goBack={goBackToStep1}
             goNext={() => setStep("category")}
             fee={0}
+            minAmount={FOREIGN_MIN_SEND_AMOUNT}
           />
         );
       case "category":

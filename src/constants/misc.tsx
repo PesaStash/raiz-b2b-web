@@ -56,6 +56,7 @@ export const nigeriaStates = [
 ];
 
 export const FOREIGN_ACCOUNT_ACTIVATION_FEE_USD = 3;
+export const FOREIGN_MIN_SEND_AMOUNT = 3;
 
 export const ACCOUNT_CURRENCIES = {
   USD: { name: "USD", sign: "$", logo: "/icons/flag-us.webp" } as const,
