@@ -12,7 +12,7 @@ const RegisterOtp = ({ goBack, formik }: RegisterFormProps) => {
   const resendOtpMutation = useMutation({
     mutationFn: (data: { email: string }) => ResendSignupOtpApi(data),
     onSuccess: (response) => {
-      console.log("Signup successful:", response);
+      
       toast.success("OTP sent successfully! Check your email");
     },
     onError: (error) => {

@@ -121,3 +121,5 @@ export interface SwapPairResult {
   isValid: boolean;
   message?: string;
 }
+
+export type ICrossCurrencies = "NGN" | "USD" | "GBP" | "EUR";

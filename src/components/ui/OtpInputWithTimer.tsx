@@ -41,7 +41,7 @@ const OtpInputWithTimer = ({
         renderInput={(props) => (
           <input
             {...props}
-            className="!w-[40px] !h-[40px] md:!w-[60px] md:!h-[60px] lg:!w-[50px] lg:!h-[50px] xl:!w-[72px] xl:!h-[72px] p-2 focus:bg-[#fcfcfc] bg-raiz-gray-100 rounded-[14.57px] border focus:border-raiz-gray-800 outline-none flex-col justify-center items-center gap-2 inline-flex mr-3 text-raiz-gray-950 text-sm md:text-xl font-normal"
+            className="!w-[40px] !h-[40px] md:!w-[60px] md:!h-[60px] lg:!w-[50px] lg:!h-[50px] desktop:!w-[72px] desktop:!h-[72px] p-2 focus:bg-[#fcfcfc] bg-raiz-gray-100 rounded-[14.57px] border focus:border-raiz-gray-800 outline-none flex-col justify-center items-center gap-2 inline-flex mr-3 text-raiz-gray-950 text-sm md:text-xl font-normal"
           />
         )}
       />

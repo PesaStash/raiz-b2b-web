@@ -122,6 +122,9 @@ const SelectAccount = ({
     }
 
     if (isNgnBranch) {
+      toast.info(
+        `You need a USD account before adding ${currency}. Complete USD verification first.`
+      );
       onRequireKyb?.();
       return;
     }

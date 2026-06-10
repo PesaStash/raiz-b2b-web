@@ -6,17 +6,20 @@ import { IUser, IWallet } from "@/types/user";
 
 export type CurrencyTypeKey = keyof typeof ACCOUNT_CURRENCIES;
 
+export const isCrossCurrencyNgnGbpEurSwap = (
+  from: CurrencyTypeKey,
+  to: CurrencyTypeKey,
+): boolean =>
+  (from === "NGN" && (to === "GBP" || to === "EUR")) ||
+  ((from === "GBP" || from === "EUR") && to === "NGN");
+
 export const INVALID_SWAP_PAIRS = new Set([
   "SBC-NGN",
   "NGN-SBC",
   "GBP-EUR",
   "EUR-GBP",
-  "GBP-NGN",
-  "NGN-GBP",
   "GBP-SBC",
   "SBC-GBP",
-  "EUR-NGN",
-  "NGN-EUR",
   "EUR-SBC",
   "SBC-EUR",
 ]);

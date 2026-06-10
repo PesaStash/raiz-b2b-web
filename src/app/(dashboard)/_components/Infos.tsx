@@ -272,6 +272,9 @@ const Infos = ({ isNgnBranch = false, onRequireKyb }: InfosProps) => {
 
   const handleForeignAccountAction = (currency: "GBP" | "EUR") => {
     if (requiresKybForForeignAccounts) {
+      toast.info(
+        `You need a USD account before adding ${currency}. Complete USD verification first.`
+      );
       onRequireKyb?.();
       return;
     }
@@ -353,7 +356,7 @@ const Infos = ({ isNgnBranch = false, onRequireKyb }: InfosProps) => {
       sublabel: "British Pound",
       onAction: () => handleForeignAccountAction("GBP"),
       ctaLabel: requiresKybForForeignAccounts
-        ? "Verify to Create GBP"
+        ? "Get USD First to Unlock GBP"
         : "Create GBP Account",
     },
     {
@@ -373,7 +376,7 @@ const Infos = ({ isNgnBranch = false, onRequireKyb }: InfosProps) => {
       sublabel: "Euro account",
       onAction: () => handleForeignAccountAction("EUR"),
       ctaLabel: requiresKybForForeignAccounts
-        ? "Verify to Create EUR"
+        ? "Get USD First to Unlock EUR"
         : "Create EUR Account",
     },
   ];
