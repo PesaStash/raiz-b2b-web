@@ -40,7 +40,7 @@ const NgnSend = ({ close }: { close: () => void }) => {
 
       {showRecipientPicker && (
         <Tabs
-          className="!mt-0 !mb-3"
+          className="!mt-0 md:!mb-3 !mb-6"
           options={[
             { label: "Send to Raizer", shortLabel: "Raizer", value: "to Raizer" },
             { label: "Send to bank", shortLabel: "Bank", value: "to other bank" },

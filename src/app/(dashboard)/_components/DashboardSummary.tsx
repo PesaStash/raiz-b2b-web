@@ -9,7 +9,6 @@ import { determineSwapPair, findWalletByCurrency } from "@/utils/helpers";
 import { useUser } from "@/lib/hooks/useUser";
 import Request from "./request/Request";
 import { useSendStore } from "@/store/Send";
-import { useUserStore } from "@/store/useUserStore";
 import { toast } from "sonner";
 import Swap from "./swap/Swap";
 import { useSwapStore } from "@/store/Swap";
@@ -27,10 +26,10 @@ import { useTopupStore } from "@/store/TopUp";
 import { CurrencyTypeKey } from "@/store/Swap/swapSlice.types";
 import AccountUpgrade from "./AccountUpgrade";
 import Loading from "@/app/loading";
+import { getOnboardingBranchState } from "@/utils/onboardingBranch";
 import ExchangeRateCard from "./exchangeRate/ExchangeRateCard";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 import CryptoSwap from "./crypto/swap/CryptoSwap";
-import { ACCOUNT_CURRENCIES } from "@/constants/misc";
 import CryptoSend from "./crypto/send/CryptoSend";
 import ForeignSend from "./send/foreign/ForeignSend";
 import ForeignAcctInfo from "./acctInfo/ForeignAcctInfo";
@@ -42,10 +41,9 @@ type actionBtnKeytype = "send" | "request" | "topUp" | "details";
 const DashboardSummary = () => {
   const { user, refetch, isLoading } = useUser();
   const walletData = user?.business_account?.wallets;
-  const { currency, actions: sendActions } = useSendStore();
-  const { actions, swapFromCurrency, swapToCurrency } = useSwapStore();
+  const { actions: sendActions } = useSendStore();
+  const { actions } = useSwapStore();
   const { actions: topupActions } = useTopupStore();
-  const { setShowBalance, showBalance } = useUserStore();
   const { selectedCurrency } = useCurrencyStore();
   const [openModal, setOpenModal] = useState<
     | actionBtnKeytype
@@ -56,6 +54,7 @@ const DashboardSummary = () => {
     | null
   >(null);
   const [showAcctInfo, setShowAcctInfo] = useState(false);
+  const [showResumeKyb, setShowResumeKyb] = useState(false);
   const pathName = usePathname();
   const NGNAcct = findWalletByCurrency(user, "NGN");
   const USDAcct = findWalletByCurrency(user, "USD");
@@ -64,6 +63,7 @@ const DashboardSummary = () => {
   const SBCAcct = findWalletByCurrency(user, "SBC");
   const verificationStatus =
     user?.business_account?.business_verifications?.[0]?.verification_status;
+  const branchState = getOnboardingBranchState(user, verificationStatus);
 
   // const currentWallet = useMemo(() => {
   //   if (!user || !user?.business_account?.wallets || !selectedCurrency?.name)
@@ -97,12 +97,22 @@ const DashboardSummary = () => {
 
   const closeSwapModal = () => {
     setOpenModal(null);
-    actions.reset();
+    actions.reset(user);
   };
 
   const canSwap = NGNAcct && USDAcct;
 
   const handleActionButton = (action: actionBtnKeytype) => {
+    if (
+      branchState.isNgnBranch &&
+      !branchState.isVerificationComplete &&
+      selectedCurrency.name !== "NGN"
+    ) {
+      toast.warning(
+        "Complete account verification to access other currency accounts.",
+      );
+      return;
+    }
     if (!currentWallet) {
       toast.warning(
         "You do not have an account for this currency. Create one first!",
@@ -119,6 +129,15 @@ const DashboardSummary = () => {
   };
 
   const handleSwapClick = () => {
+    if (
+      branchState.isNgnBranch &&
+      !branchState.isVerificationComplete
+    ) {
+      toast.warning(
+        "Complete account verification to access swap and other currency features.",
+      );
+      return;
+    }
     if (!walletData || walletData.length < 2) {
       toast.warning("You need at least two wallets to use swap");
       return;
@@ -311,7 +330,7 @@ const DashboardSummary = () => {
         </button>
       </div> */}
       {/* Mobile: wallets + quick actions */}
-      {verificationStatus === "completed" && (
+      {branchState.showDashboard && (
         <div className="lg:hidden">
           <MobileWalletCarousel />
           <MobileQuickActions
@@ -369,11 +388,19 @@ const DashboardSummary = () => {
         <div className="flex justify-center items-center h-[50vh]">
           <Loading />
         </div>
-      ) : verificationStatus !== "completed" ? (
+      ) : showResumeKyb ? (
+        <AccountUpgrade
+          resumeFromStep2
+          onBack={() => setShowResumeKyb(false)}
+        />
+      ) : branchState.showAccountUpgrade ? (
         <AccountUpgrade />
       ) : (
         <>
-          <Infos />
+          <Infos
+            isNgnBranch={branchState.isNgnBranch}
+            onRequireKyb={() => setShowResumeKyb(true)}
+          />
           <div className="flex flex-col lg:flex-row justify-between gap-6 lg:gap-8 mt-6 md:mt-8 min-w-0">
             <div className="hidden lg:block w-full lg:w-1/2  min-w-0">
               <DashboardAnalytics />
@@ -412,6 +439,13 @@ const DashboardSummary = () => {
           close={() => setOpenModal(null)}
           openNgnModal={openNGNModal}
           openCryptoModal={openCryptoModal}
+          onRequireKyb={() => {
+            setOpenModal(null);
+            setShowResumeKyb(true);
+          }}
+          isNgnBranch={
+            branchState.isNgnBranch && !branchState.isVerificationComplete
+          }
         />
       )}
       {openModal === "topUp" && selectedCurrency?.name === "USD" && (

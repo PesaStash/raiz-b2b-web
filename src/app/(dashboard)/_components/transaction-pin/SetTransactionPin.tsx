@@ -56,7 +56,7 @@ const SetTransactionPin = ({ close }: Props) => {
     }
   };
   return (
-    <div className=" h-full flex justify-between flex-col">
+    <div className=" h-full flex justify-between flex-col mt-5">
       <button onClick={handleBackButton}>
         <Image
           src={"/icons/arrow-left.svg"}
@@ -70,7 +70,7 @@ const SetTransactionPin = ({ close }: Props) => {
           <h5 className="text-raiz-gray-950 md:text-[23px] text-xl font-semibold leading-10">
             {formState === "pin" ? "Secure your account" : "Confirm PIN"}
           </h5>
-          <p className="text-raiz-gray-700 text-sm md:text-[15px] font-normal leading-snug">
+          <p className="text-raiz-gray-700 text-sm font-normal leading-snug">
             Create your 4-digit PIN for transactions. For your security
             don&#39;t share your PIN with anyone.
           </p>
@@ -111,6 +111,7 @@ const SetTransactionPin = ({ close }: Props) => {
         onSubmit={formik.handleSubmit}
         className="flex flex-col h-full gap-5 justify-between"
       >
+        <div className="bg-white rounded-[20px] p-6">  
         {formState === "pin" ? (
           <OtpInput
             value={formik.values.pin}
@@ -126,6 +127,7 @@ const SetTransactionPin = ({ close }: Props) => {
             touched={formik.touched.confirmPin}
           />
         )}
+        </div>
         <Button
           disabled={
             (formState === "pin"

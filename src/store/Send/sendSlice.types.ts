@@ -1,7 +1,11 @@
 import { sbcType } from "@/app/(dashboard)/_components/crypto/send/CryptoSend";
 import { ACCOUNT_CURRENCIES } from "@/constants/misc";
 import { IIntCountry } from "@/constants/send";
-import { INGNSendOptions, IUSDSendOptions } from "@/types/misc";
+import {
+  IForeignSendOptions,
+  INGNSendOptions,
+  IUSDSendOptions,
+} from "@/types/misc";
 import {
   EntityBeneficiary,
   EntityForeignPayoutBeneficiary,
@@ -17,6 +21,7 @@ type CurrencyTypeKey = keyof typeof ACCOUNT_CURRENCIES;
 export interface SendState {
   usdSendType: IUSDSendOptions | null;
   ngnSendType: INGNSendOptions;
+  foreignSendType: IForeignSendOptions;
   user: ISearchedUser | null;
   externalUser: IExternalAccount | null;
   usdBeneficiary: EntityBeneficiary | null;
@@ -44,6 +49,7 @@ export interface AmountAndRemarksPayload {
 export interface SendActions {
   selectCurrency: (currency: CurrencyTypeKey) => void;
   selectNGNSendOption: (option: INGNSendOptions) => void;
+  selectForeignSendOption: (option: IForeignSendOptions) => void;
   selectUSDSendOption: (option: IUSDSendOptions | null) => void;
   selectUser: (user: ISearchedUser | null) => void;
   selectExternalUser: (user: IExternalAccount | null) => void;
@@ -66,12 +72,13 @@ export interface SendActions {
 export const initialSendState: SendState = {
   usdSendType: null,
   ngnSendType: "to Raizer",
+  foreignSendType: "to Raizer",
   user: null,
   externalUser: null,
   usdBeneficiary: null,
   intBeneficiary: null,
   foreignBeneficiary: null,
-  currency: "USD",
+  currency: null,
   amount: "",
   purpose: "",
   category: null,

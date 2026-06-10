@@ -2,7 +2,7 @@
 import { FetchUserApi } from "@/services/user";
 import { useUserStore } from "@/store/useUserStore";
 import { IUser } from "@/types/user";
-// import { GetItemFromCookie } from "@/utils/CookiesFunc";
+import { GetItemFromCookie } from "@/utils/CookiesFunc";
 import { useQuery } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { useEffect } from "react";
@@ -10,7 +10,7 @@ import { useEffect } from "react";
 export const useUser = () => {
   const { user, setUser, clearUser, updateUser, showBalance, setShowBalance } =
     useUserStore();
-  // const token = GetItemFromCookie("access_token");
+  const token = GetItemFromCookie("access_token");
 
   const {
     data: userData,
@@ -23,7 +23,7 @@ export const useUser = () => {
   } = useQuery<IUser, AxiosError>({
     queryKey: ["user"],
     queryFn: FetchUserApi,
-    // enabled: !!token,
+    enabled: !!token,
   });
 
   useEffect(() => {

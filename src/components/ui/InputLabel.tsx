@@ -9,7 +9,7 @@ const InputLabel = ({
 }) => {
   return (
     <label
-      className={` text-raiz-gray-950 text-sm font-medium font-brSonoma leading-normal ${labelClass}`}
+      className={` text-raiz-gray-950 md:text-sm text-[13px] font-medium font-brSonoma leading-normal ${labelClass}`}
     >
       {content}
     </label>

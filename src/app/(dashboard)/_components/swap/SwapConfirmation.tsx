@@ -4,6 +4,7 @@ import ListDetailItem from "@/components/ui/ListDetailItem";
 import Overlay from "@/components/ui/Overlay";
 import { useSwapStore } from "@/store/Swap";
 import { getCurrencySymbol } from "@/utils/helpers";
+import { isCrossCurrencyNgnGbpEurSwap } from "@/store/Swap/swapSlice.types";
 import Image from "next/image";
 import React from "react";
 
@@ -32,6 +33,18 @@ const SwapConfirmation = ({
     const minutes = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${minutes}:${secs < 10 ? "0" + secs : secs}`;
+  };
+
+  const getExchangeRateDisplay = () => {
+    if (loading) return "Loading...";
+
+    if (isCrossCurrencyNgnGbpEurSwap(swapFromCurrency, swapToCurrency)) {
+      return `1 ${swapFromCurrency} = ${getCurrencySymbol(swapToCurrency)}${
+        exchangeRate?.toFixed(4) || "0.0000"
+      }`;
+    }
+
+    return `$1(USD) = ${swapToCurrency}${exchangeRate?.toFixed(2) || 1}`;
   };
 
   return (
@@ -67,11 +80,7 @@ const SwapConfirmation = ({
           />
           <ListDetailItem
             title="Exchange rate"
-            value={
-              loading
-                ? "Loading..."
-                : `$1(USD) = ${swapToCurrency}${exchangeRate?.toFixed(2) || 1}`
-            }
+            value={getExchangeRateDisplay()}
             border
           />
           {swapFromCurrency === "SBC" ||

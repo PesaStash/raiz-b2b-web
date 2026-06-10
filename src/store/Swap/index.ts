@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { getDefaultSwapCurrencies } from "@/utils/onboardingBranch";
 import {
   CurrencyTypeKey,
   initialSwapState,
@@ -72,9 +73,18 @@ export const useSwapStore = create<SwapSlice>((set) => ({
         status,
       })),
     isValidSwapPair,
-    reset: () =>
+    reset: (user) => {
+      if (!user) {
+        set({ ...initialSwapState });
+        return;
+      }
+
+      const { from, to } = getDefaultSwapCurrencies(user);
       set({
         ...initialSwapState,
-      }),
+        swapFromCurrency: from,
+        swapToCurrency: to,
+      });
+    },
   },
 }));

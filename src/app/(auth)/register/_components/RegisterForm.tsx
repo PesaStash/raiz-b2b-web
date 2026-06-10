@@ -69,7 +69,7 @@ const RegisterForm = () => {
   const signupMutation = useMutation({
     mutationFn: (data: IRegisterPayload) => SignupApi(data),
     onSuccess: (response) => {
-      console.log("Signup successful:", response);
+     
       handleNavigate("next");
     },
   });
@@ -78,7 +78,7 @@ const RegisterForm = () => {
     mutationFn: (data: { otp: string; email: string }) =>
       SignupVerifyOtpApi(data),
     onSuccess: (response) => {
-      console.log("Signup successful:", response);
+     
       handleNavigate("next");
     },
     onError: (error) => {

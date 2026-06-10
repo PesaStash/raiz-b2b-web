@@ -38,7 +38,7 @@ const BeneficiarySelect = ({ channel, onSelect, onBack }: Props) => {
 
   if (showCreate) {
     return (
-      <div className="p-6 h-full overflow-y-auto no-scrollbar">
+      <div className="p-0 md:p-6 h-full overflow-y-auto no-scrollbar">
         <button onClick={() => setShowCreate(false)} className="mb-6">
           <Image
             src="/icons/arrow-left.svg"
@@ -47,7 +47,7 @@ const BeneficiarySelect = ({ channel, onSelect, onBack }: Props) => {
             alt="back"
           />
         </button>
-        <h3 className="text-raiz-gray-950 text-base font-bold leading-tight mb-6">
+        <h3 className="text-raiz-gray-950 md:text-base text-sm font-bold leading-tight mb-6">
           New {channelLabel[channel]} recipient
         </h3>
         <CreateBeneficiary
@@ -60,13 +60,13 @@ const BeneficiarySelect = ({ channel, onSelect, onBack }: Props) => {
   }
 
   return (
-    <div className="p-6 h-full flex flex-col overflow-y-auto no-scrollbar">
+    <div className="p-0 md:p-6 h-full flex flex-col overflow-y-auto no-scrollbar">
       <button onClick={onBack} className="mb-6 self-start">
         <Image src="/icons/arrow-left.svg" width={18} height={18} alt="back" />
       </button>
 
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-raiz-gray-950 text-base font-bold leading-tight">
+        <h3 className="text-raiz-gray-950 md:text-base text-sm md:font-bold font-semibold leading-tight">
           Select recipient
         </h3>
         <button
@@ -93,12 +93,12 @@ const BeneficiarySelect = ({ channel, onSelect, onBack }: Props) => {
 
       {isError && (
         <div className="flex-1 flex flex-col items-center justify-center gap-3">
-          <p className="text-raiz-gray-500 text-sm text-center">
+          <p className="text-raiz-gray-500 md:text-sm text-[13px] text-center">
             Could not load beneficiaries.
           </p>
           <button
             onClick={() => refetch()}
-            className="text-raiz-purple-600 text-sm font-medium"
+            className="text-raiz-purple-600 md:text-sm text-[13px] font-medium"
           >
             Try again
           </button>
@@ -116,16 +116,16 @@ const BeneficiarySelect = ({ channel, onSelect, onBack }: Props) => {
             />
           </div>
           <div>
-            <p className="text-raiz-gray-950 text-sm font-bold mb-1">
+            <p className="text-raiz-gray-950 md:text-sm text-[13px] font-bold mb-1">
               No saved recipients
             </p>
-            <p className="text-raiz-gray-500 text-xs">
+            <p className="text-raiz-gray-500 md:text-xs text-[13px]">
               Add a {channelLabel[channel]} recipient to get started.
             </p>
           </div>
           <button
             onClick={() => setShowCreate(true)}
-            className="px-6 py-3 rounded-2xl bg-raiz-purple-600 text-white text-sm font-bold"
+            className="px-6 py-3 rounded-2xl bg-raiz-purple-600 text-white md:text-sm text-[13px] font-bold"
           >
             Add recipient
           </button>

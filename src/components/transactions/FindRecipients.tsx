@@ -63,6 +63,8 @@ const FindRecipients = ({
   const NGNAcct = findWalletByCurrency(user, "NGN");
   const USDAcct = findWalletByCurrency(user, "USD");
   const SBCAcct = findWalletByCurrency(user, "SBC");
+  const GBPAcct = findWalletByCurrency(user, "GBP");
+  const EURAcct = findWalletByCurrency(user, "EUR");
 
   const { selectedCurrency } = useCurrencyStore();
 
@@ -73,6 +75,10 @@ const FindRecipients = ({
       return USDAcct;
     } else if (selectedCurrency.name === "SBC") {
       return SBCAcct;
+    } else if (selectedCurrency.name === "GBP") {
+      return GBPAcct;
+    } else if (selectedCurrency.name === "EUR") {
+      return EURAcct;
     }
   };
 

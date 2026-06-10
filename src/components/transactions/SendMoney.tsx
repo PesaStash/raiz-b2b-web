@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import CenterModalHeader from "../layouts/CenterModalHeader";
 import MobileSheetHeader from "../mobile/MobileSheetHeader";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
+import { formatAmount } from "@/utils/helpers";
 
 interface Props {
   goBack: () => void;
@@ -161,8 +162,10 @@ const SendMoney = ({
     if ("account_name" in recipient) return recipient.account_name || "";
     if ("usd_beneficiary" in recipient) return recipient.usd_beneficiary.account_name || "";
     if ("bank_account_name" in recipient) return recipient.bank_account_name || "";
+    if ("foreign_currency_beneficiary" in recipient) return recipient.foreign_currency_beneficiary.account_name || "";
     return "";
   }, [recipient]);
+
 
   const recipientImage = useMemo(() => {
     if (!recipient) return "";
@@ -295,7 +298,7 @@ const SendMoney = ({
               <div className="h-0.5 w-[50%] px-4 bg-white"></div>
               <span className="text-zinc-900  text-xs font-semibold leading-none">
                 {selectedCurrency?.sign}
-                {parseFloat(amount || "0").toFixed(2)}
+                {formatAmount(Number(amount || "0"))}
               </span>
             </div>
             {fee ? (

@@ -26,7 +26,7 @@ const AlipayWechatStatus = ({ result, error, onDone }: Props) => {
   const label = channelLabel[result.channel];
 
   return (
-    <div className="p-6 h-full flex flex-col items-center justify-between overflow-y-auto no-scrollbar">
+    <div className="p-0 md:p-6 h-full flex flex-col items-center justify-between overflow-y-auto no-scrollbar">
       <div className="flex-1 flex flex-col items-center justify-center text-center gap-6 w-full">
         <div className="w-20 h-20 rounded-full bg-amber-50 flex items-center justify-center">
           <svg

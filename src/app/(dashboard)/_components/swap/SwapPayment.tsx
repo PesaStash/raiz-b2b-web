@@ -5,12 +5,18 @@ import {
   SellDollarApi,
   BuyStableCoinApi,
   SellStableCoinApi,
+  CrossCurrencySwapApi,
 } from "@/services/transactions";
 import { useSwapStore } from "@/store/Swap";
 import { passwordHash } from "@/utils/helpers";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { CurrencyTypeKey } from "@/store/Swap/swapSlice.types";
+import {
+  CurrencyTypeKey,
+  isCrossCurrencyNgnGbpEurSwap,
+} from "@/store/Swap/swapSlice.types";
+import { ICrossCurrencies } from "@/types/misc";
+import { ISwapPayload } from "@/types/services";
 
 interface Props {
   goNext: () => void;
@@ -18,77 +24,63 @@ interface Props {
   close: () => void;
 }
 
+type SwapApiFn = (payload: ISwapPayload) => Promise<unknown>;
+
 // API mapping based on swap direction
 const getSwapAPI = (
   fromCurrency: CurrencyTypeKey,
-  toCurrency: CurrencyTypeKey
-) => {
-  // NGN → USD (Buy Dollar)
+  toCurrency: CurrencyTypeKey,
+): { api: SwapApiFn; currency: ISwapPayload["currency"] } => {
   if (fromCurrency === "NGN" && toCurrency === "USD") {
-    return {
-      api: BuyDollarApi,
-      currency: "NGN" as const,
-    };
+    return { api: BuyDollarApi, currency: "NGN" };
   }
 
-  // USD → NGN (Sell Dollar)
   if (fromCurrency === "USD" && toCurrency === "NGN") {
-    return {
-      api: SellDollarApi,
-      currency: "NGN" as const,
-    };
+    return { api: SellDollarApi, currency: "NGN" };
   }
 
-  // GBP → USD (Buy Dollar)
   if (fromCurrency === "GBP" && toCurrency === "USD") {
-    return {
-      api: BuyDollarApi,
-      currency: "GBP" as const,
-    };
+    return { api: BuyDollarApi, currency: "GBP" };
   }
 
-  // USD → GBP (Sell Dollar)
   if (fromCurrency === "USD" && toCurrency === "GBP") {
-    return {
-      api: SellDollarApi,
-      currency: "GBP" as const,
-    };
+    return { api: SellDollarApi, currency: "GBP" };
   }
 
-  // EUR → USD (Buy Dollar)
   if (fromCurrency === "EUR" && toCurrency === "USD") {
-    return {
-      api: BuyDollarApi,
-      currency: "EUR" as const,
-    };
+    return { api: BuyDollarApi, currency: "EUR" };
   }
 
-  // USD → EUR (Sell Dollar)
   if (fromCurrency === "USD" && toCurrency === "EUR") {
-    return {
-      api: SellDollarApi,
-      currency: "EUR" as const,
-    };
+    return { api: SellDollarApi, currency: "EUR" };
   }
 
-  // USD → SBC (Buy StableCoin)
   if (fromCurrency === "USD" && toCurrency === "SBC") {
-    return {
-      api: BuyStableCoinApi,
-      currency: "USD" as const,
-    };
+    return { api: BuyStableCoinApi, currency: "USD" };
   }
 
-  // SBC → USD (Sell StableCoin)
   if (fromCurrency === "SBC" && toCurrency === "USD") {
-    return {
-      api: SellStableCoinApi,
-      currency: "USD" as const,
-    };
+    return { api: SellStableCoinApi, currency: "USD" };
   }
 
-  // Fallback (should never reach here due to validation)
   throw new Error(`Invalid swap pair: ${fromCurrency} → ${toCurrency}`);
+};
+
+const getSwapErrorMessage = (error: unknown): string => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const axiosError = error as any;
+  const status = axiosError?.response?.status;
+  const data = axiosError?.response?.data;
+
+  if (status === 503) {
+    return "Rate unavailable. Please try again later.";
+  }
+
+  return (
+    data?.detail ||
+    data?.message ||
+    "Swap failed. Please try again."
+  );
 };
 
 const SwapPayment = ({ goNext, setPaymentError, close }: Props) => {
@@ -96,21 +88,36 @@ const SwapPayment = ({ goNext, setPaymentError, close }: Props) => {
   const [pin, setPin] = useState<string>("");
   const qc = useQueryClient();
 
-  // Get the appropriate API and currency based on swap direction
-  const { api: swapAPI, currency } = getSwapAPI(
+  const isCrossCurrencySwap = isCrossCurrencyNgnGbpEurSwap(
     swapFromCurrency,
-    swapToCurrency
+    swapToCurrency,
   );
 
-  console.log("swpFrom", swapFromCurrency, "swpTo", swapToCurrency);
-
   const SwapMoneyMutation = useMutation({
-    mutationFn: () =>
-      swapAPI({
+    mutationFn: () => {
+      const hashedPin = passwordHash(pin);
+
+      if (isCrossCurrencySwap) {
+        return CrossCurrencySwapApi({
+          amount: parseFloat(amount),
+          from_currency: swapFromCurrency as ICrossCurrencies,
+          to_currency: swapToCurrency as ICrossCurrencies,
+          transaction_pin: hashedPin,
+          reward_quote_id: null,
+        });
+      }
+
+      const { api: swapAPI, currency } = getSwapAPI(
+        swapFromCurrency,
+        swapToCurrency,
+      );
+
+      return swapAPI({
         amount: parseFloat(amount),
-        currency: currency,
-        transaction_pin: passwordHash(pin),
-      }),
+        currency,
+        transaction_pin: hashedPin,
+      });
+    },
     onMutate: () => {
       actions.setStatus("loading");
       goNext();
@@ -119,21 +126,18 @@ const SwapPayment = ({ goNext, setPaymentError, close }: Props) => {
       qc.refetchQueries({ queryKey: ["user"] });
       qc.invalidateQueries({ queryKey: ["user"] });
       qc.invalidateQueries({ queryKey: ["transactions-report"] });
-qc.invalidateQueries({ queryKey: ["income-expense-chart"] });
-      if (response?.transaction_status?.transaction_status === "completed") {
+      qc.invalidateQueries({ queryKey: ["income-expense-chart"] });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const report = response as any;
+      if (report?.transaction_status?.transaction_status === "completed") {
         actions.setStatus("success");
-      } else if (
-        response?.transaction_status?.transaction_status === "pending"
-      ) {
+      } else if (report?.transaction_status?.transaction_status === "pending") {
         actions.setStatus("pending");
       }
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onError: (response: any) => {
+    onError: (error: unknown) => {
       actions.setStatus("failed");
-      setPaymentError(
-        response?.data?.message || "Swap failed. Please try again."
-      );
+      setPaymentError(getSwapErrorMessage(error));
     },
     onSettled: () => {
       goNext();
@@ -141,7 +145,6 @@ qc.invalidateQueries({ queryKey: ["income-expense-chart"] });
   });
 
   const handleSend = () => {
-    // Validate swap pair before proceeding
     if (!actions.isValidSwapPair(swapFromCurrency, swapToCurrency)) {
       setPaymentError("Invalid swap pair. This swap is not allowed.");
       actions.setStatus("failed");

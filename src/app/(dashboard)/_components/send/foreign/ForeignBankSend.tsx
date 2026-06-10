@@ -1,70 +1,76 @@
 "use client";
-// import { useUser } from "@/lib/hooks/useUser";
-import { useSendStore } from "@/store/Send";
-import React, { useEffect, useState } from "react";
-import SelectUser from "./SelectUser";
-import SendMoney from "@/components/transactions/SendMoney";
-import Categories from "@/components/transactions/Categories";
-import { useQuery } from "@tanstack/react-query";
-import { GetIntTransactionFeeApi } from "@/services/transactions";
-import SendSummary from "@/components/transactions/SendSummary";
-import ExternalPayout from "./ExternalPayout";
-import PaymentStatusModal from "@/components/modals/PaymentStatusModal";
-import RaizReceipt from "@/components/transactions/RaizReceipt";
 
-type NGNSendToBankStepType =
-  | "select-user"
+import PaymentStatusModal from "@/components/modals/PaymentStatusModal";
+import Categories from "@/components/transactions/Categories";
+import RaizReceipt from "@/components/transactions/RaizReceipt";
+import SendMoney from "@/components/transactions/SendMoney";
+import SendSummary from "@/components/transactions/SendSummary";
+import { useSendStore } from "@/store/Send";
+import { useCurrencyStore } from "@/store/useCurrencyStore";
+import React, { useEffect, useState } from "react";
+import ForeignBeneficiaryForm from "./ForeignBeneficiaryForm";
+import ForeignSendPay from "./ForeignSendPay";
+
+export type ForeignSendStepsType =
+  | "add-beneficiary"
   | "details"
-  | "summary"
   | "category"
+  | "summary"
   | "pay"
   | "status"
   | "receipt";
 
-const NgnBankTransfer = () => {
-  const { externalUser, actions, amount, currency, status, transactionDetail } =
-    useSendStore();
-  const [step, setStep] = useState<NGNSendToBankStepType>("select-user");
+interface Props {
+  close: () => void;
+  hideBeneficiaryHeader?: boolean;
+}
+
+export const FOREIGN_SEND_FEE = 5;
+
+const ForeignBankSend = ({ close, hideBeneficiaryHeader }: Props) => {
+  const [step, setStep] = useState<ForeignSendStepsType>("add-beneficiary");
   const [paymentError, setPaymentError] = useState("");
-  const { data: fee } = useQuery({
-    queryKey: ["transactions-fee", amount, currency],
-    queryFn: () =>
-      GetIntTransactionFeeApi(
-        Number(amount),
-        currency as "USD" | "NGN" | "WIRE",
-      ),
-    enabled: !!amount,
-  });
+  const {
+    foreignBeneficiary,
+    actions,
+    amount,
+    currency,
+    status,
+    transactionDetail,
+  } = useSendStore();
+  const { selectedCurrency } = useCurrencyStore();
 
   useEffect(() => {
-    if (step === "select-user" && externalUser) {
+    if (foreignBeneficiary) {
       setStep("details");
     }
-  }, [externalUser, step]);
-  const goBackToStep1 = () => {
-    actions.reset("NGN");
-    setStep("select-user");
-  };
+  }, [foreignBeneficiary]);
 
   const handleDone = () => {
-    actions.reset("NGN");
-    actions.selectNGNSendOption("to Raizer");
+    actions.reset(currency || selectedCurrency.name);
     close();
   };
 
-  //   const totalPayable = fee ? parseFloat(amount) + fee : 0;
-
   const displayStep = () => {
     switch (step) {
-      case "select-user":
-        return <SelectUser />;
+      case "add-beneficiary":
+        return (
+          <ForeignBeneficiaryForm
+            close={close}
+            goNext={() => setStep("details")}
+            hideHeader={hideBeneficiaryHeader}
+          />
+        );
       case "details":
         return (
           <SendMoney
-            goBack={goBackToStep1}
+            goBack={() => {
+              actions.selectForeignBeneficiary(null);
+              setStep("add-beneficiary");
+            }}
             goNext={() => setStep("category")}
-            fee={fee || 0}
-            minAmount={100}
+            fee={FOREIGN_SEND_FEE}
+            minAmount={1}
           />
         );
       case "category":
@@ -80,7 +86,7 @@ const NgnBankTransfer = () => {
           <SendSummary
             goBack={() => setStep("category")}
             goNext={() => setStep("pay")}
-            fee={fee || 0}
+            fee={FOREIGN_SEND_FEE}
           />
         );
       case "pay":
@@ -89,31 +95,30 @@ const NgnBankTransfer = () => {
             <SendSummary
               goBack={() => setStep("category")}
               goNext={() => setStep("pay")}
-              fee={fee || 0}
+              fee={FOREIGN_SEND_FEE}
             />
-            <ExternalPayout
+            <ForeignSendPay
               goNext={() => setStep("status")}
               close={() => setStep("summary")}
               setPaymentError={setPaymentError}
-              fee={fee || 0}
             />
           </>
         );
       case "status":
         return (
           currency &&
-          externalUser && (
+          foreignBeneficiary && (
             <>
               <SendSummary
                 goBack={() => setStep("category")}
                 goNext={() => setStep("pay")}
-                fee={fee || 0}
+                fee={FOREIGN_SEND_FEE}
               />
               <PaymentStatusModal
                 status={status}
                 amount={parseFloat(amount)}
                 currency={currency}
-                user={externalUser}
+                user={foreignBeneficiary}
                 close={handleDone}
                 error={paymentError}
                 tryAgain={() => setStep("summary")}
@@ -125,19 +130,14 @@ const NgnBankTransfer = () => {
         );
       case "receipt":
         return (
-          transactionDetail && (
-            <RaizReceipt close={handleDone} data={transactionDetail} />
-          )
+          transactionDetail && <RaizReceipt close={handleDone} data={transactionDetail} />
         );
       default:
-        break;
+        return null;
     }
   };
-  return (
-    <div className=" md:p-6 overflow-y-auto mb-6 h-full no-scrollbar">
-      {displayStep()}
-    </div>
-  );
+
+  return <>{displayStep()}</>;
 };
 
-export default NgnBankTransfer;
+export default ForeignBankSend;
