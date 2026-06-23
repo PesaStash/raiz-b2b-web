@@ -13,7 +13,6 @@ import GuestPayWithZelle from "./GuestPayWithZelle";
 import GuestPayWithTransfer, {
   TransferCurrencyType,
 } from "./GuestPayWithTransfer";
-import { WALLET_TYPES } from "@/constants/misc";
 import * as motion from "motion/react-client";
 import { fetchPublicIP } from "@/utils/helpers";
 // import { decryptData } from '@/lib/headerEncryption';
@@ -111,7 +110,7 @@ const RaizPaymentPage = () => {
     "transfer",
   );
   const [transferCurrency, setTransferCurrency] =
-    useState<TransferCurrencyType>("GBP");
+    useState<TransferCurrencyType>("USD");
   const [isUSUser, setIsUSUser] = useState(false);
 
   useEffect(() => {
@@ -162,20 +161,23 @@ const RaizPaymentPage = () => {
   //     }
   // }, [searchParams]);
 
-  const allowedWalletTypeCodes = Object.keys(WALLET_TYPES)
-    .map(Number)
-    .filter((code) => [1, 2, 3].includes(code));
+  const TRANSFER_CURRENCIES: TransferCurrencyType[] = [
+    "USD",
+    "NGN",
+    "SBC",
+    "GBP",
+    "EUR",
+  ];
 
   const isEmail = (value: string) => /\S+@\S+\.\S+/.test(value);
 
   const availablepaymentOptsArr =
     data?.wallets
       ?.filter((acct) => {
-        const allowedType = allowedWalletTypeCodes.includes(
-          acct?.wallet_type?.wallet_type_code,
-        );
+        const currency = acct.wallet_type.currency as TransferCurrencyType;
+        const allowed = TRANSFER_CURRENCIES.includes(currency);
         const notEmail = !isEmail(acct.account_number || "");
-        return allowedType && notEmail && acct.wallet_type.currency !== "EUR";
+        return allowed && notEmail;
       })
       .map((acct) => ({
         label: `${
@@ -185,6 +187,30 @@ const RaizPaymentPage = () => {
         } Transfer`,
         value: acct.wallet_type.currency as TransferCurrencyType,
       })) ?? [];
+
+  useEffect(() => {
+    if (availablepaymentOptsArr.length === 0) return;
+    setTransferCurrency((current) =>
+      availablepaymentOptsArr.some((opt) => opt.value === current)
+        ? current
+        : availablepaymentOptsArr[0].value,
+    );
+  }, [availablepaymentOptsArr]);
+
+  const getTransferCurrencyIcon = (currency: TransferCurrencyType) => {
+    switch (currency) {
+      case "NGN":
+        return "/icons/ngn.svg";
+      case "USD":
+        return "/icons/dollar.svg";
+      case "GBP":
+        return "/icons/pounds.svg";
+      case "EUR":
+        return "/icons/euro.svg";
+      default:
+        return "/icons/sbc.svg";
+    }
+  };
 
   const hasNgnAcct = data?.wallets?.find(
     (acct) => acct.wallet_type.wallet_type_code === 2,
@@ -335,57 +361,6 @@ const RaizPaymentPage = () => {
                         </button>
                         {id === "transfer" && (active || isOpen) && (
                           <div className={`mt-4 flex flex-col gap-1`}>
-                            <motion.button
-                              onClick={() => setTransferCurrency("GBP")}
-                              className={`flex   mx-6 px-5 whitespace-nowrap items-center gap-1 py-2  rounded-xl text-sm w-[85%]  flex-shrink-0  ${
-                                transferCurrency === "GBP"
-                                  ? "bg-[#EAECFF66] text-primary2 font-semibold"
-                                  : "text-[#6F5B86]"
-                              }`}
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{
-                                opacity: 1,
-                                y: 0,
-                                scale: transferCurrency === "GBP" ? 1.05 : 1,
-                                backgroundColor:
-                                  transferCurrency === "GBP"
-                                    ? "#F8F6FA"
-                                    : "#FCFCFD",
-                              }}
-                              whileHover={{
-                                scale: 1.05,
-                                transition: { duration: 0.2 },
-                              }}
-                              whileTap={{ scale: 0.95 }}
-                              transition={{
-                                duration: 0.3,
-                                delay: availablepaymentOptsArr?.length * 0.05,
-                                type: "spring",
-                                stiffness: 300,
-                                damping: 20,
-                              }}
-                            >
-                              <motion.div
-                                animate={{
-                                  rotate:
-                                    transferCurrency === "GBP"
-                                      ? [0, -10, 10, 0]
-                                      : 0,
-                                }}
-                                transition={{
-                                  duration: 0.5,
-                                  delay: 0.1,
-                                }}
-                              >
-                                <Image
-                                  src={`/icons/gbp.png`}
-                                  alt="GBP"
-                                  width={20}
-                                  height={20}
-                                />
-                              </motion.div>
-                              <span>GBP transfer</span>
-                            </motion.button>
                             {availablepaymentOptsArr?.map((opt, i) => (
                               <motion.button
                                 key={opt.value}
@@ -432,13 +407,7 @@ const RaizPaymentPage = () => {
                                   }}
                                 >
                                   <Image
-                                    src={`/icons/${
-                                      opt.value === "NGN"
-                                        ? "ngn"
-                                        : opt.value === "USD"
-                                          ? "dollar"
-                                          : "sbc"
-                                    }.svg`}
+                                    src={getTransferCurrencyIcon(opt.value)}
                                     alt={opt.value}
                                     width={20}
                                     height={20}

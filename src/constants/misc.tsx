@@ -130,6 +130,8 @@ export const WALLET_TYPES = {
   3: "Crypto Holding Wallet",
   4: "Naira virtual wallet",
   5: "USD Holding Wallet",
+  6: "Pound Wallet",
+  7: "Euro Wallet",
 };
 
 export const USAstateCodes = [

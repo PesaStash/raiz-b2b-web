@@ -10,6 +10,7 @@ import WalletTierModal from "@/app/(dashboard)/settings/_components/WalletTierMo
 import LogoutModal from "@/components/modals/LogoutModal";
 import { toast } from "sonner";
 import Image from "next/image";
+import NotificationRecipientsNewBadge from "@/app/(dashboard)/settings/_components/NotificationRecipientsNewBadge";
 
 const LogoutMenuIcon = () => (
   <svg width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden>
@@ -140,11 +141,12 @@ const MobileSettingsMenu = () => {
 
   const profileMenu = SettingsMenus[0];
   const loginMenu = SettingsMenus[1];
-  const helpMenu = SettingsMenus[2];
-  const aboutMenu = SettingsMenus[3];
-  const legalMenu = SettingsMenus[4];
-  const freezeMenu = SettingsMenus[5];
-  const deleteMenu = SettingsMenus[6];
+  const notificationMenu = SettingsMenus[2];
+  const helpMenu = SettingsMenus[3];
+  const aboutMenu = SettingsMenus[4];
+  const legalMenu = SettingsMenus[5];
+  const freezeMenu = SettingsMenus[6];
+  const deleteMenu = SettingsMenus[7];
 
   useEffect(() => {
     const isFrozen = user?.business_account?.entity?.is_entity_frozen ?? false;
@@ -220,6 +222,14 @@ const MobileSettingsMenu = () => {
           icon={loginMenu.icon()}
           title="Login and Security"
           subtitle="Change password and transaction PIN"
+        />
+        <MenuRow
+          href={notificationMenu.link}
+          icon={notificationMenu.icon()}
+          title="Notification Recipients"
+          subtitle="Manage transaction notification emails"
+          badge={<NotificationRecipientsNewBadge className="shrink-0 px-2 py-0.5 w-auto" />}
+          showDivider
         />
         <MenuRow
           icon={freezeMenu.icon()}
