@@ -7,14 +7,21 @@ import InputField from "@/components/ui/InputField";
 import Radio from "@/components/ui/Radio";
 import {
   CreateUsBeneficiary,
+  FetchThirdPartyUsdBeneficiariesApi,
   FetchUsBeneficiariesApi,
 } from "@/services/transactions";
 import {
+  IThirdPartyUsdBeneficiary,
   IUsBeneficiariesParams,
   IUsBeneficiariesResponse,
   IUsBeneficiaryPayload,
 } from "@/types/services";
 import { convertField, truncateString } from "@/utils/helpers";
+import {
+  buildUsBankBeneficiaryPayload,
+  formatPartnerBannerText,
+  mapThirdPartyUsdBeneficiaryToPayload,
+} from "@/utils/thirdPartyUsdBeneficiary";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Form, Formik, useFormikContext } from "formik";
 import React, { useEffect, useRef, useState } from "react";
@@ -23,11 +30,14 @@ import { z } from "zod";
 import { toFormikValidationSchema } from "zod-formik-adapter";
 import { useSendStore } from "@/store/Send";
 import USBeneficiaryModal from "./USBeneficiaryModal";
+import ThirdPartyPartnerModal from "./ThirdPartyPartnerModal";
+import ThirdPartyPartnerReviewModal from "./ThirdPartyPartnerReviewModal";
 import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 import { GetUsdBankName } from "@/services/utils";
 import SelectField from "@/components/ui/SelectField";
 import { USAstateCodes } from "@/constants/misc";
 import { useDebounce } from "@/lib/hooks/useDebounce";
+import Image from "next/image";
 
 interface FormValues {
   label: string;
@@ -357,6 +367,11 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
   // const [labelFilter, setLabelFilter] = useState("");
   const { actions } = useSendStore();
   const [showBeneficiary, setShowBeneficiary] = useState(false);
+  const [showPartnerModal, setShowPartnerModal] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [selectedPartner, setSelectedPartner] =
+    useState<IThirdPartyUsdBeneficiary | null>(null);
+  const [isAddingPartner, setIsAddingPartner] = useState(false);
   // const { data: fieldsData, isLoading: fieldLoading } = useQuery({
   //   queryKey: ["us-bank-benefiary-fields"],
   //   queryFn: GetUSBeneficiaryFormFields,
@@ -381,7 +396,15 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
     },
   });
 
+  const { data: thirdPartyData } = useQuery({
+    queryKey: ["third-party-usd-beneficiaries"],
+    queryFn: FetchThirdPartyUsdBeneficiariesApi,
+  });
+
   const beneficiaries = data?.beneficiaries || [];
+  const thirdPartyPartners = thirdPartyData?.data || [];
+  const hasThirdPartyPartners = thirdPartyPartners.length > 0;
+  const partnerBannerText = formatPartnerBannerText(thirdPartyPartners);
 
   const validationSchema = z.object({
     label: z.string().min(1, "Label is required"),
@@ -401,7 +424,7 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
   const qc = useQueryClient();
   const AddBeneficiaryMutation = useMutation({
     mutationFn: (data: IUsBeneficiaryPayload) => CreateUsBeneficiary(data),
-    onSuccess: async (res: any, payload: IUsBeneficiaryPayload) => {
+    onSuccess: async () => {
       toast.success("Beneficiary added!");
 
       const queryParams = {
@@ -431,6 +454,34 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
     },
   });
 
+  const handlePartnerSelect = (partner: IThirdPartyUsdBeneficiary) => {
+    setSelectedPartner(partner);
+    setShowPartnerModal(false);
+    setShowReviewModal(true);
+  };
+
+  const handlePartnerReviewConfirm = async () => {
+    if (!selectedPartner || isAddingPartner) return;
+
+    try {
+      setIsAddingPartner(true);
+      const payload = mapThirdPartyUsdBeneficiaryToPayload(selectedPartner);
+      await AddBeneficiaryMutation.mutateAsync(payload);
+      setShowReviewModal(false);
+      setSelectedPartner(null);
+    } catch (error) {
+      console.log("Partner beneficiary submission error:", error);
+    } finally {
+      setIsAddingPartner(false);
+    }
+  };
+
+  const handlePartnerReviewClose = () => {
+    if (isAddingPartner) return;
+    setShowReviewModal(false);
+    setSelectedPartner(null);
+  };
+
   const initialValues: FormValues = {
     label: "",
     bank_name: "",
@@ -457,23 +508,7 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
     },
   ) => {
     try {
-      const payload: IUsBeneficiaryPayload = {
-        data: {
-          bank_name: values.bank_name,
-          account_number: values.account_number,
-          routing_number: values.routing_number,
-          account_type: values.account_type as "checking" | "savings",
-          account_owner_name: values.account_owner_name,
-          street_line_1: values.street_line_1,
-          street_line_2: values.street_line_2 || null,
-          city: values.city,
-          state: values.state,
-          postal_code: values.postal_code,
-          payment_rail: values.payment_rail as "ach" | "wire" | "ach-same-day",
-        },
-        label: values.label,
-        optionType: "bank",
-      };
+      const payload = buildUsBankBeneficiaryPayload(values);
       await AddBeneficiaryMutation.mutateAsync(payload);
       resetForm();
     } catch (error) {
@@ -496,8 +531,36 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
             </h5>
             {isLoading ? (
               <div>Loading beneficiaries...</div>
-            ) : beneficiaries?.length > 0 ? (
+            ) : beneficiaries?.length > 0 || hasThirdPartyPartners ? (
               <div className="flex gap-2 overflow-x-scroll no-scrollbar">
+                {hasThirdPartyPartners && (
+                  <button
+                    type="button"
+                    className="flex flex-col justify-center items-center gap-1 px-2 flex-shrink-0"
+                    onClick={() => setShowPartnerModal(true)}
+                  >
+                    <div className="size-12 rounded-full border-2 border-dashed border-raiz-gray-200 flex items-center justify-center bg-white">
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 20 20"
+                        fill="none"
+                        className="text-indigo-900"
+                        aria-hidden
+                      >
+                        <path
+                          d="M10 4v12M4 10h12"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </div>
+                    <p className="text-center text-indigo-900 md:text-[13px] text-xs font-semibold leading-none">
+                      Quick Partner
+                    </p>
+                  </button>
+                )}
                 {beneficiaries?.map((user) => (
                   <button
                     key={user?.usd_beneficiary_id}
@@ -525,6 +588,24 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
               <EmptyList text={"No beneficiary yet"} />
             )}
           </div>
+          {hasThirdPartyPartners && (
+            <button
+              type="button"
+              onClick={() => setShowPartnerModal(true)}
+              className="w-full mb-7 px-4 py-3 rounded-2xl bg-[#e5ebff]/60 hover:bg-[#e5ebff]/80 transition-colors flex items-center justify-between gap-3 text-left"
+            >
+              <span className="text-indigo-900 md:text-sm text-xs font-semibold leading-snug">
+                {partnerBannerText}
+              </span>
+              <Image
+                src="/icons/arrow-right.svg"
+                alt=""
+                width={16}
+                height={16}
+                aria-hidden
+              />
+            </button>
+          )}
           <Formik
             initialValues={initialValues}
             validationSchema={toFormikValidationSchema(validationSchema)}
@@ -551,6 +632,21 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
         <USBeneficiaryModal
           close={() => setShowBeneficiary(false)}
           users={beneficiaries}
+        />
+      ) : null}
+      {showPartnerModal ? (
+        <ThirdPartyPartnerModal
+          close={() => setShowPartnerModal(false)}
+          partners={thirdPartyPartners}
+          onSelect={handlePartnerSelect}
+        />
+      ) : null}
+      {showReviewModal && selectedPartner ? (
+        <ThirdPartyPartnerReviewModal
+          close={handlePartnerReviewClose}
+          partner={selectedPartner}
+          onConfirm={handlePartnerReviewConfirm}
+          loading={isAddingPartner}
         />
       ) : null}
     </div>

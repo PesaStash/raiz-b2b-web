@@ -405,6 +405,25 @@ export interface IUsBeneficiariesResponse {
   beneficiaries: EntityBeneficiary[];
 }
 
+export interface IThirdPartyUsdBeneficiary {
+  third_party_usd_beneficiary_id: string;
+  third_party_name: string;
+  account_name: string;
+  account_number: string;
+  routing_number: string;
+  address: string;
+  city: string;
+  state: string;
+  zip_code: string;
+  bank_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface IThirdPartyUsdBeneficiariesResponse {
+  data: IThirdPartyUsdBeneficiary[];
+}
+
 export type ForeignCurrency = "GBP" | "EUR";
 
 export interface IForeignAccountRouting {
@@ -980,4 +999,29 @@ export interface ICrossCurrencySwapPayload {
   from_currency: ICrossCurrencies;
   to_currency: ICrossCurrencies;
   reward_quote_id: string | null;
+}
+
+export interface INotificationEmail {
+  business_transaction_notification_email_id: string;
+  business_account_id: string;
+  email: string;
+  label: string;
+  active: 0 | 1;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface INotificationEmailsResponse {
+  data: INotificationEmail[];
+}
+
+export interface IAddNotificationEmailsPayload {
+  emails: string[];
+  label: string;
+}
+
+export interface IUpdateNotificationEmailPayload {
+  label?: string;
+  email?: string;
+  active?: boolean;
 }
