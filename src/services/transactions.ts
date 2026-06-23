@@ -38,6 +38,7 @@ import {
   ITransactionCategory,
   ITransactionParams,
   ITxnReportResponse,
+  IThirdPartyUsdBeneficiariesResponse,
   IUsBeneficiariesParams,
   IUsBeneficiariesResponse,
   IUsBeneficiaryPayload,
@@ -380,6 +381,14 @@ export const FetchUsBeneficiariesApi = async (
   );
   return response?.data;
 };
+
+export const FetchThirdPartyUsdBeneficiariesApi =
+  async (): Promise<IThirdPartyUsdBeneficiariesResponse> => {
+    const response = await AuthAxios.get(
+      `/business/transactions/third-party-usd-beneficiaries/`,
+    );
+    return response?.data;
+  };
 
 export const CreateForeignBeneficiaryApi = async ({
   currency,

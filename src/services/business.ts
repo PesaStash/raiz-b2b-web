@@ -3,9 +3,12 @@ import {
   ForeignCurrency,
   FinalizeAfricaPayinResponse,
   IBusinessPaymentData,
+  IAddNotificationEmailsPayload,
   ICreateForeignAccountResponse,
   InitiateAfricaPayinPayload,
   InitiateAfricaPayinResponse,
+  INotificationEmail,
+  INotificationEmailsResponse,
   INotificationParams,
   INotificationResponse,
   IPaymentChannel,
@@ -14,6 +17,7 @@ import {
   ITxnIncomeExpenseResponse,
   ITxnReportCategoryResponse,
   ITxnReportPayload,
+  IUpdateNotificationEmailPayload,
 } from "../types/services";
 import { IChain } from "@/types/misc";
 import { PublicAxios } from "@/lib/publicAxios";
@@ -189,6 +193,35 @@ export const CreateForeignAccountApi = async (
 ): Promise<ICreateForeignAccountResponse> => {
   const response = await AuthAxios.post(
     `/business/entities/accounts/${currency}/`,
+  );
+  return response?.data;
+};
+
+export const FetchNotificationEmailsApi =
+  async (): Promise<INotificationEmailsResponse> => {
+    const response = await AuthAxios.get(
+      "/business/transactions/notification-emails/",
+    );
+    return response?.data;
+  };
+
+export const AddNotificationEmailsApi = async (
+  payload: IAddNotificationEmailsPayload,
+): Promise<INotificationEmailsResponse> => {
+  const response = await AuthAxios.post(
+    "/business/transactions/notification-emails/",
+    payload,
+  );
+  return response?.data;
+};
+
+export const UpdateNotificationEmailApi = async (
+  notificationEmailId: string,
+  payload: IUpdateNotificationEmailPayload,
+): Promise<INotificationEmail> => {
+  const response = await AuthAxios.patch(
+    `/business/transactions/notification-emails/${notificationEmailId}/`,
+    payload,
   );
   return response?.data;
 };

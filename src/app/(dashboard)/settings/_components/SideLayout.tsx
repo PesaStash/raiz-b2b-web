@@ -15,6 +15,7 @@ import { FetchUserRewardsApi } from "@/services/user";
 import { useUser } from "@/lib/hooks/useUser";
 import dayjs from "dayjs";
 import ProfileAvatarUpload from "./ProfileAvatarUpload";
+import NotificationRecipientsNewBadge from "./NotificationRecipientsNewBadge";
 
 const SideLayout = () => {
   const [showLevels, setShowLevels] = useState(false);
@@ -121,7 +122,7 @@ const SideLayout = () => {
               <Link
                 href={menu.link}
                 key={index}
-                className="flex gap-[15px] items-center group"
+                className="flex gap-[15px] items-center group relative"
                 target={menu.newTab ? "_blank" : ""}
               >
                 {menu.icon()}
@@ -135,6 +136,9 @@ const SideLayout = () => {
                   {" "}
                   {menu.name}
                 </span>
+                 {menu.link === "/settings/notification-recipients" && (
+                  <NotificationRecipientsNewBadge className="absolute right-0" />
+                  )}
               </Link>
             );
           } else {
@@ -170,11 +174,12 @@ const SideLayout = () => {
                   }
                 }}
               >
-                <div className="flex gap-[15px] items-center group">
+                <div className="flex gap-[15px] items-center  group">
                   {menu.icon()}
                   <span className="text-raiz-gray-600 text-[15px] font-semibold text-left leading-snug group-hover:underline ">
                     {menu.name}
                   </span>
+                 
                 </div>
               </button>
             );
