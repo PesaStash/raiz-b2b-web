@@ -17,6 +17,7 @@ import RequestFailed from "./single-request/RequestFailed";
 import RequestConfirmation from "./single-request/RequestConfirmation";
 import { findWalletByCurrency } from "@/utils/helpers";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
+import { pushDataLayerEvent } from "@/utils/analytics/dataLayer";
 
 export type RequestMoneyStepType =
   | "select-user"
@@ -95,6 +96,21 @@ export const RequestMoney = ({ setStep, close }: RequestStepsProps) => {
         refetchType: "all",
       });
       toast.success(response?.message);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const res = response as any;
+      const requestId =
+        res?.request_transfer_id ||
+        res?.data?.request_transfer_id ||
+        `request_${Date.now()}`;
+      pushDataLayerEvent(
+        "request_completed",
+        {
+          request_id: String(requestId),
+          value: Number(amount) || 0,
+          currency: selectedCurrency.name || "USD",
+        },
+        { dedupId: `request_completed:${requestId}` },
+      );
       setRequestMoneyStep("success");
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -7,6 +7,10 @@ import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { IP2PTransferPayload } from "@/types/services";
 import { ICurrencyName } from "@/types/misc";
 import { findWalletByCurrency, passwordHash } from "@/utils/helpers";
+import {
+  trackSendCompleted,
+  trackTransactionFailed,
+} from "@/utils/analytics/dataLayer";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 
@@ -51,6 +55,12 @@ const Payout = ({ close, goNext, setPaymentError }: Props) => {
       qc.invalidateQueries({ queryKey: ["today-outflow"] });
       if (response?.transaction_status?.transaction_status === "completed") {
         actions.setStatus("success");
+        trackSendCompleted({
+          response,
+          value: Number(amount),
+          currency: selectedCurrency.name || "USD",
+          recipientType: "internal",
+        });
       } else if (
         response?.transaction_status?.transaction_status === "pending"
       ) {
@@ -62,6 +72,12 @@ const Payout = ({ close, goNext, setPaymentError }: Props) => {
     onError: (response: any) => {
       actions.setStatus("failed");
       setPaymentError(response?.data?.message);
+      trackTransactionFailed({
+        transactionType: "send",
+        error: response,
+        value: Number(amount) || undefined,
+        currency: selectedCurrency.name || "USD",
+      });
     },
     onSettled: () => {
       goNext();

@@ -38,6 +38,7 @@ import {
   SendInvoiceMailApi,
   UpdateInvoiceStatusApi,
 } from "@/services/invoice";
+import { pushDataLayerEvent } from "@/utils/analytics/dataLayer";
 import Pagination from "@/components/ui/Pagination";
 import { IInvoice } from "@/types/invoice";
 import InvoiceFile from "./InvoiceFile";
@@ -109,11 +110,23 @@ const InvoicesTable = () => {
   const StatusMutation = useMutation({
     mutationFn: (invoice: IInvoice) =>
       UpdateInvoiceStatusApi(invoice?.invoice_id, invoice.status),
-    onSuccess: () => {
+    onSuccess: (_data, invoice) => {
       toast.success("Invoice status updated successfully!");
       qc.invalidateQueries({ queryKey: ["invoice-detail"] });
       qc.invalidateQueries({ queryKey: ["invoices-list"] });
       qc.invalidateQueries({ queryKey: ["invoice-activity"] });
+      if (invoice.status === "paid") {
+        pushDataLayerEvent(
+          "invoice_paid",
+          {
+            invoice_id: invoice.invoice_id,
+            value: Number(invoice.total_amount) || 0,
+            currency: invoice.currency || "USD",
+            status: "paid",
+          },
+          { dedupId: `invoice_paid:${invoice.invoice_id}` },
+        );
+      }
     },
   });
 

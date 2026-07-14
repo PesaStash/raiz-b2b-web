@@ -4,6 +4,12 @@ import EnterPin from "@/components/transactions/EnterPin";
 import { AlipayWechatSendApi } from "@/services/transactions";
 import { IAlipayWechatSendResponse } from "@/types/services";
 import { passwordHash } from "@/utils/helpers";
+import {
+  getTransactionId,
+  getTransactionStatus,
+  trackMoneyMovementSuccess,
+  trackTransactionFailed,
+} from "@/utils/analytics/dataLayer";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface Props {
@@ -46,11 +52,29 @@ const AlipayWechatPay = ({
       qc.invalidateQueries({ queryKey: ["user"] });
       qc.invalidateQueries({ queryKey: ["transactions-report"] });
       qc.invalidateQueries({ queryKey: ["alipay-wechat-beneficiaries"] });
+      if (getTransactionStatus(result) === "completed") {
+        const transactionId = getTransactionId(result);
+        if (transactionId) {
+          trackMoneyMovementSuccess({
+            event: "send_completed",
+            transactionId,
+            value: Number(amount) || 0,
+            currency: "NGN",
+            extra: { recipient_type: "external" },
+          });
+        }
+      }
       onSuccess(result);
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data
           ?.message || "Transaction failed. Please try again.";
+      trackTransactionFailed({
+        transactionType: "send",
+        error: (err as { response?: unknown })?.response ?? err,
+        value: Number(amount) || undefined,
+        currency: "NGN",
+      });
       onError(msg);
       onClose();
     } finally {

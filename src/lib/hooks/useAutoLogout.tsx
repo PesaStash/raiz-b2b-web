@@ -7,6 +7,8 @@ import { useIdleTimer } from "react-idle-timer";
 import { LogoutApi } from "@/services/auth";
 import { GetItemFromCookie, RemoveItemFromCookie } from "@/utils/CookiesFunc";
 import { useUserStore } from "@/store/useUserStore";
+import { clearUserDataSessionFlag, pushDataLayerEvent } from "@/utils/analytics/dataLayer";
+import { getAnalyticsUserId } from "@/utils/analytics/userProps";
 
 const AUTO_LOGOUT_TIME = 10 * 60 * 1000; //  10 mins
 
@@ -22,12 +24,18 @@ export const useAutoLogout = () => {
       return LogoutApi(token);
     },
     onSuccess: () => {
+      const user = useUserStore.getState().user;
+      pushDataLayerEvent("logout", {
+        user_id: getAnalyticsUserId(user) || undefined,
+      });
+      clearUserDataSessionFlag();
       RemoveItemFromCookie("access_token");
       qc.clear();
       clearUser();
       router.push("/login");
     },
     onError: () => {
+      clearUserDataSessionFlag();
       RemoveItemFromCookie("access_token");
       qc.clear();
       clearUser();

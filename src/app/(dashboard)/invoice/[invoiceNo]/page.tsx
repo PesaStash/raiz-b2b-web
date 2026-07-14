@@ -26,6 +26,7 @@ import {
 } from "@/utils/helpers";
 import { useUser } from "@/lib/hooks/useUser";
 import { IInvoiceStatus } from "@/types/invoice";
+import { pushDataLayerEvent } from "@/utils/analytics/dataLayer";
 
 const statusStyles: Record<string, { dot: string; badge: string }> = {
   paid: { dot: "bg-green-500", badge: "border-emerald-200 text-emerald-700 bg-emerald-50" },
@@ -53,11 +54,23 @@ const InvoiceDetail = () => {
   const StatusMutation = useMutation({
     mutationFn: (status: IInvoiceStatus) =>
       UpdateInvoiceStatusApi(data?.invoice_id || null, status),
-    onSuccess: () => {
+    onSuccess: (_res, status) => {
       toast.success("Invoice status updated successfully!");
       qc.invalidateQueries({ queryKey: ["invoice-detail", invoiceNo] });
       qc.invalidateQueries({ queryKey: ["invoices-list"] });
       qc.invalidateQueries({ queryKey: ["invoice-activity", invoiceNo] });
+      if (status === "paid" && data?.invoice_id) {
+        pushDataLayerEvent(
+          "invoice_paid",
+          {
+            invoice_id: data.invoice_id,
+            value: Number(data.total_amount) || 0,
+            currency: data.currency || "USD",
+            status: "paid",
+          },
+          { dedupId: `invoice_paid:${data.invoice_id}` },
+        );
+      }
     },
   });
 
