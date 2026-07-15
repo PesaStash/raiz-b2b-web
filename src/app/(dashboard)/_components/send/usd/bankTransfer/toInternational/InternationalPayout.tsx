@@ -5,6 +5,10 @@ import { useSendStore } from "@/store/Send";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { IIntSendPayload } from "@/types/services";
 import { findWalletByCurrency, passwordHash } from "@/utils/helpers";
+import {
+  trackSendCompleted,
+  trackTransactionFailed,
+} from "@/utils/analytics/dataLayer";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 
@@ -22,7 +26,7 @@ const InternationPayout = ({
   paymentInitiationId,
 }: Props) => {
   const [pin, setPin] = useState<string>("");
-  const { purpose, category, actions } = useSendStore();
+  const { purpose, category, actions, amount } = useSendStore();
   const { user } = useUser();
   const NGNAcct = findWalletByCurrency(user, "NGN");
   const USDAcct = findWalletByCurrency(user, "USD");
@@ -50,6 +54,12 @@ const InternationPayout = ({
       qc.invalidateQueries({ queryKey: ["transactions-report"] });
       if (response?.transaction_status?.transaction_status === "completed") {
         actions.setStatus("success");
+        trackSendCompleted({
+          response,
+          value: Number(amount),
+          currency: selectedCurrency.name || "USD",
+          recipientType: "external",
+        });
       } else if (
         response?.transaction_status?.transaction_status === "pending"
       ) {
@@ -61,6 +71,12 @@ const InternationPayout = ({
     onError: (response: any) => {
       actions.setStatus("failed");
       setPaymentError(response?.data?.message);
+      trackTransactionFailed({
+        transactionType: "send",
+        error: response,
+        value: Number(amount) || undefined,
+        currency: selectedCurrency.name || "USD",
+      });
     },
     onSettled: () => {
       goNext();

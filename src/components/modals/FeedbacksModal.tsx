@@ -10,6 +10,7 @@ import { useMutation } from "@tanstack/react-query";
 import { FeedbackPayload } from "@/types/services";
 import { FeedbacksApi } from "@/services/user";
 import { toast } from "sonner";
+import { pushDataLayerEvent } from "@/utils/analytics/dataLayer";
 
 interface Props {
   close: () => void;
@@ -18,11 +19,17 @@ interface Props {
 const FeedbacksModal = ({ close }: Props) => {
   const Mutation = useMutation({
     mutationFn: (data: FeedbackPayload) => FeedbacksApi(data),
-    onSuccess: (res) => {
+    onSuccess: (res, variables) => {
       toast.success(
         res?.message ||
           "Thanks! Your Feedback has been received. We'll get back to you."
       );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ticketId = (res as any)?.id || (res as any)?.ticket_id;
+      pushDataLayerEvent("support_request_created", {
+        ticket_category: variables?.feature || undefined,
+        ticket_id: ticketId ? String(ticketId) : undefined,
+      });
       close();
     },
   });

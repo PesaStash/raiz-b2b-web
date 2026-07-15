@@ -9,6 +9,11 @@ import {
 } from "@/services/transactions";
 import { useSwapStore } from "@/store/Swap";
 import { passwordHash } from "@/utils/helpers";
+import {
+  getTransactionId,
+  trackMoneyMovementSuccess,
+  trackTransactionFailed,
+} from "@/utils/analytics/dataLayer";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 import {
@@ -131,6 +136,24 @@ const SwapPayment = ({ goNext, setPaymentError, close }: Props) => {
       const report = response as any;
       if (report?.transaction_status?.transaction_status === "completed") {
         actions.setStatus("success");
+        const transactionId = getTransactionId(response);
+        if (transactionId) {
+          trackMoneyMovementSuccess({
+            event: "swap_completed",
+            transactionId,
+            value: parseFloat(amount) || 0,
+            currency: swapFromCurrency,
+            extra: {
+              from_currency: swapFromCurrency,
+              to_currency: swapToCurrency,
+              amount_out:
+                typeof report?.transaction_amount === "number" &&
+                report.currency === swapToCurrency
+                  ? report.transaction_amount
+                  : undefined,
+            },
+          });
+        }
       } else if (report?.transaction_status?.transaction_status === "pending") {
         actions.setStatus("pending");
       }
@@ -138,6 +161,12 @@ const SwapPayment = ({ goNext, setPaymentError, close }: Props) => {
     onError: (error: unknown) => {
       actions.setStatus("failed");
       setPaymentError(getSwapErrorMessage(error));
+      trackTransactionFailed({
+        transactionType: "swap",
+        error,
+        value: parseFloat(amount) || undefined,
+        currency: swapFromCurrency,
+      });
     },
     onSettled: () => {
       goNext();

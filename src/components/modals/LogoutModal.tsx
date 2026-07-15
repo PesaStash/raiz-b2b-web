@@ -7,15 +7,21 @@ import { LogoutApi } from "@/services/auth";
 import { useRouter } from "next/navigation";
 import { GetItemFromCookie, RemoveItemFromCookie } from "@/utils/CookiesFunc";
 import { useUser } from "@/lib/hooks/useUser";
+import { clearUserDataSessionFlag, pushDataLayerEvent } from "@/utils/analytics/dataLayer";
+import { getAnalyticsUserId } from "@/utils/analytics/userProps";
 
 const LogoutModal = ({ close }: { close: () => void }) => {
   const router = useRouter();
-  const { clearUser } = useUser();
+  const { clearUser, user } = useUser();
   const qc = useQueryClient();
   const token = GetItemFromCookie("access_token") ?? "";
   const logoutMutation = useMutation({
     mutationFn: () => LogoutApi(token),
     onSuccess: () => {
+      pushDataLayerEvent("logout", {
+        user_id: getAnalyticsUserId(user) || undefined,
+      });
+      clearUserDataSessionFlag();
       RemoveItemFromCookie("accessToken");
       qc.clear();
       clearUser();

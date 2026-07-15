@@ -4,6 +4,10 @@ import { useSendStore } from "@/store/Send";
 import { IChain } from "@/types/misc";
 import { ISendCryptoPayload } from "@/types/services";
 import { findWalletByCurrency, passwordHash } from "@/utils/helpers";
+import {
+  trackSendCompleted,
+  trackTransactionFailed,
+} from "@/utils/analytics/dataLayer";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { sbcType } from "./CryptoSend";
@@ -44,6 +48,12 @@ const CryptoPay = ({ close, goNext, setPaymentError }: Props) => {
       qc.invalidateQueries({ queryKey: ["transactions-report"] });
       if (response?.transaction_status?.transaction_status === "completed") {
         actions.setStatus("success");
+        trackSendCompleted({
+          response,
+          value: Number(amount),
+          currency: "SBC",
+          recipientType: "external",
+        });
       } else if (
         response?.transaction_status?.transaction_status === "pending"
       ) {
@@ -55,6 +65,12 @@ const CryptoPay = ({ close, goNext, setPaymentError }: Props) => {
     onError: (response: any) => {
       actions.setStatus("failed");
       setPaymentError(response?.data?.message);
+      trackTransactionFailed({
+        transactionType: "send",
+        error: response,
+        value: Number(amount) || undefined,
+        currency: "SBC",
+      });
     },
     onSettled: () => {
       goNext();

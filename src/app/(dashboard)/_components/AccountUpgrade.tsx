@@ -26,6 +26,8 @@ import SideModalWrapper from "./SideModalWrapper";
 import Image from "next/image";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
+import { pushDataLayerEvent } from "@/utils/analytics/dataLayer";
+import { getAnalyticsUserType } from "@/utils/analytics/userProps";
 
 interface AccountUpgradeProps {
   resumeFromStep2?: boolean;
@@ -64,6 +66,21 @@ const AccountUpgrade = ({
     mutationFn: CheckBrigdeVerificationStatusApi,
     onSuccess: (response) => {
       qc.invalidateQueries({ queryKey: ["KYB-links"] });
+      const status =
+        response === "completed"
+          ? "approved"
+          : response === "rejected"
+            ? "rejected"
+            : String(response || "pending");
+      pushDataLayerEvent(
+        "kyc_status_update",
+        {
+          kyc_step: "bridge_verification",
+          kyc_status: status,
+          user_type: getAnalyticsUserType(),
+        },
+        { dedupId: `kyc_status_update:bridge:${status}` },
+      );
       if (response === "completed") {
         refetch();
       }
@@ -92,6 +109,11 @@ const AccountUpgrade = ({
       if (response?.data) {
         setUsdVerificationData(response.data);
       }
+      pushDataLayerEvent("kyc_status_update", {
+        kyc_step: "document_upload",
+        kyc_status: "submitted",
+        user_type: getAnalyticsUserType(),
+      });
       qc.invalidateQueries({ queryKey: ["KYB-links"] });
       refetchKybLinks();
       toast.success(response?.message || "USD verification started.");

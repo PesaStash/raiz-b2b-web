@@ -12,6 +12,7 @@ import AnimatedSection from "@/components/ui/AnimatedSection";
 import { SetItemToCookie } from "@/utils/CookiesFunc";
 import { encryptData } from "@/lib/headerEncryption";
 import OtpInputWithTimer from "@/components/ui/OtpInputWithTimer";
+import { pushDataLayerEvent } from "@/utils/analytics/dataLayer";
 
 interface Props {
   setStep: Dispatch<SetStateAction<number>>;
@@ -27,6 +28,19 @@ const LoginOtp = ({ setStep, from, email, password }: Props) => {
     mutationFn: (data: { email: string; otp: string }) => LoginOtpApi(data),
     onSuccess: (response) => {
       SetItemToCookie("access_token", response?.access_token);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const res = response as any;
+      const userId =
+        res?.business_account_user_id ||
+        res?.entity_id ||
+        res?.user_id ||
+        res?.business_account_id ||
+        "authenticated";
+
+      pushDataLayerEvent("login", {
+        method: "email",
+        user_id: String(userId),
+      });
       qc.invalidateQueries({ queryKey: ["user"] });
       router.push("/");
     },

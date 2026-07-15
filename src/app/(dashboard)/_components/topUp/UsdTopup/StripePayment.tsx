@@ -13,6 +13,10 @@ import {
 import React, { useState } from "react";
 import { toast } from "sonner";
 import SideModalWrapper from "../../SideModalWrapper";
+import {
+  trackMoneyMovementSuccess,
+  trackTransactionFailed,
+} from "@/utils/analytics/dataLayer";
 
 interface Props {
   goBack: () => void;
@@ -22,7 +26,7 @@ interface Props {
 const StripePayment = ({ goBack, goNext }: Props) => {
   const stripe = useStripe();
   const elements = useElements();
-  const { stripeDetail } = useTopupStore();
+  const { stripeDetail, amount } = useTopupStore();
   const [loading, setLoading] = useState(false);
   const [errMsg, setErrMsg] = useState("");
   const [paymentElementReady, setPaymentElementReady] = useState(false);
@@ -48,11 +52,25 @@ const StripePayment = ({ goBack, goNext }: Props) => {
     });
     if (stripeError) {
       setErrMsg(stripeError?.message || "");
+      trackTransactionFailed({
+        transactionType: "topup",
+        error: stripeError,
+        value: Number(amount) || undefined,
+        currency: "USD",
+      });
     }
     if (paymentIntent?.status === "succeeded") {
       try {
         await confirmStripeTopPaymentIntent(paymentIntent.id);
         toast.success("Payment confirmed successfully!");
+        trackMoneyMovementSuccess({
+          event: "topup_completed",
+          transactionId:
+            paymentIntent.id || stripeDetail?.payment_intent_id || "",
+          value: Number(amount) || 0,
+          currency: "USD",
+          extra: { funding_method: "card" },
+        });
         goNext();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
@@ -63,6 +81,12 @@ const StripePayment = ({ goBack, goNext }: Props) => {
         toast.error(
           error?.response?.data?.message || "Payment confirmation failed"
         );
+        trackTransactionFailed({
+          transactionType: "topup",
+          error: error?.response ?? error,
+          value: Number(amount) || undefined,
+          currency: "USD",
+        });
       }
     } else {
       toast.info(`Payment status: ${paymentIntent?.status}`);

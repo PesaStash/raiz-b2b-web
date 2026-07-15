@@ -25,6 +25,8 @@ import { AnimatePresence } from "motion/react";
 import Checkbox from "@/components/ui/Checkbox";
 import { passwordHash } from "@/utils/helpers";
 import { encryptData } from "@/lib/headerEncryption";
+import { pushDataLayerEvent } from "@/utils/analytics/dataLayer";
+import { getAnalyticsUserType } from "@/utils/analytics/userProps";
 
 const RegisterForm = () => {
   const router = useRouter();
@@ -78,7 +80,25 @@ const RegisterForm = () => {
     mutationFn: (data: { otp: string; email: string }) =>
       SignupVerifyOtpApi(data),
     onSuccess: (response) => {
-     
+      // Prefer opaque backend ids; fall back to a stable signup-session key (never email).
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const res = response as any;
+      const userId =
+        res?.business_account_user_id ||
+        res?.entity_id ||
+        res?.user_id ||
+        res?.business_account_id ||
+        `signup_${Date.now()}`;
+
+      pushDataLayerEvent(
+        "sign_up",
+        {
+          method: "email",
+          user_id: String(userId),
+          user_type: getAnalyticsUserType(),
+        },
+        { dedupId: `sign_up:${userId}` },
+      );
       handleNavigate("next");
     },
     onError: (error) => {

@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import dayjs from "dayjs";
 import NewAPIkeyModal from "./NewAPIkeyModal";
 import { IDeveloperApiKey } from "@/types/services";
+import { pushDataLayerEvent } from "@/utils/analytics/dataLayer";
 
 interface Props {
   close: () => void;
@@ -60,11 +61,15 @@ const CreateKeysModal = ({ close }: Props) => {
 
   const { mutate, isPending } = useMutation({
     mutationFn: GenerateAPIKeys,
-    onSuccess: (res) => {
+    onSuccess: (res, variables) => {
       toast.success("API key generated successfully");
       queryClient.invalidateQueries({ queryKey: ["developer-keys"] });
       setShowAPIDetailModal(true);
       setAPIKey(res);
+      pushDataLayerEvent("api_key_generated", {
+        key_environment:
+          variables.environment === "production" ? "live" : "test",
+      });
     },
   });
 
