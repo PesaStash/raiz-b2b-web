@@ -13,6 +13,8 @@ import { toast } from "sonner";
 import { useUser } from "@/lib/hooks/useUser";
 import { sanitizeAddressField } from "@/utils/helpers";
 import CenterModalHeader from "@/components/layouts/CenterModalHeader";
+import { pushDataLayerEvent } from "@/utils/analytics/dataLayer";
+import { getAnalyticsUserType } from "@/utils/analytics/userProps";
 
 const nigerianRegNumberRegex = /^(RC|BN|IT|LP)?[\s-]*\d{6,7}$/i;
 
@@ -84,6 +86,11 @@ const BusinessVerificationModal = ({
       toast.success(
         "Account registration successful. You'll receive an email from our banking partner regarding the next step for your onboarding"
       );
+      pushDataLayerEvent("kyc_status_update", {
+        kyc_step: "basic_info",
+        kyc_status: "submitted",
+        user_type: getAnalyticsUserType(),
+      });
       qc.invalidateQueries({ queryKey: ["user"] });
       qc.invalidateQueries({ queryKey: ["KYB-links"] });
       onVerificationSuccess?.();

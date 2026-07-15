@@ -5,6 +5,10 @@ import { useSendStore } from "@/store/Send";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { IExternalTransferPayload } from "@/types/services";
 import { findWalletByCurrency, passwordHash } from "@/utils/helpers";
+import {
+  trackSendCompleted,
+  trackTransactionFailed,
+} from "@/utils/analytics/dataLayer";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 
@@ -52,6 +56,12 @@ const ExternalPayout = ({ close, goNext, setPaymentError }: Props) => {
       qc.invalidateQueries({ queryKey: ["external-beneficiaries-recents"] });
       if (response?.transaction_status?.transaction_status === "completed") {
         actions.setStatus("success");
+        trackSendCompleted({
+          response,
+          value: Number(amount),
+          currency: selectedCurrency.name || "NGN",
+          recipientType: "external",
+        });
       } else if (
         response?.transaction_status?.transaction_status === "pending"
       ) {
@@ -63,6 +73,12 @@ const ExternalPayout = ({ close, goNext, setPaymentError }: Props) => {
     onError: (response: any) => {
       actions.setStatus("failed");
       setPaymentError(response?.data?.message);
+      trackTransactionFailed({
+        transactionType: "send",
+        error: response,
+        value: Number(amount) || undefined,
+        currency: selectedCurrency.name || "NGN",
+      });
     },
     onSettled: () => {
       goNext();

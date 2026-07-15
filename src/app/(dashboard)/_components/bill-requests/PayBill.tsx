@@ -7,6 +7,11 @@ import { IP2pTransferResponse } from "@/types/services";
 import { ICurrencyName } from "@/types/misc";
 import { IBillRequest, PaymentStatusType } from "@/types/transactions";
 import { findWalletByCurrency, passwordHash } from "@/utils/helpers";
+import {
+  getTransactionId,
+  trackMoneyMovementSuccess,
+  trackTransactionFailed,
+} from "@/utils/analytics/dataLayer";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 
@@ -58,12 +63,27 @@ const PayBill = ({
       qc.invalidateQueries({ queryKey: ["p2p-beneficiaries-recents"] });
       qc.invalidateQueries({ queryKey: ["bill-requests-received"] });
       setStatus("success");
+      const transactionId = getTransactionId(response);
+      if (transactionId) {
+        trackMoneyMovementSuccess({
+          event: "bill_payment_completed",
+          transactionId,
+          value: Number(request?.transaction_amount) || 0,
+          currency: request?.currency || "USD",
+        });
+      }
       goNext();
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (response: any) => {
       setStatus("failed");
       setPaymentError(response?.data?.message);
+      trackTransactionFailed({
+        transactionType: "bill_payment",
+        error: response,
+        value: Number(request?.transaction_amount) || undefined,
+        currency: request?.currency,
+      });
     },
     onSettled: () => {
       goNext();

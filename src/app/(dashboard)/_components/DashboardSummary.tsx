@@ -35,8 +35,19 @@ import ForeignSend from "./send/foreign/ForeignSend";
 import ForeignAcctInfo from "./acctInfo/ForeignAcctInfo";
 import MobileWalletCarousel from "@/components/mobile/MobileWalletCarousel";
 import MobileQuickActions from "@/components/mobile/MobileQuickActions";
+import { pushDataLayerEvent } from "@/utils/analytics/dataLayer";
+import {
+  getAnalyticsUserId,
+  getAnalyticsUserType,
+} from "@/utils/analytics/userProps";
+import {
+  GetItemFromLocalStorage,
+  SetItemToLocalStorage,
+} from "@/utils/localStorageFunc";
 
 type actionBtnKeytype = "send" | "request" | "topUp" | "details";
+
+const PROFILE_COMPLETED_KEY = "raiz_profile_completed_fired";
 
 const DashboardSummary = () => {
   const { user, refetch, isLoading } = useUser();
@@ -64,6 +75,23 @@ const DashboardSummary = () => {
   const verificationStatus =
     user?.business_account?.business_verifications?.[0]?.verification_status;
   const branchState = getOnboardingBranchState(user, verificationStatus);
+
+  useEffect(() => {
+    if (!branchState.showDashboard || !user) return;
+    const userId = getAnalyticsUserId(user);
+    if (!userId) return;
+    const firedKey = `${PROFILE_COMPLETED_KEY}:${userId}`;
+    if (GetItemFromLocalStorage(firedKey)) return;
+    pushDataLayerEvent(
+      "profile_completed",
+      {
+        completion_percent: 100,
+        user_type: getAnalyticsUserType(),
+      },
+      { dedupId: `profile_completed:${userId}` },
+    );
+    SetItemToLocalStorage(firedKey, true);
+  }, [branchState.showDashboard, user]);
 
   // const currentWallet = useMemo(() => {
   //   if (!user || !user?.business_account?.wallets || !selectedCurrency?.name)

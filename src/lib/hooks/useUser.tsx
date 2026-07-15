@@ -3,6 +3,7 @@ import { FetchUserApi } from "@/services/user";
 import { useUserStore } from "@/store/useUserStore";
 import { IUser } from "@/types/user";
 import { GetItemFromCookie } from "@/utils/CookiesFunc";
+import { trackUserDataOnce } from "@/utils/analytics/userProps";
 import { useQuery } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { useEffect } from "react";
@@ -29,6 +30,7 @@ export const useUser = () => {
   useEffect(() => {
     if (isSuccess && userData) {
       setUser(userData);
+      trackUserDataOnce(userData);
     }
   }, [isSuccess, userData, setUser]);
 

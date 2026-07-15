@@ -9,7 +9,7 @@ import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { ITxnReportPayload } from "@/types/services";
 import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Skeleton from "react-loading-skeleton";
 import Image from "next/image";
 import EmptyList from "@/components/ui/EmptyList";
@@ -19,6 +19,7 @@ import DateRange from "../transactions/_components/DateRange";
 import AnalyticsChart from "@/components/charts/AnalyticsChart";
 import RangeModal from "../_components/analytics/RangeModal";
 import { findWalletByCurrency } from "@/utils/helpers";
+import { pushDataLayerEvent } from "@/utils/analytics/dataLayer";
 
 export interface DateOption {
   label: string;
@@ -28,6 +29,12 @@ export interface DateOption {
 }
 
 const AnalyticsPage = () => {
+  useEffect(() => {
+    pushDataLayerEvent("report_viewed", {
+      report_type: "income_expense",
+    });
+  }, []);
+
   const getDateRanges = () => {
     const today = dayjs();
     return [

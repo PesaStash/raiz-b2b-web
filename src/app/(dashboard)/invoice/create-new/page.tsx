@@ -31,6 +31,7 @@ import DiscountInput from "../_components/DiscountInput";
 import ErrorMessage from "@/components/ui/ErrorMessage";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CreateInvoiceApi, FetchInvoiceIndexApi } from "@/services/invoice";
+import { pushDataLayerEvent } from "@/utils/analytics/dataLayer";
 import { useRouter } from "next/navigation";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 import InvoiceMobileBack from "../_components/InvoiceMobileBack";
@@ -224,9 +225,19 @@ const CreateInvoicePage = () => {
       payload: ICreateInvoicePayload;
       isDraft: boolean;
     }) => CreateInvoiceApi(payload, isDraft),
-    onSuccess: (response) => {
+    onSuccess: (response, variables) => {
       const id = response?.invoice_id || "";
       qc.invalidateQueries({ queryKey: ["invoices-list"] });
+      pushDataLayerEvent(
+        "invoice_created",
+        {
+          invoice_id: String(id),
+          value: Number(variables.payload.total_amount) || 0,
+          currency: variables.payload.currency || "USD",
+          status: variables.isDraft ? "draft" : "created",
+        },
+        { dedupId: `invoice_created:${id}` },
+      );
       router.push(`/invoice/${id}`);
     },
   });

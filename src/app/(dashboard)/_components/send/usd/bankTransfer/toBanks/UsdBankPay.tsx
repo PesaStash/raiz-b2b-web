@@ -3,6 +3,10 @@ import { SendMoneyUSBankApi } from "@/services/transactions";
 import { useSendStore } from "@/store/Send";
 import { ISendMoneyUsBankPayload } from "@/types/services";
 import { passwordHash } from "@/utils/helpers";
+import {
+  trackSendCompleted,
+  trackTransactionFailed,
+} from "@/utils/analytics/dataLayer";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 
@@ -31,6 +35,12 @@ const UsdBankPay = ({ close, goNext, setPaymentError }: Props) => {
       qc.invalidateQueries({ queryKey: ["today-outflow"] });
       if (response?.transaction_status?.transaction_status === "completed") {
         actions.setStatus("success");
+        trackSendCompleted({
+          response,
+          value: Number(amount),
+          currency: "USD",
+          recipientType: "external",
+        });
       } else if (
         response?.transaction_status?.transaction_status === "pending"
       ) {
@@ -42,6 +52,12 @@ const UsdBankPay = ({ close, goNext, setPaymentError }: Props) => {
     onError: (response: any) => {
       actions.setStatus("failed");
       setPaymentError(response?.data?.message);
+      trackTransactionFailed({
+        transactionType: "send",
+        error: response,
+        value: Number(amount) || undefined,
+        currency: "USD",
+      });
     },
     onSettled: () => {
       goNext();
