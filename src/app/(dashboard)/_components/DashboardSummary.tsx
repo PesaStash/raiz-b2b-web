@@ -25,6 +25,7 @@ import UsdTopUp from "./topUp/UsdTopup/UsdTopUp";
 import { useTopupStore } from "@/store/TopUp";
 import { CurrencyTypeKey } from "@/store/Swap/swapSlice.types";
 import AccountUpgrade from "./AccountUpgrade";
+import { useUsdOnboardingStatus } from "@/lib/hooks/useUsdOnboarding";
 import Loading from "@/app/loading";
 import { getOnboardingBranchState } from "@/utils/onboardingBranch";
 import ExchangeRateCard from "./exchangeRate/ExchangeRateCard";
@@ -65,7 +66,6 @@ const DashboardSummary = () => {
     | null
   >(null);
   const [showAcctInfo, setShowAcctInfo] = useState(false);
-  const [showResumeKyb, setShowResumeKyb] = useState(false);
   const pathName = usePathname();
   const NGNAcct = findWalletByCurrency(user, "NGN");
   const USDAcct = findWalletByCurrency(user, "USD");
@@ -74,7 +74,8 @@ const DashboardSummary = () => {
   const SBCAcct = findWalletByCurrency(user, "SBC");
   const verificationStatus =
     user?.business_account?.business_verifications?.[0]?.verification_status;
-  const branchState = getOnboardingBranchState(user, verificationStatus);
+  const { data: usdCase } = useUsdOnboardingStatus(user, verificationStatus);
+  const branchState = getOnboardingBranchState(user, verificationStatus, usdCase);
 
   useEffect(() => {
     if (!branchState.showDashboard || !user) return;
@@ -417,19 +418,11 @@ const DashboardSummary = () => {
         <div className="flex justify-center items-center h-[50vh]">
           <Loading />
         </div>
-      ) : showResumeKyb ? (
-        <AccountUpgrade
-          resumeFromStep2
-          onBack={() => setShowResumeKyb(false)}
-        />
       ) : branchState.showAccountUpgrade ? (
         <AccountUpgrade />
       ) : (
         <>
-          <Infos
-            isNgnBranch={branchState.isNgnBranch}
-            onRequireKyb={() => setShowResumeKyb(true)}
-          />
+          <Infos isNgnBranch={branchState.isNgnBranch} />
           <div className="flex flex-col lg:flex-row justify-between gap-6 lg:gap-8 mt-6 md:mt-8 min-w-0">
             <div className="hidden lg:block w-full lg:w-1/2  min-w-0">
               <DashboardAnalytics />
@@ -468,10 +461,6 @@ const DashboardSummary = () => {
           close={() => setOpenModal(null)}
           openNgnModal={openNGNModal}
           openCryptoModal={openCryptoModal}
-          onRequireKyb={() => {
-            setOpenModal(null);
-            setShowResumeKyb(true);
-          }}
           isNgnBranch={
             branchState.isNgnBranch && !branchState.isVerificationComplete
           }

@@ -26,7 +26,7 @@ interface AddressAutocompleteProps {
 
 const libraries: Libraries = ["places"];
 
-const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
+const AddressAutocompleteWithMaps: React.FC<AddressAutocompleteProps> = ({
   label,
   value = "",
   onChange,
@@ -100,6 +100,45 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
       {touched && error && <p className="text-red-500 text-xs">{error}</p>}
     </div>
   );
+};
+
+const AddressAutocomplete: React.FC<AddressAutocompleteProps> = (props) => {
+  const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API;
+
+  // Fail closed: don't attempt to load Places with a missing API key.
+  if (!mapsApiKey) {
+    const {
+      label,
+      value = "",
+      onChange,
+      error,
+      touched,
+      required = false,
+    } = props;
+
+    return (
+      <div className="flex flex-col gap-1 w-full">
+        {label && (
+          <label className="text-sm font-medium text-gray-700">
+            {label} {required && <span className="text-red-500">*</span>}
+          </label>
+        )}
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange?.(e.target.value)}
+          placeholder="Address search unavailable"
+          disabled
+          className={`w-full p-[15px] h-[50px] text-sm text-raiz-gray-950 border bg-raiz-gray-100 cursor-not-allowed outline-none rounded-lg leading-tight placeholder:text-raiz-gray-400 placeholder:text-sm border-raiz-gray-100 ${
+            touched && error ? "border-red-500" : ""
+          }`}
+        />
+        {touched && error && <p className="text-red-500 text-xs">{error}</p>}
+      </div>
+    );
+  }
+
+  return <AddressAutocompleteWithMaps {...props} />;
 };
 
 export default AddressAutocomplete;

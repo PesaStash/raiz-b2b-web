@@ -1,31 +1,36 @@
 "use client";
 import Spinner from "@/components/ui/Spinner";
 import { useUser } from "@/lib/hooks/useUser";
-import { CreateUSDWalletApi } from "@/services/business";
+import {
+  useRequestUsdOnboarding,
+  useUsdOnboardingStatus,
+} from "@/lib/hooks/useUsdOnboarding";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { findWalletByCurrency } from "@/utils/helpers";
 import {
   canCreateNgnWallet,
-  canStartUsdVerification,
+  canRequestUsdAccount,
+  canSetTransactionPin,
   dismissInfosAddAccounts,
+  hasCompletedUsdWallet,
+  hasUsdOnboardingRequest,
   isInfosAddAccountsDismissed,
+  isUsdOnboardingPending,
   resetInfosAddAccountsDismissed,
   shouldPromptAddUsdAccount,
 } from "@/utils/onboardingBranch";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ReactNode, useEffect, useState } from "react";
 import { toast } from "sonner";
 import Image from "next/image";
 import CreateNgnAcct from "./createNgnAcct/CreateNgnAcct";
 import SetTransactionPin from "./transaction-pin/SetTransactionPin";
 import { AnimatePresence, motion } from "motion/react";
-import SideModalWrapper from "./SideModalWrapper";
-import BusinessVerificationModal from "@/app/(dashboard)/_components/BusinessVerificationModal";
 import { MdArrowRightAlt } from "react-icons/md";
 import CreateForeignAcct from "./createForeignAcct/CreateForeignAcct";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
+import UsdOnboardingConfirmation from "./UsdOnboardingConfirmation";
 
-type ModalKey = "acctSetup" | "getNgn" | "getGbp" | "getEur" | "set-pin";
+type ModalKey = "getNgn" | "getGbp" | "getEur" | "set-pin";
 
 interface ActionItem {
   key: ModalKey | "getUsd";
@@ -35,11 +40,11 @@ interface ActionItem {
   sublabel: string;
   onAction: () => void;
   ctaLabel: string;
+  disabled?: boolean;
 }
 
 interface InfosProps {
   isNgnBranch?: boolean;
-  onRequireKyb?: () => void;
 }
 
 interface ActionSectionProps {
@@ -85,8 +90,8 @@ const PinSetupBanner = ({ onSetUpPin }: { onSetUpPin: () => void }) => (
             Secure your Account
           </h3>
           <p className="mt-0.5 text-xs leading-relaxed text-[#6F5B86] sm:mt-1 sm:text-sm">
-            Create a 4-digit PIN to securely complete transactions and authorize
-            future activity.
+            Set a transaction PIN to approve transfers and other sensitive
+            actions.
           </p>
         </div>
       </div>
@@ -121,6 +126,9 @@ const ActionSection = ({
 
   const gridColsClass =
     visibleItems.length === 1 ? "grid-cols-1" : "grid-cols-2";
+
+  const isCtaDisabled =
+    selected.disabled || (isUsdPending && selected.key === "getUsd");
 
   return (
     <div className="mt-4 rounded-2xl border px-3 py-4 shadow-[0_4px_16px_rgba(45,25,88,0.06)] sm:mt-5 sm:px-4">
@@ -196,14 +204,14 @@ const ActionSection = ({
 
         <button
           onClick={onCta}
-          disabled={isUsdPending && selected.key === "getUsd"}
+          disabled={isCtaDisabled}
           className="group inline-flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-[13px] font-semibold text-white transition-all active:scale-[0.98] hover:-translate-y-0.5 hover:shadow-[0_10px_22px_rgba(92,34,176,0.28)] disabled:cursor-not-allowed disabled:opacity-60 sm:h-9 sm:w-auto"
         >
           {isUsdPending && selected.key === "getUsd" ? (
             <Spinner className="!h-3.5 !w-3.5 !border-t-2 !border-b-2" />
           ) : null}
           {selected.ctaLabel}
-          {!(isUsdPending && selected.key === "getUsd") && (
+          {!isCtaDisabled && (
             <MdArrowRightAlt className="size-4 transition-transform group-hover:translate-x-0.5" />
           )}
         </button>
@@ -212,7 +220,7 @@ const ActionSection = ({
   );
 };
 
-const Infos = ({ isNgnBranch = false, onRequireKyb }: InfosProps) => {
+const Infos = ({ isNgnBranch = false }: InfosProps) => {
   const [showModal, setShowModal] = useState<ModalKey | null>(null);
   const [selectedAccountKey, setSelectedAccountKey] = useState<string | null>(
     null
@@ -220,8 +228,6 @@ const Infos = ({ isNgnBranch = false, onRequireKyb }: InfosProps) => {
   const [isAccountsDismissed, setIsAccountsDismissed] = useState(false);
 
   const { user, refetch } = useUser();
-  const { setSelectedCurrency } = useCurrencyStore();
-  const qc = useQueryClient();
 
   useEffect(() => {
     setIsAccountsDismissed(isInfosAddAccountsDismissed());
@@ -239,43 +245,39 @@ const Infos = ({ isNgnBranch = false, onRequireKyb }: InfosProps) => {
     setIsAccountsDismissed(false);
   };
 
-  const USDWalletMutation = useMutation({
-    mutationFn: CreateUSDWalletApi,
-    onSuccess: (response) => {
-      toast.success(response?.message);
-      qc.invalidateQueries({ queryKey: ["user"] });
-      refetch();
-      setSelectedCurrency("USD", user);
-    },
-  });
-
   const verificationStatus =
     user?.business_account?.business_verifications?.[0]?.verification_status;
-  const caseStage =
-    user?.business_account?.business_verifications?.[0]?.case_stage;
   const hasTransactionPin = user?.has_transaction_pin;
+
+  const { data: usdCase } = useUsdOnboardingStatus(user, verificationStatus);
+  const requestUsdMutation = useRequestUsdOnboarding({
+    onSuccess: () => refetch(),
+  });
+
+  const effectiveUsdCase = usdCase ?? requestUsdMutation.data?.data ?? null;
+  const usdRequestPending = isUsdOnboardingPending(effectiveUsdCase);
 
   const USDAcct = findWalletByCurrency(user, "USD");
   const GBPAcct = findWalletByCurrency(user, "GBP");
   const EURAcct = findWalletByCurrency(user, "EUR");
-  const canStartUsd = canStartUsdVerification(user, verificationStatus, caseStage);
+  const hasCompletedUsd = hasCompletedUsdWallet(user);
   const showAddNgn = canCreateNgnWallet(user, verificationStatus);
   const showAddUsd = shouldPromptAddUsdAccount(
     user,
     verificationStatus,
     isNgnBranch,
-    caseStage
+    effectiveUsdCase
   );
-
-  const requiresKybForForeignAccounts =
-    isNgnBranch && verificationStatus !== "completed";
+  const showUsdPendingBanner =
+    hasUsdOnboardingRequest(effectiveUsdCase) && !hasCompletedUsd;
 
   const handleForeignAccountAction = (currency: "GBP" | "EUR") => {
-    if (requiresKybForForeignAccounts) {
+    if (!hasCompletedUsd) {
       toast.info(
-        `You need a USD account before adding ${currency}. Complete USD verification first.`
+        usdRequestPending
+          ? `Your USD account request is pending. You'll be able to add ${currency} once your USD account is ready.`
+          : `You need a USD account before adding ${currency}. Request a USD account first.`
       );
-      onRequireKyb?.();
       return;
     }
     if (!USDAcct) {
@@ -286,19 +288,20 @@ const Infos = ({ isNgnBranch = false, onRequireKyb }: InfosProps) => {
   };
 
   const handleUsdAction = () => {
-    if (requiresKybForForeignAccounts) {
-      onRequireKyb?.();
+    if (
+      !canRequestUsdAccount(user, verificationStatus, effectiveUsdCase) ||
+      requestUsdMutation.isPending
+    ) {
+      if (!canRequestUsdAccount(user, verificationStatus, effectiveUsdCase)) {
+        toast.info("USD account request is not available in your current state.");
+      }
       return;
     }
-    if (!canStartUsd) {
-      toast.info("USD verification is not available in your current state.");
-      return;
-    }
-    USDWalletMutation.mutate();
+    requestUsdMutation.mutate();
   };
 
   const showPinSetup =
-    (verificationStatus === "completed" || isNgnBranch) && !hasTransactionPin;
+    canSetTransactionPin(verificationStatus) && !hasTransactionPin;
 
   const accountItems: ActionItem[] = [
     {
@@ -316,11 +319,9 @@ const Infos = ({ isNgnBranch = false, onRequireKyb }: InfosProps) => {
       label: "USD",
       sublabel: "Dollar account",
       onAction: handleUsdAction,
-      ctaLabel: requiresKybForForeignAccounts
-        ? "Verify to Create USD"
-        : USDWalletMutation.isPending
-          ? "Creating…"
-          : "Create USD Account",
+      ctaLabel: requestUsdMutation.isPending
+        ? "Submitting…"
+        : "Request USD Account",
     },
     {
       key: "getNgn",
@@ -355,9 +356,9 @@ const Infos = ({ isNgnBranch = false, onRequireKyb }: InfosProps) => {
       label: "GBP",
       sublabel: "British Pound",
       onAction: () => handleForeignAccountAction("GBP"),
-      ctaLabel: requiresKybForForeignAccounts
-        ? "Get USD First to Unlock GBP"
-        : "Create GBP Account",
+      ctaLabel: hasCompletedUsd
+        ? "Create GBP Account"
+        : "USD Account Required",
     },
     {
       key: "getEur",
@@ -375,14 +376,14 @@ const Infos = ({ isNgnBranch = false, onRequireKyb }: InfosProps) => {
       label: "EUR",
       sublabel: "Euro account",
       onAction: () => handleForeignAccountAction("EUR"),
-      ctaLabel: requiresKybForForeignAccounts
-        ? "Get USD First to Unlock EUR"
-        : "Create EUR Account",
+      ctaLabel: hasCompletedUsd
+        ? "Create EUR Account"
+        : "USD Account Required",
     },
   ];
 
   const visibleAccountItems = accountItems.filter((item) => item.condition);
-  const hasAccountPrompt = visibleAccountItems.length > 0;
+  const hasAccountPrompt = visibleAccountItems.length > 0 || showUsdPendingBanner;
   const showAccountSection = hasAccountPrompt && !isAccountsDismissed;
   const showAccountRestore = hasAccountPrompt && isAccountsDismissed;
 
@@ -397,8 +398,6 @@ const Infos = ({ isNgnBranch = false, onRequireKyb }: InfosProps) => {
 
   const displayModal = () => {
     switch (showModal) {
-      case "acctSetup":
-        return <BusinessVerificationModal close={handleCloseModal} />;
       case "getNgn":
         return <CreateNgnAcct close={handleCloseModal} />;
       case "getGbp":
@@ -418,6 +417,12 @@ const Infos = ({ isNgnBranch = false, onRequireKyb }: InfosProps) => {
         <PinSetupBanner onSetUpPin={() => setShowModal("set-pin")} />
       )}
 
+      {showUsdPendingBanner && effectiveUsdCase && (
+        <div className={showPinSetup ? "mt-3" : "mt-4 sm:mt-5"}>
+          <UsdOnboardingConfirmation usdCase={effectiveUsdCase} compact />
+        </div>
+      )}
+
       {showAccountRestore && (
         <div className={showPinSetup ? "mt-3" : "mt-5"}>
           <button
@@ -431,7 +436,7 @@ const Infos = ({ isNgnBranch = false, onRequireKyb }: InfosProps) => {
         </div>
       )}
 
-      {showAccountSection && selectedAccount && (
+      {showAccountSection && selectedAccount && visibleAccountItems.length > 0 && (
         <ActionSection
           title="Add more accounts"
           items={accountItems}
@@ -441,7 +446,7 @@ const Infos = ({ isNgnBranch = false, onRequireKyb }: InfosProps) => {
           layoutId="account-pill-check"
           dismissible
           onDismiss={handleDismissAccounts}
-          isUsdPending={USDWalletMutation.isPending}
+          isUsdPending={requestUsdMutation.isPending}
         />
       )}
 

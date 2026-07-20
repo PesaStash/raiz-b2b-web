@@ -189,6 +189,31 @@ export interface ISearchedUser {
   selfie_image: string | null;
 }
 
+export type UsdKybCaseStatus =
+  | "not_started"
+  | "collecting"
+  | "ready_for_review"
+  | "submitted_to_bridge"
+  | "under_review"
+  | "requires_additional_info"
+  | "approved"
+  | "completed"
+  | "rejected"
+  | string;
+
+export interface IUsdOnboardingCase {
+  requested_onboarding: boolean;
+  requested_onboarding_at: string;
+  status: UsdKybCaseStatus;
+  case_id: string;
+}
+
+export interface IUsdOnboardingResponse {
+  success: boolean;
+  message: string;
+  data: IUsdOnboardingCase;
+}
+
 export interface IKYBLinksStatus {
   entity_id: string;
   kyc_id: string;

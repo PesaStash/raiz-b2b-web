@@ -13,40 +13,34 @@ import AddBvnModal from "@/app/(dashboard)/_components/createNgnAcct/AddBvnModal
 import NgnSuccessModal from "@/app/(dashboard)/_components/createNgnAcct/NgnSuccessModal";
 import LogoutModal from "../modals/LogoutModal";
 import { useUser } from "@/lib/hooks/useUser";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   FetchUserRewardsApi,
 
   // PersonaVerificationApi
 } from "@/services/user";
-import { toast } from "sonner";
-// import dynamic from "next/dynamic";
 import SetTransactionPin from "@/app/(dashboard)/_components/transaction-pin/SetTransactionPin";
 import {
-  convertToTitle,
   findWalletByCurrency,
-  getTierInfo,
   truncateString,
 } from "@/utils/helpers";
-import PaymentLinkModal from "../modals/PaymentLinkModal";
+import { canSetTransactionPin, canRequestUsdAccount, isUsdOnboardingPending } from "@/utils/onboardingBranch";
 import {
-  CheckBrigdeVerificationStatusApi,
-  CreateUSDWalletApi,
-  GetKYBLinksApi,
-} from "@/services/business";
+  useRequestUsdOnboarding,
+  useUsdOnboardingStatus,
+} from "@/lib/hooks/useUsdOnboarding";
+import UsdOnboardingConfirmation from "@/app/(dashboard)/_components/UsdOnboardingConfirmation";
+import PaymentLinkModal from "../modals/PaymentLinkModal";
 import Spinner from "../ui/Spinner";
-import { useCurrencyStore } from "@/store/useCurrencyStore";
 import Avatar from "../ui/Avatar";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import Rewards from "@/app/(dashboard)/_components/rewards/Rewards";
 import FeedbacksModal from "../modals/FeedbacksModal";
 import BusinessVerificationModal from "@/app/(dashboard)/_components/BusinessVerificationModal";
-import Button from "../ui/Button";
 
 const Sidebar = () => {
   const { user, refetch } = useUser();
   const pathName = usePathname();
-  const { setSelectedCurrency } = useCurrencyStore();
   const [showModal, setShowModal] = useState<
     "acctSetup" | "getNgn" | "set-pin" | "rewards" | null
   >(null);
@@ -70,7 +64,33 @@ const Sidebar = () => {
     setShowModal(null);
   };
 
-  const qc = useQueryClient();
+  const { data: pointsData } = useQuery({
+    queryKey: ["reward-points"],
+    queryFn: FetchUserRewardsApi,
+  });
+
+  const verificationStatus =
+    user?.business_account?.business_verifications?.[0]?.verification_status;
+
+  const { data: usdCase } = useUsdOnboardingStatus(user, verificationStatus);
+  const requestUsdMutation = useRequestUsdOnboarding({
+    onSuccess: () => refetch(),
+  });
+
+  const effectiveUsdCase = usdCase ?? requestUsdMutation.data?.data ?? null;
+  const usdRequestPending = isUsdOnboardingPending(effectiveUsdCase);
+
+  const NGNAcct = findWalletByCurrency(user, "NGN");
+  const USDAcct = findWalletByCurrency(user, "USD");
+  const isNigerian =
+    user?.business_account?.entity?.country?.country_name?.toLowerCase() ===
+    "nigeria";
+  const hasTransactionPin = user?.has_transaction_pin;
+  const canRequestUsd = canRequestUsdAccount(
+    user,
+    verificationStatus,
+    effectiveUsdCase
+  );
 
   const displayModal = () => {
     switch (showModal) {
@@ -81,7 +101,6 @@ const Sidebar = () => {
         return (
           <CreateNgnAcct
             close={handleCloseModal}
-            // openBvnModal={() => setShowBvnModal(true)}
           />
         );
       case "set-pin":
@@ -140,63 +159,6 @@ const Sidebar = () => {
     );
   };
 
-  const USDWalletMutation = useMutation({
-    mutationFn: CreateUSDWalletApi,
-    onSuccess: (response) => {
-      toast.success(response?.message);
-      qc.invalidateQueries({ queryKey: ["user"] });
-      refetch();
-      setSelectedCurrency("USD", user);
-      handleCloseModal();
-    },
-  });
-
-  const { data: pointsData } = useQuery({
-    queryKey: ["reward-points"],
-    queryFn: FetchUserRewardsApi,
-  });
-
-  const CheckBridgeVerification = useMutation({
-    mutationFn: CheckBrigdeVerificationStatusApi,
-    onSuccess: (response) => {
-      qc.invalidateQueries({ queryKey: ["KYB-links"] });
-      if (response === "completed") {
-        refetch();
-      }
-      toast.info(`Your verification status is ${convertToTitle(response)}`);
-    },
-  });
-
-  const { data } = useQuery({
-    queryKey: ["KYB-links"],
-    queryFn: GetKYBLinksApi,
-    refetchOnWindowFocus: true,
-  });
-
-  const tosPending = data?.tos_status === "pending";
-  const tosApproved = data?.tos_status === "approved";
-  const kycNotStarted = data?.kyc_status === "not_started";
-  const kycAwaitingUbo = data?.kyc_status === "awaiting_ubo";
-
-  const handleAcceptTOS = () => {
-    window.open(data?.tos_link, "_blank");
-    // optional immediate refetch
-    setTimeout(() => {
-      qc.invalidateQueries({ queryKey: ["KYB-links"] });
-      CheckBridgeVerification.mutate();
-    }, 5000);
-  };
-
-  const { currentTier } = getTierInfo(pointsData?.point || 0);
-  const NGNAcct = findWalletByCurrency(user, "NGN");
-  const USDAcct = findWalletByCurrency(user, "USD");
-  const isNigerian =
-    user?.business_account?.entity?.country?.country_name?.toLowerCase() ===
-    "nigeria";
-  const verificationStatus =
-    user?.business_account?.business_verifications?.[0]?.verification_status;
-  const hasTransactionPin = user?.has_transaction_pin;
-
   const statuses = [
     {
       condition: verificationStatus === "not_started",
@@ -238,15 +200,9 @@ const Sidebar = () => {
       bg: "bg-[#FFF3E666]",
     },
     {
-      condition: verificationStatus === "pending",
+      condition: usdRequestPending && effectiveUsdCase,
       icon: (
-        <svg
-          width="32"
-          height="32"
-          viewBox="0 0 32 32"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
           <path
             opacity="0.5"
             d="M16 29.3335C22.6274 29.3335 28 23.9609 28 17.3335C28 10.7061 22.6274 5.3335 16 5.3335C9.37258 5.3335 4 10.7061 4 17.3335C4 23.9609 9.37258 29.3335 16 29.3335Z"
@@ -256,66 +212,18 @@ const Sidebar = () => {
             d="M14.1147 19.2186C13.5253 18.6292 11.1907 15.0879 9.27335 12.1226C8.63068 11.1292 9.79601 9.96389 10.7893 10.6052C13.7547 12.5226 17.296 14.8586 17.8853 15.4466C18.9267 16.4879 18.9267 18.1759 17.8853 19.2172C16.844 20.2599 15.156 20.2599 14.1147 19.2186Z"
             fill="#568C21"
           />
-          <path
-            d="M18 1.3335C17.4853 1.3335 14.5147 1.3335 14 1.3335C12.896 1.3335 12 2.2295 12 3.3335C12 4.4375 12.896 5.3335 14 5.3335C14.5147 5.3335 17.4853 5.3335 18 5.3335C19.104 5.3335 20 4.4375 20 3.3335C20 2.2295 19.104 1.3335 18 1.3335Z"
-            fill="#568C21"
-          />
-          <path
-            d="M27.4148 6.86119C27.0508 6.49719 26.8361 6.28252 26.4721 5.91852C25.6908 5.13719 24.4241 5.13719 23.6441 5.91852C22.8641 6.69985 22.8628 7.96652 23.6441 8.74652C24.0081 9.11052 24.2228 9.32519 24.5868 9.68919C25.3681 10.4705 26.6348 10.4705 27.4148 9.68919C28.1948 8.90919 28.1948 7.64252 27.4148 6.86119Z"
-            fill="#568C21"
-          />
         </svg>
       ),
-      title: "Complete Account Setup",
-      description: "Complete Account Set Up and Get unlimited access ",
+      title: "USD Account Requested",
+      description:
+        "Our operations team will contact your business to complete USD verification.",
       bg: "bg-[#f2f4e9]/60",
-      action: (
-        <>
-          {verificationStatus === "pending" && tosPending && (
-            <button
-              onClick={handleAcceptTOS}
-              disabled={tosApproved || !data?.tos_status}
-              className="group px-4 xl:px-0 py-2.5 w-full flex items-center gap-3 justify-center  bg-white border-2 border-[#F8F7FA] text-[#3C2875] font-bold rounded-3xl  hover:bg-gray-50 transition-colors  disabled:opacity-50"
-            >
-              <span className="text-xs xl:text-sm">
-                {tosApproved ? "Accepted" : "Review & Accept"}
-              </span>
-              <Image
-                src={"/icons/long-arrow-right.svg"}
-                alt="right"
-                width={20}
-                height={20}
-                className="hidden xl:block group-hover:translate-x-1 transition-transform"
-              />
-            </button>
-          )}
-
-          {verificationStatus === "pending" && tosApproved && kycNotStarted && (
-            <button
-              onClick={() => window.open(data?.kyc_link)}
-              disabled={!tosApproved || !kycNotStarted}
-              className="group px-6 py-2.5 w-full flex items-center gap-3 justify-center  bg-white border-2 border-[#F8F7FA] text-[#3C2875] font-bold rounded-3xl text-sm hover:bg-gray-50 transition-colors  disabled:opacity-50"
-            >
-              {kycAwaitingUbo ? "Awaiting UBOs" : "Start KYB"}
-              <Image
-                src={"/icons/long-arrow-right.svg"}
-                alt="right"
-                width={20}
-                height={20}
-                className="group-hover:translate-x-1 transition-transform"
-              />
-            </button>
-          )}
-          {kycAwaitingUbo && (
-            <span className="text-xs text-raiz-gray-500">
-              Awaiting UBOs verification
-            </span>
-          )}
-        </>
-      ),
+      action: effectiveUsdCase ? (
+        <UsdOnboardingConfirmation usdCase={effectiveUsdCase} compact />
+      ) : null,
     },
     {
-      condition: verificationStatus === "completed" && !hasTransactionPin,
+      condition: canSetTransactionPin(verificationStatus) && !hasTransactionPin,
       icon: (
         <svg
           width="30"
@@ -348,7 +256,8 @@ const Sidebar = () => {
         </svg>
       ),
       title: "Secure your Account",
-      description: "Set a 4-digit PIN to your transaction",
+      description:
+        "Set a transaction PIN to approve transfers and other sensitive actions.",
       action: (
         <button
           onClick={() => setShowModal("set-pin")}
@@ -367,8 +276,7 @@ const Sidebar = () => {
       bg: "bg-[#eaecff]/40",
     },
     {
-      condition:
-        verificationStatus === "completed" && !USDAcct && hasTransactionPin,
+      condition: canRequestUsd && hasTransactionPin,
       icon: (
         <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
           <g clipPath="url(#clip0_23665_5245)">
@@ -396,18 +304,19 @@ const Sidebar = () => {
           </defs>
         </svg>
       ),
-      title: "Get Your USD Account Now",
-      description: "Enjoy Seamless Transactions and Exclusive Features Today!",
+      title: "Request a USD Account",
+      description:
+        "Submit a request and our team will contact you to complete USD verification.",
       action: (
         <button
-          onClick={() => USDWalletMutation.mutate()}
+          onClick={() => requestUsdMutation.mutate()}
           className="text-white bg-primary py-3 px-5 rounded-full text-sm font-semibold flex items-center gap-2"
-          disabled={USDWalletMutation.isPending}
+          disabled={requestUsdMutation.isPending}
         >
-          {USDWalletMutation.isPending ? (
+          {requestUsdMutation.isPending ? (
             <Spinner className="!w-4 !h-4 !border-t-2 !border-b-2" />
           ) : null}
-          {USDWalletMutation.isPending ? "Processing..." : "Get USD Account"}
+          {requestUsdMutation.isPending ? "Submitting..." : "Request USD Account"}
         </button>
       ),
       bg: "bg-[#EAECFF66]",

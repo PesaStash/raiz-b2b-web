@@ -22,7 +22,7 @@ import {
 import { IChain } from "@/types/misc";
 import { PublicAxios } from "@/lib/publicAxios";
 import { GuestPayStatusType } from "@/types/transactions";
-import { IKYBLinksStatus } from "@/types/user";
+import { IUsdOnboardingResponse } from "@/types/user";
 
 export const FreezeDebitApi = async (data: ITransactionPinPayload) => {
   const response = await AuthAxios.patch(
@@ -40,10 +40,13 @@ export const UnFreezeDebitApi = async (data: ITransactionPinPayload) => {
   return response?.data;
 };
 
-export const CreateUSDWalletApi = async () => {
+export const RequestUsdOnboardingApi = async (): Promise<IUsdOnboardingResponse> => {
   const response = await AuthAxios.post("/business/entities/wallets/usd/");
   return response?.data;
 };
+
+/** @deprecated Use RequestUsdOnboardingApi */
+export const CreateUSDWalletApi = RequestUsdOnboardingApi;
 
 export const CreateNGNVirtualWalletApi = async () => {
   const response = await AuthAxios.post(
@@ -167,23 +170,6 @@ export const GetAfricaPayinStatus = async (
 ): Promise<GuestPayStatusType> => {
   const response = await PublicAxios.get(
     `/business/transactions/payins/africa/status/${payin_id}/`
-  );
-  return response?.data;
-};
-
-export const CheckBrigdeVerificationStatusApi = async () => {
-  const response = await AuthAxios.patch(
-    "/business/account_user/verifications/update/bridge/"
-  );
-  return response?.data;
-};
-
-export const GetKYBLinksApi = async (): Promise<IKYBLinksStatus> => {
-  const response = await AuthAxios.get(
-    "/business/account_user/verifications/link/",
-    {
-      silent: true,
-    } as CustomAxiosRequestConfig
   );
   return response?.data;
 };

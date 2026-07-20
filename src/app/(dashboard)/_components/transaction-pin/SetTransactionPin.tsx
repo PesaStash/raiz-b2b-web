@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { useFormik } from "formik";
 import { toFormikValidationSchema } from "zod-formik-adapter";
@@ -10,6 +10,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { SetTransactionPinApi } from "@/services/auth";
 import { toast } from "sonner";
 import { passwordHash } from "@/utils/helpers";
+import { useUser } from "@/lib/hooks/useUser";
+import { canSetTransactionPin } from "@/utils/onboardingBranch";
+import type { AxiosError } from "axios";
 
 interface Props {
   close: () => void;
@@ -18,19 +21,52 @@ interface Props {
 const SetTransactionPin = ({ close }: Props) => {
   const [formState, setFormState] = useState<"pin" | "confirmPin">("pin");
   const qc = useQueryClient();
+  const { user, refetch } = useUser();
+  const [pinForbidden, setPinForbidden] = useState(false);
+
+  const verificationStatus =
+    user?.business_account?.business_verifications?.[0]
+      ?.verification_status;
+
+  const isEligible = canSetTransactionPin(verificationStatus);
+  const canSubmit = isEligible && !pinForbidden;
+
+  useEffect(() => {
+    // If the user becomes eligible again, hide the server-denied copy.
+    if (canSetTransactionPin(verificationStatus)) {
+      setPinForbidden(false);
+    }
+  }, [verificationStatus]);
+
   const PinMutation = useMutation({
     mutationFn: (data: { transaction_pin: string }) =>
-      SetTransactionPinApi(data),
+      SetTransactionPinApi(data, { silent: true }),
     onSuccess: (response) => {
       toast.success(response?.message);
+      setPinForbidden(false);
       close();
       qc.invalidateQueries({ queryKey: ["user"] });
+      refetch();
+    },
+    onError: (error) => {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      if (axiosError.response?.status === 403) {
+        setPinForbidden(true);
+        qc.invalidateQueries({ queryKey: ["user"] });
+        refetch();
+        return;
+      }
+
+      toast.error(
+        axiosError.response?.data?.message || "An Error Occurred"
+      );
     },
   });
   const formik = useFormik({
     initialValues: { pin: "", confirmPin: "" },
     validationSchema: toFormikValidationSchema(pinSchema),
     onSubmit: (values) => {
+      if (!canSubmit) return;
       PinMutation.mutate({ transaction_pin: passwordHash(values.pin) });
     },
   });
@@ -43,6 +79,7 @@ const SetTransactionPin = ({ close }: Props) => {
   };
 
   const handleSubmitButton = async () => {
+    if (!canSubmit) return;
     // Mark the field as touched before proceeding
     if (formState === "pin") {
       formik.setTouched({ pin: true });
@@ -74,6 +111,11 @@ const SetTransactionPin = ({ close }: Props) => {
             Create your 4-digit PIN for transactions. For your security
             don&#39;t share your PIN with anyone.
           </p>
+          {!canSubmit && (
+            <p className="mt-3 text-sm font-normal leading-snug text-raiz-gray-700">
+              Complete business verification before setting a transaction PIN.
+            </p>
+          )}
         </div>
         <div className="w-10  h-10">
           <svg
@@ -111,7 +153,11 @@ const SetTransactionPin = ({ close }: Props) => {
         onSubmit={formik.handleSubmit}
         className="flex flex-col h-full gap-5 justify-between"
       >
-        <div className="bg-white rounded-[20px] p-6">  
+        <div
+          className={`bg-white rounded-[20px] p-6 ${
+            canSubmit ? "" : "opacity-60 pointer-events-none"
+          }`}
+        >
         {formState === "pin" ? (
           <OtpInput
             value={formik.values.pin}
@@ -133,7 +179,9 @@ const SetTransactionPin = ({ close }: Props) => {
             (formState === "pin"
               ? !formik.values.pin || formik.values.pin.length < 4
               : !formik.values.confirmPin ||
-                formik.values.confirmPin.length < 4) || PinMutation.isPending
+                formik.values.confirmPin.length < 4) ||
+            PinMutation.isPending ||
+            !canSubmit
           }
           loading={PinMutation.isPending}
           onClick={handleSubmitButton}

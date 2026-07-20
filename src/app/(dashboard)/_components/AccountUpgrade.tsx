@@ -1,44 +1,31 @@
 import Button from "@/components/ui/Button";
 import Overlay from "@/components/ui/Overlay";
 import Radio from "@/components/ui/Radio";
-import Spinner from "@/components/ui/Spinner";
 import { useUser } from "@/lib/hooks/useUser";
 import {
-  CheckBrigdeVerificationStatusApi,
-  CreateUSDWalletApi,
-  GetKYBLinksApi,
-} from "@/services/business";
-import { convertToTitle } from "@/utils/helpers";
+  useRequestUsdOnboarding,
+  useUsdOnboardingStatus,
+} from "@/lib/hooks/useUsdOnboarding";
 import {
-  canStartUsdVerification,
+  canRequestUsdAccount,
   getOnboardingBranchState,
+  hasUsdOnboardingRequest,
   OnboardingCurrencyPath,
 } from "@/utils/onboardingBranch";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useState } from "react";
 import { FaCheck } from "react-icons/fa";
-import { toast } from "sonner";
 import BusinessVerificationModal from "./BusinessVerificationModal";
 import CreateNgnAcct from "./createNgnAcct/CreateNgnAcct";
 import SetTransactionPin from "./transaction-pin/SetTransactionPin";
 import { AnimatePresence } from "motion/react";
-import SideModalWrapper from "./SideModalWrapper";
 import Image from "next/image";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 import { pushDataLayerEvent } from "@/utils/analytics/dataLayer";
 import { getAnalyticsUserType } from "@/utils/analytics/userProps";
+import UsdOnboardingConfirmation from "./UsdOnboardingConfirmation";
 
-interface AccountUpgradeProps {
-  resumeFromStep2?: boolean;
-  onBack?: () => void;
-}
-
-const AccountUpgrade = ({
-  resumeFromStep2 = false,
-  onBack,
-}: AccountUpgradeProps) => {
-  const isStaging = process.env.NEXT_PUBLIC_APP_ENV === "staging";
+const AccountUpgrade = () => {
   const { user, refetch } = useUser();
   const { setSelectedCurrency } = useCurrencyStore();
   const [showModal, setShowModal] = useState<
@@ -49,112 +36,46 @@ const AccountUpgrade = ({
     useState<OnboardingCurrencyPath | null>(null);
   const [selectedCurrencyPath, setSelectedCurrencyPath] =
     useState<OnboardingCurrencyPath>("NGN");
-  const [usdVerificationData, setUsdVerificationData] = useState<{
-    kyc_status?: string;
-    tos_status?: string;
-    kyc_link?: string;
-    tos_link?: string;
-    wallet_status?: string;
-  } | null>(null);
-  const qc = useQueryClient();
+  const [requestMessage, setRequestMessage] = useState<string | null>(null);
 
   const handleCloseModal = () => {
     setShowModal(null);
   };
 
-  const CheckBridgeVerification = useMutation({
-    mutationFn: CheckBrigdeVerificationStatusApi,
-    onSuccess: (response) => {
-      qc.invalidateQueries({ queryKey: ["KYB-links"] });
-      const status =
-        response === "completed"
-          ? "approved"
-          : response === "rejected"
-            ? "rejected"
-            : String(response || "pending");
+  const verificationStatus =
+    user?.business_account?.business_verifications?.[0]?.verification_status;
+
+  const { data: usdCase } = useUsdOnboardingStatus(user, verificationStatus);
+
+  const branchState = getOnboardingBranchState(
+    user,
+    verificationStatus,
+    usdCase
+  );
+
+  const requestUsdMutation = useRequestUsdOnboarding({
+    onSuccess: (caseData, message) => {
+      setRequestMessage(message);
       pushDataLayerEvent(
         "kyc_status_update",
         {
-          kyc_step: "bridge_verification",
-          kyc_status: status,
+          kyc_step: "usd_onboarding_requested",
+          kyc_status: caseData.status,
           user_type: getAnalyticsUserType(),
         },
-        { dedupId: `kyc_status_update:bridge:${status}` },
+        { dedupId: `kyc_status_update:usd_onboarding:${caseData.case_id}` }
       );
-      if (response === "completed") {
-        refetch();
-      }
-      toast.info(`Your KYB verification status is ${convertToTitle(response)}`);
+      refetch();
     },
   });
 
-  const verificationStatus =
-    user?.business_account?.business_verifications?.[0]?.verification_status;
-  const caseStage =
-    user?.business_account?.business_verifications?.[0]?.case_stage;
+  const effectiveUsdCase = usdCase ?? requestUsdMutation.data?.data ?? null;
+  const hasRequestedUsd = hasUsdOnboardingRequest(effectiveUsdCase);
 
-  const branchState = getOnboardingBranchState(user, verificationStatus);
-
-  const { data, refetch: refetchKybLinks, isFetching: isKybLinksFetching } =
-    useQuery({
-    queryKey: ["KYB-links"],
-    queryFn: GetKYBLinksApi,
-    refetchOnWindowFocus: true,
-    enabled: branchState.isStep1Complete || resumeFromStep2,
-  });
-
-  const USDVerificationMutation = useMutation({
-    mutationFn: CreateUSDWalletApi,
-    onSuccess: (response) => {
-      if (response?.data) {
-        setUsdVerificationData(response.data);
-      }
-      pushDataLayerEvent("kyc_status_update", {
-        kyc_step: "document_upload",
-        kyc_status: "submitted",
-        user_type: getAnalyticsUserType(),
-      });
-      qc.invalidateQueries({ queryKey: ["KYB-links"] });
-      refetchKybLinks();
-      toast.success(response?.message || "USD verification started.");
-    },
-  });
-
-  const effectiveKybData = usdVerificationData ?? data;
-
-  const handleAcceptTOS = () => {
-    if (effectiveKybData?.tos_link) {
-      window.open(effectiveKybData.tos_link, "_blank");
-    }
-    setTimeout(() => {
-      qc.invalidateQueries({ queryKey: ["KYB-links"] });
-      if (tosApproved) {
-        CheckBridgeVerification.mutate();
-      }
-    }, 5000);
-  };
-
-  const tosApproved =
-    effectiveKybData?.tos_status === "approved" ||
-    effectiveKybData?.tos_status === "accepted";
-  const tosPending = !tosApproved && !!effectiveKybData?.tos_link;
-
-  const kycNotStarted = effectiveKybData?.kyc_status === "not_started";
-  const kycAwaitingUbo = effectiveKybData?.kyc_status === "awaiting_ubo";
-  const kycUnderReview = effectiveKybData?.kyc_status === "under_review";
-  const caseStageAwaitingUbo = caseStage === "awaiting_ubo";
-
-  const showUsdSteps =
-    resumeFromStep2 || activeCurrencyPath === "USD";
-  const isUsdSetupLoading =
-    USDVerificationMutation.isPending ||
-    (showUsdSteps &&
-      !effectiveKybData?.tos_link &&
-      (USDVerificationMutation.isPending || isKybLinksFetching));
+  const showUsdSteps = activeCurrencyPath === "USD" || hasRequestedUsd;
   const showOnlyStep1 =
-    !resumeFromStep2 &&
-    (!branchState.isStep1Complete ||
-      (branchState.needsCurrencyChoice && activeCurrencyPath === null));
+    !branchState.isStep1Complete ||
+    (branchState.needsCurrencyChoice && activeCurrencyPath === null);
 
   const step1Status =
     verificationStatus === "not_started"
@@ -163,49 +84,17 @@ const AccountUpgrade = ({
         ? "completed"
         : "pending";
 
-  const step2Status: "completed" | "active" | "pending" = tosApproved
+  const usdStepStatus: "completed" | "active" | "pending" = hasRequestedUsd
     ? "completed"
-    : tosPending
+    : showUsdSteps
       ? "active"
       : "pending";
 
-  const step3Status: "completed" | "active" | "pending" =
-    verificationStatus === "completed"
-      ? "completed"
-      : tosApproved
-        ? "active"
-        : "pending";
-
-  const step4Status: "completed" | "active" | "pending" =
-    verificationStatus === "completed" ? "completed" : "pending";
-
   useEffect(() => {
-    if (activeCurrencyPath === null && branchState.hasUsdWallet) {
+    if (hasRequestedUsd && activeCurrencyPath !== "USD") {
       setActiveCurrencyPath("USD");
     }
-  }, [activeCurrencyPath, branchState.hasUsdWallet]);
-
-  // NGN-branch users resuming KYB (e.g. tried to add GBP/EUR) may never have
-  // started USD verification, so no KYC/TOS links exist yet. The links are
-  // only generated by the USD wallet POST, so trigger it for them.
-  useEffect(() => {
-    if (
-      resumeFromStep2 &&
-      USDVerificationMutation.isIdle &&
-      !isKybLinksFetching &&
-      !effectiveKybData?.tos_link &&
-      canStartUsdVerification(user, verificationStatus, caseStage)
-    ) {
-      USDVerificationMutation.mutate();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    resumeFromStep2,
-    isKybLinksFetching,
-    effectiveKybData?.tos_link,
-    verificationStatus,
-    caseStage,
-  ]);
+  }, [hasRequestedUsd, activeCurrencyPath]);
 
   useEffect(() => {
     if (
@@ -224,6 +113,7 @@ const AccountUpgrade = ({
   ]);
 
   const handleChangeCurrency = () => {
+    if (hasRequestedUsd) return;
     setActiveCurrencyPath(null);
     setShowCurrencyModal(true);
   };
@@ -234,14 +124,17 @@ const AccountUpgrade = ({
 
     if (selectedCurrencyPath === "NGN") {
       setShowModal("getNgn");
-    } else {
-      if (canStartUsdVerification(user, verificationStatus, caseStage)) {
-        USDVerificationMutation.mutate();
-      } else {
-        qc.invalidateQueries({ queryKey: ["KYB-links"] });
-        refetchKybLinks();
-      }
     }
+  };
+
+  const handleRequestUsd = () => {
+    if (
+      !canRequestUsdAccount(user, verificationStatus, effectiveUsdCase) ||
+      requestUsdMutation.isPending
+    ) {
+      return;
+    }
+    requestUsdMutation.mutate();
   };
 
   const handleNgnCreated = () => {
@@ -279,15 +172,6 @@ const AccountUpgrade = ({
     <>
       <div className="min-w-0 font-sans md:min-h-screen md:bg-white md:mt-8">
         <div className="bg-[#FFF3E666] rounded-2xl md:rounded-lg px-3 py-4 md:px-4 md:py-5">
-          {resumeFromStep2 && onBack && (
-            <button
-              onClick={onBack}
-              className="mb-4 text-sm font-semibold text-[#3C2875] hover:underline"
-            >
-              Back to dashboard
-            </button>
-          )}
-
           {/* Header Section */}
           <div className="flex items-start gap-3 md:gap-4 mb-6 md:mb-10">
             <svg
@@ -347,172 +231,87 @@ const AccountUpgrade = ({
           {/* Steps Container */}
           <div className="relative px-0 md:px-10">
             {/* Step 1: Basic Business Information */}
-            {!resumeFromStep2 && (
-              <Step
-                status={step1Status}
-                title="Basic Business Information"
-                description="Tell us a bit about your business to get started."
-                isLast={showOnlyStep1}
-              >
+            <Step
+              status={step1Status}
+              title="Basic Business Information"
+              description="Tell us a bit about your business to get started."
+              isLast={showOnlyStep1 && !showUsdSteps}
+            >
+              <div className="mt-3 md:mt-4">
+                <Button
+                  onClick={() => setShowModal("acctSetup")}
+                  className="w-full sm:w-fit h-10 md:h-[41px]"
+                  disabled={verificationStatus !== "not_started"}
+                >
+                  {verificationStatus === "not_started"
+                    ? "Get Started"
+                    : "Completed"}
+                </Button>
+              </div>
+              {activeCurrencyPath === "NGN" && !branchState.hasNgnWallet && (
                 <div className="mt-3 md:mt-4">
                   <Button
-                    onClick={() => setShowModal("acctSetup")}
+                    onClick={() => setShowModal("getNgn")}
                     className="w-full sm:w-fit h-10 md:h-[41px]"
-                    disabled={verificationStatus !== "not_started"}
                   >
-                    {verificationStatus === "not_started"
-                      ? "Get Started"
-                      : "Completed"}
+                    Continue NGN Account Setup
                   </Button>
                 </div>
-                {activeCurrencyPath === "NGN" && !branchState.hasNgnWallet && (
-                  <div className="mt-3 md:mt-4">
-                    <Button
-                      onClick={() => setShowModal("getNgn")}
-                      className="w-full sm:w-fit h-10 md:h-[41px]"
-                    >
-                      Continue NGN Account Setup
-                    </Button>
-                  </div>
-                )}
-                {branchState.needsCurrencyChoice && activeCurrencyPath && (
-                  <button
-                    type="button"
-                    onClick={handleChangeCurrency}
-                    className="mt-3 text-sm font-semibold text-[#3C2875] hover:underline"
-                  >
-                    Change starting currency
-                  </button>
-                )}
-              </Step>
-            )}
+              )}
+              {branchState.needsCurrencyChoice && activeCurrencyPath && (
+                <button
+                  type="button"
+                  onClick={handleChangeCurrency}
+                  className="mt-3 text-sm font-semibold text-[#3C2875] hover:underline"
+                >
+                  Change starting currency
+                </button>
+              )}
+            </Step>
 
             {showUsdSteps && (
-              <>
-                {isUsdSetupLoading && (
-                  <div className="mb-6 flex items-center gap-3 rounded-xl border border-gray-100 bg-white px-4 py-4 shadow-sm">
-                    <Spinner className="!h-6 !w-6 !border-t-2 !border-b-2 shrink-0" />
-                    <div>
-                      <p className="text-sm font-semibold text-raiz-gray-950">
-                        Setting up your USD account
-                      </p>
-                      <p className="text-xs text-raiz-gray-600 mt-0.5">
-                        Preparing your verification links. This may take a
-                        moment.
-                      </p>
-                    </div>
+              <Step
+                status={usdStepStatus}
+                title="Request USD Account"
+                description="Submit a request and our operations team will contact your business to complete USD verification."
+                isLast
+              >
+                {hasRequestedUsd && effectiveUsdCase ? (
+                  <div className="mt-4 md:mt-6">
+                    <UsdOnboardingConfirmation
+                      usdCase={effectiveUsdCase}
+                      message={requestMessage ?? undefined}
+                    />
                   </div>
-                )}
-
-                {/* Step 2: Accept Terms & Conditions */}
-                <Step
-                  status={step2Status}
-                  title="Accept Terms & Conditions"
-                  description="Please review and accept our business terms to proceed with your application"
-                >
+                ) : (
                   <div className="mt-3 md:mt-4">
                     <Button
-                      onClick={handleAcceptTOS}
+                      onClick={handleRequestUsd}
                       disabled={
-                        tosApproved ||
-                        !effectiveKybData?.tos_link ||
-                        isUsdSetupLoading
+                        requestUsdMutation.isPending ||
+                        !canRequestUsdAccount(
+                          user,
+                          verificationStatus,
+                          effectiveUsdCase
+                        )
                       }
-                      loading={isUsdSetupLoading}
-                      className="px-6 py-2.5 w-full sm:w-fit h-10 md:h-[41px]"
+                      loading={requestUsdMutation.isPending}
+                      className="w-full sm:w-fit h-10 md:h-[41px]"
                     >
-                      {isUsdSetupLoading
-                        ? "Preparing..."
-                        : tosApproved
-                          ? "Accepted"
-                          : "Review & Accept"}
+                      {requestUsdMutation.isPending
+                        ? "Submitting request..."
+                        : "Request USD Account"}
                     </Button>
                   </div>
-                </Step>
-
-                {/* Step 3: Verify Your Business (Pending) */}
-                <Step
-                  status={step3Status}
-                  title="Verify your Business (KYB)"
-                  isLast={!isStaging}
-                  description="We need to verify your business identity. Here's what you'll need to have ready:"
-                >
-                  <div className="mt-4 md:mt-6 bg-white border border-gray-100 rounded-xl p-4 md:p-6 shadow-sm">
-                    <h4 className="text-sm font-semibold text-[#443852] mb-3 md:mb-4">
-                      Required Submissions
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-y-2.5 md:gap-y-3 gap-x-8">
-                      <RequirementItem text="Certificate of Inc." />
-                      <RequirementItem text="Government ID" />
-                      <RequirementItem text="Ultimate Beneficial Owners (UBOs) Identity Verification" />
-                      <RequirementItem text="Proof of Address" />
-                      <RequirementItem text="Source of Funds" />
-                      <RequirementItem text="Proof of Business Activity" />
-                    </div>
-                  </div>
-                  <div className="mt-4 md:mt-6">
-                    <button
-                      onClick={() => {
-                        if (effectiveKybData?.kyc_link) {
-                          window.open(effectiveKybData.kyc_link);
-                        }
-                      }}
-                      disabled={
-                        !tosApproved ||
-                        !effectiveKybData?.kyc_link ||
-                        (!kycNotStarted && !kycAwaitingUbo && !caseStageAwaitingUbo)
-                      }
-                      className="w-full sm:w-fit px-6 py-2.5 h-10 md:h-[41px] bg-white border-2 border-[#F8F7FA] text-[#3C2875] font-bold rounded-3xl text-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
-                    >
-                      {verificationStatus === "completed"
-                        ? "KYB Completed"
-                        : kycAwaitingUbo || caseStageAwaitingUbo
-                          ? "Awaiting UBOs"
-                          : kycUnderReview
-                            ? "KYB Under Review"
-                            : "Start KYB Process"}
-                    </button>
-                    {(kycAwaitingUbo || caseStageAwaitingUbo) && (
-                      <p className="text-raiz-gray-500 text-xs md:text-sm mt-2 leading-relaxed">
-                        Note: Verification links have been sent to the email
-                        addresses of all UBOs provided.
-                      </p>
-                    )}
-                  </div>
-                </Step>
-
-                {/* Step 4: Check Status (Staging Only) */}
-                {isStaging && (
-                  <Step
-                    status={step4Status}
-                    isLast={true}
-                    title="Check your Verification Status (For Staging Only)"
-                    description="Monitor your verification status here once submitted."
-                  >
-                    <div className="mt-3 md:mt-4">
-                      <button
-                        onClick={() => CheckBridgeVerification.mutate()}
-                        disabled={CheckBridgeVerification.isPending}
-                        className="w-full sm:w-fit px-6 py-2.5 h-10 md:h-[41px] bg-white border-2 border-[#F8F7FA] text-[#3C2875] font-bold rounded-3xl text-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
-                      >
-                        {CheckBridgeVerification.isPending
-                          ? "Checking..."
-                          : "Check Status"}
-                      </button>
-                    </div>
-                  </Step>
                 )}
-              </>
+              </Step>
             )}
           </div>
         </div>
       </div>
 
       {showCurrencyModal && (
-        <Overlay
-          close={() => setShowCurrencyModal(false)}
-          width="375px"
-        >
+        <Overlay close={() => setShowCurrencyModal(false)} width="375px">
           <div className="flex flex-col h-full py-8 px-5 font-brSonoma">
             <div className="flex justify-between items-start mb-6">
               <div>
@@ -557,7 +356,8 @@ const AccountUpgrade = ({
                       USD Account
                     </p>
                     <p className="text-zinc-900 text-xs font-normal leading-tight mt-2">
-                      Business verification required to get a USD account
+                      Request a USD account — our team will guide you through
+                      setup
                     </p>
                   </div>
                 </div>
@@ -591,7 +391,7 @@ const AccountUpgrade = ({
                       NGN Account
                     </p>
                     <p className="text-zinc-900 text-xs font-normal leading-tight mt-2">
-                    Get your NGN account instantly
+                      Get your NGN account instantly
                     </p>
                   </div>
                 </div>
@@ -603,12 +403,8 @@ const AccountUpgrade = ({
               </div>
             </div>
 
-            <Button
-              onClick={handleCurrencyContinue}
-              disabled={USDVerificationMutation.isPending}
-              className="w-full mt-6"
-            >
-              {USDVerificationMutation.isPending ? "Please wait..." : "Continue"}
+            <Button onClick={handleCurrencyContinue} className="w-full mt-6">
+              Continue
             </Button>
             <p className="text-center text-xs text-raiz-gray-600 mt-3">
               You can add the other currency later
@@ -619,19 +415,11 @@ const AccountUpgrade = ({
 
       <AnimatePresence>
         {showModal ? (
-          <CenterModalWrapper
-            close={handleCloseModal}
-          >
+          <CenterModalWrapper close={handleCloseModal}>
             {displayModal()}
           </CenterModalWrapper>
         ) : null}
       </AnimatePresence>
-      {/* {showModal === "getNgn" &&
-      <CenterModalWrapper close={handleCloseModal}>
-        <CreateNgnAcct close={handleNgnCreated} />
-      </CenterModalWrapper>
-       null} */}
-
     </>
   );
 };
@@ -684,29 +472,5 @@ const Step = ({ status, title, description, children, isLast }: StepProps) => {
     </div>
   );
 };
-
-const RequirementItem = ({ text }: { text: string }) => (
-  <div className="flex items-start gap-2">
-    <div className="size-4 shrink-0 mt-0.5">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-        <path
-          d="M8.00016 14.6668C11.6668 14.6668 14.6668 11.6668 14.6668 8.00016C14.6668 4.3335 11.6668 1.3335 8.00016 1.3335C4.3335 1.3335 1.3335 4.3335 1.3335 8.00016C1.3335 11.6668 4.3335 14.6668 8.00016 14.6668Z"
-          stroke="#443852"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M5.1665 7.99995L7.05317 9.88661L10.8332 6.11328"
-          stroke="#443852"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    </div>
-    <span className="text-xs md:text-sm text-[#443852] leading-snug">{text}</span>
-  </div>
-);
 
 export default AccountUpgrade;

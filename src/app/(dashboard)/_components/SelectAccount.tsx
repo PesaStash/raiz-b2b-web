@@ -3,7 +3,7 @@ import React from "react";
 import Image from "next/image";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CreateForeignAccountApi, CreateUSDWalletApi } from "@/services/business";
+import { CreateForeignAccountApi } from "@/services/business";
 import { toast } from "sonner";
 import {
   getInsufficientUsdForForeignAccountMessage,
@@ -15,9 +15,16 @@ import {
   truncateString,
 } from "@/utils/helpers";
 import {
-  canStartUsdVerification,
+  canRequestUsdAccount,
+  hasCompletedUsdWallet,
+  hasUsdOnboardingRequest,
   isNigerianBusiness,
+  isUsdOnboardingPending,
 } from "@/utils/onboardingBranch";
+import {
+  useRequestUsdOnboarding,
+  useUsdOnboardingStatus,
+} from "@/lib/hooks/useUsdOnboarding";
 import { useUser } from "@/lib/hooks/useUser";
 import { useSendStore } from "@/store/Send";
 import { ForeignCurrency } from "@/types/services";
@@ -27,7 +34,6 @@ interface Props {
   openNgnModal: () => void;
   openCryptoModal: () => void;
   isNgnBranch?: boolean;
-  onRequireKyb?: () => void;
 }
 
 const SelectAccount = ({
@@ -35,7 +41,6 @@ const SelectAccount = ({
   openNgnModal,
   openCryptoModal,
   isNgnBranch = false,
-  onRequireKyb,
 }: Props) => {
   const { user, refetch } = useUser();
   const { actions } = useSendStore();
@@ -47,21 +52,16 @@ const SelectAccount = ({
   const CryptoAcct = findWalletByCurrency(user, "SBC");
   const verificationStatus =
     user?.business_account?.business_verifications?.[0]?.verification_status;
-  const caseStage =
-    user?.business_account?.business_verifications?.[0]?.case_stage;
+
+  const { data: usdCase } = useUsdOnboardingStatus(user, verificationStatus);
+  const requestUsdMutation = useRequestUsdOnboarding({
+    onSuccess: () => refetch(),
+  });
+  const effectiveUsdCase = usdCase ?? requestUsdMutation.data?.data ?? null;
+  const usdRequestPending = isUsdOnboardingPending(effectiveUsdCase);
+  const hasCompletedUsd = hasCompletedUsdWallet(user);
 
   const qc = useQueryClient();
-  const USDWalletMutation = useMutation({
-    mutationFn: CreateUSDWalletApi,
-    onSuccess: async (response) => {
-      toast.success(response?.message);
-      await qc.invalidateQueries({ queryKey: ["user"] });
-      const refreshedUser = await refetch();
-      setSelectedCurrency("USD", refreshedUser.data || user);
-      actions.selectCurrency("USD");
-      close();
-    },
-  });
 
   const foreignAccountMutation = useMutation({
     mutationFn: (currency: ForeignCurrency) => CreateForeignAccountApi(currency),
@@ -77,6 +77,7 @@ const SelectAccount = ({
       toast.error(getApiErrorMessage(error, "Unable to create account"));
     },
   });
+
   const handleNgn = () => {
     if (NGNAcct) {
       setSelectedCurrency("NGN", user);
@@ -86,17 +87,22 @@ const SelectAccount = ({
       openNgnModal();
     }
   };
+
   const handleUsd = () => {
     if (USDAcct) {
       setSelectedCurrency("USD", user);
       actions.selectCurrency("USD");
       close();
-    } else if (!canStartUsdVerification(user, verificationStatus, caseStage)) {
-      toast.info("USD verification is not available in your current state.");
-    } else if (isNgnBranch) {
-      onRequireKyb?.();
+    } else if (hasUsdOnboardingRequest(effectiveUsdCase)) {
+      toast.info(
+        "Your USD account request is pending. Our team will contact you to complete verification."
+      );
+    } else if (
+      !canRequestUsdAccount(user, verificationStatus, effectiveUsdCase)
+    ) {
+      toast.info("USD account request is not available in your current state.");
     } else {
-      USDWalletMutation.mutate();
+      requestUsdMutation.mutate();
     }
   };
 
@@ -105,8 +111,12 @@ const SelectAccount = ({
       setSelectedCurrency("SBC", user);
       actions.selectCurrency("SBC");
       close();
-    } else if (isNgnBranch) {
-      onRequireKyb?.();
+    } else if (isNgnBranch && !hasCompletedUsd) {
+      toast.info(
+        usdRequestPending
+          ? "Your USD account request is pending. You'll be able to add a crypto wallet once your USD account is ready."
+          : "Request a USD account first to unlock crypto wallet features."
+      );
     } else {
       openCryptoModal();
     }
@@ -121,11 +131,12 @@ const SelectAccount = ({
       return;
     }
 
-    if (isNgnBranch) {
+    if (!hasCompletedUsd) {
       toast.info(
-        `You need a USD account before adding ${currency}. Complete USD verification first.`
+        usdRequestPending
+          ? `Your USD account request is pending. You'll be able to add ${currency} once your USD account is ready.`
+          : `You need a USD account before adding ${currency}. Request a USD account first.`
       );
-      onRequireKyb?.();
       return;
     }
 
@@ -143,6 +154,13 @@ const SelectAccount = ({
   };
 
   const isNigerian = isNigerianBusiness(user);
+
+  const getUsdLabel = () => {
+    if (USDAcct) return USDAcct.account_number;
+    if (usdRequestPending) return "USD request pending";
+    if (requestUsdMutation.isPending) return "Submitting USD request...";
+    return "Request USD Account";
+  };
 
   return (
     <Overlay close={close} width="375px">
@@ -168,11 +186,7 @@ const SelectAccount = ({
               />
               <div className="flex flex-col items-start">
                 <p className="text-raiz-gray-900 text-sm md:text-base font-medium font-brSonoma leading-tight">
-                  {USDAcct
-                    ? USDAcct?.account_number
-                    : USDWalletMutation.isPending
-                      ? "Creating your USD account..."
-                      : "Get USD Account"}
+                  {getUsdLabel()}
                 </p>
                 <p className="opacity-50 text-raiz-gray-950 text-xs md:text-[13px] font-normal  leading-tight">
                   {USDAcct?.wallet_type.wallet_type_name || "USD Account"}

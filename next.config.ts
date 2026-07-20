@@ -32,7 +32,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: "Content-Security-Policy",
-            value: "frame-ancestors 'none'",
+            value: "object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
           },
           {
             key: "X-Content-Type-Options",

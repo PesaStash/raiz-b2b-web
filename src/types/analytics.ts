@@ -4,7 +4,7 @@ export type KycStep =
   | "basic_info"
   | "document_upload"
   | "review"
-  | "bridge_verification";
+  | "usd_onboarding_requested";
 
 export type KycStatus =
   | "submitted"

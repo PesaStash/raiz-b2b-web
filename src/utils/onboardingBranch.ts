@@ -1,6 +1,6 @@
 import { ACCOUNT_CURRENCIES } from "@/constants/misc";
 import { ICurrencyName } from "@/types/misc";
-import { IUser } from "@/types/user";
+import { IUser, IUsdOnboardingCase, UsdKybCaseStatus } from "@/types/user";
 import { determineSwapPair, findWalletByCurrency } from "@/utils/helpers";
 import { CurrencyTypeKey } from "@/store/Swap/swapSlice.types";
 
@@ -33,6 +33,12 @@ export type VerificationStatus =
   | "failed"
   | undefined;
 
+// B2B transaction PIN eligibility.
+// Backend only allows setting a PIN once basic KYB verification is complete.
+export function canSetTransactionPin(status: VerificationStatus) {
+  return status === "kyc_tier_1" || status === "completed";
+}
+
 export interface OnboardingBranchState {
   verificationStatus: VerificationStatus;
   isStep1Complete: boolean;
@@ -43,6 +49,7 @@ export interface OnboardingBranchState {
   showAccountUpgrade: boolean;
   hasNgnWallet: boolean;
   hasUsdWallet: boolean;
+  hasUsdOnboardingRequest: boolean;
 }
 
 export function isNigerianBusiness(user: IUser | undefined) {
@@ -71,31 +78,56 @@ export function hasCompletedUsdWallet(user: IUser | undefined) {
   );
 }
 
+export function isUsdKybRejected(status?: UsdKybCaseStatus | null) {
+  return status === "rejected";
+}
+
+export function hasUsdOnboardingRequest(
+  usdCase?: IUsdOnboardingCase | null
+): boolean {
+  return !!usdCase?.requested_onboarding;
+}
+
+export function isUsdOnboardingPending(
+  usdCase?: IUsdOnboardingCase | null
+): boolean {
+  if (!hasUsdOnboardingRequest(usdCase)) return false;
+  if (isUsdKybRejected(usdCase?.status)) return false;
+  return usdCase?.status !== "completed";
+}
+
+export function canRequestUsdAccount(
+  user: IUser | undefined,
+  verificationStatus: VerificationStatus,
+  usdCase?: IUsdOnboardingCase | null
+) {
+  return (
+    !hasCompletedUsdWallet(user) &&
+    !isUsdKybRejected(usdCase?.status) &&
+    !hasUsdOnboardingRequest(usdCase) &&
+    verificationStatus === "kyc_tier_1"
+  );
+}
+
+/** @deprecated Use canRequestUsdAccount for new USD KYB request flow */
 export function canStartUsdVerification(
   user: IUser | undefined,
   verificationStatus: VerificationStatus,
-  caseStage?: string | null
+  usdCase?: IUsdOnboardingCase | null
 ) {
-  const hasRejectedUsdState = caseStage === "bridge_rejected";
-
-  return (
-    !hasCompletedUsdWallet(user) &&
-    !hasRejectedUsdState &&
-    (verificationStatus === "kyc_tier_1" ||
-      verificationStatus === "pending" ||
-      verificationStatus === "completed")
-  );
+  return canRequestUsdAccount(user, verificationStatus, usdCase);
 }
 
 export function shouldPromptAddUsdAccount(
   user: IUser | undefined,
   verificationStatus: VerificationStatus,
-  isNgnBranch: boolean,
-  caseStage?: string | null
+  _isNgnBranch: boolean,
+  usdCase?: IUsdOnboardingCase | null
 ) {
   if (hasCompletedUsdWallet(user)) return false;
-  if (caseStage === "bridge_rejected") return false;
-  return verificationStatus === "completed" || isNgnBranch;
+  if (isUsdKybRejected(usdCase?.status)) return false;
+  if (hasUsdOnboardingRequest(usdCase)) return false;
+  return verificationStatus === "kyc_tier_1";
 }
 
 export function userHasWalletCurrency(
@@ -107,7 +139,8 @@ export function userHasWalletCurrency(
 
 export function getDefaultAccountCurrency(
   user: IUser | undefined,
-  verificationStatus?: VerificationStatus
+  verificationStatus?: VerificationStatus,
+  usdCase?: IUsdOnboardingCase | null
 ): ICurrencyName {
   if (!user?.business_account?.wallets?.length) {
     return "USD";
@@ -117,7 +150,7 @@ export function getDefaultAccountCurrency(
     verificationStatus ??
     user.business_account.business_verifications?.[0]?.verification_status;
 
-  const branchState = getOnboardingBranchState(user, status);
+  const branchState = getOnboardingBranchState(user, status, usdCase);
 
   if (branchState.isNgnBranch && branchState.hasNgnWallet) {
     return "NGN";
@@ -143,13 +176,14 @@ export function getDefaultAccountCurrency(
 export function resolveActiveAccountCurrency(
   user: IUser | undefined,
   selectedCurrency: ICurrencyName,
-  verificationStatus?: VerificationStatus
+  verificationStatus?: VerificationStatus,
+  usdCase?: IUsdOnboardingCase | null
 ): ICurrencyName {
   const status =
     verificationStatus ??
     user?.business_account?.business_verifications?.[0]?.verification_status;
 
-  const branchState = getOnboardingBranchState(user, status);
+  const branchState = getOnboardingBranchState(user, status, usdCase);
 
   if (
     branchState.isNgnBranch &&
@@ -163,7 +197,7 @@ export function resolveActiveAccountCurrency(
     return selectedCurrency;
   }
 
-  return getDefaultAccountCurrency(user, status);
+  return getDefaultAccountCurrency(user, status, usdCase);
 }
 
 export function getDefaultSwapCurrencies(user: IUser | undefined): {
@@ -190,7 +224,8 @@ export function getDefaultSwapCurrencies(user: IUser | undefined): {
 
 export function getOnboardingBranchState(
   user: IUser | undefined,
-  verificationStatus: VerificationStatus
+  verificationStatus: VerificationStatus,
+  usdCase?: IUsdOnboardingCase | null
 ): OnboardingBranchState {
   const NGNAcct = findWalletByCurrency(user, "NGN");
   const USDAcct = findWalletByCurrency(user, "USD");
@@ -203,15 +238,21 @@ export function getOnboardingBranchState(
 
   const hasNgnWallet = !!NGNAcct;
   const hasUsdWallet = !!USDAcct;
+  const hasUsdOnboardingRequestState = hasUsdOnboardingRequest(usdCase);
 
   const isNgnBranch =
     hasNgnWallet && isBasicVerificationComplete && !isVerificationComplete;
 
   const needsCurrencyChoice =
-    isBasicVerificationComplete && !isVerificationComplete && !hasNgnWallet;
+    isBasicVerificationComplete &&
+    !isVerificationComplete &&
+    !hasNgnWallet &&
+    !hasUsdOnboardingRequestState;
 
   const showDashboard =
-    isVerificationComplete || (isNgnBranch && hasNgnWallet);
+    isVerificationComplete ||
+    (isNgnBranch && hasNgnWallet) ||
+    hasUsdOnboardingRequestState;
 
   const showAccountUpgrade = !showDashboard;
 
@@ -225,5 +266,6 @@ export function getOnboardingBranchState(
     showAccountUpgrade,
     hasNgnWallet,
     hasUsdWallet,
+    hasUsdOnboardingRequest: hasUsdOnboardingRequestState,
   };
 }
