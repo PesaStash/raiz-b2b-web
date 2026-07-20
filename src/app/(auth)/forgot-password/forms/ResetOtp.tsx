@@ -21,7 +21,6 @@ const ResetOtp = ({ email, setPage, setOtp }: Props) => {
   const { timeLeft } = useTimer(120, isTimerActive);
 
   const handleResend = () => {
-    console.log("Resending OTP...");
     setIsTimerActive((prev) => !prev);
   };
   const formik = useFormik({

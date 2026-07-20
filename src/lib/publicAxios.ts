@@ -28,7 +28,6 @@ interface CustomAxiosRequestConfig extends AxiosRequestConfig {
 const handleResponse = (response: AxiosResponse) => response;
 
 const handleError = async (error: CustomAxiosError) => {
-  console.log(JSON.stringify(error, null, 2));
   const isSilent = (error.config as CustomAxiosRequestConfig)?.silent;
   if (!isSilent) {
     const errorMessage = error.response?.data?.message || "An Error Occurred";

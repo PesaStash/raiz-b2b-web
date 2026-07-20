@@ -28,6 +28,7 @@ import {
   getTierInfo,
   truncateString,
 } from "@/utils/helpers";
+import { canSetTransactionPin } from "@/utils/onboardingBranch";
 import PaymentLinkModal from "../modals/PaymentLinkModal";
 import {
   CheckBrigdeVerificationStatusApi,
@@ -315,7 +316,7 @@ const Sidebar = () => {
       ),
     },
     {
-      condition: verificationStatus === "completed" && !hasTransactionPin,
+      condition: canSetTransactionPin(verificationStatus) && !hasTransactionPin,
       icon: (
         <svg
           width="30"

@@ -1,14 +1,14 @@
 "use client";
 import Image from "next/image";
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import CountryOriginInfoModal from "../CountryOriginInfoModal";
-import CountryCodeModal from "../CountryCodeModal";
 import { FormikProps } from "formik";
 import { IRegisterFormValues } from "@/types/misc";
 import InputField from "@/components/ui/InputField";
 import InputLabel from "@/components/ui/InputLabel";
-import ErrorMessage from "@/components/ui/ErrorMessage";
 import AnimatedSection from "@/components/ui/AnimatedSection";
+import SelectField from "@/components/ui/SelectField";
+import useCountryStore from "@/store/useCountryStore";
 
 export interface RegisterFormProps {
   formik: FormikProps<IRegisterFormValues>;
@@ -18,7 +18,29 @@ export interface RegisterFormProps {
 
 const CreateAccount = ({ formik }: RegisterFormProps) => {
   const [showCountryInfo, setShowCountryInfo] = useState(false);
-  const [showCountry, setShowCountry] = useState(false);
+  const { countries, fetchCountries, loading: countriesLoading } =
+    useCountryStore();
+
+  useEffect(() => {
+    fetchCountries();
+  }, [fetchCountries]);
+
+  const countryOptions = useMemo(
+    () =>
+      countries.map((country) => ({
+        value: String(country.country_id),
+        label: country.country_name,
+      })),
+    [countries]
+  );
+
+  const selectedCountry = useMemo(
+    () =>
+      countryOptions.find(
+        (option) => String(option.value) === String(formik.values.country_id)
+      ) ?? null,
+    [countryOptions, formik.values.country_id]
+  );
 
   return (
     <AnimatedSection key="create-acct" className=" flex flex-col">
@@ -50,7 +72,7 @@ const CreateAccount = ({ formik }: RegisterFormProps) => {
             <div className="flex flex-col gap-2">
               <div className="flex gap-2 items-center">
                 <InputLabel content="Country of Origin" />
-                <button onClick={() => setShowCountryInfo(true)}>
+                <button type="button" onClick={() => setShowCountryInfo(true)}>
                   <Image
                     src={"/icons/tooltip-info.svg"}
                     alt="country"
@@ -59,31 +81,34 @@ const CreateAccount = ({ formik }: RegisterFormProps) => {
                   />
                 </button>
               </div>
-              <button
-                onClick={() => setShowCountry(true)}
-                className="flex justify-between w-full h-[50px] p-[15px] bg-raiz-gray-100 rounded-lg  items-center"
-              >
-                <span
-                  className={`${
-                    formik.values.country_name
-                      ? "text-raiz-gray-950"
-                      : "text-raiz-gray-400"
-                  } text-sm font-normal  leading-tight`}
-                >
-                  {formik.values.country_id && formik.values.country_name
-                    ? formik.values?.country_name
-                    : "Enter country"}
-                </span>
-                <Image
-                  src={"/icons/arrow-down.svg"}
-                  alt="dropdown"
-                  width={16}
-                  height={16}
-                />
-              </button>
-              {formik.touched.country_id && formik.errors.country_id && (
-                <ErrorMessage message={formik.errors.country_id} />
-              )}
+              <SelectField
+                name="country_id"
+                placeholder="Enter country"
+                options={countryOptions}
+                value={selectedCountry}
+                isLoading={countriesLoading}
+                onChange={(option) => {
+                  const id =
+                    option?.value != null ? String(option.value) : "";
+                  formik.setFieldValue("country_id", id, true);
+                  formik.setFieldValue(
+                    "country_name",
+                    option?.label ?? "",
+                    false
+                  );
+                  formik.setFieldTouched("country_id", true, false);
+                }}
+                status={
+                  formik.touched.country_id && formik.errors.country_id
+                    ? "error"
+                    : null
+                }
+                helper={
+                  formik.touched.country_id && formik.errors.country_id
+                    ? String(formik.errors.country_id)
+                    : null
+                }
+              />
             </div>
             <InputField
               placeholder="Enter first name"
@@ -137,9 +162,6 @@ const CreateAccount = ({ formik }: RegisterFormProps) => {
       </div>
       {showCountryInfo && (
         <CountryOriginInfoModal close={() => setShowCountryInfo(false)} />
-      )}
-      {showCountry && (
-        <CountryCodeModal close={() => setShowCountry(false)} formik={formik} />
       )}
     </AnimatedSection>
   );
