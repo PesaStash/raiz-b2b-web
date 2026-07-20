@@ -26,11 +26,17 @@ const s3Client = new S3Client({
   },
 });
 
+function buildObjectUrl(key: string): string {
+  const bucket = process.env.AWS_BUCKET_NAME as string;
+  const region = process.env.AWS_REGION as string;
+  return `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
+}
+
 async function uploadToS3(
   file: Buffer,
   fileName: string,
   contentType: string,
-): Promise<{ key: string; url: string }> {
+): Promise<{ key: string; objectUrl: string; signedUrl: string }> {
   const key = `${Date.now()}-${fileName}`;
   const params = {
     Bucket: process.env.AWS_BUCKET_NAME as string,
@@ -41,11 +47,11 @@ async function uploadToS3(
 
   await s3Client.send(new PutObjectCommand(params));
 
-  const url = await getSignedUrl(s3Client, new GetObjectCommand(params), {
+  const signedUrl = await getSignedUrl(s3Client, new GetObjectCommand(params), {
     expiresIn: SIGNED_URL_EXPIRY_SECONDS,
   });
 
-  return { key, url };
+  return { key, objectUrl: buildObjectUrl(key), signedUrl };
 }
 
 export async function POST(request: NextRequest) {
@@ -83,13 +89,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { key, url } = await uploadToS3(
+    const { key, objectUrl, signedUrl } = await uploadToS3(
       buffer,
       `${uuid()}.${fileExtension}`,
       mimeType,
     );
 
-    return NextResponse.json({ success: true, url, key });
+    return NextResponse.json({ success: true, key, objectUrl, signedUrl });
   } catch (error) {
     console.error("Error uploading file:", error);
     return NextResponse.json(

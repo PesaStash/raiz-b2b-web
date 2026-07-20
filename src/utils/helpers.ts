@@ -147,6 +147,23 @@ export function extractObjectUrlFromSignedUrl(signedUrl: string): string {
   return url.origin + url.pathname;
 }
 
+/** Strip S3 signing query params so avatars load via Next/Image and don't expire. */
+export function normalizeS3ObjectUrl(url: string | null | undefined): string {
+  if (!url) return "";
+  if (url.startsWith("/") || url.startsWith("blob:") || url.startsWith("data:")) {
+    return url;
+  }
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname.includes("amazonaws.com")) {
+      return parsed.origin + parsed.pathname;
+    }
+  } catch {
+    // fall through
+  }
+  return url;
+}
+
 export const getTierInfo = (value: number) => {
   const currentTier =
     tiers.find((tier) => value >= tier.min && value <= tier.max) || tiers[0];
@@ -545,7 +562,7 @@ export const generateInvoicePDFBlob = async (
 export const uploadFileToS3 = async (
   file: Blob,
   fileName?: string,
-): Promise<{ url: string; key: string }> => {
+): Promise<{ objectUrl: string; signedUrl: string; key: string }> => {
   const formData = new FormData();
   formData.append("file", file, fileName);
 
@@ -556,7 +573,8 @@ export const uploadFileToS3 = async (
   });
 
   const data = (await response.json().catch(() => ({}))) as {
-    url?: string;
+    objectUrl?: string;
+    signedUrl?: string;
     key?: string;
   };
 
@@ -566,16 +584,20 @@ export const uploadFileToS3 = async (
     );
   }
 
-  if (!data.url || !data.key) {
+  if (!data.objectUrl || !data.signedUrl || !data.key) {
     throw new Error("Upload failed");
   }
 
-  return { url: data.url, key: data.key };
+  return {
+    objectUrl: data.objectUrl,
+    signedUrl: data.signedUrl,
+    key: data.key,
+  };
 };
 
 export const uploadPDF = async (file: Blob, fileName: string) => {
-  const { url } = await uploadFileToS3(file, fileName);
-  return url;
+  const { signedUrl } = await uploadFileToS3(file, fileName);
+  return signedUrl;
 };
 
 export const blobToBase64 = (blob: Blob): Promise<string> => {

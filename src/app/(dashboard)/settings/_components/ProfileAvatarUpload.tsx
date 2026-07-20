@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { UploadProfilePicture } from "@/services/user";
 import { useUser } from "@/lib/hooks/useUser";
 import { toast } from "sonner";
-import { uploadFileToS3 } from "@/utils/helpers";
+import { normalizeS3ObjectUrl, uploadFileToS3 } from "@/utils/helpers";
 
 type Props = {
   size?: "sm" | "md";
@@ -27,7 +27,7 @@ const ProfileAvatarUpload = ({ size = "md", className = "" }: Props) => {
 
   const displayImage =
     previewUrl ||
-    user?.business_account?.business_image ||
+    normalizeS3ObjectUrl(user?.business_account?.business_image) ||
     "/images/default-pfp.svg";
 
   const uploadImgMutation = useMutation({
@@ -52,10 +52,13 @@ const ProfileAvatarUpload = ({ size = "md", className = "" }: Props) => {
     async (selectedFile: File) => {
       setIsUploading(true);
       try {
-        const { url } = await uploadFileToS3(selectedFile, selectedFile.name);
+        const { objectUrl } = await uploadFileToS3(
+          selectedFile,
+          selectedFile.name,
+        );
         if (previewUrl) URL.revokeObjectURL(previewUrl);
         setPreviewUrl(URL.createObjectURL(selectedFile));
-        uploadImgMutation.mutate(url);
+        uploadImgMutation.mutate(objectUrl);
       } catch (err: unknown) {
         toast.error((err as Error)?.message || "Failed to upload image");
         setPreviewUrl(null);
