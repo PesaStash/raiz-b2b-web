@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { v4 as uuid } from "uuid";
 import {
   S3Client,
@@ -6,7 +7,16 @@ import {
   GetObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { extractObjectUrlFromSignedUrl } from "@/utils/helpers";
+
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+const SIGNED_URL_EXPIRY_SECONDS = 15 * 60;
+
+const ALLOWED_MIME_TYPES: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "application/pdf": "pdf",
+};
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION! as string,
@@ -16,56 +26,75 @@ const s3Client = new S3Client({
   },
 });
 
-async function uploadImageToS3(
+async function uploadToS3(
   file: Buffer,
   fileName: string,
-  type: string,
-): Promise<string> {
+  contentType: string,
+): Promise<{ key: string; url: string }> {
+  const key = `${Date.now()}-${fileName}`;
   const params = {
     Bucket: process.env.AWS_BUCKET_NAME as string,
-    Key: `${Date.now()}-${fileName}`,
+    Key: key,
     Body: file,
-    ContentType: type,
+    ContentType: contentType,
   };
 
-  const command = new PutObjectCommand(params);
-  await s3Client.send(command);
+  await s3Client.send(new PutObjectCommand(params));
 
-  const getCommand = new GetObjectCommand(params);
-  const url = await getSignedUrl(s3Client, getCommand);
+  const url = await getSignedUrl(s3Client, new GetObjectCommand(params), {
+    expiresIn: SIGNED_URL_EXPIRY_SECONDS,
+  });
 
-  return extractObjectUrlFromSignedUrl(url);
+  return { key, url };
 }
 
 export async function POST(request: NextRequest) {
   try {
+    const cookieStore = await cookies();
+    const accessToken = cookieStore.get("access_token")?.value;
+    if (!accessToken) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
     const formData = await request.formData();
 
     const file = formData.get("file") as Blob | null;
     if (!file) {
       return NextResponse.json(
-        { error: "File blob is required." },
+        { message: "File blob is required." },
         { status: 400 },
       );
     }
 
     const mimeType = file.type;
-    const fileExtension = mimeType.split("/")[1];
+    const fileExtension = ALLOWED_MIME_TYPES[mimeType];
+    if (!fileExtension) {
+      return NextResponse.json(
+        { message: "File type not allowed." },
+        { status: 415 },
+      );
+    }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const url = await uploadImageToS3(
+    if (buffer.length > MAX_FILE_SIZE_BYTES) {
+      return NextResponse.json(
+        { message: "File exceeds maximum size of 5MB." },
+        { status: 413 },
+      );
+    }
+
+    const { key, url } = await uploadToS3(
       buffer,
-      uuid() + "." + fileExtension,
+      `${uuid()}.${fileExtension}`,
       mimeType,
     );
 
-    return NextResponse.json({ success: true, url });
+    return NextResponse.json({ success: true, url, key });
   } catch (error) {
-    console.error("Error uploading image:", error);
+    console.error("Error uploading file:", error);
     return NextResponse.json(
-      // Added return statement
-      { message: "Error uploading image" },
-      { status: 500 }, // Added status code for error case
+      { message: "Error uploading file" },
+      { status: 500 },
     );
   }
 }

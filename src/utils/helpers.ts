@@ -45,16 +45,95 @@ export const copyToClipboard = (value: string) => {
     });
 };
 
+type ApiErrorPayload = {
+  detail?: string;
+  message?: string;
+  error?: string;
+  correlation_id?: string;
+  request_id?: string;
+};
+
+const UNSAFE_ERROR_PATTERNS = [
+  /sql/i,
+  /traceback/i,
+  /exception/i,
+  /\bat\s+\S+\./,
+  /Error:/,
+  /stack/i,
+  /undefined is not/i,
+  /<html/i,
+];
+
+function isUserSafeMessage(message: string): boolean {
+  if (!message || message.length > 300) return false;
+  return !UNSAFE_ERROR_PATTERNS.some((pattern) => pattern.test(message));
+}
+
+function extractApiErrorContext(error: unknown): {
+  status?: number;
+  data?: ApiErrorPayload;
+} {
+  const axiosResponse = error as {
+    status?: number;
+    data?: ApiErrorPayload;
+    response?: { status?: number; data?: ApiErrorPayload };
+  };
+
+  if (axiosResponse.response) {
+    return {
+      status: axiosResponse.response.status,
+      data: axiosResponse.response.data,
+    };
+  }
+
+  if (axiosResponse.status !== undefined || axiosResponse.data) {
+    return {
+      status: axiosResponse.status,
+      data: axiosResponse.data,
+    };
+  }
+
+  return {};
+}
+
+function getBackendMessage(data?: ApiErrorPayload): string | undefined {
+  const message = data?.detail || data?.message || data?.error;
+  return message && isUserSafeMessage(message) ? message : undefined;
+}
+
+function appendCorrelationId(message: string, data?: ApiErrorPayload): string {
+  const correlationId = data?.correlation_id || data?.request_id;
+  if (!correlationId) return message;
+  return `${message} If this continues, contact support with reference ${correlationId}.`;
+}
+
 export const getApiErrorMessage = (
   error: unknown,
   fallback = "Something went wrong",
+  options?: { featureMessage403?: string },
 ) => {
-  const errorData =
-    (error as { data?: { detail?: string; message?: string } })?.data ||
-    (error as { response?: { data?: { detail?: string; message?: string } } })
-      ?.response?.data;
+  const { status, data } = extractApiErrorContext(error);
+  const backendMessage = getBackendMessage(data);
 
-  return errorData?.detail || errorData?.message || fallback;
+  let message = fallback;
+
+  if (status === 429) {
+    message =
+      "Too many attempts. Please wait a moment before trying again.";
+  } else if (status === 400 || status === 422) {
+    message =
+      backendMessage ||
+      "We could not validate that request. Check the fields and try again.";
+  } else if (status === 403) {
+    message =
+      options?.featureMessage403 ||
+      backendMessage ||
+      "You don't have permission to perform this action.";
+  } else if (backendMessage) {
+    message = backendMessage;
+  }
+
+  return appendCorrelationId(message, data);
 };
 
 export const getInitials = (firstName: string, lastName: string): string => {
@@ -463,21 +542,40 @@ export const generateInvoicePDFBlob = async (
   return blob;
 };
 
-export const uploadPDF = async (file: Blob, fileName: string) => {
+export const uploadFileToS3 = async (
+  file: Blob,
+  fileName?: string,
+): Promise<{ url: string; key: string }> => {
   const formData = new FormData();
   formData.append("file", file, fileName);
 
   const response = await fetch("/api/upload", {
     method: "POST",
     body: formData,
+    credentials: "include",
   });
 
+  const data = (await response.json().catch(() => ({}))) as {
+    url?: string;
+    key?: string;
+  };
+
   if (!response.ok) {
-    throw new Error(`Upload failed: ${response.statusText}`);
+    throw new Error(
+      getApiErrorMessage({ status: response.status, data }, "Upload failed"),
+    );
   }
 
-  const data = await response.json();
-  return data.url as string;
+  if (!data.url || !data.key) {
+    throw new Error("Upload failed");
+  }
+
+  return { url: data.url, key: data.key };
+};
+
+export const uploadPDF = async (file: Blob, fileName: string) => {
+  const { url } = await uploadFileToS3(file, fileName);
+  return url;
 };
 
 export const blobToBase64 = (blob: Blob): Promise<string> => {

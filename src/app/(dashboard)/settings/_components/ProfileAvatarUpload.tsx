@@ -6,6 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { UploadProfilePicture } from "@/services/user";
 import { useUser } from "@/lib/hooks/useUser";
 import { toast } from "sonner";
+import { uploadFileToS3 } from "@/utils/helpers";
 
 type Props = {
   size?: "sm" | "md";
@@ -51,21 +52,12 @@ const ProfileAvatarUpload = ({ size = "md", className = "" }: Props) => {
     async (selectedFile: File) => {
       setIsUploading(true);
       try {
-        const formData = new FormData();
-        formData.append("file", selectedFile);
-        const response = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
-        if (!response.ok) {
-          throw new Error(`Upload failed with status: ${response.status}`);
-        }
-        const data = await response.json();
+        const { url } = await uploadFileToS3(selectedFile, selectedFile.name);
         if (previewUrl) URL.revokeObjectURL(previewUrl);
         setPreviewUrl(URL.createObjectURL(selectedFile));
-        uploadImgMutation.mutate(data.url);
+        uploadImgMutation.mutate(url);
       } catch (err: unknown) {
-        toast.error(`Failed to upload image: ${(err as Error)?.message}`);
+        toast.error((err as Error)?.message || "Failed to upload image");
         setPreviewUrl(null);
       } finally {
         setIsUploading(false);
@@ -81,9 +73,9 @@ const ProfileAvatarUpload = ({ size = "md", className = "" }: Props) => {
       toast.warning("Image size should be less than 5MB");
       return;
     }
-    const validTypes = ["image/jpeg", "image/png", "image/jpg"];
+    const validTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
     if (!validTypes.includes(selectedFile.type)) {
-      toast.warning("Please upload a valid image file (JPEG, PNG, JPG)");
+      toast.warning("Please upload a valid image file (JPEG, PNG, WEBP)");
       return;
     }
     uploadFile(selectedFile);
@@ -126,7 +118,7 @@ const ProfileAvatarUpload = ({ size = "md", className = "" }: Props) => {
       <input
         ref={inputRef}
         type="file"
-        accept="image/jpeg,image/png,image/jpg"
+        accept="image/jpeg,image/png,image/webp"
         className="sr-only"
         onChange={handleImageUpload}
         disabled={busy}
