@@ -5,7 +5,6 @@ import axios, {
   AxiosResponse,
 } from "axios";
 import { toast } from "sonner";
-import { encryptData, generateNonce } from "./headerEncryption";
 import { GetItemFromCookie } from "@/utils/CookiesFunc";
 import { fetchPublicIP, getApiErrorMessage } from "@/utils/helpers";
 
@@ -60,11 +59,6 @@ export const AuthAxios: AxiosInstance = axios.create({
 AuthAxios.interceptors.request.use(
   async (config) => {
     const token = GetItemFromCookie("access_token");
-    const nonceStr = generateNonce();
-    const signature = encryptData(nonceStr);
-
-    config.headers["nonce-str"] = nonceStr;
-    config.headers["signature"] = signature;
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

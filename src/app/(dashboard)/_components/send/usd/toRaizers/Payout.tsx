@@ -6,7 +6,7 @@ import { useSendStore } from "@/store/Send";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { IP2PTransferPayload } from "@/types/services";
 import { ICurrencyName } from "@/types/misc";
-import { findWalletByCurrency, passwordHash } from "@/utils/helpers";
+import { findWalletByCurrency } from "@/utils/helpers";
 import {
   trackSendCompleted,
   trackTransactionFailed,
@@ -93,7 +93,7 @@ const Payout = ({ close, goNext, setPaymentError }: Props) => {
         receiver_entity_id: selectedUser?.entity_id || null,
         transaction_amount: Number(amount),
         transaction_remarks: purpose,
-        transaction_pin: passwordHash(pin),
+        transaction_pin: pin,
         transaction_category_id: category?.transaction_category_id || 0,
       },
     };

@@ -4,7 +4,7 @@ import { SendIntBeneficiariesApi } from "@/services/transactions";
 import { useSendStore } from "@/store/Send";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { IIntSendPayload } from "@/types/services";
-import { findWalletByCurrency, passwordHash } from "@/utils/helpers";
+import { findWalletByCurrency } from "@/utils/helpers";
 import {
   trackSendCompleted,
   trackTransactionFailed,
@@ -89,7 +89,7 @@ const InternationPayout = ({
       transaction_category_id: category?.transaction_category_id || 0,
       transaction_description: purpose,
       data: {
-        transaction_pin: passwordHash(pin),
+        transaction_pin: pin,
       },
     };
     SendMoneyMutation.mutate(payload);

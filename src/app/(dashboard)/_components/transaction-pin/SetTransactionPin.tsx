@@ -9,7 +9,6 @@ import OtpInput from "@/components/ui/OtpInput";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { SetTransactionPinApi } from "@/services/auth";
 import { toast } from "sonner";
-import { passwordHash } from "@/utils/helpers";
 import { useUser } from "@/lib/hooks/useUser";
 import { canSetTransactionPin } from "@/utils/onboardingBranch";
 import type { AxiosError } from "axios";
@@ -67,7 +66,7 @@ const SetTransactionPin = ({ close }: Props) => {
     validationSchema: toFormikValidationSchema(pinSchema),
     onSubmit: (values) => {
       if (!canSubmit) return;
-      PinMutation.mutate({ transaction_pin: passwordHash(values.pin) });
+      PinMutation.mutate({ transaction_pin: values.pin });
     },
   });
   const handleBackButton = () => {

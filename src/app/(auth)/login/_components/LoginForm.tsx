@@ -11,7 +11,6 @@ import { loginSchema } from "../../register/_components/validation";
 import { useMutation } from "@tanstack/react-query";
 import { ILoginPayload, LoginApi } from "@/services/auth";
 import AnimatedSection from "@/components/ui/AnimatedSection";
-import { passwordHash } from "@/utils/helpers";
 import { useRouter } from "next/navigation";
 
 const LoginForm = ({
@@ -39,14 +38,14 @@ const LoginForm = ({
     onSuccess: () => {
       setStep(2);
       setEmail(formik.values.email);
-      setPassword(passwordHash(formik.values.password));
+      setPassword(formik.values.password);
     },
   });
 
   const submitFn = () => {
     loginMutation.mutate({
       email: formik.values.email,
-      password: passwordHash(formik.values.password),
+      password: formik.values.password,
     });
   };
 
