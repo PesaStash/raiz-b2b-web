@@ -3,7 +3,6 @@ import React, { useEffect, useState } from "react";
 import EnterPin from "@/components/transactions/EnterPin";
 import { AlipayWechatSendApi } from "@/services/transactions";
 import { IAlipayWechatSendResponse } from "@/types/services";
-import { passwordHash } from "@/utils/helpers";
 import {
   getTransactionId,
   getTransactionStatus,
@@ -47,7 +46,7 @@ const AlipayWechatPay = ({
         beneficiary_id: beneficiaryId,
         channel,
         amount,
-        transaction_pin: passwordHash(pin),
+        transaction_pin: pin,
       });
       qc.invalidateQueries({ queryKey: ["user"] });
       qc.invalidateQueries({ queryKey: ["transactions-report"] });

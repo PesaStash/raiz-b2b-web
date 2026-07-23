@@ -7,7 +7,6 @@ import axios, {
   CancelTokenSource,
 } from "axios";
 import { toast } from "sonner";
-import { encryptData, generateNonce } from "./headerEncryption";
 import { fetchPublicIP } from "@/utils/helpers";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
@@ -50,15 +49,9 @@ const addNetworkCheckInterceptor = (axiosInstance: AxiosInstance) => {
         const cancelTokenSource: CancelTokenSource = axios.CancelToken.source();
         requestConfig.cancelToken = cancelTokenSource.token;
 
-        const nonceStr = generateNonce();
-        const signature = encryptData(nonceStr);
-        // Fetch and cache IP address if not already done
         if (!cachedIP) {
           cachedIP = await fetchPublicIP();
         }
-
-        requestConfig.headers["nonce-str"] = nonceStr;
-        requestConfig.headers["signature"] = signature;
 
         if (cachedIP) {
           requestConfig.headers["ip-address"] = cachedIP;

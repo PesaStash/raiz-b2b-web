@@ -8,8 +8,7 @@ import Button from "@/components/ui/Button";
 import InputField from "@/components/ui/InputField";
 import { useMutation } from "@tanstack/react-query";
 import { IResetPasswordPayload, ResetPasswordApi } from "@/services/auth";
-import { passwordHash } from "@/utils/helpers";
-import { encryptData } from "@/lib/headerEncryption";
+import { newPasswordSchema } from "@/app/(auth)/register/_components/validation";
 
 interface Props {
   setPage: Dispatch<SetStateAction<number>>;
@@ -37,21 +36,7 @@ const CreateNewPassword = ({ setPage, otp, setUser, email }: Props) => {
     validationSchema: toFormikValidationSchema(
       z
         .object({
-          password: z
-            .string({
-              required_error: "Password is required",
-            })
-            .min(8, "Password must be at least 8 characters")
-            .refine(
-              (password) =>
-                [/[A-Z]/, /[a-z]/, /\d/, /[!@#$%^&*(),.?":{}|<>]/].filter(
-                  (regex) => regex.test(password)
-                ).length >= 2,
-              {
-                message:
-                  "Password must contain at least 2 of these rules: one uppercase letter, one lowercase letter, one numeric character, one special character",
-              }
-            ),
+          password: newPasswordSchema,
           confirmPassword: z.string({
             required_error: "Confirm Password is required",
           }),
@@ -63,12 +48,29 @@ const CreateNewPassword = ({ setPage, otp, setUser, email }: Props) => {
     ),
     onSubmit: (val) => {
       resetPasswordMutation.mutate({
-        otp: encryptData(otp),
-        password: passwordHash(val.password),
+        otp,
+        password: val.password,
         email,
       });
     },
   });
+
+  const passwordValidationError =
+    typeof formik.errors.password === "string" ? formik.errors.password : "";
+  const hasPasswordComplexityError =
+    formik.touched.password &&
+    (passwordValidationError.includes(
+      "Password must contain at least one uppercase letter",
+    ) ||
+      passwordValidationError.includes(
+        "Password must contain at least one lowercase letter",
+      ) ||
+      passwordValidationError.includes(
+        "Password must contain at least one number",
+      ) ||
+      passwordValidationError.includes(
+        "Password must contain at least one symbol",
+      ));
 
   return (
     <form
@@ -190,11 +192,7 @@ const CreateNewPassword = ({ setPage, otp, setUser, email }: Props) => {
             </div>
             <div className="flex gap-3">
               <div className="w-6 h-6">
-                {formik.errors.password &&
-                formik.touched.password &&
-                formik.errors.password.includes(
-                  "Password must contain at least 2 of these rules: one uppercase letter, one lowercase letter, one numeric character, one special character"
-                ) ? (
+                {hasPasswordComplexityError ? (
                   <svg width="24" height="25" viewBox="0 0 24 25" fill="none">
                     <path
                       d="M12 2.48047C6.48603 2.48047 2 6.96651 2 12.4805C2 17.9944 6.48603 22.4805 12 22.4805C17.514 22.4805 22 17.9944 22 12.4805C22 6.96651 17.514 2.48047 12 2.48047ZM12 3.98047C16.7033 3.98047 20.5 7.77716 20.5 12.4805C20.5 17.1838 16.7033 20.9805 12 20.9805C7.29669 20.9805 3.5 17.1838 3.5 12.4805C3.5 7.77716 7.29669 3.98047 12 3.98047ZM15.2432 8.46973C15.0451 8.4744 14.8569 8.55726 14.7197 8.7002L12 11.4199L9.28027 8.7002C9.21036 8.6282 9.12672 8.57097 9.03429 8.53189C8.94187 8.4928 8.84254 8.47266 8.74219 8.47266C8.59293 8.47269 8.44707 8.51726 8.32328 8.60066C8.19949 8.68405 8.1034 8.80249 8.0473 8.9408C7.99119 9.07912 7.97763 9.23103 8.00835 9.37709C8.03907 9.52316 8.11267 9.65674 8.21973 9.76074L10.9395 12.4805L8.21973 15.2002C8.14775 15.2693 8.09028 15.3521 8.0507 15.4437C8.01111 15.5353 7.9902 15.6338 7.98918 15.7336C7.98817 15.8334 8.00707 15.9324 8.04479 16.0248C8.08251 16.1171 8.13828 16.2011 8.20883 16.2716C8.27939 16.3422 8.36332 16.398 8.4557 16.4357C8.54808 16.4734 8.64706 16.4923 8.74684 16.4913C8.84662 16.4903 8.9452 16.4694 9.03679 16.4298C9.12839 16.3902 9.21116 16.3327 9.28027 16.2607L12 13.541L14.7197 16.2607C14.7888 16.3327 14.8716 16.3902 14.9632 16.4298C15.0548 16.4694 15.1534 16.4903 15.2532 16.4913C15.3529 16.4923 15.4519 16.4734 15.5443 16.4357C15.6367 16.398 15.7206 16.3422 15.7912 16.2716C15.8617 16.2011 15.9175 16.1171 15.9552 16.0248C15.9929 15.9324 16.0118 15.8334 16.0108 15.7336C16.0098 15.6338 15.9889 15.5353 15.9493 15.4437C15.9097 15.3521 15.8523 15.2693 15.7803 15.2002L13.0605 12.4805L15.7803 9.76074C15.8893 9.65606 15.9642 9.52087 15.9951 9.37289C16.026 9.22491 16.0115 9.07105 15.9534 8.93147C15.8953 8.7919 15.7965 8.67313 15.6697 8.59073C15.543 8.50833 15.3943 8.46616 15.2432 8.46973Z"
@@ -222,18 +220,12 @@ const CreateNewPassword = ({ setPage, otp, setUser, email }: Props) => {
               </div>
               <span
                 className={`text-raiz-gray-700 text-[13px] font-normal  leading-[18px] ${
-                  formik.errors.password &&
-                  formik.touched.password &&
-                  formik.errors.password.includes(
-                    "Password must contain at least 2 of these rules: one uppercase letter, one lowercase letter, one numeric character, one special character"
-                  )
+                  hasPasswordComplexityError
                     ? "text-raiz-error"
                     : "text-raiz-gray-700"
                 }`}
               >
-                Password must contain at least 2 of these rules: one uppercase
-                letter, one lowercase letter, one numeric character, one special
-                character
+                Password must contain uppercase, lowercase, number, and symbol
               </span>
             </div>
           </div>

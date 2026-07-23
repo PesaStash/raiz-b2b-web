@@ -8,7 +8,6 @@ import {
   CrossCurrencySwapApi,
 } from "@/services/transactions";
 import { useSwapStore } from "@/store/Swap";
-import { passwordHash } from "@/utils/helpers";
 import {
   getTransactionId,
   trackMoneyMovementSuccess,
@@ -100,14 +99,12 @@ const SwapPayment = ({ goNext, setPaymentError, close }: Props) => {
 
   const SwapMoneyMutation = useMutation({
     mutationFn: () => {
-      const hashedPin = passwordHash(pin);
-
       if (isCrossCurrencySwap) {
         return CrossCurrencySwapApi({
           amount: parseFloat(amount),
           from_currency: swapFromCurrency as ICrossCurrencies,
           to_currency: swapToCurrency as ICrossCurrencies,
-          transaction_pin: hashedPin,
+          transaction_pin: pin,
           reward_quote_id: null,
         });
       }
@@ -120,7 +117,7 @@ const SwapPayment = ({ goNext, setPaymentError, close }: Props) => {
       return swapAPI({
         amount: parseFloat(amount),
         currency,
-        transaction_pin: hashedPin,
+        transaction_pin: pin,
       });
     },
     onMutate: () => {

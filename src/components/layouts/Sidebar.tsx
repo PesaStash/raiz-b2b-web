@@ -22,6 +22,8 @@ import {
 import SetTransactionPin from "@/app/(dashboard)/_components/transaction-pin/SetTransactionPin";
 import {
   findWalletByCurrency,
+  getTierInfo,
+  normalizeS3ObjectUrl,
   truncateString,
 } from "@/utils/helpers";
 import { canSetTransactionPin, canRequestUsdAccount, isUsdOnboardingPending } from "@/utils/onboardingBranch";
@@ -50,13 +52,15 @@ const Sidebar = () => {
   const [showPaymentLinkModal, setShowPaymentLinkModal] = useState(false);
   const [showFeedbacks, setShowFeedbacks] = useState(false);
   const [userPfp, setUserPfp] = useState(
-    user?.business_account?.business_image || "/images/default-pfp.svg",
+    normalizeS3ObjectUrl(user?.business_account?.business_image) ||
+      "/images/default-pfp.svg",
   );
   const isXLarge = useMediaQuery("(min-width: 1280px)");
 
   useEffect(() => {
-    if (user?.business_account?.business_image) {
-      setUserPfp(user.business_account.business_image);
+    const image = normalizeS3ObjectUrl(user?.business_account?.business_image);
+    if (image) {
+      setUserPfp(image);
     }
   }, [user]);
 

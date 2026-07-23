@@ -5,9 +5,8 @@ import axios, {
   AxiosResponse,
 } from "axios";
 import { toast } from "sonner";
-import { encryptData, generateNonce } from "./headerEncryption";
 import { GetItemFromCookie } from "@/utils/CookiesFunc";
-import { fetchPublicIP } from "@/utils/helpers";
+import { fetchPublicIP, getApiErrorMessage } from "@/utils/helpers";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
@@ -44,8 +43,7 @@ const handleError = async (error: CustomAxiosError) => {
     return Promise.reject(error.response);
   }
   if (!isSilent) {
-    const errorMessage = error.response?.data?.message || "An Error Occurred";
-    toast.error(errorMessage);
+    toast.error(getApiErrorMessage(error, "An error occurred"));
   }
 
   return Promise.reject(error.response);
@@ -61,11 +59,6 @@ export const AuthAxios: AxiosInstance = axios.create({
 AuthAxios.interceptors.request.use(
   async (config) => {
     const token = GetItemFromCookie("access_token");
-    const nonceStr = generateNonce();
-    const signature = encryptData(nonceStr);
-
-    config.headers["nonce-str"] = nonceStr;
-    config.headers["signature"] = signature;
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
