@@ -17,6 +17,8 @@ import {
   ITxnIncomeExpenseResponse,
   ITxnReportCategoryResponse,
   ITxnReportPayload,
+  IUpdateGatewayDefaultWalletPayload,
+  IUpdateGatewayDefaultWalletResponse,
   IUpdateNotificationEmailPayload,
 } from "../types/services";
 import { IChain } from "@/types/misc";
@@ -40,14 +42,27 @@ export const UnFreezeDebitApi = async (data: ITransactionPinPayload) => {
   return response?.data;
 };
 
-export const CreateUSDWalletApi = async () => {
+export const RequestUsdOnboardingApi = async () => {
   const response = await AuthAxios.post("/business/entities/wallets/usd/");
   return response?.data;
 };
 
+/** @deprecated Use RequestUsdOnboardingApi */
+export const CreateUSDWalletApi = RequestUsdOnboardingApi;
+
 export const CreateNGNVirtualWalletApi = async () => {
   const response = await AuthAxios.post(
     "/business/entities/virtual-accounts/naira/"
+  );
+  return response?.data;
+};
+
+export const UpdateGatewayDefaultWalletApi = async (
+  payload: IUpdateGatewayDefaultWalletPayload
+): Promise<IUpdateGatewayDefaultWalletResponse> => {
+  const response = await AuthAxios.patch(
+    "/business/entities/gateway/default-wallet/",
+    payload
   );
   return response?.data;
 };
