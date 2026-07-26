@@ -4,7 +4,7 @@ import { ExternalNGNDebitApi } from "@/services/transactions";
 import { useSendStore } from "@/store/Send";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { IExternalTransferPayload } from "@/types/services";
-import { findWalletByCurrency, passwordHash } from "@/utils/helpers";
+import { findWalletByCurrency } from "@/utils/helpers";
 import {
   trackSendCompleted,
   trackTransactionFailed,
@@ -99,7 +99,7 @@ const ExternalPayout = ({ close, goNext, setPaymentError }: Props) => {
         transaction_category_id: category?.transaction_category_id || 0,
       },
       pin: {
-        transaction_pin: passwordHash(pin),
+        transaction_pin: pin,
       },
     };
     SendMoneyMutation.mutate(payload);

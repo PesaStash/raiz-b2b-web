@@ -10,7 +10,6 @@ import OtpInput from "@/components/ui/OtpInput";
 import Button from "@/components/ui/Button";
 import AnimatedSection from "@/components/ui/AnimatedSection";
 import { SetItemToCookie } from "@/utils/CookiesFunc";
-import { encryptData } from "@/lib/headerEncryption";
 import OtpInputWithTimer from "@/components/ui/OtpInputWithTimer";
 import { pushDataLayerEvent } from "@/utils/analytics/dataLayer";
 
@@ -56,7 +55,7 @@ const LoginOtp = ({ setStep, from, email, password }: Props) => {
       otp: "",
     },
     onSubmit: () => {
-      loginMutation.mutate({ otp: encryptData(formik.values.otp), email });
+      loginMutation.mutate({ otp: formik.values.otp, email });
     },
   });
 

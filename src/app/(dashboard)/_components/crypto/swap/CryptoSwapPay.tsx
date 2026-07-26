@@ -2,7 +2,6 @@
 import EnterPin from "@/components/transactions/EnterPin";
 import { BuyStableCoinApi, SellStableCoinApi } from "@/services/transactions";
 import { useCryptoSwapStore } from "@/store/CryptoSwap";
-import { passwordHash } from "@/utils/helpers";
 import {
   getTransactionId,
   trackMoneyMovementSuccess,
@@ -29,7 +28,7 @@ const CryptoSwapPay = ({ goNext, setPaymentError, close }: Props) => {
       swapMutation({
         amount: parseFloat(amount),
         currency: "USD",
-        transaction_pin: passwordHash(pin),
+        transaction_pin: pin,
       }),
     onMutate: () => {
       actions.setStatus("loading");

@@ -26,8 +26,10 @@ import {
   convertToTitle,
   findWalletByCurrency,
   getTierInfo,
+  normalizeS3ObjectUrl,
   truncateString,
 } from "@/utils/helpers";
+import { canSetTransactionPin } from "@/utils/onboardingBranch";
 import PaymentLinkModal from "../modals/PaymentLinkModal";
 import {
   CheckBrigdeVerificationStatusApi,
@@ -56,13 +58,15 @@ const Sidebar = () => {
   const [showPaymentLinkModal, setShowPaymentLinkModal] = useState(false);
   const [showFeedbacks, setShowFeedbacks] = useState(false);
   const [userPfp, setUserPfp] = useState(
-    user?.business_account?.business_image || "/images/default-pfp.svg",
+    normalizeS3ObjectUrl(user?.business_account?.business_image) ||
+      "/images/default-pfp.svg",
   );
   const isXLarge = useMediaQuery("(min-width: 1280px)");
 
   useEffect(() => {
-    if (user?.business_account?.business_image) {
-      setUserPfp(user.business_account.business_image);
+    const image = normalizeS3ObjectUrl(user?.business_account?.business_image);
+    if (image) {
+      setUserPfp(image);
     }
   }, [user]);
 
@@ -315,7 +319,7 @@ const Sidebar = () => {
       ),
     },
     {
-      condition: verificationStatus === "completed" && !hasTransactionPin,
+      condition: canSetTransactionPin(verificationStatus) && !hasTransactionPin,
       icon: (
         <svg
           width="30"

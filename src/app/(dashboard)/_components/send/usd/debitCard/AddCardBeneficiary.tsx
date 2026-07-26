@@ -2,7 +2,6 @@ import SideWrapperHeader from "@/components/SideWrapperHeader";
 import Button from "@/components/ui/Button";
 import EmptyList from "@/components/ui/EmptyList";
 import InputField from "@/components/ui/InputField";
-import { encryptData } from "@/lib/headerEncryption";
 import {
   // CreateUsBeneficiary,
   FetchUsBeneficiariesApi,
@@ -114,9 +113,9 @@ const AddCardBeneficiary = ({ close }: Props) => {
         const payload = {
           data: {
             name: values.name,
-            card_number: encryptData(values.card_number.replace(/\s/g, "")),
+            card_number: values.card_number.replace(/\s/g, ""),
             expiry_date: `${values.expiry_year}-${values.expiry_month}`,
-            cvv: encryptData(values.cvv),
+            cvv: values.cvv,
           },
           label: values.label,
           optionType: "card",

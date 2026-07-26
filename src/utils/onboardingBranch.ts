@@ -33,6 +33,12 @@ export type VerificationStatus =
   | "failed"
   | undefined;
 
+// B2B transaction PIN eligibility.
+// Backend only allows setting a PIN once basic KYB verification is complete.
+export function canSetTransactionPin(status: VerificationStatus) {
+  return status === "kyc_tier_1" || status === "completed";
+}
+
 export interface OnboardingBranchState {
   verificationStatus: VerificationStatus;
   isStep1Complete: boolean;

@@ -6,7 +6,6 @@ import { useFormik } from "formik";
 // import { useMutation } from '@tanstack/react-query';
 // import { ResendSignupOtpApi } from '@/services/auth';
 import AnimatedSection from "@/components/ui/AnimatedSection";
-import { encryptData } from "@/lib/headerEncryption";
 import { SignupVerifyOtpApi } from "@/services/auth";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -33,7 +32,7 @@ const VerifyPage = () => {
       otp: "",
     },
     onSubmit: (values) => {
-      verifyOtpMutation.mutate({ otp: encryptData(values.otp), email });
+      verifyOtpMutation.mutate({ otp: values.otp, email });
     },
   });
   // const resendOtpMutation = useMutation({

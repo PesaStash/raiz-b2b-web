@@ -8,7 +8,7 @@ const CountryOriginInfoModal = ({ close }: { close: () => void }) => {
       <div className="flex flex-col  h-full py-8 px-5 ">
         <div className="flex justify-between items-center">
           <h5 className="text-raiz-gray-950 text-xl font-bold  leading-normal">
-            Country of Origin
+          Business Location
           </h5>
           <button onClick={close}>
             <Image
@@ -20,7 +20,7 @@ const CountryOriginInfoModal = ({ close }: { close: () => void }) => {
           </button>
         </div>
         <p className="text-raiz-gray-950 text-[13px] font-normal  leading-tight">
-          What is country of origin?
+        What is your business location?
         </p>
         <div className="mt-[44px] flex flex-col justify-center items-center gap-4">
           <svg width="49" height="48" viewBox="0 0 49 48" fill="none">
@@ -47,8 +47,7 @@ const CountryOriginInfoModal = ({ close }: { close: () => void }) => {
             />
           </svg>
           <p className="text-center text-raiz-gray-950 text-[13px] leading-tight">
-            Choose your home country based on your ID card, even if you&#39;re
-            abroad
+          Choose the country where your business is legally incorporated or primarily operates.
           </p>
         </div>
       </div>

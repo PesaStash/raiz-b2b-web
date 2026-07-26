@@ -13,7 +13,6 @@ const SetupPin = ({ selectedStep, setSelectedStep }: AccountSetupProps) => {
     initialValues: { pin: "", confirmPin: "" },
     validationSchema: toFormikValidationSchema(pinSchema),
     onSubmit: (values) => {
-      console.log("PIN successfully set:", values.pin);
     },
   });
 
@@ -30,8 +29,6 @@ const SetupPin = ({ selectedStep, setSelectedStep }: AccountSetupProps) => {
       formik.handleSubmit();
     }
   };
-
-  console.log('"errrors', formik.errors);
 
   const handleBackButton = () => {
     if (formState === "pin") {

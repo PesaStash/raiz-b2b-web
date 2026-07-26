@@ -15,9 +15,7 @@ const VerifyPhone = ({ selectedStep, setSelectedStep }: AccountSetupProps) => {
       }
       return errors;
     },
-    onSubmit: (values) => {
-      console.log("Verifying OTP:", values.otp);
-    },
+    onSubmit: () => {},
   });
   return (
     <div className=" h-full flex justify-between flex-col">
@@ -49,7 +47,7 @@ const VerifyPhone = ({ selectedStep, setSelectedStep }: AccountSetupProps) => {
           onChange={(val) => formik.setFieldValue("otp", val)}
           error={formik.errors.otp}
           touched={formik.touched.otp}
-          onResend={() => console.log("Resending OTP...")}
+          onResend={() => {}}
         />
         <Button
           type="submit"

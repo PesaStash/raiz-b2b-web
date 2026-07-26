@@ -56,9 +56,6 @@ importers:
       chart.js:
         specifier: ^4.4.7
         version: 4.5.1
-      crypto-js:
-        specifier: ^4.2.0
-        version: 4.2.0
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
@@ -150,9 +147,6 @@ importers:
       '@eslint/eslintrc':
         specifier: ^3
         version: 3.3.3
-      '@types/crypto-js':
-        specifier: ^4.2.2
-        version: 4.2.2
       '@types/js-cookie':
         specifier: ^3.0.6
         version: 3.0.6
@@ -1200,9 +1194,6 @@ packages:
   '@tybys/wasm-util@0.10.1':
     resolution: {integrity: sha512-9tTaPJLSiejZKx+Bmog4uSubteqTvFrVrURwkmHixBo0G4seD0zUxp98E1DzUBJxLQ3NPwXrGKDiVjwx/DpPsg==}
 
-  '@types/crypto-js@4.2.2':
-    resolution: {integrity: sha512-sDOLlVbHhXpAUAL0YHDUUwDZf3iN4Bwi4W6a0W0b+QcAezUbRtH4FVb+9J4h+XFPW7l/gQ9F8qC7P+Ec4k8QVQ==}
-
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
 
@@ -1986,9 +1977,6 @@ packages:
   crypto-browserify@3.12.1:
     resolution: {integrity: sha512-r4ESw/IlusD17lgQi1O20Fa3qNnsckR126TdUuBgAu7GBYSIPvdNyONd3Zrxh0xCwA4+6w/TDArBPsMvhur+KQ==}
     engines: {node: '>= 0.10'}
-
-  crypto-js@4.2.0:
-    resolution: {integrity: sha512-KALDyEYgpY+Rlob/iriUtjV6d5Eq+Y191A5g4UqLAi8CyGP9N1+FdVbkc1SxKc2r4YAYqG8JzO2KGL+AizD70Q==}
 
   css-line-break@2.1.0:
     resolution: {integrity: sha512-FHcKFCZcAha3LwfVBhCQbW2nCNbkZXn7KVUJcsT5/P8YmfsVja0FMPJr0B903j/E69HUphKiV9iQArX8SDYA4w==}
@@ -6059,8 +6047,6 @@ snapshots:
       tslib: 2.8.1
     optional: true
 
-  '@types/crypto-js@4.2.2': {}
-
   '@types/estree@1.0.8': {}
 
   '@types/google.maps@3.58.1': {}
@@ -7140,8 +7126,6 @@ snapshots:
       public-encrypt: 4.0.3
       randombytes: 2.1.0
       randomfill: 1.0.4
-
-  crypto-js@4.2.0: {}
 
   css-line-break@2.1.0:
     dependencies:

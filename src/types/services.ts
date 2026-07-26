@@ -1025,3 +1025,16 @@ export interface IUpdateNotificationEmailPayload {
   email?: string;
   active?: boolean;
 }
+
+export interface IUpdateGatewayDefaultWalletPayload {
+  currency: "USD" | "NGN";
+}
+
+export interface IUpdateGatewayDefaultWalletResponse {
+  message: string;
+  success: boolean;
+  data: {
+    currency: "USD" | "NGN";
+    wallet_id: string;
+  };
+}
