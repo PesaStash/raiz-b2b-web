@@ -2,7 +2,6 @@ import EnterPin from "@/components/transactions/EnterPin";
 import { SendMoneyUSBankApi } from "@/services/transactions";
 import { useSendStore } from "@/store/Send";
 import { ISendMoneyUsBankPayload } from "@/types/services";
-import { passwordHash } from "@/utils/helpers";
 import {
   trackSendCompleted,
   trackTransactionFailed,
@@ -66,7 +65,7 @@ const UsdBankPay = ({ close, goNext, setPaymentError }: Props) => {
   const handleSend = () => {
     const payload: ISendMoneyUsBankPayload = {
       transaction_reason: purpose,
-      transaction_pin: passwordHash(pin),
+      transaction_pin: pin,
       transaction_category_id: category?.transaction_category_id || 0,
       amount: Number(amount),
       usd_beneficiary_id: usdBeneficiary?.usd_beneficiary_id || null,

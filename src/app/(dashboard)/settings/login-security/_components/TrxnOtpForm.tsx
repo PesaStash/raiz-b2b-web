@@ -64,7 +64,7 @@ const TrxnOtpForm = ({ setPart, formik }: Props) => {
             length={6}
             onResend={() =>
               // resendOtpMutation.mutate({ email: formik.values.email })
-              console.log("resend")
+              {}
             }
           />
         </div>

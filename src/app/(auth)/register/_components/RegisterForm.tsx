@@ -23,8 +23,6 @@ import {
 } from "@/services/auth";
 import { AnimatePresence } from "motion/react";
 import Checkbox from "@/components/ui/Checkbox";
-import { passwordHash } from "@/utils/helpers";
-import { encryptData } from "@/lib/headerEncryption";
 import { pushDataLayerEvent } from "@/utils/analytics/dataLayer";
 import { getAnalyticsUserType } from "@/utils/analytics/userProps";
 
@@ -161,7 +159,7 @@ const RegisterForm = () => {
       } else if (currentStep === 3) {
         const payload: IRegisterPayload = {
           email: formik.values.email,
-          password: passwordHash(formik.values.password),
+          password: formik.values.password,
           first_name: formik.values.firstName,
           last_name: formik.values.lastName,
           country_id: formik.values.country_id,
@@ -170,7 +168,7 @@ const RegisterForm = () => {
         signupMutation.mutate(payload);
       } else if (currentStep === 4) {
         verifyOtpMutation.mutate({
-          otp: encryptData(formik.values.otp),
+          otp: formik.values.otp,
           email: formik.values.email,
         });
       } else if (currentStep === steps.length) {

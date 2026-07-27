@@ -3,7 +3,7 @@ import { SendCryptoApi } from "@/services/transactions";
 import { useSendStore } from "@/store/Send";
 import { IChain } from "@/types/misc";
 import { ISendCryptoPayload } from "@/types/services";
-import { findWalletByCurrency, passwordHash } from "@/utils/helpers";
+import { findWalletByCurrency } from "@/utils/helpers";
 import {
   trackSendCompleted,
   trackTransactionFailed,
@@ -80,7 +80,7 @@ const CryptoPay = ({ close, goNext, setPaymentError }: Props) => {
   const handleSend = () => {
     const payload: ISendCryptoPayload = {
       transaction_description: purpose,
-      transaction_pin: passwordHash(pin),
+      transaction_pin: pin,
       transaction_category_id: category?.transaction_category_id || 0,
       transaction_amount: Number(amount),
       crypto_address: cryptoAddress,

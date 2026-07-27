@@ -5,7 +5,7 @@ import { InitiateForeignWithdrawalApi } from "@/services/transactions";
 import { useSendStore } from "@/store/Send";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { ForeignCurrency, IForeignWithdrawalPayload } from "@/types/services";
-import { getApiErrorMessage, passwordHash } from "@/utils/helpers";
+import { getApiErrorMessage } from "@/utils/helpers";
 import {
   trackSendCompleted,
   trackTransactionFailed,
@@ -76,7 +76,7 @@ const ForeignSendPay = ({ close, goNext, setPaymentError }: Props) => {
   const handleSend = () => {
     const payload: IForeignWithdrawalPayload = {
       transaction_reason: purpose,
-      transaction_pin: passwordHash(pin),
+      transaction_pin: pin,
       transaction_category_id: category?.transaction_category_id || 0,
       amount: Number(amount),
       foreign_currency_beneficiary_id:

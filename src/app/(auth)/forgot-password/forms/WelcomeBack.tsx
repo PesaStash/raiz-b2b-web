@@ -8,7 +8,7 @@ import InputField from "@/components/ui/InputField";
 import { useMutation } from "@tanstack/react-query";
 import { ILoginPayload, LoginApi } from "@/services/auth";
 import { WelcomUserProps } from "../page";
-import { getInitials, passwordHash } from "@/utils/helpers";
+import { getInitials } from "@/utils/helpers";
 
 interface Props {
   setPage: (arg: number) => void;
@@ -23,7 +23,7 @@ const WelcomeBack = ({ setPage, email, user, setPassword }: Props) => {
     mutationFn: (data: ILoginPayload) => LoginApi(data),
     onSuccess: () => {
       setPage(5);
-      setPassword(passwordHash(formik.values.password));
+      setPassword(formik.values.password);
     },
   });
   const formik = useFormik({
@@ -31,7 +31,7 @@ const WelcomeBack = ({ setPage, email, user, setPassword }: Props) => {
       password: "",
     },
     onSubmit: (val) => {
-      loginMutation.mutate({ email, password: passwordHash(val.password) });
+      loginMutation.mutate({ email, password: val.password });
     },
   });
   return (

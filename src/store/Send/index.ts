@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { initialSendState, SendSlice } from "./sendSlice.types";
-import { passwordHash } from "@/utils/helpers";
 
 export const useSendStore = create<SendSlice>((set) => ({
   ...initialSendState,
@@ -52,7 +51,7 @@ export const useSendStore = create<SendSlice>((set) => ({
       })),
     setTransactionPin: (pin) =>
       set(() => ({
-        transactionPin: passwordHash(pin),
+        transactionPin: pin,
       })),
     setStatus: (status) =>
       set(() => ({

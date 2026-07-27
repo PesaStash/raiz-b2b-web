@@ -6,7 +6,7 @@ import { AcceptRequestApi } from "@/services/transactions";
 import { IP2pTransferResponse } from "@/types/services";
 import { ICurrencyName } from "@/types/misc";
 import { IBillRequest, PaymentStatusType } from "@/types/transactions";
-import { findWalletByCurrency, passwordHash } from "@/utils/helpers";
+import { findWalletByCurrency } from "@/utils/helpers";
 import {
   getTransactionId,
   trackMoneyMovementSuccess,
@@ -45,7 +45,7 @@ const PayBill = ({
   const AcceptBillMutation = useMutation({
     mutationFn: () =>
       AcceptRequestApi({
-        transaction_pin: passwordHash(pin),
+        transaction_pin: pin,
         params: {
           wallet_id: currentWallet?.wallet_id || "",
           request_id: request?.request_transfer_id,

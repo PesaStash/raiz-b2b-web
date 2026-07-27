@@ -7,6 +7,7 @@ import { findWalletByCurrency } from "@/utils/helpers";
 import {
   canCreateNgnWallet,
   canStartUsdVerification,
+  canSetTransactionPin,
   dismissInfosAddAccounts,
   isInfosAddAccountsDismissed,
   resetInfosAddAccountsDismissed,
@@ -85,8 +86,8 @@ const PinSetupBanner = ({ onSetUpPin }: { onSetUpPin: () => void }) => (
             Secure your Account
           </h3>
           <p className="mt-0.5 text-xs leading-relaxed text-[#6F5B86] sm:mt-1 sm:text-sm">
-            Create a 4-digit PIN to securely complete transactions and authorize
-            future activity.
+            Set a transaction PIN to approve transfers and other sensitive
+            actions.
           </p>
         </div>
       </div>
@@ -298,7 +299,7 @@ const Infos = ({ isNgnBranch = false, onRequireKyb }: InfosProps) => {
   };
 
   const showPinSetup =
-    (verificationStatus === "completed" || isNgnBranch) && !hasTransactionPin;
+    canSetTransactionPin(verificationStatus) && !hasTransactionPin;
 
   const accountItems: ActionItem[] = [
     {
