@@ -127,6 +127,8 @@ export interface IWallet {
   secondary_crypto_details?: ICryptoWallet[];
 }
 
+export type GatewayCreditCurrency = "USD" | "NGN";
+
 export interface IBusinessAccount {
   business_name: string;
   business_email: string;
@@ -142,6 +144,7 @@ export interface IBusinessAccount {
   business_verifications: IBusinessVerification[];
   wallets: IWallet[];
   virtual_cards: [];
+  gateway_default_credit_currency?: GatewayCreditCurrency | null;
 }
 
 export interface IUser {
