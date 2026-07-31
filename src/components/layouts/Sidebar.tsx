@@ -26,12 +26,13 @@ import {
   normalizeS3ObjectUrl,
   truncateString,
 } from "@/utils/helpers";
-import { canSetTransactionPin, canRequestUsdAccount, isUsdOnboardingPending } from "@/utils/onboardingBranch";
+import { canSetTransactionPin, canRequestUsdAccount, isNigerianBusiness, isUsdOnboardingPending } from "@/utils/onboardingBranch";
 import {
-  useRequestUsdOnboarding,
   useUsdOnboardingStatus,
 } from "@/lib/hooks/useUsdOnboarding";
+import { useUsdOnboardingFlow } from "@/lib/hooks/useUsdOnboardingFlow";
 import UsdOnboardingConfirmation from "@/app/(dashboard)/_components/UsdOnboardingConfirmation";
+import BridgeToSWebview from "@/app/(dashboard)/_components/BridgeToSWebview";
 import PaymentLinkModal from "../modals/PaymentLinkModal";
 import Spinner from "../ui/Spinner";
 import Avatar from "../ui/Avatar";
@@ -76,19 +77,17 @@ const Sidebar = () => {
   const verificationStatus =
     user?.business_account?.business_verifications?.[0]?.verification_status;
 
-  const { data: usdCase } = useUsdOnboardingStatus(user, verificationStatus);
-  const requestUsdMutation = useRequestUsdOnboarding({
-    onSuccess: () => refetch(),
+  const { data: usdCase } = useUsdOnboardingStatus(user);
+  const usdFlow = useUsdOnboardingFlow({
+    onUsdRequestSuccess: () => refetch(),
   });
 
-  const effectiveUsdCase = usdCase ?? requestUsdMutation.data?.data ?? null;
+  const effectiveUsdCase = usdCase ?? usdFlow.requestUsdMutation.data?.data ?? null;
   const usdRequestPending = isUsdOnboardingPending(effectiveUsdCase);
 
   const NGNAcct = findWalletByCurrency(user, "NGN");
   const USDAcct = findWalletByCurrency(user, "USD");
-  const isNigerian =
-    user?.business_account?.entity?.country?.country_name?.toLowerCase() ===
-    "nigeria";
+  const isNigerian = isNigerianBusiness(user);
   const hasTransactionPin = user?.has_transaction_pin;
   const canRequestUsd = canRequestUsdAccount(
     user,
@@ -223,7 +222,13 @@ const Sidebar = () => {
         "Our operations team will contact your business to complete USD verification.",
       bg: "bg-[#f2f4e9]/60",
       action: effectiveUsdCase ? (
-        <UsdOnboardingConfirmation usdCase={effectiveUsdCase} compact />
+        <UsdOnboardingConfirmation
+          usdCase={effectiveUsdCase}
+          compact
+          tosConfirmed={usdFlow.isTosConfirmed}
+          onAcceptTos={() => usdFlow.startAcceptBridgeTos()}
+          isAcceptingTos={usdFlow.isUsdActionPending}
+        />
       ) : null,
     },
     {
@@ -313,14 +318,14 @@ const Sidebar = () => {
         "Submit a request and our team will contact you to complete USD verification.",
       action: (
         <button
-          onClick={() => requestUsdMutation.mutate()}
+          onClick={() => usdFlow.startUsdRequest()}
           className="text-white bg-primary py-3 px-5 rounded-full text-sm font-semibold flex items-center gap-2"
-          disabled={requestUsdMutation.isPending}
+          disabled={usdFlow.isUsdActionPending}
         >
-          {requestUsdMutation.isPending ? (
+          {usdFlow.isUsdActionPending ? (
             <Spinner className="!w-4 !h-4 !border-t-2 !border-b-2" />
           ) : null}
-          {requestUsdMutation.isPending ? "Submitting..." : "Request USD Account"}
+          {usdFlow.getUsdActionLabel()}
         </button>
       ),
       bg: "bg-[#EAECFF66]",
@@ -525,6 +530,13 @@ const Sidebar = () => {
       {showFeedbacks && (
         <FeedbacksModal close={() => setShowFeedbacks(false)} />
       )}
+      {usdFlow.bridgeUrl ? (
+        <BridgeToSWebview
+          bridgeUrl={usdFlow.bridgeUrl}
+          close={usdFlow.closeBridgeWebview}
+          onAccepted={usdFlow.handleBridgeTosAccepted}
+        />
+      ) : null}
     </aside>
   );
 };

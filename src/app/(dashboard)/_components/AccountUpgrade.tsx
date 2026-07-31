@@ -3,13 +3,15 @@ import Overlay from "@/components/ui/Overlay";
 import Radio from "@/components/ui/Radio";
 import { useUser } from "@/lib/hooks/useUser";
 import {
-  useRequestUsdOnboarding,
   useUsdOnboardingStatus,
 } from "@/lib/hooks/useUsdOnboarding";
+import { useUsdOnboardingFlow } from "@/lib/hooks/useUsdOnboardingFlow";
 import {
   canRequestUsdAccount,
+  getDefaultOnboardingCurrencyPath,
   getOnboardingBranchState,
   hasUsdOnboardingRequest,
+  isNigerianBusiness,
   OnboardingCurrencyPath,
 } from "@/utils/onboardingBranch";
 import React, { useEffect, useState } from "react";
@@ -24,6 +26,7 @@ import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 import { pushDataLayerEvent } from "@/utils/analytics/dataLayer";
 import { getAnalyticsUserType } from "@/utils/analytics/userProps";
 import UsdOnboardingConfirmation from "./UsdOnboardingConfirmation";
+import BridgeToSWebview from "./BridgeToSWebview";
 
 const AccountUpgrade = () => {
   const { user, refetch } = useUser();
@@ -35,7 +38,7 @@ const AccountUpgrade = () => {
   const [activeCurrencyPath, setActiveCurrencyPath] =
     useState<OnboardingCurrencyPath | null>(null);
   const [selectedCurrencyPath, setSelectedCurrencyPath] =
-    useState<OnboardingCurrencyPath>("NGN");
+    useState<OnboardingCurrencyPath>("USD");
   const [requestMessage, setRequestMessage] = useState<string | null>(null);
 
   const handleCloseModal = () => {
@@ -45,7 +48,7 @@ const AccountUpgrade = () => {
   const verificationStatus =
     user?.business_account?.business_verifications?.[0]?.verification_status;
 
-  const { data: usdCase } = useUsdOnboardingStatus(user, verificationStatus);
+  const { data: usdCase } = useUsdOnboardingStatus(user);
 
   const branchState = getOnboardingBranchState(
     user,
@@ -53,8 +56,8 @@ const AccountUpgrade = () => {
     usdCase
   );
 
-  const requestUsdMutation = useRequestUsdOnboarding({
-    onSuccess: (caseData, message) => {
+  const usdFlow = useUsdOnboardingFlow({
+    onUsdRequestSuccess: (caseData, message) => {
       setRequestMessage(message);
       pushDataLayerEvent(
         "kyc_status_update",
@@ -69,24 +72,27 @@ const AccountUpgrade = () => {
     },
   });
 
-  const effectiveUsdCase = usdCase ?? requestUsdMutation.data?.data ?? null;
+  const effectiveUsdCase =
+    usdCase ?? usdFlow.requestUsdMutation.data?.data ?? null;
   const hasRequestedUsd = hasUsdOnboardingRequest(effectiveUsdCase);
+  const isNigerian = branchState.isNigerianBusiness;
+  const isTosConfirmed = usdFlow.isTosConfirmed;
 
-  const showUsdSteps = activeCurrencyPath === "USD" || hasRequestedUsd;
+  const showUsdSteps =
+    activeCurrencyPath === "USD" || hasRequestedUsd || (!isNigerian && branchState.isStep1Complete);
   const showOnlyStep1 =
     !branchState.isStep1Complete ||
     (branchState.needsCurrencyChoice && activeCurrencyPath === null);
 
-  const step1Status =
-    verificationStatus === "not_started"
+  const tosStepStatus: "completed" | "active" | "pending" = isTosConfirmed
+    ? "completed"
+    : showUsdSteps && branchState.isStep1Complete
       ? "active"
-      : branchState.isStep1Complete
-        ? "completed"
-        : "pending";
+      : "pending";
 
   const usdStepStatus: "completed" | "active" | "pending" = hasRequestedUsd
     ? "completed"
-    : showUsdSteps
+    : showUsdSteps && isTosConfirmed
       ? "active"
       : "pending";
 
@@ -97,11 +103,33 @@ const AccountUpgrade = () => {
   }, [hasRequestedUsd, activeCurrencyPath]);
 
   useEffect(() => {
+    if (!user) return;
+    setSelectedCurrencyPath(getDefaultOnboardingCurrencyPath(user));
+  }, [user?.business_account?.entity_id]);
+
+  useEffect(() => {
+    if (
+      !isNigerian &&
+      branchState.isStep1Complete &&
+      activeCurrencyPath === null &&
+      !hasRequestedUsd
+    ) {
+      setActiveCurrencyPath("USD");
+    }
+  }, [
+    isNigerian,
+    branchState.isStep1Complete,
+    activeCurrencyPath,
+    hasRequestedUsd,
+  ]);
+
+  useEffect(() => {
     if (
       branchState.needsCurrencyChoice &&
       activeCurrencyPath === null &&
       !showCurrencyModal &&
-      !showModal
+      !showModal &&
+      isNigerian
     ) {
       setShowCurrencyModal(true);
     }
@@ -110,10 +138,11 @@ const AccountUpgrade = () => {
     activeCurrencyPath,
     showCurrencyModal,
     showModal,
+    isNigerian,
   ]);
 
   const handleChangeCurrency = () => {
-    if (hasRequestedUsd) return;
+    if (hasRequestedUsd || !isNigerian) return;
     setActiveCurrencyPath(null);
     setShowCurrencyModal(true);
   };
@@ -123,18 +152,31 @@ const AccountUpgrade = () => {
     setShowCurrencyModal(false);
 
     if (selectedCurrencyPath === "NGN") {
+      if (!isNigerianBusiness(user)) return;
       setShowModal("getNgn");
     }
   };
 
-  const handleRequestUsd = () => {
+  const step1Status =
+    verificationStatus === "not_started"
+      ? "active"
+      : branchState.isStep1Complete
+        ? "completed"
+        : "pending";
+
+  const handleRequestUsd = async () => {
     if (
       !canRequestUsdAccount(user, verificationStatus, effectiveUsdCase) ||
-      requestUsdMutation.isPending
+      usdFlow.isUsdActionPending
     ) {
       return;
     }
-    requestUsdMutation.mutate();
+    await usdFlow.startUsdRequest();
+  };
+
+  const handleAcceptTosOnly = async () => {
+    if (usdFlow.isUsdActionPending || isTosConfirmed) return;
+    await usdFlow.startAcceptBridgeTos();
   };
 
   const handleNgnCreated = () => {
@@ -145,7 +187,11 @@ const AccountUpgrade = () => {
   };
 
   const handleVerificationSuccess = () => {
-    setShowCurrencyModal(true);
+    if (isNigerianBusiness(user)) {
+      setShowCurrencyModal(true);
+      return;
+    }
+    setActiveCurrencyPath("USD");
   };
 
   const displayModal = () => {
@@ -222,8 +268,9 @@ const AccountUpgrade = () => {
                 Complete Account Set Up
               </h1>
               <p className="text-[#6F5B86] mt-1 text-xs md:text-sm leading-relaxed">
-                Complete your account setup and verify your details to unlock
-                full access to all features.
+                {isNigerian
+                  ? "Complete your account setup and verify your details to unlock full access to all features."
+                  : "Verify your business details, then request a USD account to get started."}
               </p>
             </div>
           </div>
@@ -248,7 +295,9 @@ const AccountUpgrade = () => {
                     : "Completed"}
                 </Button>
               </div>
-              {activeCurrencyPath === "NGN" && !branchState.hasNgnWallet && (
+              {isNigerian &&
+                activeCurrencyPath === "NGN" &&
+                !branchState.hasNgnWallet && (
                 <div className="mt-3 md:mt-4">
                   <Button
                     onClick={() => setShowModal("getNgn")}
@@ -258,7 +307,9 @@ const AccountUpgrade = () => {
                   </Button>
                 </div>
               )}
-              {branchState.needsCurrencyChoice && activeCurrencyPath && (
+              {isNigerian &&
+                branchState.needsCurrencyChoice &&
+                activeCurrencyPath && (
                 <button
                   type="button"
                   onClick={handleChangeCurrency}
@@ -270,41 +321,70 @@ const AccountUpgrade = () => {
             </Step>
 
             {showUsdSteps && (
-              <Step
-                status={usdStepStatus}
-                title="Request USD Account"
-                description="Submit a request and our operations team will contact your business to complete USD verification."
-                isLast
-              >
-                {hasRequestedUsd && effectiveUsdCase ? (
-                  <div className="mt-4 md:mt-6">
-                    <UsdOnboardingConfirmation
-                      usdCase={effectiveUsdCase}
-                      message={requestMessage ?? undefined}
-                    />
-                  </div>
-                ) : (
-                  <div className="mt-3 md:mt-4">
-                    <Button
-                      onClick={handleRequestUsd}
-                      disabled={
-                        requestUsdMutation.isPending ||
-                        !canRequestUsdAccount(
-                          user,
-                          verificationStatus,
-                          effectiveUsdCase
-                        )
-                      }
-                      loading={requestUsdMutation.isPending}
-                      className="w-full sm:w-fit h-10 md:h-[41px]"
-                    >
-                      {requestUsdMutation.isPending
-                        ? "Submitting request..."
-                        : "Request USD Account"}
-                    </Button>
-                  </div>
-                )}
-              </Step>
+              <>
+                <Step
+                  status={tosStepStatus}
+                  title="Accept Terms"
+                  description="Review and accept our Terms of Service. This is required before your USD account request can proceed."
+                  isLast={false}
+                >
+                  {!isTosConfirmed ? (
+                    <div className="mt-3 md:mt-4">
+                      <Button
+                        onClick={handleAcceptTosOnly}
+                        disabled={usdFlow.isUsdActionPending}
+                        loading={
+                          usdFlow.bridgeTos.isGeneratingUrl ||
+                          usdFlow.bridgeTos.isSavingTos
+                        }
+                        className="w-full sm:w-fit h-10 md:h-[41px]"
+                      >
+                        {usdFlow.getUsdActionLabel()}
+                      </Button>
+                    </div>
+                  ) : null}
+                </Step>
+
+                <Step
+                  status={usdStepStatus}
+                  title="Request USD Account"
+                  description="Submit a request and our operations team will contact your business to complete USD verification."
+                  isLast
+                >
+                  {hasRequestedUsd && effectiveUsdCase ? (
+                    <div className="mt-4 md:mt-6">
+                      <UsdOnboardingConfirmation
+                        usdCase={effectiveUsdCase}
+                        message={requestMessage ?? undefined}
+                        tosConfirmed={isTosConfirmed}
+                        onAcceptTos={handleAcceptTosOnly}
+                        isAcceptingTos={usdFlow.isUsdActionPending}
+                      />
+                    </div>
+                  ) : (
+                    <div className="mt-3 md:mt-4">
+                      <Button
+                        onClick={handleRequestUsd}
+                        disabled={
+                          usdFlow.isUsdActionPending ||
+                          !isTosConfirmed ||
+                          !canRequestUsdAccount(
+                            user,
+                            verificationStatus,
+                            effectiveUsdCase
+                          )
+                        }
+                        loading={usdFlow.isUsdActionPending}
+                        className="w-full sm:w-fit h-10 md:h-[41px]"
+                      >
+                        {usdFlow.isUsdActionPending
+                          ? usdFlow.getUsdActionLabel()
+                          : "Request USD Account"}
+                      </Button>
+                    </div>
+                  )}
+                </Step>
+              </>
             )}
           </div>
         </div>
@@ -319,7 +399,9 @@ const AccountUpgrade = () => {
                   Welcome to Raiz! 🎉
                 </h3>
                 <p className="text-zinc-900 text-xs leading-tight mt-1">
-                  Choose which currency you would like to start with
+                  {isNigerian
+                    ? "Choose which currency you would like to start with"
+                    : "Request a USD account to get started"}
                 </p>
               </div>
               <button onClick={() => setShowCurrencyModal(false)}>
@@ -368,47 +450,51 @@ const AccountUpgrade = () => {
                 />
               </div>
 
-              <div
-                role="button"
-                tabIndex={0}
-                onClick={() => setSelectedCurrencyPath("NGN")}
-                className={`border cursor-pointer ${
-                  selectedCurrencyPath === "NGN"
-                    ? "border-primary2"
-                    : "#E4E0EA"
-                } rounded-[20px] flex flex-col relative items-center justify-between w-full px-4 py-4 transition-colors hover:border-indigo-900`}
-              >
-                <div className="flex flex-col items-center gap-3">
-                  <Image
-                    src="/icons/ngn.svg"
-                    alt="NGN"
-                    width={40}
-                    height={40}
-                    className="size-10 rounded-full"
-                  />
-                  <div className="text-center mt-2">
-                    <p className="text-zinc-900 text-sm font-bold leading-none">
-                      NGN Account
-                    </p>
-                    <p className="text-zinc-900 text-xs font-normal leading-tight mt-2">
-                      Get your NGN account instantly
-                    </p>
+              {isNigerian && (
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedCurrencyPath("NGN")}
+                  className={`border cursor-pointer ${
+                    selectedCurrencyPath === "NGN"
+                      ? "border-primary2"
+                      : "#E4E0EA"
+                  } rounded-[20px] flex flex-col relative items-center justify-between w-full px-4 py-4 transition-colors hover:border-indigo-900`}
+                >
+                  <div className="flex flex-col items-center gap-3">
+                    <Image
+                      src="/icons/ngn.svg"
+                      alt="NGN"
+                      width={40}
+                      height={40}
+                      className="size-10 rounded-full"
+                    />
+                    <div className="text-center mt-2">
+                      <p className="text-zinc-900 text-sm font-bold leading-none">
+                        NGN Account
+                      </p>
+                      <p className="text-zinc-900 text-xs font-normal leading-tight mt-2">
+                        Get your NGN account instantly
+                      </p>
+                    </div>
                   </div>
+                  <Radio
+                    checked={selectedCurrencyPath === "NGN"}
+                    onChange={() => setSelectedCurrencyPath("NGN")}
+                    className="absolute top-5 right-5"
+                  />
                 </div>
-                <Radio
-                  checked={selectedCurrencyPath === "NGN"}
-                  onChange={() => setSelectedCurrencyPath("NGN")}
-                  className="absolute top-5 right-5"
-                />
-              </div>
+              )}
             </div>
 
             <Button onClick={handleCurrencyContinue} className="w-full mt-6">
               Continue
             </Button>
-            <p className="text-center text-xs text-raiz-gray-600 mt-3">
-              You can add the other currency later
-            </p>
+            {isNigerian && (
+              <p className="text-center text-xs text-raiz-gray-600 mt-3">
+                You can add the other currency later
+              </p>
+            )}
           </div>
         </Overlay>
       )}
@@ -420,6 +506,14 @@ const AccountUpgrade = () => {
           </CenterModalWrapper>
         ) : null}
       </AnimatePresence>
+
+      {usdFlow.bridgeUrl ? (
+        <BridgeToSWebview
+          bridgeUrl={usdFlow.bridgeUrl}
+          close={usdFlow.closeBridgeWebview}
+          onAccepted={usdFlow.handleBridgeTosAccepted}
+        />
+      ) : null}
     </>
   );
 };

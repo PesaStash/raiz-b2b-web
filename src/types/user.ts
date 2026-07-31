@@ -217,6 +217,16 @@ export interface IUsdOnboardingResponse {
   data: IUsdOnboardingCase;
 }
 
+export interface IBridgeTosAcceptMessage {
+  signed_agreement_id: string;
+}
+
+export interface IBridgeTosSaveResponse {
+  success: boolean;
+  message: string;
+  data: null;
+}
+
 export interface IKYBLinksStatus {
   entity_id: string;
   kyc_id: string;

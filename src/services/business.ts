@@ -24,7 +24,10 @@ import {
 import { IChain } from "@/types/misc";
 import { PublicAxios } from "@/lib/publicAxios";
 import { GuestPayStatusType } from "@/types/transactions";
-import { IUsdOnboardingResponse } from "@/types/user";
+import {
+  IBridgeTosSaveResponse,
+  IUsdOnboardingResponse,
+} from "@/types/user";
 
 export const FreezeDebitApi = async (data: ITransactionPinPayload) => {
   const response = await AuthAxios.patch(
@@ -42,13 +45,50 @@ export const UnFreezeDebitApi = async (data: ITransactionPinPayload) => {
   return response?.data;
 };
 
-export const RequestUsdOnboardingApi = async (): Promise<IUsdOnboardingResponse> => {
-  const response = await AuthAxios.post("/business/entities/wallets/usd/");
+export const RequestUsdOnboardingApi = async (options?: {
+  silent?: boolean;
+}): Promise<IUsdOnboardingResponse> => {
+  const response = await AuthAxios.post(
+    "/business/entities/wallets/usd/",
+    null,
+    { silent: options?.silent } as CustomAxiosRequestConfig
+  );
   return response?.data;
 };
 
 /** @deprecated Use RequestUsdOnboardingApi */
 export const CreateUSDWalletApi = RequestUsdOnboardingApi;
+
+export const ConfirmBridgeTosApi = async (): Promise<boolean> => {
+  const response = await AuthAxios.get("/business/entities/tos/confirm/", {
+    silent: true,
+  } as CustomAxiosRequestConfig);
+  return response?.data === true;
+};
+
+export const GenerateBridgeTosUrlApi = async (): Promise<string> => {
+  const response = await AuthAxios.get(
+    "/business/entities/tos/generate/new/",
+    { silent: true } as CustomAxiosRequestConfig
+  );
+  const data = response?.data;
+  if (typeof data === "string") return data;
+  if (data && typeof data === "object" && "url" in data && typeof data.url === "string") {
+    return data.url;
+  }
+  throw new Error("Invalid Bridge ToS URL response");
+};
+
+export const SaveBridgeTosApi = async (
+  tosId: string
+): Promise<IBridgeTosSaveResponse> => {
+  const response = await AuthAxios.post(
+    `/business/entities/tos/?tos_id=${encodeURIComponent(tosId)}`,
+    null,
+    { silent: true } as CustomAxiosRequestConfig
+  );
+  return response?.data;
+};
 
 export const CreateNGNVirtualWalletApi = async () => {
   const response = await AuthAxios.post(

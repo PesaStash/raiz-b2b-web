@@ -39,6 +39,9 @@ interface UsdOnboardingConfirmationProps {
   message?: string;
   compact?: boolean;
   className?: string;
+  tosConfirmed?: boolean;
+  onAcceptTos?: () => void;
+  isAcceptingTos?: boolean;
 }
 
 const UsdOnboardingConfirmation = ({
@@ -46,15 +49,27 @@ const UsdOnboardingConfirmation = ({
   message,
   compact = false,
   className = "",
+  tosConfirmed = true,
+  onAcceptTos,
+  isAcceptingTos = false,
 }: UsdOnboardingConfirmationProps) => {
   const rejected = isUsdKybRejected(usdCase.status);
+  const needsTos = !tosConfirmed;
   const requestedAt = usdCase.requested_onboarding_at
     ? dayjs(usdCase.requested_onboarding_at).format("MMM D, YYYY [at] h:mm A")
     : null;
 
   const defaultMessage = rejected
     ? "Your USD verification has been declined. Please contact support."
-    : "USD account request submitted — our team will contact you to complete verification.";
+    : needsTos
+      ? "Your USD request was recorded, but Bridge Terms of Service still need to be accepted before operations can proceed."
+      : "USD account request submitted — our team will contact you to complete verification.";
+
+  const title = rejected
+    ? "USD account request declined"
+    : needsTos
+      ? "Bridge Terms required"
+      : "USD account requested";
 
   return (
     <div
@@ -65,7 +80,7 @@ const UsdOnboardingConfirmation = ({
           <p
             className={`font-semibold text-raiz-gray-950 ${compact ? "text-sm" : "text-sm md:text-base"}`}
           >
-            {rejected ? "USD account request declined" : "USD account requested"}
+            {title}
           </p>
           <p
             className={`mt-1 leading-relaxed text-raiz-gray-600 ${compact ? "text-xs" : "text-xs md:text-sm"}`}
@@ -76,6 +91,16 @@ const UsdOnboardingConfirmation = ({
             <p className="mt-2 text-xs text-raiz-gray-500">
               Requested on {requestedAt}
             </p>
+          ) : null}
+          {needsTos && onAcceptTos ? (
+            <button
+              type="button"
+              onClick={onAcceptTos}
+              disabled={isAcceptingTos}
+              className="mt-3 text-sm font-semibold text-[#3C2875] hover:underline disabled:opacity-60"
+            >
+              {isAcceptingTos ? "Opening Terms of Use..." : "Accept Terms of Use"}
+            </button>
           ) : null}
         </div>
         <span

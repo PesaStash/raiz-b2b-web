@@ -43,6 +43,7 @@ export interface OnboardingBranchState {
   verificationStatus: VerificationStatus;
   isStep1Complete: boolean;
   isVerificationComplete: boolean;
+  isNigerianBusiness: boolean;
   isNgnBranch: boolean;
   needsCurrencyChoice: boolean;
   showDashboard: boolean;
@@ -54,6 +55,16 @@ export interface OnboardingBranchState {
 
 export function isNigerianBusiness(user: IUser | undefined) {
   return user?.business_account?.entity?.country?.country_code === "NG";
+}
+
+export function canChooseNgnOnboarding(user: IUser | undefined) {
+  return isNigerianBusiness(user);
+}
+
+export function getDefaultOnboardingCurrencyPath(
+  user: IUser | undefined
+): OnboardingCurrencyPath {
+  return canChooseNgnOnboarding(user) ? "NGN" : "USD";
 }
 
 export function canCreateNgnWallet(
@@ -230,6 +241,8 @@ export function getOnboardingBranchState(
   const NGNAcct = findWalletByCurrency(user, "NGN");
   const USDAcct = findWalletByCurrency(user, "USD");
 
+  const isNigerian = isNigerianBusiness(user);
+
   const isStep1Complete =
     verificationStatus !== "not_started" && verificationStatus !== undefined;
   const isBasicVerificationComplete =
@@ -241,9 +254,13 @@ export function getOnboardingBranchState(
   const hasUsdOnboardingRequestState = hasUsdOnboardingRequest(usdCase);
 
   const isNgnBranch =
-    hasNgnWallet && isBasicVerificationComplete && !isVerificationComplete;
+    isNigerian &&
+    hasNgnWallet &&
+    isBasicVerificationComplete &&
+    !isVerificationComplete;
 
   const needsCurrencyChoice =
+    isNigerian &&
     isBasicVerificationComplete &&
     !isVerificationComplete &&
     !hasNgnWallet &&
@@ -260,6 +277,7 @@ export function getOnboardingBranchState(
     verificationStatus,
     isStep1Complete,
     isVerificationComplete,
+    isNigerianBusiness: isNigerian,
     isNgnBranch,
     needsCurrencyChoice,
     showDashboard,

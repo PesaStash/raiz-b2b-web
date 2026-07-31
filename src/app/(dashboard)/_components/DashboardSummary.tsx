@@ -74,7 +74,7 @@ const DashboardSummary = () => {
   const SBCAcct = findWalletByCurrency(user, "SBC");
   const verificationStatus =
     user?.business_account?.business_verifications?.[0]?.verification_status;
-  const { data: usdCase } = useUsdOnboardingStatus(user, verificationStatus);
+  const { data: usdCase } = useUsdOnboardingStatus(user);
   const branchState = getOnboardingBranchState(user, verificationStatus, usdCase);
 
   useEffect(() => {

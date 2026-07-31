@@ -2,9 +2,9 @@
 import Spinner from "@/components/ui/Spinner";
 import { useUser } from "@/lib/hooks/useUser";
 import {
-  useRequestUsdOnboarding,
   useUsdOnboardingStatus,
 } from "@/lib/hooks/useUsdOnboarding";
+import { useUsdOnboardingFlow } from "@/lib/hooks/useUsdOnboardingFlow";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { findWalletByCurrency } from "@/utils/helpers";
 import {
@@ -29,6 +29,7 @@ import { MdArrowRightAlt } from "react-icons/md";
 import CreateForeignAcct from "./createForeignAcct/CreateForeignAcct";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 import UsdOnboardingConfirmation from "./UsdOnboardingConfirmation";
+import BridgeToSWebview from "./BridgeToSWebview";
 
 type ModalKey = "getNgn" | "getGbp" | "getEur" | "set-pin";
 
@@ -249,12 +250,12 @@ const Infos = ({ isNgnBranch = false }: InfosProps) => {
     user?.business_account?.business_verifications?.[0]?.verification_status;
   const hasTransactionPin = user?.has_transaction_pin;
 
-  const { data: usdCase } = useUsdOnboardingStatus(user, verificationStatus);
-  const requestUsdMutation = useRequestUsdOnboarding({
-    onSuccess: () => refetch(),
+  const { data: usdCase } = useUsdOnboardingStatus(user);
+  const usdFlow = useUsdOnboardingFlow({
+    onUsdRequestSuccess: () => refetch(),
   });
 
-  const effectiveUsdCase = usdCase ?? requestUsdMutation.data?.data ?? null;
+  const effectiveUsdCase = usdCase ?? usdFlow.requestUsdMutation.data?.data ?? null;
   const usdRequestPending = isUsdOnboardingPending(effectiveUsdCase);
 
   const USDAcct = findWalletByCurrency(user, "USD");
@@ -287,17 +288,17 @@ const Infos = ({ isNgnBranch = false }: InfosProps) => {
     setShowModal(currency === "GBP" ? "getGbp" : "getEur");
   };
 
-  const handleUsdAction = () => {
+  const handleUsdAction = async () => {
     if (
       !canRequestUsdAccount(user, verificationStatus, effectiveUsdCase) ||
-      requestUsdMutation.isPending
+      usdFlow.isUsdActionPending
     ) {
       if (!canRequestUsdAccount(user, verificationStatus, effectiveUsdCase)) {
         toast.info("USD account request is not available in your current state.");
       }
       return;
     }
-    requestUsdMutation.mutate();
+    await usdFlow.startUsdRequest();
   };
 
   const showPinSetup =
@@ -319,9 +320,7 @@ const Infos = ({ isNgnBranch = false }: InfosProps) => {
       label: "USD",
       sublabel: "Dollar account",
       onAction: handleUsdAction,
-      ctaLabel: requestUsdMutation.isPending
-        ? "Submitting…"
-        : "Request USD Account",
+      ctaLabel: usdFlow.getUsdActionLabel(),
     },
     {
       key: "getNgn",
@@ -419,7 +418,13 @@ const Infos = ({ isNgnBranch = false }: InfosProps) => {
 
       {showUsdPendingBanner && effectiveUsdCase && (
         <div className={showPinSetup ? "mt-3" : "mt-4 sm:mt-5"}>
-          <UsdOnboardingConfirmation usdCase={effectiveUsdCase} compact />
+          <UsdOnboardingConfirmation
+            usdCase={effectiveUsdCase}
+            compact
+            tosConfirmed={usdFlow.isTosConfirmed}
+            onAcceptTos={() => usdFlow.startAcceptBridgeTos()}
+            isAcceptingTos={usdFlow.isUsdActionPending}
+          />
         </div>
       )}
 
@@ -446,7 +451,7 @@ const Infos = ({ isNgnBranch = false }: InfosProps) => {
           layoutId="account-pill-check"
           dismissible
           onDismiss={handleDismissAccounts}
-          isUsdPending={requestUsdMutation.isPending}
+          isUsdPending={usdFlow.isUsdActionPending}
         />
       )}
 
@@ -457,6 +462,14 @@ const Infos = ({ isNgnBranch = false }: InfosProps) => {
           </CenterModalWrapper>
         ) : null}
       </AnimatePresence>
+
+      {usdFlow.bridgeUrl ? (
+        <BridgeToSWebview
+          bridgeUrl={usdFlow.bridgeUrl}
+          close={usdFlow.closeBridgeWebview}
+          onAccepted={usdFlow.handleBridgeTosAccepted}
+        />
+      ) : null}
     </>
   );
 };

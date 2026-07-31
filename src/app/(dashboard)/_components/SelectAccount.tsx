@@ -22,9 +22,10 @@ import {
   isUsdOnboardingPending,
 } from "@/utils/onboardingBranch";
 import {
-  useRequestUsdOnboarding,
   useUsdOnboardingStatus,
 } from "@/lib/hooks/useUsdOnboarding";
+import { useUsdOnboardingFlow } from "@/lib/hooks/useUsdOnboardingFlow";
+import BridgeToSWebview from "./BridgeToSWebview";
 import { useUser } from "@/lib/hooks/useUser";
 import { useSendStore } from "@/store/Send";
 import { ForeignCurrency } from "@/types/services";
@@ -53,11 +54,11 @@ const SelectAccount = ({
   const verificationStatus =
     user?.business_account?.business_verifications?.[0]?.verification_status;
 
-  const { data: usdCase } = useUsdOnboardingStatus(user, verificationStatus);
-  const requestUsdMutation = useRequestUsdOnboarding({
-    onSuccess: () => refetch(),
+  const { data: usdCase } = useUsdOnboardingStatus(user);
+  const usdFlow = useUsdOnboardingFlow({
+    onUsdRequestSuccess: () => refetch(),
   });
-  const effectiveUsdCase = usdCase ?? requestUsdMutation.data?.data ?? null;
+  const effectiveUsdCase = usdCase ?? usdFlow.requestUsdMutation.data?.data ?? null;
   const usdRequestPending = isUsdOnboardingPending(effectiveUsdCase);
   const hasCompletedUsd = hasCompletedUsdWallet(user);
 
@@ -88,7 +89,7 @@ const SelectAccount = ({
     }
   };
 
-  const handleUsd = () => {
+  const handleUsd = async () => {
     if (USDAcct) {
       setSelectedCurrency("USD", user);
       actions.selectCurrency("USD");
@@ -102,7 +103,7 @@ const SelectAccount = ({
     ) {
       toast.info("USD account request is not available in your current state.");
     } else {
-      requestUsdMutation.mutate();
+      await usdFlow.startUsdRequest();
     }
   };
 
@@ -158,11 +159,13 @@ const SelectAccount = ({
   const getUsdLabel = () => {
     if (USDAcct) return USDAcct.account_number;
     if (usdRequestPending) return "USD request pending";
-    if (requestUsdMutation.isPending) return "Submitting USD request...";
+    if (usdFlow.isUsdActionPending) return usdFlow.getUsdActionLabel();
+    if (!usdFlow.isTosConfirmed) return "Accept Terms of Use";
     return "Request USD Account";
   };
 
   return (
+    <>
     <Overlay close={close} width="375px">
       <div className="flex flex-col  h-full py-8 px-5  text-raiz-gray-950">
         <h4 className="text-lg md:text-xl font-medium md:font-semibold">Select Account</h4>
@@ -361,6 +364,14 @@ const SelectAccount = ({
         </div>
       </div>
     </Overlay>
+    {usdFlow.bridgeUrl ? (
+      <BridgeToSWebview
+        bridgeUrl={usdFlow.bridgeUrl}
+        close={usdFlow.closeBridgeWebview}
+        onAccepted={usdFlow.handleBridgeTosAccepted}
+      />
+    ) : null}
+    </>
   );
 };
 
