@@ -99,6 +99,13 @@ export function hasUsdOnboardingRequest(
   return !!usdCase?.requested_onboarding;
 }
 
+/** Unrequested GET status — `not_started` with `requested_onboarding: false`. */
+export function isUsdOnboardingNotRequested(
+  usdCase?: IUsdOnboardingCase | null
+): boolean {
+  return !usdCase || !usdCase.requested_onboarding;
+}
+
 export function isUsdOnboardingPending(
   usdCase?: IUsdOnboardingCase | null
 ): boolean {

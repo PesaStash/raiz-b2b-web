@@ -251,11 +251,12 @@ const Infos = ({ isNgnBranch = false }: InfosProps) => {
   const hasTransactionPin = user?.has_transaction_pin;
 
   const { data: usdCase } = useUsdOnboardingStatus(user);
+  const effectiveUsdCase = usdCase ?? null;
   const usdFlow = useUsdOnboardingFlow({
+    usdCase: effectiveUsdCase,
     onUsdRequestSuccess: () => refetch(),
   });
 
-  const effectiveUsdCase = usdCase ?? usdFlow.requestUsdMutation.data?.data ?? null;
   const usdRequestPending = isUsdOnboardingPending(effectiveUsdCase);
 
   const USDAcct = findWalletByCurrency(user, "USD");
@@ -290,10 +291,15 @@ const Infos = ({ isNgnBranch = false }: InfosProps) => {
 
   const handleUsdAction = async () => {
     if (
+      usdFlow.hasRequestedUsd ||
       !canRequestUsdAccount(user, verificationStatus, effectiveUsdCase) ||
       usdFlow.isUsdActionPending
     ) {
-      if (!canRequestUsdAccount(user, verificationStatus, effectiveUsdCase)) {
+      if (usdFlow.hasRequestedUsd) {
+        toast.info(
+          "Your USD account request is already pending. Our team will contact you to complete verification."
+        );
+      } else if (!canRequestUsdAccount(user, verificationStatus, effectiveUsdCase)) {
         toast.info("USD account request is not available in your current state.");
       }
       return;
@@ -420,10 +426,10 @@ const Infos = ({ isNgnBranch = false }: InfosProps) => {
         <div className={showPinSetup ? "mt-3" : "mt-4 sm:mt-5"}>
           <UsdOnboardingConfirmation
             usdCase={effectiveUsdCase}
-            compact
             tosConfirmed={usdFlow.isTosConfirmed}
             onAcceptTos={() => usdFlow.startAcceptBridgeTos()}
             isAcceptingTos={usdFlow.isUsdActionPending}
+            showTimeline
           />
         </div>
       )}

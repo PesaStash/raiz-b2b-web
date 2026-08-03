@@ -4,10 +4,12 @@ import { useBridgeTos } from "@/lib/hooks/useBridgeTos";
 import { useRequestUsdOnboarding } from "@/lib/hooks/useUsdOnboarding";
 import { IUsdOnboardingCase } from "@/types/user";
 import { getApiErrorMessage } from "@/utils/helpers";
+import { hasUsdOnboardingRequest } from "@/utils/onboardingBranch";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
 interface UseUsdOnboardingFlowOptions {
+  usdCase?: IUsdOnboardingCase | null;
   onUsdRequestSuccess?: (caseData: IUsdOnboardingCase, message: string) => void;
   showSuccessToast?: boolean;
 }
@@ -15,10 +17,15 @@ interface UseUsdOnboardingFlowOptions {
 export function useUsdOnboardingFlow(
   options: UseUsdOnboardingFlowOptions = {}
 ) {
-  const { onUsdRequestSuccess, showSuccessToast = true } = options;
+  const {
+    usdCase = null,
+    onUsdRequestSuccess,
+    showSuccessToast = true,
+  } = options;
   const [bridgeUrl, setBridgeUrl] = useState<string | null>(null);
   const [requestUsdAfterTos, setRequestUsdAfterTos] = useState(false);
 
+  const hasRequestedUsd = hasUsdOnboardingRequest(usdCase);
   const bridgeTos = useBridgeTos();
   const requestUsdMutation = useRequestUsdOnboarding({
     onSuccess: onUsdRequestSuccess,
@@ -31,16 +38,18 @@ export function useUsdOnboardingFlow(
   }, []);
 
   const submitUsdRequest = useCallback(async () => {
+    if (hasRequestedUsd || requestUsdMutation.isPending) return;
     await requestUsdMutation.mutateAsync();
-  }, [requestUsdMutation]);
+  }, [hasRequestedUsd, requestUsdMutation]);
 
   const openBridgeTosFlow = useCallback(
     async (requestUsdAfter = false) => {
+      if (requestUsdAfter && hasRequestedUsd) return;
       setRequestUsdAfterTos(requestUsdAfter);
       const url = await bridgeTos.generateBridgeTosUrl();
       setBridgeUrl(url);
     },
-    [bridgeTos]
+    [bridgeTos, hasRequestedUsd]
   );
 
   const handleBridgeTosAccepted = useCallback(
@@ -62,11 +71,12 @@ export function useUsdOnboardingFlow(
   );
 
   const startAcceptBridgeTos = useCallback(async () => {
-    if (bridgeTos.isTosConfirmed) return;
+    if (bridgeTos.isTosConfirmed || bridgeTos.isGeneratingUrl) return;
     await openBridgeTosFlow(false);
-  }, [bridgeTos.isTosConfirmed, openBridgeTosFlow]);
+  }, [bridgeTos.isGeneratingUrl, bridgeTos.isTosConfirmed, openBridgeTosFlow]);
 
   const startUsdRequest = useCallback(async () => {
+    if (hasRequestedUsd) return;
     if (requestUsdMutation.isPending || bridgeTos.isGeneratingUrl) return;
 
     if (bridgeTos.isTosConfirmed) {
@@ -78,12 +88,14 @@ export function useUsdOnboardingFlow(
   }, [
     bridgeTos.isGeneratingUrl,
     bridgeTos.isTosConfirmed,
+    hasRequestedUsd,
     openBridgeTosFlow,
     requestUsdMutation.isPending,
     submitUsdRequest,
   ]);
 
   const getUsdActionLabel = useCallback(() => {
+    if (hasRequestedUsd) return "USD Account Requested";
     if (bridgeTos.isTosLoading || bridgeTos.isTosFetching) {
       return "Checking Bridge Terms...";
     }
@@ -99,6 +111,7 @@ export function useUsdOnboardingFlow(
     bridgeTos.isTosConfirmed,
     bridgeTos.isTosFetching,
     bridgeTos.isTosLoading,
+    hasRequestedUsd,
     requestUsdMutation.isPending,
   ]);
 
@@ -110,6 +123,7 @@ export function useUsdOnboardingFlow(
     requestUsdMutation.isPending;
 
   return {
+    hasRequestedUsd,
     isTosConfirmed: bridgeTos.isTosConfirmed,
     isTosLoading: bridgeTos.isTosLoading,
     bridgeUrl,

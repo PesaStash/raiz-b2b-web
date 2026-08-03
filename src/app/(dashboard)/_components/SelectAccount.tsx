@@ -55,10 +55,12 @@ const SelectAccount = ({
     user?.business_account?.business_verifications?.[0]?.verification_status;
 
   const { data: usdCase } = useUsdOnboardingStatus(user);
+  const effectiveUsdCase = usdCase ?? null;
   const usdFlow = useUsdOnboardingFlow({
+    usdCase: effectiveUsdCase,
     onUsdRequestSuccess: () => refetch(),
+    showSuccessToast: true,
   });
-  const effectiveUsdCase = usdCase ?? usdFlow.requestUsdMutation.data?.data ?? null;
   const usdRequestPending = isUsdOnboardingPending(effectiveUsdCase);
   const hasCompletedUsd = hasCompletedUsdWallet(user);
 
@@ -94,12 +96,16 @@ const SelectAccount = ({
       setSelectedCurrency("USD", user);
       actions.selectCurrency("USD");
       close();
-    } else if (hasUsdOnboardingRequest(effectiveUsdCase)) {
+    } else if (
+      usdFlow.hasRequestedUsd ||
+      hasUsdOnboardingRequest(effectiveUsdCase)
+    ) {
       toast.info(
         "Your USD account request is pending. Our team will contact you to complete verification."
       );
     } else if (
-      !canRequestUsdAccount(user, verificationStatus, effectiveUsdCase)
+      !canRequestUsdAccount(user, verificationStatus, effectiveUsdCase) ||
+      usdFlow.isUsdActionPending
     ) {
       toast.info("USD account request is not available in your current state.");
     } else {

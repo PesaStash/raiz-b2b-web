@@ -26,7 +26,9 @@ import { PublicAxios } from "@/lib/publicAxios";
 import { GuestPayStatusType } from "@/types/transactions";
 import {
   IBridgeTosSaveResponse,
+  IUsdOnboardingCase,
   IUsdOnboardingResponse,
+  IUsdOnboardingStatusResponse,
 } from "@/types/user";
 
 export const FreezeDebitApi = async (data: ITransactionPinPayload) => {
@@ -54,6 +56,26 @@ export const RequestUsdOnboardingApi = async (options?: {
     { silent: options?.silent } as CustomAxiosRequestConfig
   );
   return response?.data;
+};
+
+export const GetUsdOnboardingStatusApi = async (): Promise<IUsdOnboardingCase | null> => {
+  const response = await AuthAxios.get("/business/entities/wallets/usd/", {
+    silent: true,
+  } as CustomAxiosRequestConfig);
+  const body = response?.data as IUsdOnboardingStatusResponse | undefined;
+
+  if (!body) return null;
+
+  if (body.success && body.data) {
+    return body.data;
+  }
+
+  // Pre-basic-verification or other non-error unavailable states — no toast.
+  if (body.success === false) {
+    return null;
+  }
+
+  return body.data ?? null;
 };
 
 /** @deprecated Use RequestUsdOnboardingApi */

@@ -16,6 +16,7 @@ import {
 } from "@/utils/onboardingBranch";
 import React, { useEffect, useState } from "react";
 import { FaCheck } from "react-icons/fa";
+import { IUsdOnboardingCase } from "@/types/user";
 import BusinessVerificationModal from "./BusinessVerificationModal";
 import CreateNgnAcct from "./createNgnAcct/CreateNgnAcct";
 import SetTransactionPin from "./transaction-pin/SetTransactionPin";
@@ -40,6 +41,9 @@ const AccountUpgrade = () => {
   const [selectedCurrencyPath, setSelectedCurrencyPath] =
     useState<OnboardingCurrencyPath>("USD");
   const [requestMessage, setRequestMessage] = useState<string | null>(null);
+  const [showRequestedModal, setShowRequestedModal] = useState(false);
+  const [confirmedUsdCase, setConfirmedUsdCase] =
+    useState<IUsdOnboardingCase | null>(null);
 
   const handleCloseModal = () => {
     setShowModal(null);
@@ -48,7 +52,8 @@ const AccountUpgrade = () => {
   const verificationStatus =
     user?.business_account?.business_verifications?.[0]?.verification_status;
 
-  const { data: usdCase } = useUsdOnboardingStatus(user);
+  const { data: usdCase, isFetching: isUsdStatusFetching } =
+    useUsdOnboardingStatus(user);
 
   const branchState = getOnboardingBranchState(
     user,
@@ -56,9 +61,14 @@ const AccountUpgrade = () => {
     usdCase
   );
 
+  const effectiveUsdCase = usdCase ?? confirmedUsdCase;
+
   const usdFlow = useUsdOnboardingFlow({
+    usdCase: effectiveUsdCase,
     onUsdRequestSuccess: (caseData, message) => {
+      setConfirmedUsdCase(caseData);
       setRequestMessage(message);
+      setShowRequestedModal(true);
       pushDataLayerEvent(
         "kyc_status_update",
         {
@@ -66,15 +76,14 @@ const AccountUpgrade = () => {
           kyc_status: caseData.status,
           user_type: getAnalyticsUserType(),
         },
-        { dedupId: `kyc_status_update:usd_onboarding:${caseData.case_id}` }
+        { dedupId: `kyc_status_update:usd_onboarding:${caseData.case_id ?? "unknown"}` }
       );
       refetch();
     },
   });
 
-  const effectiveUsdCase =
-    usdCase ?? usdFlow.requestUsdMutation.data?.data ?? null;
-  const hasRequestedUsd = hasUsdOnboardingRequest(effectiveUsdCase);
+  const hasRequestedUsd =
+    usdFlow.hasRequestedUsd || hasUsdOnboardingRequest(effectiveUsdCase);
   const isNigerian = branchState.isNigerianBusiness;
   const isTosConfirmed = usdFlow.isTosConfirmed;
 
@@ -166,8 +175,10 @@ const AccountUpgrade = () => {
 
   const handleRequestUsd = async () => {
     if (
+      hasRequestedUsd ||
       !canRequestUsdAccount(user, verificationStatus, effectiveUsdCase) ||
-      usdFlow.isUsdActionPending
+      usdFlow.isUsdActionPending ||
+      isUsdStatusFetching
     ) {
       return;
     }
@@ -366,7 +377,9 @@ const AccountUpgrade = () => {
                       <Button
                         onClick={handleRequestUsd}
                         disabled={
+                          hasRequestedUsd ||
                           usdFlow.isUsdActionPending ||
+                          isUsdStatusFetching ||
                           !isTosConfirmed ||
                           !canRequestUsdAccount(
                             user,
@@ -513,6 +526,19 @@ const AccountUpgrade = () => {
           close={usdFlow.closeBridgeWebview}
           onAccepted={usdFlow.handleBridgeTosAccepted}
         />
+      ) : null}
+
+      {showRequestedModal && effectiveUsdCase ? (
+        <CenterModalWrapper close={() => setShowRequestedModal(false)}>
+          <div className="w-full max-w-md px-1 py-2 font-brSonoma">
+            <UsdOnboardingConfirmation
+              usdCase={effectiveUsdCase}
+              message={requestMessage ?? undefined}
+              tosConfirmed={isTosConfirmed}
+              onGoToDashboard={() => setShowRequestedModal(false)}
+            />
+          </div>
+        </CenterModalWrapper>
       ) : null}
     </>
   );

@@ -78,11 +78,12 @@ const Sidebar = () => {
     user?.business_account?.business_verifications?.[0]?.verification_status;
 
   const { data: usdCase } = useUsdOnboardingStatus(user);
+  const effectiveUsdCase = usdCase ?? null;
   const usdFlow = useUsdOnboardingFlow({
+    usdCase: effectiveUsdCase,
     onUsdRequestSuccess: () => refetch(),
   });
 
-  const effectiveUsdCase = usdCase ?? usdFlow.requestUsdMutation.data?.data ?? null;
   const usdRequestPending = isUsdOnboardingPending(effectiveUsdCase);
 
   const NGNAcct = findWalletByCurrency(user, "NGN");
@@ -221,15 +222,15 @@ const Sidebar = () => {
       description:
         "Our operations team will contact your business to complete USD verification.",
       bg: "bg-[#f2f4e9]/60",
-      action: effectiveUsdCase ? (
-        <UsdOnboardingConfirmation
-          usdCase={effectiveUsdCase}
-          compact
-          tosConfirmed={usdFlow.isTosConfirmed}
-          onAcceptTos={() => usdFlow.startAcceptBridgeTos()}
-          isAcceptingTos={usdFlow.isUsdActionPending}
-        />
-      ) : null,
+      // action: effectiveUsdCase ? (
+      //   <UsdOnboardingConfirmation
+      //     usdCase={effectiveUsdCase}
+      //     tosConfirmed={usdFlow.isTosConfirmed}
+      //     onAcceptTos={() => usdFlow.startAcceptBridgeTos()}
+      //     isAcceptingTos={usdFlow.isUsdActionPending}
+      //     showTimeline
+      //   />
+      // ) : null,
     },
     {
       condition: canSetTransactionPin(verificationStatus) && !hasTransactionPin,
@@ -320,7 +321,7 @@ const Sidebar = () => {
         <button
           onClick={() => usdFlow.startUsdRequest()}
           className="text-white bg-primary py-3 px-5 rounded-full text-sm font-semibold flex items-center gap-2"
-          disabled={usdFlow.isUsdActionPending}
+          disabled={usdFlow.isUsdActionPending || usdFlow.hasRequestedUsd}
         >
           {usdFlow.isUsdActionPending ? (
             <Spinner className="!w-4 !h-4 !border-t-2 !border-b-2" />

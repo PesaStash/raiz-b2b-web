@@ -206,15 +206,21 @@ export type UsdKybCaseStatus =
 
 export interface IUsdOnboardingCase {
   requested_onboarding: boolean;
-  requested_onboarding_at: string;
+  requested_onboarding_at: string | null;
   status: UsdKybCaseStatus;
-  case_id: string;
+  case_id: string | null;
 }
 
 export interface IUsdOnboardingResponse {
   success: boolean;
   message: string;
   data: IUsdOnboardingCase;
+}
+
+export interface IUsdOnboardingStatusResponse {
+  success: boolean;
+  message: string;
+  data: IUsdOnboardingCase | null;
 }
 
 export interface IBridgeTosAcceptMessage {

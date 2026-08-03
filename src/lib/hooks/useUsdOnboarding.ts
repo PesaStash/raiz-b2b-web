@@ -1,9 +1,15 @@
 "use client";
 
-import { RequestUsdOnboardingApi } from "@/services/business";
+import {
+  GetUsdOnboardingStatusApi,
+  RequestUsdOnboardingApi,
+} from "@/services/business";
 import { IUsdOnboardingCase, IUser } from "@/types/user";
 import { getApiErrorMessage } from "@/utils/helpers";
-import { hasCompletedUsdWallet } from "@/utils/onboardingBranch";
+import {
+  hasCompletedUsdWallet,
+  hasUsdOnboardingRequest,
+} from "@/utils/onboardingBranch";
 import { useUserStore } from "@/store/useUserStore";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
@@ -21,6 +27,7 @@ export function persistUsdOnboardingCase(
   caseData: IUsdOnboardingCase
 ) {
   if (typeof window === "undefined") return;
+  if (!hasUsdOnboardingRequest(caseData)) return;
   localStorage.setItem(
     getUsdOnboardingStorageKey(entityId),
     JSON.stringify(caseData)
@@ -35,7 +42,8 @@ export function readUsdOnboardingCase(
   try {
     const raw = localStorage.getItem(getUsdOnboardingStorageKey(entityId));
     if (!raw) return null;
-    return JSON.parse(raw) as IUsdOnboardingCase;
+    const parsed = JSON.parse(raw) as IUsdOnboardingCase;
+    return hasUsdOnboardingRequest(parsed) ? parsed : null;
   } catch {
     return null;
   }
@@ -55,7 +63,30 @@ function getUsdOnboardingQueryKey(entityId: string | undefined) {
   return [...USD_ONBOARDING_QUERY_KEY, entityId] as const;
 }
 
-/** Reads persisted USD onboarding case — never calls POST on mount. */
+async function fetchUsdOnboardingStatus(
+  entityId: string | undefined
+): Promise<IUsdOnboardingCase | null> {
+  const fromApi = await GetUsdOnboardingStatusApi();
+
+  if (fromApi) {
+    if (entityId) {
+      if (hasUsdOnboardingRequest(fromApi)) {
+        persistUsdOnboardingCase(entityId, fromApi);
+      } else {
+        clearUsdOnboardingCase(entityId);
+      }
+    }
+    return fromApi;
+  }
+
+  if (entityId) {
+    clearUsdOnboardingCase(entityId);
+  }
+
+  return null;
+}
+
+/** Fetches live USD onboarding status via GET — never POST on mount. */
 export function useUsdOnboardingStatus(user: IUser | undefined) {
   const entityId = user?.business_account?.entity_id;
   const qc = useQueryClient();
@@ -68,10 +99,10 @@ export function useUsdOnboardingStatus(user: IUser | undefined) {
 
   return useQuery({
     queryKey: getUsdOnboardingQueryKey(entityId),
-    queryFn: (): IUsdOnboardingCase | null =>
-      readUsdOnboardingCase(entityId) ?? null,
+    queryFn: () => fetchUsdOnboardingStatus(entityId),
     enabled: !!entityId && !hasCompletedUsdWallet(user),
-    staleTime: Infinity,
+    staleTime: 30_000,
+    placeholderData: () => readUsdOnboardingCase(entityId),
   });
 }
 
@@ -88,14 +119,18 @@ export function useRequestUsdOnboarding(
 
   return useMutation({
     mutationFn: () => RequestUsdOnboardingApi({ silent: true }),
-    onSuccess: (response) => {
+    onSuccess: async (response) => {
       const entityId =
         useUserStore.getState().user?.business_account?.entity_id;
 
-      if (entityId) {
+      if (entityId && hasUsdOnboardingRequest(response.data)) {
         persistUsdOnboardingCase(entityId, response.data);
         qc.setQueryData(getUsdOnboardingQueryKey(entityId), response.data);
       }
+
+      await qc.invalidateQueries({
+        queryKey: getUsdOnboardingQueryKey(entityId),
+      });
 
       if (showSuccessToast && response.message) {
         toast.success(response.message);
