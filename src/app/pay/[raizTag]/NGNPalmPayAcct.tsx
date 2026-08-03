@@ -197,7 +197,7 @@ const NGNPalmPayAcct = ({
             {isLoading ? (
               <ImSpinner3 className="animate-spin" />
             ) : (
-              `$${formatAmount(UsdEquivalent || 0.0)}`
+              `$${formatAmount(UsdEquivalent/10 || 0.0)}`
             )}
           </span>
         </div>

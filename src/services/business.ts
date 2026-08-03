@@ -182,7 +182,7 @@ export const FetchPaymentInfoApi = async (
   userName: string
 ): Promise<IBusinessPaymentData> => {
   const response = await PublicAxios.get(
-    `/admin/account_user/payment-information/${userName}/`
+    `/util/account_user/payment-information/${userName}/`
   );
   return response?.data;
 };
