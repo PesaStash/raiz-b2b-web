@@ -10,9 +10,9 @@ import RegisterOtp from "./forms/RegisterOtp";
 // import UseCases from "./forms/UseCases";
 import Congrats from "./forms/Congrats";
 import { useFormik } from "formik";
-import { registerFormSchemas } from "./validation";
+import { registerFormSchemas, sanitizeOtpInput } from "./validation";
 import { IRegisterFormValues } from "@/types/misc";
-import { toFormikValidationSchema } from "zod-formik-adapter";
+import { toFormikValidate } from "zod-formik-adapter";
 import { useRouter } from "next/navigation";
 import ConfirmPassword from "./forms/ConfirmPassword";
 import { useMutation } from "@tanstack/react-query";
@@ -54,15 +54,16 @@ const RegisterForm = () => {
     // useCases: [],
   };
 
-  const validationSchema = useMemo(() => {
-    const schema =
-      registerFormSchemas[currentStep as keyof typeof registerFormSchemas];
-    return toFormikValidationSchema(schema);
-  }, [currentStep]);
+  const validateCurrentStep = useMemo(
+    () => toFormikValidate(registerFormSchemas[currentStep as keyof typeof registerFormSchemas]),
+    [currentStep],
+  );
 
   const formik = useFormik({
     initialValues,
-    validationSchema,
+    validate: validateCurrentStep,
+    validateOnChange: true,
+    validateOnBlur: true,
     onSubmit: (values) => console.log("form values", values),
   });
 
@@ -125,8 +126,10 @@ const RegisterForm = () => {
         return (
           !formik.values.confirmPassword || !!formik.errors.confirmPassword
         );
-      case 4:
-        return !formik.values.otp || !!formik.errors.otp;
+      case 4: {
+        const otp = sanitizeOtpInput(formik.values.otp);
+        return otp.length !== 6 || !!formik.errors.otp;
+      }
       case 5:
         return false;
       default:

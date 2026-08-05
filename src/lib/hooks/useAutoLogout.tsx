@@ -7,6 +7,11 @@ import { useIdleTimer } from "react-idle-timer";
 import { LogoutApi } from "@/services/auth";
 import { GetItemFromCookie, RemoveItemFromCookie } from "@/utils/CookiesFunc";
 import { useUserStore } from "@/store/useUserStore";
+import {
+  clearUsdOnboardingCase,
+  clearUsdOnboardingSessionState,
+  USD_ONBOARDING_QUERY_KEY,
+} from "@/lib/hooks/useUsdOnboarding";
 import { clearUserDataSessionFlag, pushDataLayerEvent } from "@/utils/analytics/dataLayer";
 import { getAnalyticsUserId } from "@/utils/analytics/userProps";
 
@@ -29,13 +34,26 @@ export const useAutoLogout = () => {
         user_id: getAnalyticsUserId(user) || undefined,
       });
       clearUserDataSessionFlag();
+      clearUsdOnboardingSessionState();
+      const entityId = user?.business_account?.entity_id;
+      if (entityId) {
+        clearUsdOnboardingCase(entityId);
+        qc.removeQueries({ queryKey: [...USD_ONBOARDING_QUERY_KEY, entityId] });
+      }
       RemoveItemFromCookie("access_token");
       qc.clear();
       clearUser();
       router.push("/login");
     },
     onError: () => {
+      const user = useUserStore.getState().user;
       clearUserDataSessionFlag();
+      clearUsdOnboardingSessionState();
+      const entityId = user?.business_account?.entity_id;
+      if (entityId) {
+        clearUsdOnboardingCase(entityId);
+        qc.removeQueries({ queryKey: [...USD_ONBOARDING_QUERY_KEY, entityId] });
+      }
       RemoveItemFromCookie("access_token");
       qc.clear();
       clearUser();

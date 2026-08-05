@@ -192,6 +192,47 @@ export interface ISearchedUser {
   selfie_image: string | null;
 }
 
+export type UsdKybCaseStatus =
+  | "not_started"
+  | "collecting"
+  | "ready_for_review"
+  | "submitted_to_bridge"
+  | "under_review"
+  | "requires_additional_info"
+  | "approved"
+  | "completed"
+  | "rejected"
+  | string;
+
+export interface IUsdOnboardingCase {
+  requested_onboarding: boolean;
+  requested_onboarding_at: string | null;
+  status: UsdKybCaseStatus;
+  case_id: string | null;
+}
+
+export interface IUsdOnboardingResponse {
+  success: boolean;
+  message: string;
+  data: IUsdOnboardingCase;
+}
+
+export interface IUsdOnboardingStatusResponse {
+  success: boolean;
+  message: string;
+  data: IUsdOnboardingCase | null;
+}
+
+export interface IBridgeTosAcceptMessage {
+  signed_agreement_id: string;
+}
+
+export interface IBridgeTosSaveResponse {
+  success: boolean;
+  message: string;
+  data: null;
+}
+
 export interface IKYBLinksStatus {
   entity_id: string;
   kyc_id: string;

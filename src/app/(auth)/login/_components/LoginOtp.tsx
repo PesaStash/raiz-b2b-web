@@ -11,6 +11,7 @@ import Button from "@/components/ui/Button";
 import AnimatedSection from "@/components/ui/AnimatedSection";
 import { SetItemToCookie } from "@/utils/CookiesFunc";
 import OtpInputWithTimer from "@/components/ui/OtpInputWithTimer";
+import { clearUsdOnboardingSessionState, USD_ONBOARDING_QUERY_KEY } from "@/lib/hooks/useUsdOnboarding";
 import { pushDataLayerEvent } from "@/utils/analytics/dataLayer";
 
 interface Props {
@@ -40,7 +41,9 @@ const LoginOtp = ({ setStep, from, email, password }: Props) => {
         method: "email",
         user_id: String(userId),
       });
+      clearUsdOnboardingSessionState();
       qc.invalidateQueries({ queryKey: ["user"] });
+      qc.invalidateQueries({ queryKey: USD_ONBOARDING_QUERY_KEY });
       router.push("/");
     },
   });

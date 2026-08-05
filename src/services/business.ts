@@ -24,7 +24,12 @@ import {
 import { IChain } from "@/types/misc";
 import { PublicAxios } from "@/lib/publicAxios";
 import { GuestPayStatusType } from "@/types/transactions";
-import { IKYBLinksStatus } from "@/types/user";
+import {
+  IBridgeTosSaveResponse,
+  IUsdOnboardingCase,
+  IUsdOnboardingResponse,
+  IUsdOnboardingStatusResponse,
+} from "@/types/user";
 
 export const FreezeDebitApi = async (data: ITransactionPinPayload) => {
   const response = await AuthAxios.patch(
@@ -42,13 +47,70 @@ export const UnFreezeDebitApi = async (data: ITransactionPinPayload) => {
   return response?.data;
 };
 
-export const RequestUsdOnboardingApi = async () => {
-  const response = await AuthAxios.post("/business/entities/wallets/usd/");
+export const RequestUsdOnboardingApi = async (options?: {
+  silent?: boolean;
+}): Promise<IUsdOnboardingResponse> => {
+  const response = await AuthAxios.post(
+    "/business/entities/wallets/usd/",
+    null,
+    { silent: options?.silent } as CustomAxiosRequestConfig
+  );
   return response?.data;
+};
+
+export const GetUsdOnboardingStatusApi = async (): Promise<IUsdOnboardingCase | null> => {
+  const response = await AuthAxios.get("/business/entities/wallets/usd/", {
+    silent: true,
+  } as CustomAxiosRequestConfig);
+  const body = response?.data as IUsdOnboardingStatusResponse | undefined;
+
+  if (!body) return null;
+
+  if (body.success && body.data) {
+    return body.data;
+  }
+
+  // Pre-basic-verification or other non-error unavailable states — no toast.
+  if (body.success === false) {
+    return null;
+  }
+
+  return body.data ?? null;
 };
 
 /** @deprecated Use RequestUsdOnboardingApi */
 export const CreateUSDWalletApi = RequestUsdOnboardingApi;
+
+export const ConfirmBridgeTosApi = async (): Promise<boolean> => {
+  const response = await AuthAxios.get("/business/entities/tos/confirm/", {
+    silent: true,
+  } as CustomAxiosRequestConfig);
+  return response?.data === true;
+};
+
+export const GenerateBridgeTosUrlApi = async (): Promise<string> => {
+  const response = await AuthAxios.get(
+    "/business/entities/tos/generate/new/",
+    { silent: true } as CustomAxiosRequestConfig
+  );
+  const data = response?.data;
+  if (typeof data === "string") return data;
+  if (data && typeof data === "object" && "url" in data && typeof data.url === "string") {
+    return data.url;
+  }
+  throw new Error("Invalid Bridge ToS URL response");
+};
+
+export const SaveBridgeTosApi = async (
+  tosId: string
+): Promise<IBridgeTosSaveResponse> => {
+  const response = await AuthAxios.post(
+    `/business/entities/tos/?tos_id=${encodeURIComponent(tosId)}`,
+    null,
+    { silent: true } as CustomAxiosRequestConfig
+  );
+  return response?.data;
+};
 
 export const CreateNGNVirtualWalletApi = async () => {
   const response = await AuthAxios.post(
@@ -182,23 +244,6 @@ export const GetAfricaPayinStatus = async (
 ): Promise<GuestPayStatusType> => {
   const response = await PublicAxios.get(
     `/business/transactions/payins/africa/status/${payin_id}/`
-  );
-  return response?.data;
-};
-
-export const CheckBrigdeVerificationStatusApi = async () => {
-  const response = await AuthAxios.patch(
-    "/business/account_user/verifications/update/bridge/"
-  );
-  return response?.data;
-};
-
-export const GetKYBLinksApi = async (): Promise<IKYBLinksStatus> => {
-  const response = await AuthAxios.get(
-    "/business/account_user/verifications/link/",
-    {
-      silent: true,
-    } as CustomAxiosRequestConfig
   );
   return response?.data;
 };

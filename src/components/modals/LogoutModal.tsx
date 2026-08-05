@@ -7,6 +7,11 @@ import { LogoutApi } from "@/services/auth";
 import { useRouter } from "next/navigation";
 import { GetItemFromCookie, RemoveItemFromCookie } from "@/utils/CookiesFunc";
 import { useUser } from "@/lib/hooks/useUser";
+import {
+  clearUsdOnboardingCase,
+  clearUsdOnboardingSessionState,
+  USD_ONBOARDING_QUERY_KEY,
+} from "@/lib/hooks/useUsdOnboarding";
 import { clearUserDataSessionFlag, pushDataLayerEvent } from "@/utils/analytics/dataLayer";
 import { getAnalyticsUserId } from "@/utils/analytics/userProps";
 
@@ -22,6 +27,12 @@ const LogoutModal = ({ close }: { close: () => void }) => {
         user_id: getAnalyticsUserId(user) || undefined,
       });
       clearUserDataSessionFlag();
+      clearUsdOnboardingSessionState();
+      const entityId = user?.business_account?.entity_id;
+      if (entityId) {
+        clearUsdOnboardingCase(entityId);
+        qc.removeQueries({ queryKey: [...USD_ONBOARDING_QUERY_KEY, entityId] });
+      }
       RemoveItemFromCookie("accessToken");
       qc.clear();
       clearUser();

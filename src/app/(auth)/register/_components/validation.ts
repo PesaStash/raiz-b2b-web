@@ -16,8 +16,13 @@ export const newPasswordSchema = z
 
 export const otpSchema = z
   .string()
-  .length(6, "OTP must be exactly 6 digits")
-  .regex(/^\d{6}$/, "OTP must be exactly 6 digits");
+  .trim()
+  .length(6, "OTP must be exactly 6 characters")
+  .regex(/^[A-Za-z0-9]{6}$/, "OTP must only contain letters and numbers");
+
+export function sanitizeOtpInput(value: string, length = 6) {
+  return value.replace(/[^A-Za-z0-9]/g, "").slice(0, length);
+}
 
 export const registerFormSchemas = {
   1: z.object({
