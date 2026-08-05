@@ -203,35 +203,35 @@ const Sidebar = () => {
       ),
       bg: "bg-[#FFF3E666]",
     },
-    {
-      condition: usdRequestPending && effectiveUsdCase,
-      icon: (
-        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-          <path
-            opacity="0.5"
-            d="M16 29.3335C22.6274 29.3335 28 23.9609 28 17.3335C28 10.7061 22.6274 5.3335 16 5.3335C9.37258 5.3335 4 10.7061 4 17.3335C4 23.9609 9.37258 29.3335 16 29.3335Z"
-            fill="#CEBF36"
-          />
-          <path
-            d="M14.1147 19.2186C13.5253 18.6292 11.1907 15.0879 9.27335 12.1226C8.63068 11.1292 9.79601 9.96389 10.7893 10.6052C13.7547 12.5226 17.296 14.8586 17.8853 15.4466C18.9267 16.4879 18.9267 18.1759 17.8853 19.2172C16.844 20.2599 15.156 20.2599 14.1147 19.2186Z"
-            fill="#568C21"
-          />
-        </svg>
-      ),
-      title: "USD Account Requested",
-      description:
-        "Our operations team will contact your business to complete USD verification.",
-      bg: "bg-[#f2f4e9]/60",
-      // action: effectiveUsdCase ? (
-      //   <UsdOnboardingConfirmation
-      //     usdCase={effectiveUsdCase}
-      //     tosConfirmed={usdFlow.isTosConfirmed}
-      //     onAcceptTos={() => usdFlow.startAcceptBridgeTos()}
-      //     isAcceptingTos={usdFlow.isUsdActionPending}
-      //     showTimeline
-      //   />
-      // ) : null,
-    },
+    // {
+    //   condition: usdRequestPending && effectiveUsdCase,
+    //   icon: (
+    //     <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+    //       <path
+    //         opacity="0.5"
+    //         d="M16 29.3335C22.6274 29.3335 28 23.9609 28 17.3335C28 10.7061 22.6274 5.3335 16 5.3335C9.37258 5.3335 4 10.7061 4 17.3335C4 23.9609 9.37258 29.3335 16 29.3335Z"
+    //         fill="#CEBF36"
+    //       />
+    //       <path
+    //         d="M14.1147 19.2186C13.5253 18.6292 11.1907 15.0879 9.27335 12.1226C8.63068 11.1292 9.79601 9.96389 10.7893 10.6052C13.7547 12.5226 17.296 14.8586 17.8853 15.4466C18.9267 16.4879 18.9267 18.1759 17.8853 19.2172C16.844 20.2599 15.156 20.2599 14.1147 19.2186Z"
+    //         fill="#568C21"
+    //       />
+    //     </svg>
+    //   ),
+    //   title: "USD Account Requested",
+    //   description:
+    //     "Our operations team will contact your business to complete USD verification.",
+    //   bg: "bg-[#f2f4e9]/60",
+    //   // action: effectiveUsdCase ? (
+    //   //   <UsdOnboardingConfirmation
+    //   //     usdCase={effectiveUsdCase}
+    //   //     tosConfirmed={usdFlow.isTosConfirmed}
+    //   //     onAcceptTos={() => usdFlow.startAcceptBridgeTos()}
+    //   //     isAcceptingTos={usdFlow.isUsdActionPending}
+    //   //     showTimeline
+    //   //   />
+    //   // ) : null,
+    // },
     {
       condition: canSetTransactionPin(verificationStatus) && !hasTransactionPin,
       icon: (

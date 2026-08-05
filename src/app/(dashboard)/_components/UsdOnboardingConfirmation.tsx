@@ -103,13 +103,57 @@ const UsdOnboardingConfirmation = ({
             >
               {message || defaultMessage}
             </p>
-            {requestedAt ? (
-              <p className="mt-1 text-xs leading-[1.4] text-[#6F5B86]">
-                Requested on{" "}
-                <span className="text-xs font-semibold sm:text-[13px]">
-                  {requestedAt}
-                </span>
-              </p>
+            {requestedAt || (needsTos && onAcceptTos) || showSupportLink ? (
+              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs leading-[1.4]">
+                {requestedAt ? (
+                  <span className="text-[#6F5B86]">
+                    Requested on{" "}
+                    <span className="font-semibold sm:text-[13px]">
+                      {requestedAt}
+                    </span>
+                  </span>
+                ) : null}
+                {needsTos && onAcceptTos ? (
+                  <>
+                    {requestedAt ? (
+                      <span
+                        aria-hidden="true"
+                        className="text-sm leading-none text-[#6F5B86] sm:text-xl"
+                      >
+                        ·
+                      </span>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={onAcceptTos}
+                      disabled={isAcceptingTos}
+                      className="cursor-pointer font-semibold text-[#3C2875] underline underline-offset-2 transition-colors hover:text-[#2f1f5c] disabled:cursor-not-allowed disabled:opacity-60 sm:text-[13px]"
+                    >
+                      {isAcceptingTos
+                        ? "Opening Terms of Use..."
+                        : "Accept Terms of Use"}
+                    </button>
+                  </>
+                ) : null}
+                {showSupportLink ? (
+                  <>
+                    {requestedAt || (needsTos && onAcceptTos) ? (
+                      <span
+                        aria-hidden="true"
+                        className="text-sm leading-none text-[#6F5B86] sm:text-xl"
+                      >
+                        ·
+                      </span>
+                    ) : null}
+                    <Link
+                      href={SUPPORT_MAILTO}
+                      className="cursor-pointer font-semibold text-[#3C2875] underline underline-offset-2 transition-colors hover:text-[#2f1f5c] sm:text-[13px]"
+                    >
+                      Contact Support
+                    </Link>
+                  </>
+                ) : null}
+              </div>
             ) : null}
           </div>
         </div>
@@ -132,44 +176,16 @@ const UsdOnboardingConfirmation = ({
         />
       ) : null}
 
-      {needsTos && onAcceptTos ? (
-        <button
-          type="button"
-          onClick={onAcceptTos}
-          disabled={isAcceptingTos}
-          className="mt-4 text-sm font-semibold text-[#3C2875] hover:underline disabled:opacity-60"
-        >
-          {isAcceptingTos ? "Opening Terms of Use..." : "Accept Terms of Use"}
-        </button>
-      ) : null}
-
-      {!compact && (onGoToDashboard || showSupportLink) ? (
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          {onGoToDashboard ? (
-            <Button
-              type="button"
-              onClick={onGoToDashboard}
-              className="h-10 w-full sm:w-auto"
-            >
-              Go to Dashboard
-            </Button>
-          ) : null}
-          {showSupportLink ? (
-            <Link
-              href={SUPPORT_MAILTO}
-              className="text-center text-sm font-semibold text-[#3C2875] hover:underline sm:text-left"
-            >
-              Contact Support
-            </Link>
-          ) : null}
+      {!compact && onGoToDashboard ? (
+        <div className="mt-6">
+          <Button
+            type="button"
+            onClick={onGoToDashboard}
+            className="h-10 w-full sm:w-auto"
+          >
+            Go to Dashboard
+          </Button>
         </div>
-      ) : compact && showSupportLink ? (
-        <Link
-          href={SUPPORT_MAILTO}
-          className="mt-3 inline-block text-xs font-semibold text-[#3C2875] hover:underline"
-        >
-          Contact Support
-        </Link>
       ) : null}
     </div>
   );

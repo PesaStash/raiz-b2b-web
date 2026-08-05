@@ -61,7 +61,7 @@ interface ActionSectionProps {
 }
 
 const PinSetupBanner = ({ onSetUpPin }: { onSetUpPin: () => void }) => (
-  <div className="mt-4 rounded-2xl bg-[#FFF3E666] px-3 py-4 sm:mt-5 sm:px-4 md:px-5 md:py-5">
+  <div className="mt-4 rounded-2xl bg-[#eaecff]/40 px-3 py-4 sm:mt-5 sm:px-4 md:px-5 md:py-5">
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
       <div className="flex min-w-0 items-center gap-3 sm:items-start md:gap-4">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white md:h-12 md:w-12">
