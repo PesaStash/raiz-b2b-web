@@ -14,7 +14,6 @@ import { registerFormSchemas, sanitizeOtpInput } from "./validation";
 import { IRegisterFormValues } from "@/types/misc";
 import { toFormikValidate } from "zod-formik-adapter";
 import { useRouter } from "next/navigation";
-import ConfirmPassword from "./forms/ConfirmPassword";
 import { useMutation } from "@tanstack/react-query";
 import {
   IRegisterPayload,
@@ -28,12 +27,11 @@ import { getAnalyticsUserType } from "@/utils/analytics/userProps";
 
 const RegisterForm = () => {
   const router = useRouter();
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(2);
   const [checked, setChecked] = useState(false);
   const steps = [
     "createAccount",
     "setPassword",
-    "confirmPassword",
     "otp",
     // "createUsername",
     // "useCases",
@@ -121,16 +119,17 @@ const RegisterForm = () => {
           !checked
         );
       case 2:
-        return !formik.values.password || !!formik.errors.password;
-      case 3:
         return (
-          !formik.values.confirmPassword || !!formik.errors.confirmPassword
+          !formik.values.password ||
+          !formik.values.confirmPassword ||
+          !!formik.errors.password ||
+          !!formik.errors.confirmPassword
         );
-      case 4: {
+      case 3: {
         const otp = sanitizeOtpInput(formik.values.otp);
         return otp.length !== 6 || !!formik.errors.otp;
       }
-      case 5:
+      case 4:
         return false;
       default:
         return true;
@@ -158,8 +157,6 @@ const RegisterForm = () => {
       if (currentStep === 1) {
         handleNavigate("next");
       } else if (currentStep === 2) {
-        handleNavigate("next");
-      } else if (currentStep === 3) {
         const payload: IRegisterPayload = {
           email: formik.values.email,
           password: formik.values.password,
@@ -169,7 +166,7 @@ const RegisterForm = () => {
           referral_code: formik.values.referral_code || null,
         };
         signupMutation.mutate(payload);
-      } else if (currentStep === 4) {
+      } else if (currentStep === 3) {
         verifyOtpMutation.mutate({
           otp: formik.values.otp,
           email: formik.values.email,
@@ -190,16 +187,9 @@ const RegisterForm = () => {
         );
       case 3:
         return (
-          <ConfirmPassword
-            goBack={() => handleNavigate("back")}
-            formik={formik}
-          />
-        );
-      case 4:
-        return (
           <RegisterOtp goBack={() => handleNavigate("back")} formik={formik} />
         );
-      case 5:
+      case 4:
         return <Congrats />;
       default:
     }
@@ -247,7 +237,7 @@ const RegisterForm = () => {
             onClick={btnAction}
           >
             {isLoading
-              ? currentStep === 3
+              ? currentStep === 2
                 ? "Signing Up..."
                 : "Verifying..."
               : "Continue"}

@@ -7,6 +7,7 @@ import AnimatedSection from "@/components/ui/AnimatedSection";
 
 const SetPassword = ({ goBack, formik }: RegisterFormProps) => {
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   return (
     <AnimatedSection key="set-password" className="h-full flex flex-col -mt-2">
       <button onClick={goBack}>
@@ -47,9 +48,10 @@ const SetPassword = ({ goBack, formik }: RegisterFormProps) => {
       </p>
 
       <div className="md:mt-8 mt-5 xl:mt-[44px]">
-        <div className="flex flex-col xl:pb-20">
+        <div className="flex flex-col gap-5 xl:pb-20">
           <InputField
             label="Password"
+            placeholder="Enter your password"
             type={showPassword ? "text" : "password"}
             icon={!showPassword ? "/icons/eye-hide.svg" : "/icons/eye.svg"}
             onClick={() => setShowPassword(!showPassword)}
@@ -57,7 +59,21 @@ const SetPassword = ({ goBack, formik }: RegisterFormProps) => {
             status={formik.errors.password ? "error" : null}
             {...formik.getFieldProps("password")}
           />
-          <div className="flex flex-col gap-[15px] mt-5">
+          <InputField
+            label="Verify Password"
+            type={showConfirmPassword ? "text" : "password"}
+            icon={
+              !showConfirmPassword ? "/icons/eye-hide.svg" : "/icons/eye.svg"
+            }
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            iconPosition="right"
+            status={formik.errors.confirmPassword ? "error" : null}
+            {...formik.getFieldProps("confirmPassword")}
+            errorMessage={
+              formik.touched.confirmPassword && formik.errors.confirmPassword
+            }
+          />
+          <div className="flex flex-col gap-[15px]">
             <div className="flex gap-3">
               <div className="w-6 h-6">
                 {formik.errors.password &&
