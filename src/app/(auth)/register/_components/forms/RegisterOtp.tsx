@@ -8,7 +8,15 @@ import { toast } from "sonner";
 import { ResendSignupOtpApi } from "@/services/auth";
 import AnimatedSection from "@/components/ui/AnimatedSection";
 
+import { sanitizeOtpInput } from "../validation";
+
 const RegisterOtp = ({ goBack, formik }: RegisterFormProps) => {
+  const handleOtpChange = (val: string) => {
+    const otp = sanitizeOtpInput(val);
+    void formik.setFieldValue("otp", otp, true);
+    formik.setFieldTouched("otp", true, false);
+  };
+
   const resendOtpMutation = useMutation({
     mutationFn: (data: { email: string }) => ResendSignupOtpApi(data),
     onSuccess: (response) => {
@@ -60,7 +68,7 @@ const RegisterOtp = ({ goBack, formik }: RegisterFormProps) => {
         </p>
         <OtpInputWithTimer
           value={formik.values.otp}
-          onChange={(val) => formik.setFieldValue("otp", val)}
+          onChange={handleOtpChange}
           error={formik.errors.otp}
           touched={formik.touched.otp}
           onResend={() =>

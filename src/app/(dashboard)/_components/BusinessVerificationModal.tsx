@@ -84,7 +84,7 @@ const BusinessVerificationModal = ({
       BusinessVerificationApi(payload),
     onSuccess: () => {
       toast.success(
-        "Account registration successful. You'll receive an email from our banking partner regarding the next step for your onboarding"
+        "Basic business information submitted. Choose a starting currency to continue."
       );
       pushDataLayerEvent("kyc_status_update", {
         kyc_step: "basic_info",
@@ -92,7 +92,6 @@ const BusinessVerificationModal = ({
         user_type: getAnalyticsUserType(),
       });
       qc.invalidateQueries({ queryKey: ["user"] });
-      qc.invalidateQueries({ queryKey: ["KYB-links"] });
       onVerificationSuccess?.();
       close();
     },
