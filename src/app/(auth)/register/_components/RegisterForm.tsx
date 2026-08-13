@@ -27,7 +27,7 @@ import { getAnalyticsUserType } from "@/utils/analytics/userProps";
 
 const RegisterForm = () => {
   const router = useRouter();
-  const [currentStep, setCurrentStep] = useState(2);
+  const [currentStep, setCurrentStep] = useState(1);
   const [checked, setChecked] = useState(false);
   const steps = [
     "createAccount",

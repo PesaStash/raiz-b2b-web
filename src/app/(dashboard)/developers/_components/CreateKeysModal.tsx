@@ -1,45 +1,26 @@
-import React, { useState } from "react";
+"use client";
+
+import React, { useMemo, useState } from "react";
 import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 import InputField from "@/components/ui/InputField";
 import SelectField, { Option } from "@/components/ui/SelectField";
 import Checkbox from "@/components/ui/Checkbox";
 import Button from "@/components/ui/Button";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { GenerateAPIKeys } from "@/services/developers";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  FetchDeveloperPermissionsApi,
+  GenerateAPIKeys,
+} from "@/services/developers";
 import { toast } from "sonner";
 import dayjs from "dayjs";
 import NewAPIkeyModal from "./NewAPIkeyModal";
 import { IDeveloperApiKey } from "@/types/services";
 import { pushDataLayerEvent } from "@/utils/analytics/dataLayer";
+import Skeleton from "react-loading-skeleton";
 
 interface Props {
   close: () => void;
 }
-
-const PERMISSION_OPTIONS = [
-  {
-    id: "customers:read",
-    title: "Customers Read",
-    desc: "View your Customers",
-  },
-  {
-    id: "customers:write",
-    title: "Customers Write",
-    desc: "Create and update Customers",
-  },
-  { id: "payments:read", title: "Payments Read", desc: "View your Payments" },
-  {
-    id: "payments:write",
-    title: "Payments Write",
-    desc: "Create new Payments",
-  },
-  { id: "webhooks:read", title: "Webhooks Read", desc: "View your Webhooks" },
-  {
-    id: "webhooks:write",
-    title: "Webhooks Write",
-    desc: "Create and update Webhooks",
-  },
-];
 
 const ENVIRONMENTS: Option[] = [
   { value: "production", label: "Live" },
@@ -53,11 +34,29 @@ const CreateKeysModal = ({ close }: Props) => {
     ENVIRONMENTS[0],
   );
   const [expiration, setExpiration] = useState<string>(
-    dayjs().add(1, "year").format("YYYY-MM-DDTHH:mm")
+    dayjs().add(1, "year").format("YYYY-MM-DDTHH:mm"),
   );
   const [permissions, setPermissions] = useState<string[]>([]);
   const [showAPIDetailModal, setShowAPIDetailModal] = useState(false);
   const [APIKey, setAPIKey] = useState<IDeveloperApiKey | null>(null);
+
+  const { data: permissionOptions = [], isLoading: isPermissionsLoading } =
+    useQuery({
+      queryKey: ["developer-permissions"],
+      queryFn: FetchDeveloperPermissionsApi,
+    });
+
+  const groupedPermissions = useMemo(() => {
+    return permissionOptions.reduce<Record<string, typeof permissionOptions>>(
+      (groups, permission) => {
+        const group = permission.group || "Other";
+        if (!groups[group]) groups[group] = [];
+        groups[group].push(permission);
+        return groups;
+      },
+      {},
+    );
+  }, [permissionOptions]);
 
   const { mutate, isPending } = useMutation({
     mutationFn: GenerateAPIKeys,
@@ -90,7 +89,8 @@ const CreateKeysModal = ({ close }: Props) => {
 
     const parsedExp = dayjs(expiration);
     if (!parsedExp.isValid()) return toast.warning("Invalid expiration date");
-    if (parsedExp.isBefore(dayjs())) return toast.warning("Expiration must be in the future");
+    if (parsedExp.isBefore(dayjs()))
+      return toast.warning("Expiration must be in the future");
 
     mutate({
       name: name.trim(),
@@ -150,35 +150,46 @@ const CreateKeysModal = ({ close }: Props) => {
             <label className="text-sm font-semibold text-raiz-gray-950">
               Permissions
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {PERMISSION_OPTIONS.map((item) => {
-                const isChecked = permissions.includes(item.id);
-                return (
-                  <div
-                    key={item.id}
-                    className={`flex items-start gap-3 p-4 rounded-xl transition-colors cursor-pointer hover:bg-raiz-gray-200 ${!isChecked ? "bg-raiz-gray-100" : "bg-[#EAECFF99]"}`}
-                    onClick={() => togglePermission(item.id, !isChecked)}
-                  >
-                    <div className="mt-0.5">
-                      <Checkbox
-                        checked={isChecked}
-                        onChange={(checked) =>
-                          togglePermission(item.id, checked)
-                        }
-                      />
-                    </div>
-                    <div className="flex flex-col select-none">
-                      <span className="text-[13px] font-semibold text-raiz-gray-950 leading-tight mb-1">
-                        {item.title}
-                      </span>
-                      <span className="text-[13px] text-raiz-gray-600 leading-tight">
-                        {item.desc}
-                      </span>
-                    </div>
+            {isPermissionsLoading ? (
+              <Skeleton count={4} height={72} className="mb-2" />
+            ) : (
+              Object.entries(groupedPermissions).map(([group, items]) => (
+                <div key={group} className="flex flex-col gap-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-raiz-gray-500">
+                    {group}
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {items.map((item) => {
+                      const isChecked = permissions.includes(item.key);
+                      return (
+                        <div
+                          key={item.key}
+                          className={`flex items-start gap-3 p-4 rounded-xl transition-colors cursor-pointer hover:bg-raiz-gray-200 ${!isChecked ? "bg-raiz-gray-100" : "bg-[#EAECFF99]"}`}
+                          onClick={() => togglePermission(item.key, !isChecked)}
+                        >
+                          <div className="mt-0.5">
+                            <Checkbox
+                              checked={isChecked}
+                              onChange={(checked) =>
+                                togglePermission(item.key, checked)
+                              }
+                            />
+                          </div>
+                          <div className="flex flex-col select-none">
+                            <span className="text-[13px] font-semibold text-raiz-gray-950 leading-tight mb-1">
+                              {item.label}
+                            </span>
+                            <span className="text-[13px] text-raiz-gray-600 leading-tight">
+                              {item.description}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 

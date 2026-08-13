@@ -5,12 +5,16 @@ import DeveloperKeysTable from "./_components/DeveloperKeysTable";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 import CreateKeysModal from "./_components/CreateKeysModal";
 import SettlementSettings from "./_components/SettlementSettings";
+import NgnPayoutSettings from "./_components/NgnPayoutSettings";
+import WebhookSettings from "./_components/WebhookSettings";
 
-type GatewayTab = "api-keys" | "settlement";
+type GatewayTab = "api-keys" | "settlement" | "ngn-payouts" | "webhooks";
 
 const TABS: { id: GatewayTab; label: string }[] = [
   { id: "api-keys", label: "Developer API Keys" },
   { id: "settlement", label: "Settlement Settings" },
+  { id: "ngn-payouts", label: "NGN Virtual Payouts" },
+  { id: "webhooks", label: "Webhook Settings" },
 ];
 
 const DevelopersPage = () => {
@@ -116,6 +120,15 @@ const DevelopersPage = () => {
         )}
 
         {activeTab === "settlement" && <SettlementSettings />}
+
+        {activeTab === "ngn-payouts" && (
+          <NgnPayoutSettings
+            onManageApiKeys={() => setActiveTab("api-keys")}
+            onManageWebhooks={() => setActiveTab("webhooks")}
+          />
+        )}
+
+        {activeTab === "webhooks" && <WebhookSettings />}
       </section>
       {showModal && (
         <CenterModalWrapper close={() => setShowModal(false)}>
