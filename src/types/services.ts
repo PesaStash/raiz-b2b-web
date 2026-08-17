@@ -783,6 +783,34 @@ export interface IBusinessVerificationPayload {
   length_of_stay_months: number | null;
 }
 
+export type NgnKybRequirementStatus =
+  | "not_started"
+  | "pending"
+  | "review"
+  | "approved"
+  | "declined";
+
+export type NgnAipriseFlow = "cac" | "ubo";
+
+export interface INgnVerificationRequirements {
+  cac_document_status: NgnKybRequirementStatus;
+  cac_document_session_id: string | null;
+  cac_document_url: string | null;
+  cac_document_verified_at: string | null;
+  ubo_status: NgnKybRequirementStatus;
+  ubo_session_id: string | null;
+  ubo_verified_at: string | null;
+  ubo_business_account_user_id: string | null;
+  has_ubo_government_id: boolean;
+  has_ubo_liveness: boolean;
+  can_create_ngn_account: boolean;
+}
+
+export interface INgnVerificationSessionResponse {
+  session_id: string;
+  status: NgnKybRequirementStatus;
+}
+
 export interface IInvoiceSettingsPayload {
   default_currency?: string;
   invoice_prefix?: string;
@@ -870,10 +898,10 @@ export interface IDeveloperApiKey {
   environment: string;
   permissions: string[];
   is_active: boolean;
-  last_used_at: string;
-  expires_at: string;
+  last_used_at: string | null;
+  expires_at: string | null;
   created_at: string;
-  raw_key: string;
+  raw_key?: string;
 }
 
 export interface IGenerateDeveloperKeysAPI {
@@ -902,6 +930,94 @@ export interface IAPIKeyLogs {
 export interface IAPIKeyLogsResponse {
   logs: IAPIKeyLogs[];
   total: number;
+}
+
+export type NgnPayoutBlocker =
+  | "missing_completed_ngn_wallet"
+  | "source_wallet_not_completed_or_usable"
+  | "kyb_incomplete"
+  | "missing_per_transaction_limit"
+  | "missing_daily_limit"
+  | "per_transaction_limit_exceeds_daily_limit"
+  | "missing_manual_approval_threshold";
+
+export type NgnPayoutKybStatus =
+  | "not_started"
+  | "pending"
+  | "completed"
+  | "failed"
+  | string;
+
+export type NgnPayoutDestinationType = "nigerian_bank_account";
+
+export interface INgnPayoutSettings {
+  business_gateway_ngn_payout_settings_id: string;
+  business_account_id: string;
+  enabled: boolean;
+  source_wallet_id: string | null;
+  per_transaction_limit_ngn: string | number | null;
+  daily_limit_ngn: string | number | null;
+  manual_approval_enabled: boolean;
+  manual_approval_threshold_ngn: string | number | null;
+  allowed_destination_type: NgnPayoutDestinationType;
+  source_wallet_status: string | null;
+  kyb_status: NgnPayoutKybStatus;
+  can_enable: boolean;
+  blockers: NgnPayoutBlocker[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface IUpdateNgnPayoutSettingsPayload {
+  enabled?: boolean;
+  source_wallet_id?: string | null;
+  per_transaction_limit_ngn?: string | number | null;
+  daily_limit_ngn?: string | number | null;
+  manual_approval_enabled?: boolean;
+  manual_approval_threshold_ngn?: string | number | null;
+  allowed_destination_type?: NgnPayoutDestinationType;
+}
+
+export interface IDeveloperPermission {
+  key: string;
+  label: string;
+  description: string;
+  group: string;
+}
+
+export interface IGatewayWebhook {
+  id: string;
+  business_id: string;
+  webhook_url: string;
+  events: string[];
+  is_active: boolean;
+  failure_count: number;
+  last_success_at: string | null;
+  last_failure_at: string | null;
+  created_at: string;
+  raw_secret?: string | null;
+}
+
+export interface ICreateGatewayWebhookPayload {
+  webhook_url: string;
+  events: string[];
+  secret?: string | null;
+}
+
+export interface IUpdateGatewayWebhookPayload {
+  webhook_url?: string;
+  events?: string[];
+  is_active?: boolean;
+}
+
+export interface ITestGatewayWebhookPayload {
+  event_type: string;
+  payload: Record<string, unknown>;
+}
+
+export interface ITestGatewayWebhookResponse {
+  success: boolean;
+  message: string;
 }
 
 export interface IAlipayWechatRateResponse {

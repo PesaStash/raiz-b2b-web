@@ -109,6 +109,7 @@ export interface IWallet {
   account_balance: number;
   account_number: string;
   account_name?: string | null;
+  is_pnd?: boolean;
   bank_name: string;
   bank_address?: string | null;
   bic?: string | null;

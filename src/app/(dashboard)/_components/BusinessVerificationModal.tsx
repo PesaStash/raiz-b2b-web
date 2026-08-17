@@ -16,7 +16,7 @@ import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 import { pushDataLayerEvent } from "@/utils/analytics/dataLayer";
 import { getAnalyticsUserType } from "@/utils/analytics/userProps";
 
-const nigerianRegNumberRegex = /^(RC|BN|IT|LP)?[\s-]*\d{6,7}$/i;
+const nigerianRegNumberRegex = /^(RC|BN)[\s-]*\d{6,7}$/i;
 
 const BusinessSchema = z.object({
   business_name: z.string().min(1, "Business name is required"),
@@ -108,7 +108,7 @@ const BusinessVerificationModal = ({
       },
       {
         message:
-          "Invalid Nigerian business registration number. Must start with RC, BN, IT, or LP and contain 6-7 digits.",
+          "Invalid Nigerian business registration number. Must start with RC or BN and contain 6-7 digits.",
         path: ["business_registration_number"],
       }
     );

@@ -40,22 +40,20 @@ export const registerFormSchemas = {
     country_id: z.string().min(1, "Country is required"),
     referral_code: z.string().optional(),
   }),
-  2: z.object({
-    password: newPasswordSchema,
-  }),
-  3: z
+  2: z
     .object({
-      password: z.string().optional(), // Include password as optional
+      password: newPasswordSchema,
       confirmPassword: z.string().nonempty("Confirm Password is required"),
+      referral_code: z.string().optional(),
     })
     .refine((data) => data.confirmPassword === data.password, {
       message: "Password must match with your new password",
       path: ["confirmPassword"],
     }),
-  4: z.object({
+  3: z.object({
     otp: otpSchema,
   }),
-  5: z.object({}),
+  4: z.object({}),
 };
 
 export const generalOTPFormSchema = z.object({
