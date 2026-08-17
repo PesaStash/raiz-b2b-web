@@ -4,7 +4,10 @@ export type KycStep =
   | "basic_info"
   | "document_upload"
   | "review"
-  | "usd_onboarding_requested";
+  | "usd_onboarding_requested"
+  | "ngn_cac_document"
+  | "ngn_ubo"
+  | "ngn_account_created";
 
 export type KycStatus =
   | "submitted"

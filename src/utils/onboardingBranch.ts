@@ -67,7 +67,7 @@ export function getDefaultOnboardingCurrencyPath(
   return canChooseNgnOnboarding(user) ? "NGN" : "USD";
 }
 
-export function canCreateNgnWallet(
+export function canStartNgnAccountSetup(
   user: IUser | undefined,
   verificationStatus: VerificationStatus
 ) {
@@ -79,6 +79,13 @@ export function canCreateNgnWallet(
       verificationStatus === "completed" ||
       verificationStatus === "pending")
   );
+}
+
+export function canCreateNgnWallet(
+  user: IUser | undefined,
+  verificationStatus: VerificationStatus
+) {
+  return canStartNgnAccountSetup(user, verificationStatus);
 }
 
 export function hasCompletedUsdWallet(user: IUser | undefined) {

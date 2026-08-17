@@ -435,7 +435,7 @@ const AccountUpgrade = () => {
                 className={`border cursor-pointer ${
                   selectedCurrencyPath === "USD"
                     ? "border-primary2"
-                    : "#E4E0EA"
+                    : "border-[#E4E0EA]"
                 } rounded-[20px] flex flex-col  relative items-center justify-between w-full px-4 py-4 transition-colors hover:border-indigo-900`}
               >
                 <div className="flex flex-col items-center gap-3">
@@ -451,8 +451,7 @@ const AccountUpgrade = () => {
                       USD Account
                     </p>
                     <p className="text-zinc-900 text-xs font-normal leading-tight mt-2">
-                      Request a USD account — our team will guide you through
-                      setup
+                      Requires full Business KYB
                     </p>
                   </div>
                 </div>
@@ -471,7 +470,7 @@ const AccountUpgrade = () => {
                   className={`border cursor-pointer ${
                     selectedCurrencyPath === "NGN"
                       ? "border-primary2"
-                      : "#E4E0EA"
+                      : "border-[#E4E0EA]"
                   } rounded-[20px] flex flex-col relative items-center justify-between w-full px-4 py-4 transition-colors hover:border-indigo-900`}
                 >
                   <div className="flex flex-col items-center gap-3">
@@ -487,7 +486,7 @@ const AccountUpgrade = () => {
                         NGN Account
                       </p>
                       <p className="text-zinc-900 text-xs font-normal leading-tight mt-2">
-                        Get your NGN account instantly
+                        Requires Business’ CAC and owners verification
                       </p>
                     </div>
                   </div>

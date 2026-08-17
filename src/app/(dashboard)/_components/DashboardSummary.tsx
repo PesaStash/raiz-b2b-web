@@ -441,15 +441,7 @@ const DashboardSummary = () => {
           <CenterModalWrapper
             close={closeModal}
             wrapperStyle={
-              openModal === "createNGN"
-                ? "!bg-primary2"
-                : openModal === "createCrypto"
-                  ? "!bg-raiz-crypto-primary"
-                  // : selectedCurrency?.name === "GBP"
-                  //   ? "!bg-raiz-gbp-primary"
-                  //   : selectedCurrency?.name === "EUR"
-                  //     ? "!bg-raiz-eur-primary"
-                      : ""
+              openModal === "createCrypto" ? "!bg-raiz-crypto-primary" : ""
             }
           >
             {displayScreen()}
