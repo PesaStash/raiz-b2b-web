@@ -22,6 +22,7 @@ import Image from "next/image";
 import SelectAccount from "@/app/(dashboard)/_components/SelectAccount";
 import { useState } from "react";
 import CreateNgnAcct from "@/app/(dashboard)/_components/createNgnAcct/CreateNgnAcct";
+import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 import CreateCryptoWallet from "@/app/(dashboard)/_components/crypto/dashboard/CreateCryptoWallet";
 import { useQuery } from "@tanstack/react-query";
 import { FetchTransactionReportChartApi } from "@/services/business";
@@ -439,7 +440,9 @@ const AnalyticsChart = ({ open, close, opened, selectedRange }: Props) => {
           />
         )}
         {openModal === "createNGN" && (
-          <CreateNgnAcct close={() => setOpenModal(null)} />
+          <CenterModalWrapper close={() => setOpenModal(null)}>
+            <CreateNgnAcct close={() => setOpenModal(null)} />
+          </CenterModalWrapper>
         )}
         {openModal === "createCrypto" && (
           <CreateCryptoWallet close={() => setOpenModal(null)} />

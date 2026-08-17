@@ -61,7 +61,7 @@ const SetupPin = ({ selectedStep, setSelectedStep }: AccountSetupProps) => {
       </div>
       <form
         onSubmit={formik.handleSubmit}
-        className="flex flex-col h-full justify-between"
+        className="flex flex-col h-full justify-between lg:mb-5 xl:mb-0"
       >
         {formState === "pin" ? (
           <OtpInput

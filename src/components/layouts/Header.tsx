@@ -522,15 +522,7 @@ const Header = () => {
           <CenterModalWrapper
             close={handleCloseModal}
             wrapperStyle={
-              showModal === "createNGN"
-                ? "!bg-primary2"
-                : showModal === "createCrypto"
-                  ? "!bg-raiz-crypto-primary"
-                  // : selectedCurrency?.name === "GBP"
-                  //   ? "!bg-raiz-gbp-primary"
-                  //   : selectedCurrency?.name === "EUR"
-                  //     ? "!bg-raiz-eur-primary"
-                      : ""
+              showModal === "createCrypto" ? "!bg-raiz-crypto-primary" : ""
             }
           >
             {displayModal()}

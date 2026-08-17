@@ -333,6 +333,15 @@ export const convertTime = (utcTime: Date | string): string => {
   return dayjs.utc(utcTime).local().format("YYYY-MM-DD HH:mm:ss");
 };
 
+export const formatLastUpdated = (date: string) => {
+  const local = dayjs.utc(date).local();
+  if (dayjs().diff(local, "second") < 60) return "just now";
+  return local
+    .fromNow()
+    .replace("a minute ago", "1 min ago")
+    .replace("minutes ago", "mins ago");
+};
+
 export function convertToTitle(input: string): string {
   const words = input?.split("_").map((word) => {
     return word?.charAt(0).toUpperCase() + word?.slice(1).toLowerCase();

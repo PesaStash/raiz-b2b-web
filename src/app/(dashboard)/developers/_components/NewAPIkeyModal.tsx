@@ -62,14 +62,16 @@ const NewAPIkeyModal = ({ close, data }: Props) => {
                 title={data?.raw_key}
                 className="text-raiz-gray-950 p-[15px]  truncate text-sm font-medium font-brSonoma  leading-normal"
               >
-                {data?.raw_key}
+                {data?.raw_key ?? "—"}
               </p>
               <div className="size-[50px] flex items-center justify-center">
-                <CopyButton
-                  className="bg-raiz-gray-200 size-12 flex items-center"
-                  value={data?.raw_key}
-                  size={20}
-                />
+                {data?.raw_key && (
+                  <CopyButton
+                    className="bg-raiz-gray-200 size-12 flex items-center"
+                    value={data.raw_key}
+                    size={20}
+                  />
+                )}
               </div>
             </div>
           </div>

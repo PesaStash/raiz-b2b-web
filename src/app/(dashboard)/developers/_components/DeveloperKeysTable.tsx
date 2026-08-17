@@ -111,6 +111,10 @@ const DeveloperKeysTable = ({ onGenerateKey }: DeveloperKeysTableProps) => {
                   label = "Paym... write";
                 else if (perm === "payments:read" || perm === "Paym... read")
                   label = "Paym... read";
+                else if (perm === "payouts:write" || perm === "Payo... write")
+                  label = "Payo... write";
+                else if (perm === "payouts:read" || perm === "Payo... read")
+                  label = "Payo... read";
                 else if (perm === "webhooks:write" || perm === "webh... write")
                   label = "webh... write";
                 else if (perm === "webhooks:read" || perm === "webh... read")

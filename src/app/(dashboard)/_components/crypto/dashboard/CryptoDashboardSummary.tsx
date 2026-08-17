@@ -194,11 +194,7 @@ const CryptoDashboardSummary = () => {
           <SideModalWrapper
             close={closeModal}
             wrapperStyle={
-              openModal === "createNGN"
-                ? "!bg-primary2"
-                : openModal === "createCrypto"
-                ? "!bg-raiz-crypto-primary"
-                : ""
+              openModal === "createCrypto" ? "!bg-raiz-crypto-primary" : ""
             }
           >
             {displayScreen()}
