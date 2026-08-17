@@ -505,10 +505,7 @@ const Sidebar = () => {
       </section>
       <AnimatePresence>
         {showModal ? (
-          <SideModalWrapper
-            close={handleCloseModal}
-            wrapperStyle={showModal === "getNgn" ? "!bg-primary2" : ""}
-          >
+          <SideModalWrapper close={handleCloseModal}>
             {displayModal()}
           </SideModalWrapper>
         ) : null}

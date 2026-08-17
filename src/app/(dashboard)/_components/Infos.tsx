@@ -8,8 +8,8 @@ import { useUsdOnboardingFlow } from "@/lib/hooks/useUsdOnboardingFlow";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { findWalletByCurrency } from "@/utils/helpers";
 import {
-  canCreateNgnWallet,
   canRequestUsdAccount,
+  canStartNgnAccountSetup,
   canSetTransactionPin,
   dismissInfosAddAccounts,
   hasCompletedUsdWallet,
@@ -263,7 +263,7 @@ const Infos = ({ isNgnBranch = false }: InfosProps) => {
   const GBPAcct = findWalletByCurrency(user, "GBP");
   const EURAcct = findWalletByCurrency(user, "EUR");
   const hasCompletedUsd = hasCompletedUsdWallet(user);
-  const showAddNgn = canCreateNgnWallet(user, verificationStatus);
+  const showAddNgn = canStartNgnAccountSetup(user, verificationStatus);
   const showAddUsd = shouldPromptAddUsdAccount(
     user,
     verificationStatus,
@@ -343,7 +343,7 @@ const Infos = ({ isNgnBranch = false }: InfosProps) => {
       label: "NGN",
       sublabel: "Naira account",
       onAction: () => setShowModal("getNgn"),
-      ctaLabel: "Create NGN Account",
+      ctaLabel: "Set Up NGN Account",
     },
     {
       key: "getGbp",

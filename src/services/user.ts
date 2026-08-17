@@ -3,6 +3,8 @@ import {
   FeedbackPayload,
   IBusinessVerificationPayload,
   IFetchRewardsParams,
+  INgnVerificationRequirements,
+  INgnVerificationSessionResponse,
   IRewardActivityResponse,
   IRewardPoint,
   IUserSearchParams,
@@ -71,6 +73,43 @@ export const BusinessVerificationApi = async (
   const response = await AuthAxios.post(
     `/business/account_user/verifications/persona/`,
     payload,
+  );
+  return response?.data;
+};
+
+export const FetchNgnVerificationRequirementsApi =
+  async (): Promise<INgnVerificationRequirements> => {
+    const response = await AuthAxios.get(
+      "/business/account_user/verifications/ngn/requirements/",
+      { silent: true } as CustomAxiosRequestConfig,
+    );
+    return response?.data;
+  };
+
+export const SubmitNgnCacDocumentSessionApi = async (
+  sessionId: string,
+): Promise<INgnVerificationSessionResponse> => {
+  const response = await AuthAxios.post(
+    "/business/account_user/verifications/ngn/cac-document/",
+    null,
+    {
+      params: { session_id: sessionId },
+      silent: true,
+    } as CustomAxiosRequestConfig,
+  );
+  return response?.data;
+};
+
+export const SubmitNgnUboSessionApi = async (
+  sessionId: string,
+): Promise<INgnVerificationSessionResponse> => {
+  const response = await AuthAxios.post(
+    "/business/account_user/verifications/ngn/ubo/",
+    null,
+    {
+      params: { session_id: sessionId },
+      silent: true,
+    } as CustomAxiosRequestConfig,
   );
   return response?.data;
 };

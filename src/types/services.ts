@@ -783,6 +783,34 @@ export interface IBusinessVerificationPayload {
   length_of_stay_months: number | null;
 }
 
+export type NgnKybRequirementStatus =
+  | "not_started"
+  | "pending"
+  | "review"
+  | "approved"
+  | "declined";
+
+export type NgnAipriseFlow = "cac" | "ubo";
+
+export interface INgnVerificationRequirements {
+  cac_document_status: NgnKybRequirementStatus;
+  cac_document_session_id: string | null;
+  cac_document_url: string | null;
+  cac_document_verified_at: string | null;
+  ubo_status: NgnKybRequirementStatus;
+  ubo_session_id: string | null;
+  ubo_verified_at: string | null;
+  ubo_business_account_user_id: string | null;
+  has_ubo_government_id: boolean;
+  has_ubo_liveness: boolean;
+  can_create_ngn_account: boolean;
+}
+
+export interface INgnVerificationSessionResponse {
+  session_id: string;
+  status: NgnKybRequirementStatus;
+}
+
 export interface IInvoiceSettingsPayload {
   default_currency?: string;
   invoice_prefix?: string;
