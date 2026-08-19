@@ -49,6 +49,7 @@ const USBeneficiaryModal = ({ close, users }: Props) => {
             className="pl-10 h-full bg-[#fcfcfc] rounded-[20px] border border-raiz-gray-200 justify-start items-center gap-2 inline-flex w-full outline-none text-sm"
           />
         </div>
+        <div className="flex flex-col md:gap-5 gap-3 font-brSonoma md:h-[350px] h-[300px] overflow-y-scroll ">
         {filteredUsers.length > 0 ? (
           filteredUsers.map((user, index) => (
             <button
@@ -74,6 +75,7 @@ const USBeneficiaryModal = ({ close, users }: Props) => {
             No beneficiary found
           </p>
         )}
+        </div>
       </div>
     </Overlay>
   );
