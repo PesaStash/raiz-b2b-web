@@ -13,7 +13,7 @@ const Radio: React.FC<RadioProps> = ({
   onChange,
   className,
   readOnly,
-  checkedColor = "indigo-900",
+  checkedColor = "#7F56D9",
 }) => {
   return (
     <button
