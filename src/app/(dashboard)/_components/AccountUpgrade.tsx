@@ -1,6 +1,7 @@
 import Button from "@/components/ui/Button";
 import Overlay from "@/components/ui/Overlay";
 import Radio from "@/components/ui/Radio";
+import { useNgnOnboarding } from "@/lib/hooks/useNgnOnboarding";
 import { useUser } from "@/lib/hooks/useUser";
 import {
   useUsdOnboardingStatus,
@@ -14,11 +15,13 @@ import {
   isNigerianBusiness,
   OnboardingCurrencyPath,
 } from "@/utils/onboardingBranch";
+import { hasStartedNgnKyb } from "@/utils/ngnKyb";
 import React, { useEffect, useState } from "react";
 import { FaCheck } from "react-icons/fa";
 import { IUsdOnboardingCase } from "@/types/user";
 import BusinessVerificationModal from "./BusinessVerificationModal";
 import CreateNgnAcct from "./createNgnAcct/CreateNgnAcct";
+import NgnKybProgressCard from "./createNgnAcct/NgnKybProgressCard";
 import SetTransactionPin from "./transaction-pin/SetTransactionPin";
 import { AnimatePresence } from "motion/react";
 import Image from "next/image";
@@ -87,6 +90,14 @@ const AccountUpgrade = () => {
   const isNigerian = branchState.isNigerianBusiness;
   const isTosConfirmed = usdFlow.isTosConfirmed;
 
+  const shouldFetchNgnRequirements =
+    isNigerian && branchState.isStep1Complete && !branchState.hasNgnWallet;
+
+  const { requirements: ngnRequirements, isLoading: isNgnRequirementsLoading } =
+    useNgnOnboarding({ enabled: shouldFetchNgnRequirements });
+
+  const ngnKybStarted = hasStartedNgnKyb(ngnRequirements);
+
   const showUsdSteps =
     activeCurrencyPath === "USD" || hasRequestedUsd || (!isNigerian && branchState.isStep1Complete);
   const showOnlyStep1 =
@@ -134,11 +145,23 @@ const AccountUpgrade = () => {
 
   useEffect(() => {
     if (
+      ngnKybStarted &&
+      activeCurrencyPath === null &&
+      !showCurrencyModal
+    ) {
+      setActiveCurrencyPath("NGN");
+    }
+  }, [ngnKybStarted, activeCurrencyPath, showCurrencyModal]);
+
+  useEffect(() => {
+    if (
       branchState.needsCurrencyChoice &&
       activeCurrencyPath === null &&
       !showCurrencyModal &&
       !showModal &&
-      isNigerian
+      isNigerian &&
+      !isNgnRequirementsLoading &&
+      !ngnKybStarted
     ) {
       setShowCurrencyModal(true);
     }
@@ -148,6 +171,8 @@ const AccountUpgrade = () => {
     showCurrencyModal,
     showModal,
     isNigerian,
+    isNgnRequirementsLoading,
+    ngnKybStarted,
   ]);
 
   const handleChangeCurrency = () => {
@@ -199,6 +224,10 @@ const AccountUpgrade = () => {
 
   const handleVerificationSuccess = () => {
     if (isNigerianBusiness(user)) {
+      if (hasStartedNgnKyb(ngnRequirements)) {
+        setActiveCurrencyPath("NGN");
+        return;
+      }
       setShowCurrencyModal(true);
       return;
     }
@@ -308,7 +337,20 @@ const AccountUpgrade = () => {
               </div>
               {isNigerian &&
                 activeCurrencyPath === "NGN" &&
-                !branchState.hasNgnWallet && (
+                !branchState.hasNgnWallet &&
+                ngnKybStarted &&
+                ngnRequirements && (
+                <div className="mt-3 md:mt-4">
+                  <NgnKybProgressCard
+                    requirements={ngnRequirements}
+                    onViewStatus={() => setShowModal("getNgn")}
+                  />
+                </div>
+              )}
+              {isNigerian &&
+                activeCurrencyPath === "NGN" &&
+                !branchState.hasNgnWallet &&
+                !ngnKybStarted && (
                 <div className="mt-3 md:mt-4">
                   <Button
                     onClick={() => setShowModal("getNgn")}
