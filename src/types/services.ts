@@ -719,16 +719,40 @@ export interface IPaymentNetwork {
   account_type: string;
 }
 
+export type AfricaCollectionMethodInput =
+  | "bank"
+  | "momo"
+  | "mobile_money"
+  | "mobile-money";
+
+export type AfricaCollectionMethod =
+  | "local_bank_transfer"
+  | "mobile_money"
+  | string;
+
+export type AfricaPayinTransactionStatus =
+  | "created"
+  | "pending"
+  | "complete"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "canceled"
+  | string;
+
+export interface AfricaCollectionRequest {
+  channel_id: string;
+  network_id?: string | null;
+  account_type: AfricaCollectionMethodInput | string;
+  account_number?: string | null;
+  amount: number;
+  sender_name: string;
+  transaction_description: string;
+  metadata?: Record<string, unknown> | null;
+}
+
 export interface InitiateAfricaPayinPayload {
-  data: {
-    channel_id: string;
-    network_id?: string | null;
-    account_type: string;
-    account_number?: string | null;
-    amount: number;
-    sender_name: string;
-    transaction_description: string;
-  };
+  data: AfricaCollectionRequest;
   username: string;
 }
 
@@ -738,13 +762,24 @@ export interface InitiateAfricaPayinResponse {
   payout_amount: number;
   rate: number;
   payout_currency: string;
-  expires_at: Date;
+  expires_at: string;
+  provider?: string | null;
+  collection_method?: AfricaCollectionMethod | null;
+  transaction_status?: AfricaPayinTransactionStatus | null;
+  onramp_status?: string | null;
 }
 
 export interface FinalizeAfricaPayinResponse extends InitiateAfricaPayinResponse {
-  collection_account_number: string;
-  collection_bank_name: string;
-  collection_account_name: string;
+  collection_account_number?: string | null;
+  collection_bank_name?: string | null;
+  collection_account_name?: string | null;
+  payment_instruction?: string | null;
+}
+
+export interface AfricaPayinCountry {
+  country_code: string;
+  country_name: string;
+  currency: string;
 }
 
 export interface FeedbackPayload {
