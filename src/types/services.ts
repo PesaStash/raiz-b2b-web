@@ -823,9 +823,10 @@ export type NgnKybRequirementStatus =
   | "pending"
   | "review"
   | "approved"
-  | "declined";
-
-export type NgnAipriseFlow = "cac" | "ubo";
+  | "completed"
+  | "declined"
+  | "expired"
+  | "abandoned";
 
 export interface INgnVerificationRequirements {
   cac_document_status: NgnKybRequirementStatus;
@@ -841,9 +842,13 @@ export interface INgnVerificationRequirements {
   can_create_ngn_account: boolean;
 }
 
-export interface INgnVerificationSessionResponse {
+export interface INgnKybSessionResponse {
   session_id: string;
-  status: NgnKybRequirementStatus;
+  session_token: string | null;
+  url: string | null;
+  status: string;
+  session_kind: string;
+  workflow_id: string;
 }
 
 export interface IInvoiceSettingsPayload {

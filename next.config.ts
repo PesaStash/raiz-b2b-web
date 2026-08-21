@@ -48,7 +48,8 @@ const nextConfig: NextConfig = {
           },
           {
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()",
+            // Camera/mic required for embedded Didit (and Persona) ID + liveness flows.
+            value: "camera=*, microphone=*, geolocation=()",
           },
         ],
       },

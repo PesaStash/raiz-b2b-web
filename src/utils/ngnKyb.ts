@@ -1,24 +1,11 @@
 import type {
   INgnVerificationRequirements,
-  NgnAipriseFlow,
   NgnKybRequirementStatus,
 } from "@/types/services";
-import {
-  GetItemFromLocalStorage,
-  RemoveItemFromLocalStorage,
-  SetItemToLocalStorage,
-} from "@/utils/localStorageFunc";
-
-const SESSION_KEY_PREFIX = "ngn-aiprise-session";
-const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
-
-interface StoredAipriseSession {
-  sessionId: string;
-  savedAt: number;
-}
 
 export type NgnKybStepUiState =
   | "start"
+  | "continue"
   | "retry"
   | "processing"
   | "review"
@@ -27,16 +14,24 @@ export type NgnKybStepUiState =
 
 export const NGN_REQUIREMENTS_QUERY_KEY = ["ngn-requirements"] as const;
 
-function getSessionKey(entityId: string, flow: NgnAipriseFlow) {
-  return `${SESSION_KEY_PREFIX}:${entityId}:${flow}`;
-}
-
-export function isNgnRequirementPending(status?: NgnKybRequirementStatus | null) {
+export function isNgnRequirementPending(
+  status?: NgnKybRequirementStatus | null,
+) {
   return status === "pending" || status === "review";
 }
 
-export function isNgnRequirementApproved(status?: NgnKybRequirementStatus | null) {
-  return status === "approved";
+export function isNgnRequirementApproved(
+  status?: NgnKybRequirementStatus | null,
+) {
+  return status === "approved" || status === "completed";
+}
+
+export function isNgnRequirementRetryable(
+  status?: NgnKybRequirementStatus | null,
+) {
+  return (
+    status === "declined" || status === "expired" || status === "abandoned"
+  );
 }
 
 export function hasStartedNgnKyb(
@@ -58,18 +53,36 @@ export function isNgnKybInProgress(
   );
 }
 
+/** Poll while verification is active and the NGN account cannot yet be created. */
+export function shouldPollNgnRequirements(
+  requirements?: INgnVerificationRequirements | null,
+) {
+  if (!requirements || requirements.can_create_ngn_account) return false;
+  return (
+    isNgnRequirementPending(requirements.cac_document_status) ||
+    isNgnRequirementPending(requirements.ubo_status) ||
+    (isNgnRequirementApproved(requirements.cac_document_status) &&
+      isNgnRequirementApproved(requirements.ubo_status))
+  );
+}
+
 export function getNgnKybRequirementLabel(
   status?: NgnKybRequirementStatus | null,
 ) {
   switch (status) {
     case "pending":
-      return "Processing";
+      return "In progress";
     case "review":
       return "Under review";
     case "approved":
+    case "completed":
       return "Approved";
     case "declined":
       return "Declined";
+    case "expired":
+      return "Expired";
+    case "abandoned":
+      return "Abandoned";
     case "not_started":
       return "Not started";
     default:
@@ -86,8 +99,11 @@ export function getNgnKybRequirementStyle(
     case "review":
       return "bg-[#FFF3E6] text-[#C76E00]";
     case "approved":
+    case "completed":
       return "bg-[#E8F5E9] text-[#2E7D32]";
     case "declined":
+    case "expired":
+    case "abandoned":
       return "bg-[#FFEBEE] text-[#C62828]";
     default:
       return "bg-raiz-gray-50 text-raiz-gray-700";
@@ -106,29 +122,54 @@ export function getNgnKybProgressCardCopy(
     };
   }
 
-  const hasDeclined =
-    requirements.cac_document_status === "declined" ||
-    requirements.ubo_status === "declined";
+  const hasRetryable =
+    isNgnRequirementRetryable(requirements.cac_document_status) ||
+    isNgnRequirementRetryable(requirements.ubo_status);
 
-  if (hasDeclined) {
+  if (hasRetryable) {
     return {
       title: "NGN Account Verification Needs Attention",
       message:
-        "One or more verification steps were declined. Review the details and retry where needed.",
+        "Verification was not completed successfully. Review the details and try again.",
       ctaLabel: "Continue setup",
     };
   }
 
-  const isWaiting =
-    isNgnRequirementPending(requirements.cac_document_status) ||
-    isNgnRequirementPending(requirements.ubo_status);
+  const bothApproved =
+    isNgnRequirementApproved(requirements.cac_document_status) &&
+    isNgnRequirementApproved(requirements.ubo_status);
+
+  if (bothApproved) {
+    return {
+      title: "Saving Verification Evidence",
+      message:
+        "Your verification was approved. We’re finishing up—this page will update automatically.",
+      ctaLabel: "View verification status",
+    };
+  }
+
+  const isInReview =
+    requirements.cac_document_status === "review" ||
+    requirements.ubo_status === "review";
+  const isPendingOnly =
+    requirements.cac_document_status === "pending" ||
+    requirements.ubo_status === "pending";
+
+  if (isInReview) {
+    return {
+      title: "NGN Account Verification in Progress",
+      message:
+        "We are reviewing your submitted documents. This page will update automatically.",
+      ctaLabel: "View verification status",
+    };
+  }
 
   return {
     title: "NGN Account Verification in Progress",
-    message: isWaiting
-      ? "We are reviewing your submitted documents. This page will update automatically."
-      : "Complete the remaining verification steps to activate your NGN account.",
-    ctaLabel: "View verification status",
+    message: isPendingOnly
+      ? "Your verification session is open. Continue where you left off, or start again if needed."
+      : "Complete UBO identity and CAC document verification to activate your NGN account.",
+    ctaLabel: isPendingOnly ? "Continue verification" : "View verification status",
   };
 }
 
@@ -139,56 +180,63 @@ export function getNgnKybStepUiState(
   if (locked) return "locked";
   switch (status) {
     case "approved":
+    case "completed":
       return "completed";
     case "pending":
-      return "processing";
+      // Session may exist but the hosted flow was not finished yet.
+      return "continue";
     case "review":
       return "review";
     case "declined":
+    case "expired":
+    case "abandoned":
       return "retry";
     default:
       return "start";
   }
 }
 
-export function saveAipriseResumeSessionId(
-  entityId: string,
-  flow: NgnAipriseFlow,
-  sessionId: string,
-) {
-  SetItemToLocalStorage(getSessionKey(entityId, flow), {
-    sessionId,
-    savedAt: Date.now(),
-  } satisfies StoredAipriseSession);
+/** Combined CAC + UBO action state for the single Didit session CTA. */
+export function getCombinedNgnKybUiState(
+  requirements?: INgnVerificationRequirements | null,
+): NgnKybStepUiState {
+  if (!requirements) return "start";
+  if (requirements.can_create_ngn_account) return "completed";
+
+  const cac = getNgnKybStepUiState(requirements.cac_document_status);
+  const ubo = getNgnKybStepUiState(requirements.ubo_status);
+
+  if (cac === "retry" || ubo === "retry") return "retry";
+  if (cac === "review" || ubo === "review") return "review";
+
+  const bothApproved =
+    isNgnRequirementApproved(requirements.cac_document_status) &&
+    isNgnRequirementApproved(requirements.ubo_status);
+  // Evidence still saving — wait; do not reopen the hosted flow.
+  if (bothApproved) return "processing";
+
+  if (cac === "continue" || ubo === "continue") return "continue";
+
+  return "start";
 }
 
-export function getAipriseResumeSessionId(
-  entityId: string | undefined,
-  flow: NgnAipriseFlow,
-): string | undefined {
-  if (!entityId) return undefined;
+export function canResumeNgnKybSession(state: NgnKybStepUiState) {
+  return state === "start" || state === "continue" || state === "retry";
+}
 
-  const stored = GetItemFromLocalStorage(
-    getSessionKey(entityId, flow),
-  ) as StoredAipriseSession | null;
-
-  if (!stored?.sessionId) return undefined;
-
-  if (
-    typeof stored.savedAt !== "number" ||
-    Date.now() - stored.savedAt > SESSION_MAX_AGE_MS
-  ) {
-    clearAipriseResumeSessionId(entityId, flow);
-    return undefined;
+export function getCombinedNgnKybActionLabel(state: NgnKybStepUiState) {
+  switch (state) {
+    case "continue":
+      return "Continue verification";
+    case "retry":
+      return "Retry verification";
+    case "processing":
+      return "Processing...";
+    case "review":
+      return "Under review";
+    case "completed":
+      return "Completed";
+    default:
+      return "Verify UBO identity and CAC document";
   }
-
-  return stored.sessionId;
-}
-
-export function clearAipriseResumeSessionId(
-  entityId: string | undefined,
-  flow: NgnAipriseFlow,
-) {
-  if (!entityId) return;
-  RemoveItemFromLocalStorage(getSessionKey(entityId, flow));
 }

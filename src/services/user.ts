@@ -3,8 +3,8 @@ import {
   FeedbackPayload,
   IBusinessVerificationPayload,
   IFetchRewardsParams,
+  INgnKybSessionResponse,
   INgnVerificationRequirements,
-  INgnVerificationSessionResponse,
   IRewardActivityResponse,
   IRewardPoint,
   IUserSearchParams,
@@ -86,33 +86,15 @@ export const FetchNgnVerificationRequirementsApi =
     return response?.data;
   };
 
-export const SubmitNgnCacDocumentSessionApi = async (
-  sessionId: string,
-): Promise<INgnVerificationSessionResponse> => {
-  const response = await AuthAxios.post(
-    "/business/account_user/verifications/ngn/cac-document/",
-    null,
-    {
-      params: { session_id: sessionId },
-      silent: true,
-    } as CustomAxiosRequestConfig,
-  );
-  return response?.data;
-};
-
-export const SubmitNgnUboSessionApi = async (
-  sessionId: string,
-): Promise<INgnVerificationSessionResponse> => {
-  const response = await AuthAxios.post(
-    "/business/account_user/verifications/ngn/ubo/",
-    null,
-    {
-      params: { session_id: sessionId },
-      silent: true,
-    } as CustomAxiosRequestConfig,
-  );
-  return response?.data;
-};
+export const CreateNgnKybSessionApi =
+  async (): Promise<INgnKybSessionResponse> => {
+    const response = await AuthAxios.post(
+      "/business/account_user/verifications/ngn/kyb/session/",
+      null,
+      { silent: true } as CustomAxiosRequestConfig,
+    );
+    return response?.data;
+  };
 
 export const SearchAllUsersApi = async (
   params: IUserSearchParams,
