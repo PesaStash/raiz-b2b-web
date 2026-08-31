@@ -11,6 +11,13 @@ export default function Provider({ children }: { children: ReactNode }) {
           queries: {
             refetchOnWindowFocus: false,
             staleTime: 600000,
+            throwOnError: false,
+          },
+          mutations: {
+            throwOnError: false,
+            // Axios interceptors already toast API errors. Keep failed
+            // mutations from bubbling into Next.js as unhandled crashes.
+            onError: () => undefined,
           },
         },
       })

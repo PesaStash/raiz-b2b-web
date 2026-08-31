@@ -19,6 +19,18 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "images.app.goo.gl",
       },
+      {
+        protocol: "https",
+        hostname: "flagcdn.com",
+      },
+      {
+        protocol: "https",
+        hostname: "raizapp-mobile.s3.amazonaws.com",
+      },
+      {
+        protocol: "https",
+        hostname: "raizapp-mobile-eu.s3.eu-west-2.amazonaws.com",
+      },
     ],
   },
   async headers() {
@@ -44,7 +56,8 @@ const nextConfig: NextConfig = {
           },
           {
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()",
+            // Camera/mic required for embedded Didit (and Persona) ID + liveness flows.
+            value: "camera=*, microphone=*, geolocation=()",
           },
         ],
       },

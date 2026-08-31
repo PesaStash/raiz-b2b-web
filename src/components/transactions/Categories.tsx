@@ -74,7 +74,7 @@ const Categories = ({ goBack, goNext, loading }: Props) => {
                 {each.transaction_category_id ===
                   category?.transaction_category_id && (
                   <Image
-                    className="w-5 h-5 absolute right-0 top-0"
+                    className="w-5 h-5 absolute right-2 md:right-4 top-0"
                     src={"/icons/category-check.svg"}
                     alt={each?.transaction_category}
                     width={20}
@@ -85,14 +85,16 @@ const Categories = ({ goBack, goNext, loading }: Props) => {
                   onClick={() => handleSelect(each)}
                   className="flex flex-wrap flex-col w-full gap-2 items-center justify-center"
                 >
+                  <div className="bg-[#EAECFF99] size-16 p-4 rounded-full flex items-center justify-center">
                   <Image
-                    className="w-12 h-12"
+                    className="w-12 h-12 object-contain"
                     src={each?.category_emoji || "/icons/notif-general.svg"}
                     // src={"/icons/notif-general.svg"}
                     alt={each?.transaction_category}
                     width={64}
                     height={64}
                   />
+                  </div>
                   <p className="text-center text-zinc-900 text-[10px] xl:text-xs font-normal leading-none">
                     {each?.transaction_category}
                   </p>

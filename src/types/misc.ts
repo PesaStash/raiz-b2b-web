@@ -2,11 +2,18 @@ import { ACCOUNT_CURRENCIES } from "@/constants/misc";
 import { CurrencyTypeKey } from "@/store/Swap/swapSlice.types";
 import { ReactNode } from "react";
 
+export type SidebarSection = "overview" | "manage";
+
 export interface ISidebarMenuItem {
   name: string;
   link: string;
+  section: SidebarSection;
   icon: (isActive: boolean) => React.ReactNode;
   locked?: boolean;
+  badge?: "bill-requests";
+  action?: "feedback";
+  /** Shorter label for collapsed rail (e.g. "Feedback") */
+  collapsedLabel?: string;
 }
 
 export interface IRegisterFormValues {

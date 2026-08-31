@@ -50,9 +50,6 @@ importers:
       aes-everywhere:
         specifier: ^1.0.0
         version: 1.0.0
-      aiprise-web-sdk:
-        specifier: ^2.1.4
-        version: 2.1.4
       axios:
         specifier: ^1.7.9
         version: 1.13.2
@@ -719,12 +716,6 @@ packages:
 
   '@kurkle/color@0.3.4':
     resolution: {integrity: sha512-M5UknZPHRu3DEDWoipU6sE8PdkZ6Z/S+v4dD+Ke8IaNlpdSQah50lz1KtcFBa2vsdOnwbbnxJwVM4wty6udA5w==}
-
-  '@lit-labs/ssr-dom-shim@1.6.0':
-    resolution: {integrity: sha512-VHb0ALPMTlgKjM6yIxxoQNnpKyUKLD04VzeQdsiXkMqkvYlAHxq9glGLmgbb889/1GsohSOAjvQYoiBppXFqrQ==}
-
-  '@lit/reactive-element@1.6.3':
-    resolution: {integrity: sha512-QuTgnG52Poic7uM1AN5yJ09QMe0O28e10XzSvWDz02TJiiKee4stsiownEIadWm8nYzyDAyT+gKzUoZmiWQtsQ==}
 
   '@mui/core-downloads-tracker@7.3.6':
     resolution: {integrity: sha512-QaYtTHlr8kDFN5mE1wbvVARRKH7Fdw1ZuOjBJcFdVpfNfRYKF3QLT4rt+WaB6CKJvpqxRsmEo0kpYinhH5GeHg==}
@@ -1460,9 +1451,6 @@ packages:
 
   aes-everywhere@1.0.0:
     resolution: {integrity: sha512-rIkLlUpjHl/JWBhgL7xR63EHctrO4mvZ/mgG0YuQqaSs0eqs8yD7lzyWkaBq9MqF8dD5SQL5tshYq8OU00pFhg==}
-
-  aiprise-web-sdk@2.1.4:
-    resolution: {integrity: sha512-Z6/RTb6JhldMMMg5yu8b9q1VFwAlrDOPBZmNpzhqf6HraH698NgrcU/HdrFQaB45dfHGhRtWuc8t2PEL/4WaQQ==}
 
   ajv@6.12.6:
     resolution: {integrity: sha512-j3fVLgvTo527anyYyJOGTYJbG+vnnQYvE0m5mmkc1TK+nxAppkCLMIL0aZ4dblVCNoGShhm+kzE4ZUykBoMg4g==}
@@ -3162,20 +3150,6 @@ packages:
 
   lines-and-columns@1.2.4:
     resolution: {integrity: sha512-7ylylesZQ/PV29jhEDl3Ufjo6ZX7gCqJr5F7PKrqc93v7fzSymt1BpwEU8nAUXs8qzzvqhbjhK5QZg6Mt/HkBg==}
-
-  lit-element@3.3.3:
-    resolution: {integrity: sha512-XbeRxmTHubXENkV4h8RIPyr8lXc+Ff28rkcQzw3G6up2xg5E8Zu1IgOWIwBLEQsu3cOVFqdYwiVi0hv0SlpqUA==}
-
-  lit-html@2.8.0:
-    resolution: {integrity: sha512-o9t+MQM3P4y7M7yNzqAyjp7z+mQGa4NS4CxiyLqFPyFWyc4O+nodLrkrxSaCTrla6M5YOLaT3RpbbqjszB5g3Q==}
-
-  lit-portal@1.0.5:
-    resolution: {integrity: sha512-ZeXmDyoiMfP7V3JloiaOIhMOmQOu3O+xAOVbhfgdgM4CsHrnT7QnfuExbQH47RSe/r44MVld275+b2uc+gyDIg==}
-    peerDependencies:
-      lit: ^2.0.0
-
-  lit@2.8.0:
-    resolution: {integrity: sha512-4Sc3OFX9QHOJaHbmTMk28SYgVxLN3ePDjg7hofEft2zWlehFL3LiAuapWc4U/kYwMYJSh2hTCPZ6/LIC7ii0MA==}
 
   load-grunt-tasks@1.0.0:
     resolution: {integrity: sha512-JmC5/5YrcMU0KW3Yfxp60Y4d+j1NG4s6JKPCFmGS0oskHG4rYzz//pPofjvWrts7aC1fGw8v8KYwQFMGIiAsfA==}
@@ -5516,12 +5490,6 @@ snapshots:
 
   '@kurkle/color@0.3.4': {}
 
-  '@lit-labs/ssr-dom-shim@1.6.0': {}
-
-  '@lit/reactive-element@1.6.3':
-    dependencies:
-      '@lit-labs/ssr-dom-shim': 1.6.0
-
   '@mui/core-downloads-tracker@7.3.6': {}
 
   '@mui/icons-material@7.3.6(@mui/material@7.3.6(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.3))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.3))(@types/react@19.2.7)(react@19.2.3))(@types/react@19.2.7)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(@types/react@19.2.7)(react@19.2.3)':
@@ -6128,7 +6096,8 @@ snapshots:
     dependencies:
       csstype: 3.2.3
 
-  '@types/trusted-types@2.0.7': {}
+  '@types/trusted-types@2.0.7':
+    optional: true
 
   '@typescript-eslint/eslint-plugin@8.50.1(@typescript-eslint/parser@8.50.1(eslint@9.39.2(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.2(jiti@1.21.7))(typescript@5.9.3)':
     dependencies:
@@ -6330,11 +6299,6 @@ snapshots:
       uglifyify: 3.0.4
     transitivePeerDependencies:
       - supports-color
-
-  aiprise-web-sdk@2.1.4:
-    dependencies:
-      lit: 2.8.0
-      lit-portal: 1.0.5(lit@2.8.0)
 
   ajv@6.12.6:
     dependencies:
@@ -8523,26 +8487,6 @@ snapshots:
   lilconfig@3.1.3: {}
 
   lines-and-columns@1.2.4: {}
-
-  lit-element@3.3.3:
-    dependencies:
-      '@lit-labs/ssr-dom-shim': 1.6.0
-      '@lit/reactive-element': 1.6.3
-      lit-html: 2.8.0
-
-  lit-html@2.8.0:
-    dependencies:
-      '@types/trusted-types': 2.0.7
-
-  lit-portal@1.0.5(lit@2.8.0):
-    dependencies:
-      lit: 2.8.0
-
-  lit@2.8.0:
-    dependencies:
-      '@lit/reactive-element': 1.6.3
-      lit-element: 3.3.3
-      lit-html: 2.8.0
 
   load-grunt-tasks@1.0.0:
     dependencies:

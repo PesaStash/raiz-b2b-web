@@ -94,40 +94,55 @@ const MobileDrawer = () => {
               </div>
 
               <nav className="flex-1 overflow-y-auto px-3 py-4 flex flex-col gap-1">
-                {SidebarMenus.map((item, index) => (
-                  <Link
-                    key={index}
-                    href={item.link}
-                    onClick={closeDrawer}
-                    className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm transition-colors ${
-                      isActive(item.link)
-                        ? "bg-[#eaecff]/50 text-primary2 font-bold"
-                        : "text-raiz-gray-600 font-medium hover:bg-raiz-gray-50"
-                    }`}
-                  >
-                    {item.icon(isActive(item.link))}
-                    {item.name}
-                  </Link>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => {
-                    closeDrawer();
-                    setShowFeedbacks(true);
-                  }}
-                  className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-raiz-gray-600 font-medium hover:bg-raiz-gray-50 text-left w-full"
-                >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M17 18.43H13L8.55 21.39C7.89 21.83 7 21.36 7 20.56V18.43C4 18.43 2 16.43 2 13.43V7.43C2 4.43 4 2.43 7 2.43H17C20 2.43 22 4.43 22 7.43V13.43C22 16.43 20 18.43 17 18.43Z"
-                      stroke="#A89AB9"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  Feedback & Requests
-                </button>
+                {SidebarMenus.map((item, index) => {
+                  if (item.action === "feedback") {
+                    return (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => {
+                          closeDrawer();
+                          setShowFeedbacks(true);
+                        }}
+                        className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-raiz-gray-600 font-medium hover:bg-raiz-gray-50 text-left w-full"
+                      >
+                        {item.icon(false)}
+                        {item.name}
+                      </button>
+                    );
+                  }
+
+                  const active = isActive(item.link);
+                  const locked = item.locked;
+
+                  return (
+                    <Link
+                      key={index}
+                      href={locked ? "#" : item.link}
+                      onClick={locked ? (e) => e.preventDefault() : closeDrawer}
+                      tabIndex={locked ? -1 : 0}
+                      className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm transition-colors ${
+                        active && !locked
+                          ? "bg-[#eaecff]/50 text-primary2 font-bold"
+                          : locked
+                            ? "text-raiz-gray-400 font-medium cursor-not-allowed opacity-60"
+                            : "text-raiz-gray-600 font-medium hover:bg-raiz-gray-50"
+                      }`}
+                    >
+                      {item.icon(active && !locked)}
+                      {item.name}
+                      {locked && (
+                        <Image
+                          src="/icons/sidebar/lock.svg"
+                          alt="Locked"
+                          width={14}
+                          height={14}
+                          className="ml-auto shrink-0"
+                        />
+                      )}
+                    </Link>
+                  );
+                })}
               </nav>
 
               <div className="shrink-0 px-3 py-4 border-t border-raiz-gray-100 pb-[max(1rem,env(safe-area-inset-bottom))]">

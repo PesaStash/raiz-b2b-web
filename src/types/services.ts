@@ -537,7 +537,7 @@ export interface IIntBeneficiariesParams {
 
 export interface ForeignPayoutBeneficiary {
   beneficiary_name: string;
-  beneficiary_id: string;
+  beneficiary_id: string | null;
   beneficiary_currency: string;
   beneficiary_country: string;
   beneficiary_creation_status: string;
@@ -565,8 +565,42 @@ export interface IIntBeneficiariesResponse {
   beneficiaries: EntityForeignPayoutBeneficiary[];
 }
 
-export type IntCountryType =
+export type AfricanRemittanceCountryCode =
+  | "AO" // Angola
+  | "BF" // Burkina Faso
+  | "BJ" // Benin
+  | "BW" // Botswana
+  | "CD" // Democratic Republic of Congo
+  | "CG" // Congo
+  | "CI" // Ivory Coast
+  | "CM" // Cameroon
+  | "DZ" // Algeria
+  | "EG" // Egypt
+  | "ET" // Ethiopia
+  | "GA" // Gabon
   | "GH" // Ghana
+  | "GM" // Gambia
+  | "GN" // Guinea
+  | "KE" // Kenya
+  | "LR" // Liberia
+  | "MA" // Morocco
+  | "ML" // Mali
+  | "MR" // Mauritania
+  | "MU" // Mauritius
+  | "MW" // Malawi
+  | "NE" // Niger
+  | "NG" // Nigeria
+  | "RW" // Rwanda
+  | "SL" // Sierra Leone
+  | "SN" // Senegal
+  | "TG" // Togo
+  | "TZ" // Tanzania
+  | "UG" // Uganda
+  | "ZA" // South Africa
+  | "ZM"; // Zambia
+
+export type IntCountryType =
+  | AfricanRemittanceCountryCode
   | "AU" // Australia
   | "AT" // Austria
   | "AD" // Andorra
@@ -602,25 +636,9 @@ export type IntCountryType =
   | "SM" // San Marino
   | "VA" // Vatican City
   | "CN" // China
-  | "KE" // Kenya
-  | "UG" // Uganda
-  | "NG" // Nigeria
-  | "TZ" // Tanzania
-  | "ZM" // Zambia
-  | "MW" // Malawi
   | "GB" // United Kingdom
-  | "BF" // Burkina Faso
-  | "CM" // Cameroon
-  | "SN" // Senegal
-  | "RW" // Rwanda
-  | "GN" // Guinea
-  | "ML" // Mali
-  | "TG" // Togo
   | "AE" // United Arab Emirates
-  | "FR" // France
-  | "CI" // Ivory Coast
-  | "BJ" // Benin
-  | "CD"; // Democratic Republic of Congo
+  | "FR"; // France
 
 export type IntCurrencyCode =
   | "USD" // United States
@@ -642,7 +660,19 @@ export type IntCurrencyCode =
   | "AED" // United Arab Emirates
   | "XOF" // West African CFA Franc (Benin, Burkina Faso, Ivory Coast, Mali, Niger, Senegal, Togo)
   | "XAF" // Central African CFA Franc (Cameroon, Central African Republic, Chad, Congo, Equatorial Guinea, Gabon)
-  | "CDF"; // Democratic Republic of Congo
+  | "CDF" // Democratic Republic of Congo
+  | "EGP" // Egypt
+  | "ETB" // Ethiopia
+  | "ZAR" // South Africa
+  | "SLE" // Sierra Leone
+  | "LRD" // Liberia
+  | "GMD" // Gambia
+  | "MAD" // Morocco
+  | "AOA" // Angola
+  | "BWP" // Botswana
+  | "DZD" // Algeria
+  | "MRU" // Mauritania
+  | "MUR"; // Mauritius
 
 export interface IIntBeneficiaryPayload {
   customer_email: string | null;
@@ -719,16 +749,40 @@ export interface IPaymentNetwork {
   account_type: string;
 }
 
+export type AfricaCollectionMethodInput =
+  | "bank"
+  | "momo"
+  | "mobile_money"
+  | "mobile-money";
+
+export type AfricaCollectionMethod =
+  | "local_bank_transfer"
+  | "mobile_money"
+  | string;
+
+export type AfricaPayinTransactionStatus =
+  | "created"
+  | "pending"
+  | "complete"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "canceled"
+  | string;
+
+export interface AfricaCollectionRequest {
+  channel_id: string;
+  network_id?: string | null;
+  account_type: AfricaCollectionMethodInput | string;
+  account_number?: string | null;
+  amount: number;
+  sender_name: string;
+  transaction_description: string;
+  metadata?: Record<string, unknown> | null;
+}
+
 export interface InitiateAfricaPayinPayload {
-  data: {
-    channel_id: string;
-    network_id?: string | null;
-    account_type: string;
-    account_number?: string | null;
-    amount: number;
-    sender_name: string;
-    transaction_description: string;
-  };
+  data: AfricaCollectionRequest;
   username: string;
 }
 
@@ -738,13 +792,24 @@ export interface InitiateAfricaPayinResponse {
   payout_amount: number;
   rate: number;
   payout_currency: string;
-  expires_at: Date;
+  expires_at: string;
+  provider?: string | null;
+  collection_method?: AfricaCollectionMethod | null;
+  transaction_status?: AfricaPayinTransactionStatus | null;
+  onramp_status?: string | null;
 }
 
 export interface FinalizeAfricaPayinResponse extends InitiateAfricaPayinResponse {
-  collection_account_number: string;
-  collection_bank_name: string;
-  collection_account_name: string;
+  collection_account_number?: string | null;
+  collection_bank_name?: string | null;
+  collection_account_name?: string | null;
+  payment_instruction?: string | null;
+}
+
+export interface AfricaPayinCountry {
+  country_code: string;
+  country_name: string;
+  currency: string;
 }
 
 export interface FeedbackPayload {
@@ -788,9 +853,10 @@ export type NgnKybRequirementStatus =
   | "pending"
   | "review"
   | "approved"
-  | "declined";
-
-export type NgnAipriseFlow = "cac" | "ubo";
+  | "completed"
+  | "declined"
+  | "expired"
+  | "abandoned";
 
 export interface INgnVerificationRequirements {
   cac_document_status: NgnKybRequirementStatus;
@@ -806,9 +872,13 @@ export interface INgnVerificationRequirements {
   can_create_ngn_account: boolean;
 }
 
-export interface INgnVerificationSessionResponse {
+export interface INgnKybSessionResponse {
   session_id: string;
-  status: NgnKybRequirementStatus;
+  session_token: string | null;
+  url: string | null;
+  status: string;
+  session_kind: string;
+  workflow_id: string;
 }
 
 export interface IInvoiceSettingsPayload {

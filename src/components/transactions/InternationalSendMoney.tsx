@@ -1,12 +1,11 @@
 "use client";
 import { useUser } from "@/lib/hooks/useUser";
 import { useSendStore } from "@/store/Send";
-import { useCurrencyStore } from "@/store/useCurrencyStore";
 import React, { useRef, useState, useMemo } from "react";
 import { z } from "zod";
 import SideWrapperHeader from "../SideWrapperHeader";
 import Avatar from "../ui/Avatar";
-import { formatAmount, getCurrencySymbol } from "@/utils/helpers";
+import { formatAmount, findWalletByCurrency, getCurrencySymbol } from "@/utils/helpers";
 import Image from "next/image";
 import ErrorMessage from "../ui/ErrorMessage";
 import InputField from "../ui/InputField";
@@ -30,18 +29,14 @@ const InternationalSendMoney = ({
 }: Props) => {
   const { intBeneficiary, amount, purpose, actions } = useSendStore();
   const { user } = useUser();
-  const { selectedCurrency } = useCurrencyStore();
   const [error, setError] = useState<string | null>(null);
   const [isFocused, setIsFocused] = useState(false);
   const [rawAmount, setRawAmount] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-  const currentWallet = useMemo(() => {
-    if (!user || !user?.business_account?.wallets || !selectedCurrency?.name)
-      return null;
-    return user?.business_account?.wallets.find(
-      (wallet) => wallet.wallet_type.currency === selectedCurrency.name,
-    );
-  }, [user, selectedCurrency]);
+  const usdWallet = useMemo(
+    () => findWalletByCurrency(user, "USD"),
+    [user],
+  );
   const currency =
     intBeneficiary?.foreign_payout_beneficiary?.beneficiary_currency || "";
   const selectedUser = intBeneficiary?.foreign_payout_beneficiary;
@@ -177,12 +172,10 @@ const InternationalSendMoney = ({
               <p className="text-zinc-900 text-xs font-normal leading-tight">
                 Balance:
                 <span className="text-zinc-900 text-xs font-bold leading-tight">
-                  {getCurrencySymbol(
-                    currentWallet?.wallet_type?.currency || "",
-                  )}
-                  {currentWallet?.account_balance}{" "}
+                  {getCurrencySymbol("USD")}
+                  {usdWallet?.account_balance}{" "}
                 </span>
-                <span>({currentWallet?.wallet_type?.currency})</span>
+                <span>(USD)</span>
               </p>
             </div>
 

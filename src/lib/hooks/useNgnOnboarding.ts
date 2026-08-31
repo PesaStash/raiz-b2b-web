@@ -2,23 +2,20 @@
 
 import { CreateNGNVirtualWalletApi } from "@/services/business";
 import {
+  CreateNgnKybSessionApi,
   FetchNgnVerificationRequirementsApi,
-  SubmitNgnCacDocumentSessionApi,
-  SubmitNgnUboSessionApi,
 } from "@/services/user";
-import type { NgnAipriseFlow } from "@/types/services";
+import type { INgnKybSessionResponse } from "@/types/services";
 import { pushDataLayerEvent } from "@/utils/analytics/dataLayer";
 import { getAnalyticsUserType } from "@/utils/analytics/userProps";
 import { getApiErrorMessage } from "@/utils/helpers";
 import {
-  clearAipriseResumeSessionId,
   isNgnRequirementApproved,
-  isNgnRequirementPending,
   NGN_REQUIREMENTS_QUERY_KEY,
+  shouldPollNgnRequirements,
 } from "@/utils/ngnKyb";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useUser } from "./useUser";
 
 interface UseNgnOnboardingOptions {
   enabled?: boolean;
@@ -26,9 +23,7 @@ interface UseNgnOnboardingOptions {
 
 export function useNgnOnboarding(options: UseNgnOnboardingOptions = {}) {
   const { enabled = true } = options;
-  const { user } = useUser();
   const qc = useQueryClient();
-  const entityId = user?.business_account?.entity_id;
 
   const requirementsQuery = useQuery({
     queryKey: NGN_REQUIREMENTS_QUERY_KEY,
@@ -38,12 +33,7 @@ export function useNgnOnboarding(options: UseNgnOnboardingOptions = {}) {
     refetchOnMount: "always",
     refetchInterval: (query) => {
       if (!enabled) return false;
-      const data = query.state.data;
-      if (!data || data.can_create_ngn_account) return false;
-      return isNgnRequirementPending(data.cac_document_status) ||
-        isNgnRequirementPending(data.ubo_status)
-        ? 5_000
-        : false;
+      return shouldPollNgnRequirements(query.state.data) ? 10_000 : false;
     },
   });
 
@@ -53,10 +43,7 @@ export function useNgnOnboarding(options: UseNgnOnboardingOptions = {}) {
   const isCacApproved = isNgnRequirementApproved(cacStatus);
   const isUboApproved = isNgnRequirementApproved(uboStatus);
   const canCreateAccount = !!requirements?.can_create_ngn_account;
-  const isPolling =
-    enabled &&
-    !canCreateAccount &&
-    (isNgnRequirementPending(cacStatus) || isNgnRequirementPending(uboStatus));
+  const isPolling = enabled && shouldPollNgnRequirements(requirements);
 
   const invalidateNgnQueries = async () => {
     await Promise.all([
@@ -66,58 +53,25 @@ export function useNgnOnboarding(options: UseNgnOnboardingOptions = {}) {
     ]);
   };
 
-  const submitCacMutation = useMutation({
-    mutationFn: SubmitNgnCacDocumentSessionApi,
-    onSuccess: async (response) => {
-      toast.success(
-        "Business documents submitted. We’ll update this step once verification finishes.",
-      );
+  const startKybSessionMutation = useMutation({
+    mutationFn: CreateNgnKybSessionApi,
+    onSuccess: async (session: INgnKybSessionResponse) => {
       pushDataLayerEvent("kyc_status_update", {
-        kyc_step: "ngn_cac_document",
-        kyc_status: response.status || "pending",
+        kyc_step: "ngn_kyb",
+        kyc_status: session.status || "pending",
         user_type: getAnalyticsUserType(),
       });
-      clearAipriseResumeSessionId(entityId, "cac");
       await invalidateNgnQueries();
     },
     onError: (error) => {
       toast.error(
         getApiErrorMessage(
           error,
-          "Unable to submit business document verification.",
+          "Unable to start verification. Please try again.",
         ),
       );
       pushDataLayerEvent("kyc_status_update", {
-        kyc_step: "ngn_cac_document",
-        kyc_status: "rejected",
-        user_type: getAnalyticsUserType(),
-      });
-    },
-  });
-
-  const submitUboMutation = useMutation({
-    mutationFn: SubmitNgnUboSessionApi,
-    onSuccess: async (response) => {
-      toast.success(
-        "Owner verification submitted. We’ll update this step once verification finishes.",
-      );
-      pushDataLayerEvent("kyc_status_update", {
-        kyc_step: "ngn_ubo",
-        kyc_status: response.status || "pending",
-        user_type: getAnalyticsUserType(),
-      });
-      clearAipriseResumeSessionId(entityId, "ubo");
-      await invalidateNgnQueries();
-    },
-    onError: (error) => {
-      toast.error(
-        getApiErrorMessage(
-          error,
-          "Unable to submit owner identity verification.",
-        ),
-      );
-      pushDataLayerEvent("kyc_status_update", {
-        kyc_step: "ngn_ubo",
+        kyc_step: "ngn_kyb",
         kyc_status: "rejected",
         user_type: getAnalyticsUserType(),
       });
@@ -127,7 +81,9 @@ export function useNgnOnboarding(options: UseNgnOnboardingOptions = {}) {
   const createWalletMutation = useMutation({
     mutationFn: CreateNGNVirtualWalletApi,
     onSuccess: async (response) => {
-      toast.success(response?.message || "Naira Virtual Account Created Successfully");
+      toast.success(
+        response?.message || "Naira Virtual Account Created Successfully",
+      );
       pushDataLayerEvent("kyc_status_update", {
         kyc_step: "ngn_account_created",
         kyc_status: "approved",
@@ -137,11 +93,8 @@ export function useNgnOnboarding(options: UseNgnOnboardingOptions = {}) {
     },
   });
 
-  const submitSession = async (flow: NgnAipriseFlow, sessionId: string) => {
-    if (flow === "cac") {
-      return submitCacMutation.mutateAsync(sessionId);
-    }
-    return submitUboMutation.mutateAsync(sessionId);
+  const startKybSession = async () => {
+    return startKybSessionMutation.mutateAsync();
   };
 
   const createNgnAccount = async () => {
@@ -150,7 +103,7 @@ export function useNgnOnboarding(options: UseNgnOnboardingOptions = {}) {
     const latest = await requirementsQuery.refetch();
     if (!latest.data?.can_create_ngn_account) {
       toast.info(
-        "Verification is still in progress. Please wait until both steps are approved.",
+        "Verification is still in progress. Please wait until it is complete.",
       );
       return false;
     }
@@ -171,12 +124,9 @@ export function useNgnOnboarding(options: UseNgnOnboardingOptions = {}) {
     isFetching: requirementsQuery.isFetching,
     error: requirementsQuery.error,
     refetch: requirementsQuery.refetch,
-    submitSession,
+    startKybSession,
     createNgnAccount,
-    isSubmittingCac: submitCacMutation.isPending,
-    isSubmittingUbo: submitUboMutation.isPending,
+    isStartingSession: startKybSessionMutation.isPending,
     isCreatingAccount: createWalletMutation.isPending,
-    isSubmittingSession:
-      submitCacMutation.isPending || submitUboMutation.isPending,
   };
 }

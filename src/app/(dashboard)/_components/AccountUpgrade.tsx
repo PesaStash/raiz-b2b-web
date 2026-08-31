@@ -18,6 +18,7 @@ import {
 import { hasStartedNgnKyb } from "@/utils/ngnKyb";
 import React, { useEffect, useState } from "react";
 import { FaCheck } from "react-icons/fa";
+import { MdArrowRightAlt } from "react-icons/md";
 import { IUsdOnboardingCase } from "@/types/user";
 import BusinessVerificationModal from "./BusinessVerificationModal";
 import CreateNgnAcct from "./createNgnAcct/CreateNgnAcct";
@@ -100,6 +101,8 @@ const AccountUpgrade = () => {
 
   const showUsdSteps =
     activeCurrencyPath === "USD" || hasRequestedUsd || (!isNigerian && branchState.isStep1Complete);
+  const showCurrencyStep =
+    isNigerian && branchState.needsCurrencyChoice && activeCurrencyPath !== null;
   const showOnlyStep1 =
     !branchState.isStep1Complete ||
     (branchState.needsCurrencyChoice && activeCurrencyPath === null);
@@ -335,43 +338,49 @@ const AccountUpgrade = () => {
                     : "Completed"}
                 </Button>
               </div>
-              {isNigerian &&
-                activeCurrencyPath === "NGN" &&
-                !branchState.hasNgnWallet &&
-                ngnKybStarted &&
-                ngnRequirements && (
-                <div className="mt-3 md:mt-4">
-                  <NgnKybProgressCard
-                    requirements={ngnRequirements}
-                    onViewStatus={() => setShowModal("getNgn")}
-                  />
-                </div>
-              )}
-              {isNigerian &&
-                activeCurrencyPath === "NGN" &&
-                !branchState.hasNgnWallet &&
-                !ngnKybStarted && (
-                <div className="mt-3 md:mt-4">
-                  <Button
-                    onClick={() => setShowModal("getNgn")}
-                    className="w-full sm:w-fit h-10 md:h-[41px]"
-                  >
-                    Continue NGN Account Setup
-                  </Button>
-                </div>
-              )}
-              {isNigerian &&
-                branchState.needsCurrencyChoice &&
-                activeCurrencyPath && (
-                <button
-                  type="button"
-                  onClick={handleChangeCurrency}
-                  className="mt-3 text-sm font-semibold text-[#3C2875] hover:underline"
-                >
-                  Change starting currency
-                </button>
-              )}
             </Step>
+
+            {showCurrencyStep && (
+              <Step
+                status={activeCurrencyPath === "USD" ? "completed" : "active"}
+                title="USD or NGN Account"
+                description="Choose which currency you would like to start with"
+                isLast={!showUsdSteps}
+              >
+                {activeCurrencyPath === "NGN" &&
+                  !branchState.hasNgnWallet &&
+                  ngnKybStarted &&
+                  ngnRequirements && (
+                  <div className="mt-3 md:mt-4">
+                    <NgnKybProgressCard
+                      requirements={ngnRequirements}
+                      onViewStatus={() => setShowModal("getNgn")}
+                    />
+                  </div>
+                )}
+                <div className="mt-3 md:mt-4 flex flex-col sm:flex-row gap-3">
+                  {activeCurrencyPath === "NGN" &&
+                    !branchState.hasNgnWallet &&
+                    !ngnKybStarted && (
+                    <Button
+                      type="button"
+                      onClick={() => setShowModal("getNgn")}
+                      className="flex items-center justify-center gap-2 w-full sm:w-fit h-10 md:h-[41px] px-4 md:px-6 rounded-[100px] text-white text-[13px] md:text-sm font-semibold hover:bg-[#3B6D98]/90 transition ease-in-out duration-300"
+                    >
+                      Continue with NGN
+                      <MdArrowRightAlt size={20} aria-hidden />
+                    </Button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleChangeCurrency}
+                    className="flex items-center justify-center w-full sm:w-fit h-10 md:h-[41px] px-4 md:px-6 rounded-[100px] bg-white border border-black/5 shadow-sm text-raiz-gray-950 text-[13px] md:text-sm font-semibold hover:bg-raiz-gray-50 transition ease-in-out duration-300"
+                  >
+                    Change Currency
+                  </button>
+                </div>
+              </Step>
+            )}
 
             {showUsdSteps && (
               <>

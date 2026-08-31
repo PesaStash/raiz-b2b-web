@@ -195,26 +195,30 @@ export const GetAfricaPayinCountriesApi = async (): Promise<
   }[]
 > => {
   const response = await PublicAxios.get(
-    `/business/transactions/payins/africa/countries/`
+    `/business/transactions/payins/africa/countries/`,
   );
   return response?.data;
 };
 
 export const GetAfricaPayinChannelsApi = async (
-  country_code: string | null
+  country_code: string | null,
 ): Promise<IPaymentChannel[]> => {
   const response = await PublicAxios.get(
-    `business/transactions/payins/africa/channels/?country_code=${country_code}`
+    `/business/transactions/payins/africa/channels/?country_code=${encodeURIComponent(
+      country_code || "",
+    )}`,
   );
   return response?.data;
 };
 
 export const GetAfricaPayinNetworksApi = async (
   country_code: string | null,
-  channel_id: string | null
+  channel_id: string | null,
 ): Promise<IPaymentNetwork[]> => {
   const response = await PublicAxios.get(
-    `business/transactions/payins/africa/networks/?country_code=${country_code}&channel_id=${channel_id}`
+    `/business/transactions/payins/africa/networks/?country_code=${encodeURIComponent(
+      country_code || "",
+    )}&channel_id=${encodeURIComponent(channel_id || "")}`,
   );
   return response?.data;
 };
@@ -223,29 +227,50 @@ export async function InitiateAfricaPayinApi({
   data,
   username,
 }: InitiateAfricaPayinPayload): Promise<InitiateAfricaPayinResponse> {
-  const response = await AuthAxios.post(
-    `/business/transactions/payins/africa/initiate/?username=${username}`,
-    { ...data }
+  const response = await PublicAxios.post(
+    `/business/transactions/payins/africa/initiate/?username=${encodeURIComponent(
+      username,
+    )}`,
+    { ...data },
+    { silent: true } as CustomAxiosRequestConfig,
   );
   return response.data;
 }
 
 export async function FinalizeAfricaPayinApi(
-  payin_id: string
+  payin_id: string,
 ): Promise<FinalizeAfricaPayinResponse> {
-  const response = await AuthAxios.post(
-    `/business/transactions/payins/africa/finalize/?payin_id=${payin_id}`
+  const response = await PublicAxios.post(
+    `/business/transactions/payins/africa/finalize/?payin_id=${encodeURIComponent(
+      payin_id,
+    )}`,
+    undefined,
+    { silent: true } as CustomAxiosRequestConfig,
   );
   return response.data;
 }
 
 export const GetAfricaPayinStatus = async (
-  payin_id: string
+  payin_id: string,
 ): Promise<GuestPayStatusType> => {
   const response = await PublicAxios.get(
-    `/business/transactions/payins/africa/status/${payin_id}/`
+    `/business/transactions/payins/africa/status/${encodeURIComponent(payin_id)}/`,
+    { silent: true } as CustomAxiosRequestConfig,
   );
   return response?.data;
+};
+
+export const DenyAfricaPayinApi = async (
+  payin_id: string,
+): Promise<{ message: string }> => {
+  const response = await PublicAxios.post(
+    `/business/transactions/payins/africa/deny/?payin_id=${encodeURIComponent(
+      payin_id,
+    )}`,
+    undefined,
+    { silent: true } as CustomAxiosRequestConfig,
+  );
+  return response.data;
 };
 
 export const CreateForeignAccountApi = async (

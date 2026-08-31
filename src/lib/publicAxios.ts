@@ -27,10 +27,16 @@ interface CustomAxiosRequestConfig extends AxiosRequestConfig {
 const handleResponse = (response: AxiosResponse) => response;
 
 const handleError = async (error: CustomAxiosError) => {
-  const isSilent = (error.config as CustomAxiosRequestConfig)?.silent;
-  if (!isSilent) {
-    const errorMessage = error.response?.data?.message || "An Error Occurred";
-    toast.error(errorMessage);
+  try {
+    const isSilent = (error.config as CustomAxiosRequestConfig)?.silent;
+    if (!isSilent) {
+      const errorMessage = error.response?.data?.message;
+      toast.error(
+        typeof errorMessage === "string" ? errorMessage : "An Error Occurred",
+      );
+    }
+  } catch {
+    // Never let error-display logic crash the app.
   }
   return Promise.reject(error.response);
 };

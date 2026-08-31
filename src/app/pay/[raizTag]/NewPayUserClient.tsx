@@ -4,10 +4,12 @@ import Link from "next/link";
 import Image from "next/image";
 import Avatar from "@/components/ui/Avatar";
 import GuestPayWithCard from "./GuestPayWithCard";
-// import PayWithCard from './_components/PayWithCard';
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
-import { FetchPaymentInfoApi } from "@/services/business";
+import {
+  FetchPaymentInfoApi,
+  GetAfricaPayinStatus,
+} from "@/services/business";
 import Spinner from "@/components/ui/Spinner";
 import GuestPayWithZelle from "./GuestPayWithZelle";
 import GuestPayWithTransfer, {
@@ -15,13 +17,18 @@ import GuestPayWithTransfer, {
 } from "./GuestPayWithTransfer";
 import * as motion from "motion/react-client";
 import { fetchPublicIP } from "@/utils/helpers";
-// import { decryptData } from '@/lib/headerEncryption';
-// import { useGuestSendStore } from '@/store/GuestSend';
-// import { useTopupStore } from '@/store/TopUp';
-// import { IBusinessPaymentData } from '@/types/services';
+import PayLocalAmount from "./_components/PayLocalAmount";
+import GuestPayDetail from "./_components/GuestPayDetail";
+import {
+  clearAfricaPayinSession,
+  loadAfricaPayinSession,
+  normalizeAfricaPayinStep,
+  useGuestSendStore,
+} from "@/store/GuestSend";
+import { GuestAfricaPayinStep } from "@/store/GuestSend/guestSendSlice.types";
 
-export type GuestPaymentType = "card" | "transfer" | "zelle";
-export type GuestPayDetailsSteps = "details" | "summary" | "status" | "receipt";
+export type GuestPaymentType = "card" | "transfer" | "zelle" | "local";
+export type GuestPayDetailsSteps = GuestAfricaPayinStep;
 
 const paymentMethodsArr: {
   id: GuestPaymentType;
@@ -29,7 +36,7 @@ const paymentMethodsArr: {
   icon: (active: boolean) => JSX.Element;
   subText: string;
 }[] = [
-  // {
+    // {
   //   id: "card",
   //   label: "Pay with card",
   //   icon: (active: boolean) => (
@@ -46,6 +53,30 @@ const paymentMethodsArr: {
   //   ),
   //   subText: "Pay with your credit or debit card",
   // },
+  {
+    id: "local",
+    label: "Pay locally",
+    icon: (active: boolean) => (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path
+          d="M12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22Z"
+          stroke={active ? "#3C2875" : "#A89AB9"}
+          strokeWidth="1.5"
+        />
+        <path
+          d="M8 12H16"
+          stroke={active ? "#3C2875" : "#A89AB9"}
+          strokeWidth="1.5"
+        />
+        <path
+          d="M12 16V8"
+          stroke={active ? "#3C2875" : "#A89AB9"}
+          strokeWidth="1.5"
+        />
+      </svg>
+    ),
+    subText: "Bank transfer or mobile money",
+  },
   {
     id: "transfer",
     label: "Pay with transfer",
@@ -103,15 +134,21 @@ const paymentMethodsArr: {
 
 const RaizPaymentPage = () => {
   const params = useParams();
-  // const searchParams = useSearchParams();
-  const [mobileOpen, setMobileOpen] = useState<string | null>("transfer");
-  // const [amount, setAmount] = useState<string | undefined>();
+  const username = (params?.raizTag as string) || "";
+  const [mobileOpen, setMobileOpen] = useState<string | null>("local");
   const [screen, setScreen] = useState<GuestPaymentType | "detail" | null>(
-    "transfer",
+    "local",
   );
+  const [localStep, setLocalStep] = useState<"amount" | GuestAfricaPayinStep>(
+    "amount",
+  );
+  const [africaStep, setAfricaStep] = useState<GuestAfricaPayinStep>("details");
+  const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
   const [transferCurrency, setTransferCurrency] =
     useState<TransferCurrencyType>("USD");
   const [isUSUser, setIsUSUser] = useState(false);
+  const [sessionRestored, setSessionRestored] = useState(false);
+  const { actions } = useGuestSendStore();
 
   useEffect(() => {
     const detectCountry = async () => {
@@ -131,35 +168,69 @@ const RaizPaymentPage = () => {
     };
     detectCountry();
   }, []);
-  // const [step, setStep] = useState<GuestPayDetailsSteps>("details");
-  // const [paymentType, setPaymentType] = useState<
-  //     GuestPaymentType | undefined
-  // >();
-  // const { actions } = useGuestSendStore();
-  // const { actions: topupActions } = useTopupStore();
+
   const { data, isLoading, error } = useQuery({
     queryKey: ["business-payment-info"],
-    queryFn: () => FetchPaymentInfoApi(params?.raizTag as string),
+    queryFn: () => FetchPaymentInfoApi(username),
+    enabled: !!username,
   });
 
-  // useEffect(() => {
-  //     const encryptedData = searchParams.get("data");
+  useEffect(() => {
+    const restore = async () => {
+      if (!username || sessionRestored) return;
+      const snapshot = loadAfricaPayinSession(username);
+      if (!snapshot?.payin_id) {
+        setSessionRestored(true);
+        return;
+      }
 
-  //     if (encryptedData) {
-  //         try {
-  //             const decrypted = decryptData(encryptedData);
-  //             if (decrypted) {
-  //                 const data = JSON.parse(decrypted);
-  //                 if (data.amount) {
-  //                     setAmount(data.amount);
-  //                     actions.setField("amount", data.amount);
-  //                 }
-  //             }
-  //         } catch (error) {
-  //             console.error("Failed to decrypt or parse data", error);
-  //         }
-  //     }
-  // }, [searchParams]);
+      actions.setFields({
+        payin_id: snapshot.payin_id,
+        amount: snapshot.amount,
+        payout_currency: snapshot.payout_currency,
+        channel_id: snapshot.channel_id,
+        channel_name: snapshot.channel_name,
+        network_id: snapshot.network_id || "",
+        network_name: snapshot.network_name || "",
+        account_type: snapshot.account_type || "",
+        sender_name: snapshot.sender_name,
+        purpose: snapshot.purpose,
+        transaction_description: snapshot.transaction_description,
+        expires_at: snapshot.expires_at,
+        payment_instruction: snapshot.payment_instruction,
+        collection_method: snapshot.collection_method,
+        status: snapshot.status,
+        guestLocalCurrency: snapshot.guestLocalCurrency,
+        guestAccount: snapshot.guestAccount || "",
+        lifecycleStep: snapshot.lifecycleStep,
+      });
+      setPaymentMethod(snapshot.channel_id || null);
+      setScreen("detail");
+      setMobileOpen("local");
+
+      try {
+        const latestStatus = await GetAfricaPayinStatus(snapshot.payin_id);
+        const nextStep = normalizeAfricaPayinStep(
+          latestStatus,
+          snapshot.lifecycleStep,
+        );
+        actions.setFields({
+          status: latestStatus,
+          lifecycleStep: nextStep,
+        });
+        setAfricaStep(nextStep);
+        setLocalStep(nextStep === "details" ? "amount" : nextStep);
+      } catch {
+        setAfricaStep(snapshot.lifecycleStep);
+        setLocalStep(
+          snapshot.lifecycleStep === "details" ? "amount" : snapshot.lifecycleStep,
+        );
+      } finally {
+        setSessionRestored(true);
+      }
+    };
+    void restore();
+  }, [username, sessionRestored, actions]);
 
   const TRANSFER_CURRENCIES: TransferCurrencyType[] = [
     "USD",
@@ -217,13 +288,75 @@ const RaizPaymentPage = () => {
   );
 
   const handleMethodClick = (id: GuestPaymentType) => {
+    if (id !== "local" && screen === "detail") {
+      // Leaving an in-progress local flow keeps session in storage.
+    }
     setScreen((prev) => (prev === id ? null : id));
     setMobileOpen((prev) => (prev === id ? null : id));
+    if (id === "local") {
+      setLocalStep("amount");
+      setAfricaStep("details");
+    }
   };
+
+  const closeLocalFlow = () => {
+    setScreen("local");
+    setLocalStep("amount");
+    setAfricaStep("details");
+    setMobileOpen("local");
+  };
+
+  const exitLocalToMethods = () => {
+    clearAfricaPayinSession(username);
+    actions.resetPaymentSession();
+    setPaymentMethod(null);
+    setScreen("local");
+    setLocalStep("amount");
+    setAfricaStep("details");
+  };
+
   const displayScreen = () => {
     switch (screen) {
       case "card":
         if (data) return <GuestPayWithCard data={data} />;
+      case "local":
+        if (data && localStep === "amount") {
+          return (
+            <PayLocalAmount
+              data={data}
+              goBack={exitLocalToMethods}
+              goNext={() => {
+                setScreen("detail");
+                setLocalStep("details");
+                setAfricaStep("details");
+              }}
+              paymentMethod={paymentMethod}
+              setPaymentMethod={setPaymentMethod}
+            />
+          );
+        }
+        return null;
+      case "detail":
+        if (data) {
+          return (
+            <GuestPayDetail
+              data={data}
+              username={username}
+              step={africaStep}
+              setStep={(next) => {
+                setAfricaStep(next);
+                setLocalStep(next);
+              }}
+              goBack={() => {
+                setScreen("local");
+                setLocalStep("amount");
+                setAfricaStep("details");
+              }}
+              close={closeLocalFlow}
+            />
+          );
+        }
+        return null;
       case "transfer":
         if (data)
           return (
@@ -275,7 +408,7 @@ const RaizPaymentPage = () => {
     );
   }
   const selectedMethodObj = paymentMethodsArr.find(
-    (item) => item.id === screen,
+    (item) => item.id === (screen === "detail" ? "local" : screen),
   );
   return (
     <div className="min-h-screen bg-[url('/images/paybg.gif')] bg-no-repeat bg-cover flex md:items-center justify-center p-0 md:p-4">
@@ -324,8 +457,9 @@ const RaizPaymentPage = () => {
                 {paymentMethodsArr
                   .filter((method) => method.id !== "zelle" || isUSUser)
                   .map(({ id, label, icon }) => {
-                    const active = screen === id;
-                    const isOpen = mobileOpen === id;
+                    const active =
+                      screen === id || (id === "local" && screen === "detail");
+                    const isOpen = mobileOpen === id || (id === "local" && screen === "detail" && mobileOpen === "local");
 
                     return (
                       <div
@@ -338,7 +472,7 @@ const RaizPaymentPage = () => {
                     ${isOpen || active ? "bg-indigo-50" : ""}`}
                         >
                           <div className="flex gap-2 items-center">
-                            {icon(isOpen)}
+                            {icon(isOpen || active)}
                             <span
                               className={`text-xs md:text-base font-bold ${
                                 isOpen || active
@@ -477,6 +611,36 @@ const RaizPaymentPage = () => {
                         >
                           {id === "card" && data && (
                             <GuestPayWithCard data={data} />
+                          )}
+                          {id === "local" && data && localStep === "amount" && (
+                            <PayLocalAmount
+                              data={data}
+                              goBack={exitLocalToMethods}
+                              goNext={() => {
+                                setScreen("detail");
+                                setLocalStep("details");
+                                setAfricaStep("details");
+                              }}
+                              paymentMethod={paymentMethod}
+                              setPaymentMethod={setPaymentMethod}
+                            />
+                          )}
+                          {id === "local" && data && screen === "detail" && (
+                            <GuestPayDetail
+                              data={data}
+                              username={username}
+                              step={africaStep}
+                              setStep={(next) => {
+                                setAfricaStep(next);
+                                setLocalStep(next);
+                              }}
+                              goBack={() => {
+                                setScreen("local");
+                                setLocalStep("amount");
+                                setAfricaStep("details");
+                              }}
+                              close={closeLocalFlow}
+                            />
                           )}
                           {id === "transfer" && data && (
                             <GuestPayWithTransfer
@@ -647,7 +811,7 @@ const RaizPaymentPage = () => {
               !screen || !mobileOpen ? "hidden md:block" : "md:block"
             }`}
           >
-            <div className="flex items-start justify-between mb-11">
+           {selectedMethodObj?.id === "local" && localStep === "details" ? null : <div className="flex items-start justify-between mb-11">
               <div>
                 <h1 className="text-[23px] font-semibold text-raiz-gray-950 mb-1">
                   {selectedMethodObj?.label}
@@ -655,7 +819,7 @@ const RaizPaymentPage = () => {
                 <p className="text-raiz-gray-700 text-sm">
                   {selectedMethodObj?.subText}
                 </p>
-              </div>
+              </div> 
               <div className="w-10 h-10 ">
                 <svg
                   width="40"
@@ -683,7 +847,7 @@ const RaizPaymentPage = () => {
                   />
                 </svg>
               </div>
-            </div>
+            </div>}
             {displayScreen()}
           </div>
         </div>
