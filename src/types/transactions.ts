@@ -112,10 +112,15 @@ export type PaymentStatusType =
   | null;
 
 export type GuestPayStatusType =
+  | "created"
+  | "pending"
   | "complete"
+  | "completed"
   | "processing"
   | "process"
   | "failed"
+  | "cancelled"
+  | "canceled"
   | null;
 
 

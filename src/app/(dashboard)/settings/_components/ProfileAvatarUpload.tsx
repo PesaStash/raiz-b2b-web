@@ -3,15 +3,18 @@
 import Image from "next/image";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { UploadProfilePicture } from "@/services/user";
+import { uploadB2bBusinessImage } from "@/services/user";
 import { useUser } from "@/lib/hooks/useUser";
 import { toast } from "sonner";
-import { normalizeS3ObjectUrl, uploadFileToS3 } from "@/utils/helpers";
+import { normalizeS3ObjectUrl } from "@/utils/helpers";
 
 type Props = {
   size?: "sm" | "md";
   className?: string;
 };
+
+const MAX_FILE_SIZE_BYTES = 5_242_880; // 5 MiB
+const VALID_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 
 const sizeClasses = {
   sm: { img: "size-14", btn: "size-7 -bottom-0.5 -right-0.5", icon: 12 },
@@ -23,7 +26,6 @@ const ProfileAvatarUpload = ({ size = "md", className = "" }: Props) => {
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
 
   const displayImage =
     previewUrl ||
@@ -31,14 +33,18 @@ const ProfileAvatarUpload = ({ size = "md", className = "" }: Props) => {
     "/images/default-pfp.svg";
 
   const uploadImgMutation = useMutation({
-    mutationFn: (imageUrl: string) => UploadProfilePicture(imageUrl),
+    mutationFn: (file: File) => uploadB2bBusinessImage(file),
     onSuccess: (response) => {
       toast.success(response?.message);
       queryClient.invalidateQueries({ queryKey: ["user"] });
       setPreviewUrl(null);
     },
-    onError: () => {
+    onError: (err: unknown) => {
       setPreviewUrl(null);
+      // AuthAxios already toasts API errors. Toast only for non-API failures (e.g. S3 PUT).
+      if (err instanceof Error) {
+        toast.error(err.message || "Failed to upload image");
+      }
     },
   });
 
@@ -49,22 +55,10 @@ const ProfileAvatarUpload = ({ size = "md", className = "" }: Props) => {
   }, [previewUrl]);
 
   const uploadFile = useCallback(
-    async (selectedFile: File) => {
-      setIsUploading(true);
-      try {
-        const { objectUrl } = await uploadFileToS3(
-          selectedFile,
-          selectedFile.name,
-        );
-        if (previewUrl) URL.revokeObjectURL(previewUrl);
-        setPreviewUrl(URL.createObjectURL(selectedFile));
-        uploadImgMutation.mutate(objectUrl);
-      } catch (err: unknown) {
-        toast.error((err as Error)?.message || "Failed to upload image");
-        setPreviewUrl(null);
-      } finally {
-        setIsUploading(false);
-      }
+    (selectedFile: File) => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(URL.createObjectURL(selectedFile));
+      uploadImgMutation.mutate(selectedFile);
     },
     [previewUrl, uploadImgMutation],
   );
@@ -72,12 +66,11 @@ const ProfileAvatarUpload = ({ size = "md", className = "" }: Props) => {
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
     if (!selectedFile) return;
-    if (selectedFile.size > 5 * 1024 * 1024) {
+    if (selectedFile.size > MAX_FILE_SIZE_BYTES) {
       toast.warning("Image size should be less than 5MB");
       return;
     }
-    const validTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
-    if (!validTypes.includes(selectedFile.type)) {
+    if (!VALID_TYPES.includes(selectedFile.type as (typeof VALID_TYPES)[number])) {
       toast.warning("Please upload a valid image file (JPEG, PNG, WEBP)");
       return;
     }
@@ -86,7 +79,7 @@ const ProfileAvatarUpload = ({ size = "md", className = "" }: Props) => {
   };
 
   const dims = sizeClasses[size];
-  const busy = isUploading || uploadImgMutation.isPending;
+  const busy = uploadImgMutation.isPending;
 
   return (
     <div className={`relative shrink-0 ${className}`}>

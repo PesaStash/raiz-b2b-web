@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ToUsdBanksStepsType } from "../toBanks/ToUsdBanks";
 import { bankTypeProp } from "../BankTransfer";
 import { useSendStore } from "@/store/Send";
@@ -16,6 +16,8 @@ import InternationalSendSummary from "@/components/transactions/InternationalSen
 import InternationalSendMoney from "@/components/transactions/InternationalSendMoney";
 import InternationPayout from "../toInternational/InternationalPayout";
 import { IInitialPayoutResponse, IntCurrencyCode } from "@/types/services";
+import { getApiErrorMessage } from "@/utils/helpers";
+import { mapRemittanceError } from "@/utils/remittancePayoutErrors";
 import { toast } from "sonner";
 
 interface Props {
@@ -27,8 +29,11 @@ const ToGlobal = ({ close, bankType }: Props) => {
   const [step, setStep] = useState<ToUsdBanksStepsType>("add-beneficiary");
   const [paymentError, setPaymentError] = useState("");
   const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [isRequoting, setIsRequoting] = useState(false);
   const [paymentInitiationData, setPaymentInitiationData] =
     useState<IInitialPayoutResponse | null>(null);
+  const hasRequotedRef = useRef(false);
+  const isFirstInitiateRef = useRef(true);
   const {
     intBeneficiary,
     actions,
@@ -37,36 +42,12 @@ const ToGlobal = ({ close, bankType }: Props) => {
     status,
     transactionDetail,
   } = useSendStore();
+
   useEffect(() => {
     if (bankType) {
       setTimeout(() => setStep("add-beneficiary"), 200);
     }
   }, [bankType]);
-
-  useEffect(() => {
-    if (timeLeft === 0 && intBeneficiary) {
-      toast.info("Timed out! Please restart  process.");
-      setStep("add-beneficiary");
-      actions.selectIntBeneficiary(null);
-      return;
-    }
-    const timerId = setInterval(() => {
-      setTimeLeft((prev) => Math.max(prev - 1, 0));
-    }, 1000);
-    return () => clearInterval(timerId);
-  }, [timeLeft]);
-
-  useEffect(() => {
-    if (intBeneficiary) {
-      setStep("details");
-    }
-  }, [intBeneficiary]);
-
-  const goBackToStep2 = () => {
-    actions.selectIntBeneficiary(null);
-    actions.setAmountAndRemark({ amount: "", purpose: "" });
-    setStep("add-beneficiary");
-  };
 
   const { data } = useQuery({
     queryKey: [
@@ -88,12 +69,119 @@ const ToGlobal = ({ close, bankType }: Props) => {
         amount: parseFloat(amount),
       }),
     onSuccess: (response) => {
+      if (!response?.payout_initiation_id) {
+        toast.error(
+          getApiErrorMessage(
+            { data: response },
+            "Unable to start this transfer.",
+          ),
+        );
+        return;
+      }
       setTimeLeft(120);
+      hasRequotedRef.current = false;
       setPaymentInitiationData(response);
-      setStep("category");
+      if (isFirstInitiateRef.current) {
+        setStep("category");
+      }
+    },
+    onError: (error) => {
+      const remittanceError = mapRemittanceError(
+        error,
+        "Unable to start this transfer.",
+      );
+      if (remittanceError.kind === "minimum_amount") {
+        toast.error(remittanceError.message);
+        setStep("details");
+        return;
+      }
+      if (remittanceError.kind === "beneficiary_not_found") {
+        toast.error(remittanceError.message);
+        setStep("add-beneficiary");
+        return;
+      }
+      if (remittanceError.kind === "missing_wallet") {
+        toast.error(remittanceError.message);
+        return;
+      }
+      if (remittanceError.kind === "temporary") {
+        toast.error(remittanceError.message);
+        return;
+      }
     },
   });
+
+  const requotePayout = useCallback(async () => {
+    if (
+      !intBeneficiary ||
+      !amount ||
+      InitiatePayMutation.isPending ||
+      isRequoting
+    ) {
+      return;
+    }
+    setIsRequoting(true);
+    isFirstInitiateRef.current = false;
+    try {
+      const response = await InitiatePayMutation.mutateAsync();
+      if (response?.payout_initiation_id) {
+        toast.success("Quote refreshed.");
+      }
+    } catch (error) {
+      const remittanceError = mapRemittanceError(
+        error,
+        "Unable to refresh quote.",
+      );
+      toast.error(remittanceError.message);
+    } finally {
+      setIsRequoting(false);
+    }
+  }, [InitiatePayMutation, amount, intBeneficiary, isRequoting]);
+
+  useEffect(() => {
+    if (timeLeft > 0) {
+      const timerId = setInterval(() => {
+        setTimeLeft((prev) => Math.max(prev - 1, 0));
+      }, 1000);
+      return () => clearInterval(timerId);
+    }
+
+    if (
+      timeLeft === 0 &&
+      paymentInitiationData &&
+      intBeneficiary &&
+      (step === "summary" || step === "pay") &&
+      !hasRequotedRef.current
+    ) {
+      hasRequotedRef.current = true;
+      toast.info("Quote expired. Refreshing rate...");
+      void requotePayout();
+    }
+  }, [
+    timeLeft,
+    paymentInitiationData,
+    intBeneficiary,
+    step,
+    requotePayout,
+  ]);
+
+  useEffect(() => {
+    if (intBeneficiary) {
+      setStep("details");
+    }
+  }, [intBeneficiary]);
+
+  const goBackToStep2 = () => {
+    actions.selectIntBeneficiary(null);
+    actions.setAmountAndRemark({ amount: "", purpose: "" });
+    setPaymentInitiationData(null);
+    setTimeLeft(0);
+    hasRequotedRef.current = false;
+    setStep("add-beneficiary");
+  };
+
   const initiatePayout = () => {
+    isFirstInitiateRef.current = true;
     InitiatePayMutation.mutate();
   };
 
@@ -101,6 +189,14 @@ const ToGlobal = ({ close, bankType }: Props) => {
     actions.reset("USD");
     actions.selectUSDSendOption(null);
     close();
+  };
+
+  const summaryProps = {
+    fee: paymentInitiationData?.fees || 0,
+    paymentData: paymentInitiationData || undefined,
+    timeLeft,
+    isRequoting,
+    isExpired: timeLeft <= 0 && !isRequoting,
   };
 
   const displayStep = () => {
@@ -131,10 +227,7 @@ const ToGlobal = ({ close, bankType }: Props) => {
             <InternationalSendSummary
               goBack={() => setStep("category")}
               goNext={() => setStep("pay")}
-              // cofirm if to use raiz charge or fee
-              fee={paymentInitiationData?.fees || 0}
-              paymentData={paymentInitiationData}
-              timeLeft={timeLeft}
+              {...summaryProps}
             />
           )
         );
@@ -145,10 +238,7 @@ const ToGlobal = ({ close, bankType }: Props) => {
               <InternationalSendSummary
                 goBack={() => setStep("category")}
                 goNext={() => setStep("pay")}
-                // cofirm if to use raiz charge or fee
-                fee={paymentInitiationData?.fees || 0}
-                paymentData={paymentInitiationData}
-                timeLeft={timeLeft}
+                {...summaryProps}
               />
             )}
             <InternationPayout
@@ -159,6 +249,7 @@ const ToGlobal = ({ close, bankType }: Props) => {
               close={() => setStep("summary")}
               setPaymentError={setPaymentError}
               fee={paymentInitiationData?.raiz_charge || 0}
+              disabled={timeLeft <= 0 || isRequoting}
             />
           </>
         );
@@ -171,10 +262,7 @@ const ToGlobal = ({ close, bankType }: Props) => {
                 <InternationalSendSummary
                   goBack={() => setStep("category")}
                   goNext={() => setStep("pay")}
-                  // cofirm if to use raiz charge or fee
-                  fee={paymentInitiationData?.fees || 0}
-                  paymentData={paymentInitiationData}
-                  timeLeft={timeLeft}
+                  {...summaryProps}
                 />
               )}
               <PaymentStatusModal

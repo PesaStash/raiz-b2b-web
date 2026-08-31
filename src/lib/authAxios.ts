@@ -27,23 +27,35 @@ export interface CustomAxiosRequestConfig extends AxiosRequestConfig {
 const handleResponse = (response: AxiosResponse) => response;
 
 const handleError = async (error: CustomAxiosError) => {
-  const isSilent = (error.config as CustomAxiosRequestConfig)?.silent;
+  try {
+    const isSilent = (error.config as CustomAxiosRequestConfig)?.silent;
 
-  // Check for 401 status and redirect to login
-  if (error.response?.status === 401) {
-    if (typeof window !== "undefined") {
-      const authRoutes = ["/login", "/register", "/forgot-password", "/verify"];
-      const isAuthRoute = authRoutes.some((route) =>
-        window.location.pathname.startsWith(route),
-      );
-      if (!isAuthRoute) {
-        window.location.href = "/login";
+    // Check for 401 status and redirect to login
+    if (error.response?.status === 401) {
+      if (typeof window !== "undefined") {
+        const authRoutes = [
+          "/login",
+          "/register",
+          "/forgot-password",
+          "/verify",
+        ];
+        const isAuthRoute = authRoutes.some((route) =>
+          window.location.pathname.startsWith(route),
+        );
+        if (!isAuthRoute) {
+          window.location.href = "/login";
+        }
       }
+      return Promise.reject(error.response);
     }
-    return Promise.reject(error.response);
-  }
-  if (!isSilent) {
-    toast.error(getApiErrorMessage(error, "An error occurred"));
+    if (!isSilent) {
+      const message = getApiErrorMessage(error, "An error occurred");
+      toast.error(
+        typeof message === "string" ? message : "An error occurred",
+      );
+    }
+  } catch {
+    // Never let error-display logic crash the app.
   }
 
   return Promise.reject(error.response);

@@ -63,8 +63,10 @@ const UNSAFE_ERROR_PATTERNS = [
   /<html/i,
 ];
 
-function isUserSafeMessage(message: string): boolean {
-  if (!message || message.length > 300) return false;
+function isUserSafeMessage(message: unknown): message is string {
+  if (typeof message !== "string" || !message || message.length > 300) {
+    return false;
+  }
   return !UNSAFE_ERROR_PATTERNS.some((pattern) => pattern.test(message));
 }
 
@@ -95,9 +97,32 @@ function extractApiErrorContext(error: unknown): {
   return {};
 }
 
+function unwrapMessageCandidate(value: unknown, depth = 0): unknown {
+  if (value == null || depth > 3) return undefined;
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) {
+    return unwrapMessageCandidate(
+      value.find((item) => item != null),
+      depth + 1,
+    );
+  }
+  if (typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    return unwrapMessageCandidate(
+      obj.detail ?? obj.message ?? obj.error ?? obj.msg,
+      depth + 1,
+    );
+  }
+  return undefined;
+}
+
 function getBackendMessage(data?: ApiErrorPayload): string | undefined {
-  const message = data?.detail || data?.message || data?.error;
-  return message && isUserSafeMessage(message) ? message : undefined;
+  const candidates = [data?.detail, data?.message, data?.error, data];
+  for (const candidate of candidates) {
+    const unwrapped = unwrapMessageCandidate(candidate);
+    if (isUserSafeMessage(unwrapped)) return unwrapped;
+  }
+  return undefined;
 }
 
 function appendCorrelationId(message: string, data?: ApiErrorPayload): string {
