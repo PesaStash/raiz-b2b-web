@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Notifications from "../../app/(dashboard)/_components/notification/Notifications";
 import { AnimatePresence } from "motion/react";
 import Rewards from "../../app/(dashboard)/_components/rewards/Rewards";
@@ -84,6 +84,7 @@ const Header = () => {
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const [selectedAction, setSelectedAction] = useState<ModalKeys | null>(null);
   const [showActionOpts, setShowActionOpts] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const params = useParams();
   const NGNAcct = findWalletByCurrency(user, "NGN");
@@ -115,7 +116,7 @@ const Header = () => {
 
   useEffect(() => {
     if (!searchTerm) {
-      setSearchResults([]);
+      setSearchResults(searchItems);
       return;
     }
 
@@ -124,6 +125,21 @@ const Header = () => {
     );
     setSearchResults(results);
   }, [searchTerm]);
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "k") return;
+      if (pathName.includes("invoice")) return;
+      if (typeof window !== "undefined" && window.innerWidth < 768) return;
+
+      e.preventDefault();
+      setIsFocused(true);
+      searchInputRef.current?.focus();
+    };
+
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+  }, [pathName]);
 
   const handleSearchAction = (item: (typeof searchItems)[number]) => {
     if (item.type === "route" && item.path) {
@@ -148,8 +164,10 @@ const Header = () => {
       }
     }
     setSearchTerm("");
-    setSearchResults([]);
+    setSearchResults(searchItems);
     setFocusedIndex(-1);
+    setIsFocused(false);
+    searchInputRef.current?.blur();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -167,6 +185,7 @@ const Header = () => {
     } else if (e.key === "Escape") {
       setFocusedIndex(-1);
       setIsFocused(false);
+      searchInputRef.current?.blur();
     }
   };
 
@@ -299,14 +318,19 @@ const Header = () => {
             height={22}
           />
           <input
+            ref={searchInputRef}
             placeholder="Search..."
-            className="pl-10 h-full bg-raiz-gray-50 rounded-[20px] text-sm placeholder:text-raiz-gray-500  justify-start items-center gap-2 inline-flex w-full outline outline-1 outline-offset-[-1px] outline-white"
+            className="pl-10 pr-14 h-full bg-raiz-gray-50 rounded-[20px] text-sm placeholder:text-raiz-gray-500 justify-start items-center gap-2 inline-flex w-full outline outline-1 outline-offset-[-1px] outline-white"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setTimeout(() => setIsFocused(false), 200)}
             onKeyDown={handleKeyDown}
           />
+          <span className="pointer-events-none absolute right-4 top-1/2 flex -translate-y-1/2 items-center gap-2 text-sm text-raiz-gray-500">
+            <span>⌘</span>
+            <span>K</span>
+          </span>
           <AnimatePresence>
             {isFocused && searchResults.length > 0 && (
               <motion.ul
@@ -448,7 +472,7 @@ const Header = () => {
         </AnimatePresence>
       </div>
 
-      <div className="flex gap-2 md:gap-4 items-center ml-auto shrink-0">
+      <div className="flex gap-2 md:gap-4 items-center  shrink-0">
         <button
           onClick={() => setShowModal("rewards")}
           className="py-2 px-5 bg-raiz-gray-50 hover:bg-raiz-gray-200 transition-colors duration-300 group h-12  rounded-[20px] justify-center items-center gap-2 inline-flex"

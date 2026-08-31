@@ -500,7 +500,7 @@ export async function SendInternationalInitialPayout(data: {
 }): Promise<IInitialPayoutResponse> {
   const response = await AuthAxios.post(
     "/business/transactions/remittance/payout/initiate/",
-    data,
+    data, 
   );
   return response?.data;
 }

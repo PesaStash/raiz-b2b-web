@@ -537,7 +537,7 @@ export interface IIntBeneficiariesParams {
 
 export interface ForeignPayoutBeneficiary {
   beneficiary_name: string;
-  beneficiary_id: string;
+  beneficiary_id: string | null;
   beneficiary_currency: string;
   beneficiary_country: string;
   beneficiary_creation_status: string;
@@ -565,8 +565,42 @@ export interface IIntBeneficiariesResponse {
   beneficiaries: EntityForeignPayoutBeneficiary[];
 }
 
-export type IntCountryType =
+export type AfricanRemittanceCountryCode =
+  | "AO" // Angola
+  | "BF" // Burkina Faso
+  | "BJ" // Benin
+  | "BW" // Botswana
+  | "CD" // Democratic Republic of Congo
+  | "CG" // Congo
+  | "CI" // Ivory Coast
+  | "CM" // Cameroon
+  | "DZ" // Algeria
+  | "EG" // Egypt
+  | "ET" // Ethiopia
+  | "GA" // Gabon
   | "GH" // Ghana
+  | "GM" // Gambia
+  | "GN" // Guinea
+  | "KE" // Kenya
+  | "LR" // Liberia
+  | "MA" // Morocco
+  | "ML" // Mali
+  | "MR" // Mauritania
+  | "MU" // Mauritius
+  | "MW" // Malawi
+  | "NE" // Niger
+  | "NG" // Nigeria
+  | "RW" // Rwanda
+  | "SL" // Sierra Leone
+  | "SN" // Senegal
+  | "TG" // Togo
+  | "TZ" // Tanzania
+  | "UG" // Uganda
+  | "ZA" // South Africa
+  | "ZM"; // Zambia
+
+export type IntCountryType =
+  | AfricanRemittanceCountryCode
   | "AU" // Australia
   | "AT" // Austria
   | "AD" // Andorra
@@ -602,25 +636,9 @@ export type IntCountryType =
   | "SM" // San Marino
   | "VA" // Vatican City
   | "CN" // China
-  | "KE" // Kenya
-  | "UG" // Uganda
-  | "NG" // Nigeria
-  | "TZ" // Tanzania
-  | "ZM" // Zambia
-  | "MW" // Malawi
   | "GB" // United Kingdom
-  | "BF" // Burkina Faso
-  | "CM" // Cameroon
-  | "SN" // Senegal
-  | "RW" // Rwanda
-  | "GN" // Guinea
-  | "ML" // Mali
-  | "TG" // Togo
   | "AE" // United Arab Emirates
-  | "FR" // France
-  | "CI" // Ivory Coast
-  | "BJ" // Benin
-  | "CD"; // Democratic Republic of Congo
+  | "FR"; // France
 
 export type IntCurrencyCode =
   | "USD" // United States
@@ -642,7 +660,19 @@ export type IntCurrencyCode =
   | "AED" // United Arab Emirates
   | "XOF" // West African CFA Franc (Benin, Burkina Faso, Ivory Coast, Mali, Niger, Senegal, Togo)
   | "XAF" // Central African CFA Franc (Cameroon, Central African Republic, Chad, Congo, Equatorial Guinea, Gabon)
-  | "CDF"; // Democratic Republic of Congo
+  | "CDF" // Democratic Republic of Congo
+  | "EGP" // Egypt
+  | "ETB" // Ethiopia
+  | "ZAR" // South Africa
+  | "SLE" // Sierra Leone
+  | "LRD" // Liberia
+  | "GMD" // Gambia
+  | "MAD" // Morocco
+  | "AOA" // Angola
+  | "BWP" // Botswana
+  | "DZD" // Algeria
+  | "MRU" // Mauritania
+  | "MUR"; // Mauritius
 
 export interface IIntBeneficiaryPayload {
   customer_email: string | null;

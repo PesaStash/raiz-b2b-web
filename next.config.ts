@@ -23,6 +23,14 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "flagcdn.com",
       },
+      {
+        protocol: "https",
+        hostname: "raizapp-mobile.s3.amazonaws.com",
+      },
+      {
+        protocol: "https",
+        hostname: "raizapp-mobile-eu.s3.eu-west-2.amazonaws.com",
+      },
     ],
   },
   async headers() {

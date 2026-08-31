@@ -12,11 +12,39 @@ import {
 } from "@/types/services";
 import { IUser } from "@/types/user";
 
+export type ImageContentType = "image/jpeg" | "image/png" | "image/webp";
+
+export interface ProfileImageUploadUrlRequest {
+  content_type: ImageContentType;
+  file_size?: number | null;
+}
+
+export interface ProfileImageUploadUrlResponse {
+  upload_url: string;
+  image_url: string;
+  s3_key: string;
+  method: "PUT";
+  expires_in: number;
+  max_file_size: number;
+  content_type: ImageContentType;
+  required_headers: Record<string, string>;
+}
+
 export const FetchUserApi = async (): Promise<IUser> => {
   const response = await AuthAxios.get("/business/account_user/me", {
     silent: true,
   } as CustomAxiosRequestConfig);
   return response.data;
+};
+
+export const CreateBusinessImageUploadUrl = async (
+  payload: ProfileImageUploadUrlRequest,
+): Promise<ProfileImageUploadUrlResponse> => {
+  const response = await AuthAxios.post(
+    "/business/account_user/business-image/upload-url/",
+    payload,
+  );
+  return response?.data;
 };
 
 export const UploadProfilePicture = async (image_url: string) => {
@@ -30,6 +58,43 @@ export const UploadProfilePicture = async (image_url: string) => {
     },
   );
   return response?.data;
+};
+
+async function putFileToPresignedUrl(
+  grant: ProfileImageUploadUrlResponse,
+  file: Blob,
+): Promise<Response> {
+  return fetch(grant.upload_url, {
+    method: grant.method,
+    headers: grant.required_headers,
+    body: file,
+  });
+}
+
+export const uploadB2bBusinessImage = async (file: File) => {
+  const contentType = file.type as ImageContentType;
+
+  let grant = await CreateBusinessImageUploadUrl({
+    content_type: contentType,
+    file_size: file.size,
+  });
+
+  let uploadResponse = await putFileToPresignedUrl(grant, file);
+
+  // Expired URL or mismatched headers — refresh grant and retry once.
+  if (uploadResponse.status === 403) {
+    grant = await CreateBusinessImageUploadUrl({
+      content_type: contentType,
+      file_size: file.size,
+    });
+    uploadResponse = await putFileToPresignedUrl(grant, file);
+  }
+
+  if (!uploadResponse.ok) {
+    throw new Error("Image upload failed");
+  }
+
+  return UploadProfilePicture(grant.image_url);
 };
 
 export const FetchUserRewardsApi = async (): Promise<IRewardPoint> => {
