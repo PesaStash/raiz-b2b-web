@@ -4,7 +4,7 @@ import ListDetailItem from "@/components/ui/ListDetailItem";
 import Overlay from "@/components/ui/Overlay";
 import { useSwapStore } from "@/store/Swap";
 import { getCurrencySymbol } from "@/utils/helpers";
-import { isCrossCurrencyNgnGbpEurSwap } from "@/store/Swap/swapSlice.types";
+import { getSwapRateDisplayString } from "./swapRateDisplay";
 import Image from "next/image";
 import React from "react";
 
@@ -12,6 +12,7 @@ interface Props {
   goBack: () => void;
   goNext: () => void;
   exchangeRate: number | undefined;
+  inverseRate?: number;
   recipientAmount: string;
   timeLeft: number;
   loading: boolean;
@@ -24,6 +25,7 @@ const SwapConfirmation = ({
   recipientAmount,
   loading,
   exchangeRate,
+  inverseRate,
   goNext,
   cryptoFee,
 }: Props) => {
@@ -38,13 +40,14 @@ const SwapConfirmation = ({
   const getExchangeRateDisplay = () => {
     if (loading) return "Loading...";
 
-    if (isCrossCurrencyNgnGbpEurSwap(swapFromCurrency, swapToCurrency)) {
-      return `1 ${swapFromCurrency} = ${getCurrencySymbol(swapToCurrency)}${
-        exchangeRate?.toFixed(4) || "0.0000"
-      }`;
-    }
-
-    return `$1(USD) = ${swapToCurrency}${exchangeRate?.toFixed(2) || 1}`;
+    return (
+      getSwapRateDisplayString(
+        swapFromCurrency,
+        swapToCurrency,
+        exchangeRate,
+        inverseRate,
+      ) ?? "—"
+    );
   };
 
   return (

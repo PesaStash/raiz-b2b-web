@@ -7,7 +7,9 @@ import Image from "next/image";
 import Button from "@/components/ui/Button";
 import SelectCurrencyModal from "./SelectCurrencyModal";
 import { formatAmount, getCurrencySymbol } from "@/utils/helpers";
-import { isCrossCurrencyNgnGbpEurSwap } from "@/store/Swap/swapSlice.types";
+import {
+  getSwapRateDisplay,
+} from "./swapRateDisplay";
 import ErrorMessage from "@/components/ui/ErrorMessage";
 import { useUser } from "@/lib/hooks/useUser";
 import { toast } from "sonner";
@@ -17,6 +19,7 @@ interface Props {
   close: () => void;
   goNext: () => void;
   exchangeRate: number | undefined;
+  inverseRate?: number;
   recipientAmount: string;
   timeLeft: number;
   loading: boolean;
@@ -27,6 +30,7 @@ const SwapDetail = ({
   close,
   goNext,
   exchangeRate,
+  inverseRate,
   recipientAmount,
   timeLeft,
   loading,
@@ -97,10 +101,13 @@ const SwapDetail = ({
   const displayValue = () => {
     if (isFocused || !amount)
       return amount ? `${getCurrencySymbol(swapFromCurrency)}${rawAmount}` : "";
-    const num = parseFloat(rawAmount);
+    const num = Number(amount);
     return isNaN(num)
       ? ""
-      : `${getCurrencySymbol(swapFromCurrency)}${num.toFixed(2)}`;
+      : `${getCurrencySymbol(swapFromCurrency)}${num.toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`;
   };
 
   const formatTime = (seconds: number): string => {
@@ -125,40 +132,12 @@ const SwapDetail = ({
     goNext();
   };
 
-  // Dynamic rate display based on currency pair
-  const getRateDisplay = () => {
-    if (isCrossCurrencyNgnGbpEurSwap(swapFromCurrency, swapToCurrency)) {
-      return {
-        base: `${getCurrencySymbol(swapFromCurrency)}1 (${swapFromCurrency})`,
-        quote: `${getCurrencySymbol(swapToCurrency)}${
-          exchangeRate?.toFixed(4) || "0.0000"
-        }`,
-      };
-    }
-
-    // For USD-based pairs
-    if (swapFromCurrency === "USD" || swapToCurrency === "USD") {
-      const baseCurrency =
-        swapFromCurrency === "USD" ? swapFromCurrency : swapToCurrency;
-      const quoteCurrency =
-        swapFromCurrency === "USD" ? swapToCurrency : swapFromCurrency;
-
-      return {
-        base: `${getCurrencySymbol(baseCurrency)}1 (${baseCurrency})`,
-        quote: `${getCurrencySymbol(quoteCurrency)}${
-          exchangeRate?.toFixed(2) || 1
-        }`,
-      };
-    }
-
-    // Default fallback
-    return {
-      base: "$1 (USD)",
-      quote: `₦${exchangeRate?.toFixed(2) || 1}`,
-    };
-  };
-
-  const rateDisplay = getRateDisplay();
+  const rateDisplay = getSwapRateDisplay(
+    swapFromCurrency,
+    swapToCurrency,
+    exchangeRate,
+    inverseRate,
+  );
 
   const showFee = () => {
     let fee = 0;
@@ -269,15 +248,17 @@ const SwapDetail = ({
             {/* )} */}
 
             {/* Rate */}
-            <div className="w-full flex justify-between items-center">
-              <span className="text-cyan-700 text-xs font-normal font-brSonoma leading-normal whitespace-nowrap">
-                {rateDisplay.base}
-              </span>
-              <div className="h-0.5 w-[75%] px-4 bg-white"></div>
-              <span className="text-zinc-900 text-xs font-semibold leading-none">
-                {rateDisplay.quote}
-              </span>
-            </div>
+            {rateDisplay && (
+              <div className="w-full flex justify-between items-center">
+                <span className="text-cyan-700 text-xs font-normal font-brSonoma leading-normal whitespace-nowrap">
+                  {rateDisplay.base}
+                </span>
+                <div className="h-0.5 w-[75%] px-4 bg-white"></div>
+                <span className="text-zinc-900 text-xs font-semibold leading-none">
+                  {rateDisplay.quote}
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="p-5 mb-3 bg-indigo-100 bg-opacity-60 rounded-[20px] inline-flex justify-start items-start gap-2 w-full">

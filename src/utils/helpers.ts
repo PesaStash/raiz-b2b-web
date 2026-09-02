@@ -448,6 +448,11 @@ export const fetchPublicIP = async (): Promise<string | null> => {
   }
 };
 
+export const formatDisplayRate = (rate: number): string => {
+  if (!Number.isFinite(rate)) return "0";
+  return rate.toFixed(6).replace(/\.?0+$/, "");
+};
+
 export const formatAmount = (
   value: number,
   options?: {

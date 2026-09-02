@@ -45,6 +45,7 @@ import {
   NormalizedIntBeneficiaryFormFields,
   VolumeAndActivityData,
   ICrossCurrencySwapRateResponse,
+  IUsdBaseExchangeRateResponse,
   ICrossCurrencySwapPayload,
 } from "@/types/services";
 import { normalizeRemittanceFormFields } from "@/utils/remittanceFormFields";
@@ -290,22 +291,18 @@ export async function ExternalNGNDebitApi({
   return response.data;
 }
 
-export async function GetExchangeRate(currencyCode: string): Promise<{
-  buy_rate: number;
-  currency: string;
-  sell_rate: number;
-}> {
+export async function GetExchangeRate(
+  currencyCode: string,
+): Promise<IUsdBaseExchangeRateResponse> {
   const response = await AuthAxios.get(
     `/business/transactions/swap/exchange-rates/?currency=${currencyCode}`,
   );
   return response.data;
 }
 
-export async function GetSwapRate(currencyCode: string): Promise<{
-  buy_rate: number;
-  currency: string;
-  sell_rate: number;
-}> {
+export async function GetSwapRate(
+  currencyCode: string,
+): Promise<IUsdBaseExchangeRateResponse> {
   const response = await AuthAxios.get(
     `/business/transactions/swap/exchange-rates/?currency=${currencyCode}`,
   );

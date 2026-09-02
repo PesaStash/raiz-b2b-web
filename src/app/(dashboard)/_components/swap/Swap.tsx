@@ -175,7 +175,16 @@ const Swap = ({ close }: Props) => {
     }
   };
 
+  const getInverseRate = (): number | undefined => {
+    if (isCrossCurrencySwap) {
+      return crossCurrencyQuoteData?.inverse_derived_rate;
+    }
+
+    return undefined;
+  };
+
   const rate = getRate();
+  const inverseRate = getInverseRate();
 
   const getRecipientAmount = () => {
     const safeAmount = Number(amount || 0);
@@ -297,6 +306,7 @@ const Swap = ({ close }: Props) => {
             close={close}
             goNext={handleProceedToConfirmation}
             exchangeRate={rate}
+            inverseRate={inverseRate}
             recipientAmount={recipientAmount}
             timeLeft={timeLeft}
             loading={isRateLoading || cryptoFeeLoading}
@@ -312,6 +322,7 @@ const Swap = ({ close }: Props) => {
                 setStep("confirmation");
               }}
               exchangeRate={rate}
+              inverseRate={inverseRate}
               recipientAmount={recipientAmount}
               timeLeft={timeLeft}
               loading={isRateLoading}
@@ -321,6 +332,7 @@ const Swap = ({ close }: Props) => {
               goBack={() => setStep("detail")}
               goNext={handleProceedToPay}
               exchangeRate={rate}
+              inverseRate={inverseRate}
               recipientAmount={recipientAmount}
               timeLeft={timeLeft}
               loading={isRateLoading}
@@ -337,6 +349,7 @@ const Swap = ({ close }: Props) => {
                 setStep("confirmation");
               }}
               exchangeRate={rate}
+              inverseRate={inverseRate}
               recipientAmount={recipientAmount}
               timeLeft={timeLeft}
               loading={isRateLoading}
@@ -358,6 +371,7 @@ const Swap = ({ close }: Props) => {
                 setStep("confirmation");
               }}
               exchangeRate={rate}
+              inverseRate={inverseRate}
               recipientAmount={recipientAmount}
               timeLeft={timeLeft}
               loading={isRateLoading}

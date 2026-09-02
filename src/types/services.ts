@@ -1170,6 +1170,15 @@ export interface ICreateForeignAccountResponse {
   routing: IForeignAccountRouting[];
 }
 
+export interface IUsdBaseExchangeRateResponse {
+  currency: string;
+  buy_rate: number;
+  sell_rate: number;
+  inverse_buy_rate?: number;
+  inverse_sell_rate?: number;
+  country_name?: string | null;
+}
+
 export interface ICrossCurrencySwapRateResponse {
   from_currency: ICrossCurrencies;
   to_currency: ICrossCurrencies;
@@ -1177,6 +1186,7 @@ export interface ICrossCurrencySwapRateResponse {
   usd_amount: number;
   destination_amount: number;
   derived_rate: number;
+  inverse_derived_rate?: number;
 }
 
 export interface ICrossCurrencySwapPayload {
