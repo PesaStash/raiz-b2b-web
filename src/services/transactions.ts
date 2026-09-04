@@ -357,8 +357,15 @@ export const GetUSBeneficiaryFormFields = async () => {
 
 export const CreateUsBeneficiary = async (payload: IUsBeneficiaryPayload) => {
   const response = await AuthAxios.post(
-    `/business/transactions/withdrawal/usd/beneficiaries/?label=${payload.label}&option_type=${payload.optionType}`,
+    `/business/transactions/withdrawal/usd/beneficiaries/`,
     payload.data,
+    {
+      params: {
+        option_type: payload.optionType,
+        ...(payload.label ? { label: payload.label } : {}),
+      },
+      silent: true,
+    } as CustomAxiosRequestConfig,
   );
   return response?.data;
 };

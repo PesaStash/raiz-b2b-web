@@ -344,6 +344,9 @@ export type NormalizedIntBeneficiaryFormFields = Record<
   NormalizedIntBeneficiaryCountryFields
 >;
 
+export type UsdBeneficiaryAccountType = "checking" | "savings";
+export type UsdBeneficiaryPaymentRail = "ach" | "wire" | "ach_same_day";
+
 export interface IUsBeneficiaryPayload {
   optionType: IUsBeneficiaryOptionType;
   label: string;
@@ -351,14 +354,14 @@ export interface IUsBeneficiaryPayload {
     bank_name: string;
     account_number: string;
     routing_number: string;
-    account_type: "checking" | "savings";
+    account_type: UsdBeneficiaryAccountType;
     account_owner_name: string;
     street_line_1: string;
     street_line_2: string | null;
     city: string;
     state: string;
     postal_code: string;
-    payment_rail: "ach" | "wire" | "ach-same-day";
+    payment_rail: UsdBeneficiaryPaymentRail;
   };
 }
 
@@ -386,7 +389,7 @@ export interface UsdBeneficiary {
   created_at: string;
   updated_at: string;
   account_number: string;
-  payment_rail: "ach" | "wire" | "ach-same-day";
+  payment_rail: UsdBeneficiaryPaymentRail;
 }
 
 export interface EntityBeneficiary {

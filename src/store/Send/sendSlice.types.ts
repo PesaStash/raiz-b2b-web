@@ -38,7 +38,7 @@ export interface SendState {
   cryptoNetwork: string;
   cryptoType: sbcType | null;
   guestLocalCurrency: IIntCountry | null;
-  // paymentRail: "ach" | "wire" | "ach-same-day" | null;
+  // paymentRail: "ach" | "wire" | "ach_same_day" | null;
 }
 
 export interface AmountAndRemarksPayload {
@@ -65,7 +65,7 @@ export interface SendActions {
   setCryptoNetwork: (network: string) => void;
   setCryptoType: (type: sbcType) => void;
   setGuestLocalCurrency: (currency: IIntCountry) => void;
-  // setPaymentRail: (rail: "ach" | "wire" | "ach-same-day") => void;
+  // setPaymentRail: (rail: "ach" | "wire" | "ach_same_day") => void;
   reset: (currency: CurrencyTypeKey) => void;
 }
 
