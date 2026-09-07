@@ -2,6 +2,8 @@ import { USAstateCodes } from "@/constants/misc";
 import {
   IThirdPartyUsdBeneficiary,
   IUsBeneficiaryPayload,
+  UsdBeneficiaryAccountType,
+  UsdBeneficiaryPaymentRail,
 } from "@/types/services";
 
 export interface UsBankBeneficiaryFormValues {
@@ -9,14 +11,14 @@ export interface UsBankBeneficiaryFormValues {
   bank_name: string;
   account_number: string;
   routing_number: string;
-  account_type: string;
+  account_type: UsdBeneficiaryAccountType | string;
   account_owner_name: string;
   street_line_1: string;
   street_line_2: string;
   city: string;
   state: string;
   postal_code: string;
-  payment_rail: string;
+  payment_rail: UsdBeneficiaryPaymentRail | string;
 }
 
 function normalizeUsState(state: string): string {
@@ -76,6 +78,16 @@ export function mapThirdPartyUsdBeneficiaryToFormValues(
   };
 }
 
+function normalizePaymentRail(
+  rail: string,
+): UsdBeneficiaryPaymentRail {
+  if (rail === "ach-same-day" || rail === "ach_same_day") {
+    return "ach_same_day";
+  }
+  if (rail === "wire") return "wire";
+  return "ach";
+}
+
 export function buildUsBankBeneficiaryPayload(
   values: UsBankBeneficiaryFormValues,
 ): IUsBeneficiaryPayload {
@@ -84,14 +96,14 @@ export function buildUsBankBeneficiaryPayload(
       bank_name: values.bank_name,
       account_number: values.account_number,
       routing_number: values.routing_number,
-      account_type: values.account_type as "checking" | "savings",
+      account_type: values.account_type as UsdBeneficiaryAccountType,
       account_owner_name: values.account_owner_name,
       street_line_1: values.street_line_1,
       street_line_2: values.street_line_2 || null,
       city: values.city,
       state: values.state,
       postal_code: values.postal_code,
-      payment_rail: values.payment_rail as "ach" | "wire" | "ach-same-day",
+      payment_rail: normalizePaymentRail(values.payment_rail),
     },
     label: values.label,
     optionType: "bank",
