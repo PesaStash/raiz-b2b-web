@@ -45,6 +45,7 @@ import {
   NormalizedIntBeneficiaryFormFields,
   VolumeAndActivityData,
   ICrossCurrencySwapRateResponse,
+  IUsdBaseExchangeRateResponse,
   ICrossCurrencySwapPayload,
 } from "@/types/services";
 import { normalizeRemittanceFormFields } from "@/utils/remittanceFormFields";
@@ -290,22 +291,18 @@ export async function ExternalNGNDebitApi({
   return response.data;
 }
 
-export async function GetExchangeRate(currencyCode: string): Promise<{
-  buy_rate: number;
-  currency: string;
-  sell_rate: number;
-}> {
+export async function GetExchangeRate(
+  currencyCode: string,
+): Promise<IUsdBaseExchangeRateResponse> {
   const response = await AuthAxios.get(
     `/business/transactions/swap/exchange-rates/?currency=${currencyCode}`,
   );
   return response.data;
 }
 
-export async function GetSwapRate(currencyCode: string): Promise<{
-  buy_rate: number;
-  currency: string;
-  sell_rate: number;
-}> {
+export async function GetSwapRate(
+  currencyCode: string,
+): Promise<IUsdBaseExchangeRateResponse> {
   const response = await AuthAxios.get(
     `/business/transactions/swap/exchange-rates/?currency=${currencyCode}`,
   );
@@ -360,8 +357,15 @@ export const GetUSBeneficiaryFormFields = async () => {
 
 export const CreateUsBeneficiary = async (payload: IUsBeneficiaryPayload) => {
   const response = await AuthAxios.post(
-    `/business/transactions/withdrawal/usd/beneficiaries/?label=${payload.label}&option_type=${payload.optionType}`,
+    `/business/transactions/withdrawal/usd/beneficiaries/`,
     payload.data,
+    {
+      params: {
+        option_type: payload.optionType,
+        ...(payload.label ? { label: payload.label } : {}),
+      },
+      silent: true,
+    } as CustomAxiosRequestConfig,
   );
   return response?.data;
 };
