@@ -20,9 +20,15 @@ interface Props {
   close: () => void;
   transaction: ITransaction;
   goNext: () => void;
+  onViewProof?: () => void;
 }
 
-const TxnReceiptDetail = ({ close, transaction, goNext }: Props) => {
+const TxnReceiptDetail = ({
+  close,
+  transaction,
+  goNext,
+  onViewProof,
+}: Props) => {
   const status = transaction?.transaction_status?.transaction_status;
 
   // Function to handle mailto link click with fallback
@@ -220,7 +226,7 @@ const TxnReceiptDetail = ({ close, transaction, goNext }: Props) => {
               </div>
             </button>
           </div>
-          <div className="flex flex-col w-full py-5">
+          <div className="flex flex-col gap-3 w-full py-5">
             <Button
               onClick={goNext}
               className="gap-1.5 items-center"
@@ -229,6 +235,15 @@ const TxnReceiptDetail = ({ close, transaction, goNext }: Props) => {
               <Image src={"/icons/upload.svg"} alt="" width={24} height={24} />
               Download Receipt
             </Button>
+            {onViewProof && (
+              <Button
+                onClick={onViewProof}
+                className="gap-1.5 items-center"
+                variant="tertiary"
+              >
+                View telex
+              </Button>
+            )}
           </div>
         </div>
       </div>

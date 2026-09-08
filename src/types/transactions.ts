@@ -47,6 +47,23 @@ export interface ITransactionCategory {
   updated_at: Date;
 }
 
+export type AlipayWechatChannel = "alipay" | "wechat";
+export type AlipayWechatStatus = "pending" | "completed" | "failed";
+
+export interface ITransactionReportAlipayWechatDetails {
+  alipay_wechat_transaction_request_id: string;
+  beneficiary_id: string;
+  recipient_name: string;
+  channel: AlipayWechatChannel;
+  rmb_amount: string;
+  ngn_amount: string;
+  rate: string;
+  status: AlipayWechatStatus;
+  payment_proof_url: string | null;
+  initiated_at: string;
+  liquidated_at: string | null;
+}
+
 export interface ITransaction {
   wallet_id: string;
   transaction_type_id: number;
@@ -80,6 +97,7 @@ export interface ITransaction {
   transaction_class: ITransactionClass;
   payment_method: IPaymentMethod;
   transaction_category: ITransactionCategory;
+  alipay_wechat?: ITransactionReportAlipayWechatDetails | null;
 }
 
 export interface IBillRequest {
