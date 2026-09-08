@@ -1,10 +1,5 @@
 "use client";
-import {
-  AlipayWechatChannel,
-  AlipayWechatStatus,
-  ITransaction,
-  ITransactionReportAlipayWechatDetails,
-} from "@/types/transactions";
+import { ITransaction } from "@/types/transactions";
 import Image from "next/image";
 import React from "react";
 import SideModalWrapper from "../SideModalWrapper";
@@ -25,91 +20,16 @@ interface Props {
   close: () => void;
   transaction: ITransaction;
   goNext: () => void;
+  onViewProof?: () => void;
 }
 
-const channelLabel: Record<AlipayWechatChannel, string> = {
-  alipay: "Alipay",
-  wechat: "WeChat Pay",
-};
-
-const payoutStatusLabel: Record<AlipayWechatStatus, string> = {
-  pending: "Processing",
-  completed: "Completed",
-  failed: "Failed",
-};
-
-const formatCapturedAmount = (value: string, locale: string) => {
-  const amount = Number(value);
-  if (!Number.isFinite(amount)) return value;
-  return amount.toLocaleString(locale, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-};
-
-const formatReceiptDate = (value: string) =>
-  dayjs(convertTime(value)).format("MMM DD, YYYY");
-
-const ChinaPayDetails = ({
-  details,
-}: {
-  details: ITransactionReportAlipayWechatDetails;
-}) => (
-  <div className="mt-4 w-full rounded-[20px] bg-raiz-gray-50 px-3 py-4 md:px-6">
-    <p className="mb-3 text-sm font-semibold text-zinc-900">ChinaPay payout</p>
-    <div className="flex flex-col gap-3">
-      <ListDetailItem title="Recipient" value={details.recipient_name} />
-      <div className="flex items-center justify-between gap-4 pb-3">
-        <span className="text-xs font-normal leading-tight">Channel</span>
-        <span className="flex items-center gap-1.5 text-sm font-semibold leading-tight">
-          <Image
-            src={`/icons/${details.channel}.svg`}
-            width={16}
-            height={16}
-            alt={channelLabel[details.channel]}
-          />
-          {channelLabel[details.channel]}
-        </span>
-      </div>
-      <ListDetailItem
-        title="RMB amount"
-        value={`¥${formatCapturedAmount(details.rmb_amount, "en-US")}`}
-      />
-      <ListDetailItem
-        title="NGN amount"
-        value={`₦${formatCapturedAmount(details.ngn_amount, "en-NG")}`}
-      />
-      <ListDetailItem
-        title="Rate"
-        value={`¥1 = ₦${formatCapturedAmount(details.rate, "en-NG")}`}
-      />
-      <ListDetailItem
-        title="Payout status"
-        value={payoutStatusLabel[details.status]}
-      />
-      <ListDetailItem
-        title="Initiated"
-        value={formatReceiptDate(details.initiated_at)}
-      />
-      {details.liquidated_at && (
-        <ListDetailItem
-          title="Liquidated"
-          value={formatReceiptDate(details.liquidated_at)}
-        />
-      )}
-    </div>
-  </div>
-);
-
-const TxnReceiptDetail = ({ close, transaction, goNext }: Props) => {
+const TxnReceiptDetail = ({
+  close,
+  transaction,
+  goNext,
+  onViewProof,
+}: Props) => {
   const status = transaction?.transaction_status?.transaction_status;
-  const chinaPay = transaction.alipay_wechat;
-  const paymentProofUrl = chinaPay?.payment_proof_url;
-
-  const openPaymentProof = () => {
-    if (!paymentProofUrl) return;
-    window.open(paymentProofUrl, "_blank", "noopener,noreferrer");
-  };
 
   // Function to handle mailto link click with fallback
   const handleSupportClick = () => {
@@ -154,8 +74,8 @@ const TxnReceiptDetail = ({ close, transaction, goNext }: Props) => {
         <h2 className="md:text-xl text-base font-bold text-raiz-gray-950 mb-4">
           {transaction?.third_party_name}
         </h2>
-        <div className="flex min-h-0 flex-1 flex-col justify-between mt-2">
-          <div className="w-full min-h-0 overflow-y-auto">
+        <div className="flex flex-col justify-between h-[90%] mt-2">
+          <div className="w-full">
             <div className="w-full md:mt-[26px] mt-3 rounded-[20px] bg-raiz-gray-50  shadow-[0px_7.342465877532959px_22.02739715576172px_0px_rgba(170,170,170,0.12)] inline-flex flex-col justify-center items-center gap-5">
               {/* Status */}
               <div className="relative md:px-6 px-3 md:py-5 py-3 flex w-full flex-col justify-center items-center gap-2.5 pb-5 border-b border-dashed">
@@ -254,7 +174,6 @@ const TxnReceiptDetail = ({ close, transaction, goNext }: Props) => {
                 </div>
               </div>
             </div>
-            {chinaPay && <ChinaPayDetails details={chinaPay} />}
             <button
               onClick={handleSupportClick}
               className="mt-5 px-4 py-5 rounded-xl bg-gray-100 flex gap-2 w-full"
@@ -316,13 +235,13 @@ const TxnReceiptDetail = ({ close, transaction, goNext }: Props) => {
               <Image src={"/icons/upload.svg"} alt="" width={24} height={24} />
               Download Receipt
             </Button>
-            {paymentProofUrl && (
+            {onViewProof && (
               <Button
-                onClick={openPaymentProof}
+                onClick={onViewProof}
                 className="gap-1.5 items-center"
                 variant="tertiary"
               >
-                Download Payment Proof
+                View telex
               </Button>
             )}
           </div>

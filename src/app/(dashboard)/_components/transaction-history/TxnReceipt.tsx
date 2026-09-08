@@ -2,6 +2,7 @@ import { ITransaction } from "@/types/transactions";
 
 import React, { useState } from "react";
 import TxnReceiptDetail from "./TxnReceiptDetail";
+import PaymentProofPreview from "./PaymentProofPreview";
 import RaizReceipt from "@/components/transactions/RaizReceipt";
 import SideModalWrapper from "../SideModalWrapper";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
@@ -23,6 +24,11 @@ const TxnReceipt = ({ close, transaction }: Props) => {
             close={close}
             transaction={transaction}
             goNext={() => setStep(2)}
+            onViewProof={
+              transaction.alipay_wechat?.payment_proof_url
+                ? () => setStep(3)
+                : undefined
+            }
           />
         );
       case 2:
@@ -35,6 +41,15 @@ const TxnReceipt = ({ close, transaction }: Props) => {
               </h2>
               <RaizReceipt close={close} data={transaction} />
             </>
+          )
+        );
+      case 3:
+        return (
+          transaction?.alipay_wechat?.payment_proof_url && (
+            <PaymentProofPreview
+              proofUrl={transaction.alipay_wechat.payment_proof_url}
+              onBack={() => setStep(1)}
+            />
           )
         );
 
