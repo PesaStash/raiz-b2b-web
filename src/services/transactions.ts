@@ -42,6 +42,7 @@ import {
   IUsBeneficiariesParams,
   IUsBeneficiariesResponse,
   IUsBeneficiaryPayload,
+  UsdBeneficiaryFormFieldsResponse,
   NormalizedIntBeneficiaryFormFields,
   VolumeAndActivityData,
   ICrossCurrencySwapRateResponse,
@@ -189,8 +190,15 @@ export const GetTransactionFeeApi = async (
   transfer_type: "NGN" | "USD" | "WIRE",
   usd_beneficiary_id?: string,
 ): Promise<number> => {
+  const params = new URLSearchParams({
+    amount: String(amount),
+    transfer_type,
+  });
+  if (usd_beneficiary_id) {
+    params.set("usd_beneficiary_id", usd_beneficiary_id);
+  }
   const response = await AuthAxios.get(
-    `/business/transactions/charges/get/usd/?amount=${amount}&transfer_type=${transfer_type}&usd_beneficiary_id=${usd_beneficiary_id}`,
+    `/business/transactions/charges/get/usd/?${params.toString()}`,
   );
   return response?.data;
 };
@@ -348,12 +356,13 @@ export const GethInternationalBeneficiaryFormFields = async () => {
   return response?.data;
 };
 
-export const GetUSBeneficiaryFormFields = async () => {
-  const response = await AuthAxios.get(
-    `/business/transactions/withdrawal/usd/beneficiaries/form-fields/`,
-  );
-  return response?.data;
-};
+export const GetUSBeneficiaryFormFields =
+  async (): Promise<UsdBeneficiaryFormFieldsResponse> => {
+    const response = await AuthAxios.get(
+      `/business/transactions/withdrawal/usd/beneficiaries/form-fields/`,
+    );
+    return response?.data;
+  };
 
 export const CreateUsBeneficiary = async (payload: IUsBeneficiaryPayload) => {
   const response = await AuthAxios.post(

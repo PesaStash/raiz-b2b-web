@@ -6,13 +6,16 @@ import { useCurrencyStore } from "@/store/useCurrencyStore";
 import Button from "../ui/Button";
 import ListDetailItem from "../ui/ListDetailItem";
 import CenterModalHeader from "../layouts/CenterModalHeader";
-import { convertField, formatAmount } from "@/utils/helpers";
+import { convertField, formatAmount, maskAccountNumber } from "@/utils/helpers";
+import { formatUsdPaymentRailLabel } from "@/utils/thirdPartyUsdBeneficiary";
 
 interface Props {
   goBack: () => void;
   goNext: () => void;
   fee: number;
 }
+
+
 
 const SendSummary = ({ goBack, goNext, fee }: Props) => {
   const {
@@ -103,16 +106,22 @@ const SendSummary = ({ goBack, goNext, fee }: Props) => {
               ${fee.toLocaleString()}`}
             />
             <ListDetailItem title="Beneficiary" value={recipientName} />
-            {!selectedUser && (
+            {!selectedUser && recipientAccountNumber ? (
               <ListDetailItem
                 title="Account Number"
-                value={recipientAccountNumber}
+                value={maskAccountNumber(recipientAccountNumber)}
               />
-            )}
+            ) : null}
+            {usdBeneficiary?.usd_beneficiary?.bank_name ? (
+              <ListDetailItem
+                title="Bank"
+                value={usdBeneficiary.usd_beneficiary.bank_name}
+              />
+            ) : null}
             {usdBeneficiary && (
               <ListDetailItem
                 title="Payment Rail"
-                value={convertField(
+                value={formatUsdPaymentRailLabel(
                   usdBeneficiary?.usd_beneficiary?.payment_rail,
                 )}
               />
@@ -125,7 +134,10 @@ const SendSummary = ({ goBack, goNext, fee }: Props) => {
                 )}
               />
             )}
-            <ListDetailItem title="Purpose" value={purpose} />
+            <ListDetailItem
+              title={usdBeneficiary ? "Reason" : "Purpose"}
+              value={purpose}
+            />
             <ListDetailItem
               title="Category"
               value={category?.transaction_category || ""}

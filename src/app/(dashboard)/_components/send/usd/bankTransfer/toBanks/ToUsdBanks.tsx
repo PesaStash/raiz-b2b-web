@@ -11,6 +11,7 @@ import PaymentStatusModal from "@/components/modals/PaymentStatusModal";
 import RaizReceipt from "@/components/transactions/RaizReceipt";
 import { useQuery } from "@tanstack/react-query";
 import { GetTransactionFeeApi } from "@/services/transactions";
+import { getUsdBeneficiaryId } from "@/utils/thirdPartyUsdBeneficiary";
 import { bankTypeProp } from "../BankTransfer";
 
 export type ToUsdBanksStepsType =
@@ -44,15 +45,16 @@ const ToUsdBanks = ({ close, bankType }: Props) => {
     }
   }, [bankType]);
 
+  const usdBeneficiaryId = getUsdBeneficiaryId(usdBeneficiary);
   const { data: fee, isLoading: feeLoading } = useQuery({
-    queryKey: ["transactions-fee", amount, currency],
+    queryKey: ["transactions-fee", amount, currency, usdBeneficiaryId],
     queryFn: () =>
       GetTransactionFeeApi(
         Number(amount),
         currency as "USD" | "NGN" | "WIRE",
-        usdBeneficiary?.usd_beneficiary_id || "",
+        usdBeneficiaryId,
       ),
-    enabled: !!amount,
+    enabled: !!amount && !!usdBeneficiaryId,
   });
 
   useEffect(() => {

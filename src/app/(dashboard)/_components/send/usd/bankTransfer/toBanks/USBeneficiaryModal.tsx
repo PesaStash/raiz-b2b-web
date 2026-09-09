@@ -5,6 +5,7 @@ import Image from "next/image";
 import { EntityBeneficiary } from "@/types/services";
 import Avatar from "@/components/ui/Avatar";
 import { useSendStore } from "@/store/Send";
+import { formatUsdPaymentRailLabel } from "@/utils/thirdPartyUsdBeneficiary";
 
 interface Props {
   close: () => void;
@@ -64,8 +65,15 @@ const USBeneficiaryModal = ({ close, users }: Props) => {
                     {user?.usd_beneficiary?.account_name}
                   </span>
                   <span className="text-raiz-gray-400 text-sm font-semibold text-left">
-                    {user?.usd_beneficiary?.label}
+                    {user?.usd_beneficiary?.label || user?.label}
                   </span>
+                  {user?.usd_beneficiary?.payment_rail ? (
+                    <span className="text-raiz-gray-400 text-xs text-left">
+                      {formatUsdPaymentRailLabel(
+                        user.usd_beneficiary.payment_rail,
+                      )}
+                    </span>
+                  ) : null}
                 </div>
               </div>
             </button>

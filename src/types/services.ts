@@ -345,7 +345,11 @@ export type NormalizedIntBeneficiaryFormFields = Record<
 >;
 
 export type UsdBeneficiaryAccountType = "checking" | "savings";
-export type UsdBeneficiaryPaymentRail = "ach" | "wire" | "ach_same_day";
+export type UsdBeneficiaryPaymentRail = "ach" | "wire" | "ach_same_day" | "rtp";
+
+export type UsdBeneficiaryFormFieldsResponse = Partial<
+  Record<IUsBeneficiaryOptionType, FormField[]>
+>;
 
 export interface IUsBeneficiaryPayload {
   optionType: IUsBeneficiaryOptionType;
@@ -389,6 +393,8 @@ export interface UsdBeneficiary {
   created_at: string;
   updated_at: string;
   account_number: string;
+  routing_number?: string | null;
+  bank_name?: string | null;
   payment_rail: UsdBeneficiaryPaymentRail;
 }
 

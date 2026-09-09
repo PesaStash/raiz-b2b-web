@@ -834,3 +834,10 @@ export const getAvailableSwapDestinations = (
       return [];
   }
 };
+
+
+export const maskAccountNumber = (accountNumber: string) => {
+  const compact = accountNumber.replace(/\s/g, "");
+  if (!compact || compact.length <= 4) return accountNumber;
+  return `••••${compact.slice(-4)}`;
+};
