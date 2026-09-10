@@ -97,6 +97,19 @@ export const usdSendOptions: Options[] = [
     ),
     key: "internationalRemittance",
   },
+  {
+    title: "SWIFT",
+    subtitle: "Send USD to any SWIFT globally",
+    icon: (
+      <Image
+        width={30}
+        height={30}
+        src={"/icons/swift.svg"}
+        alt="SWIFT payout"
+      />
+    ),
+    key: "swift",
+  },
   // {
   //   title: "Send to Debit Card",
   //   subtitle: "Transfer funds to your debit cards.",

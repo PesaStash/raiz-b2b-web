@@ -8,6 +8,7 @@ import {
   CreateUsBeneficiary,
   FetchThirdPartyUsdBeneficiariesApi,
   FetchUsBeneficiariesApi,
+  GetUSBeneficiaryFormFields,
 } from "@/services/transactions";
 import {
   IThirdPartyUsdBeneficiary,
@@ -17,11 +18,14 @@ import {
   UsdBeneficiaryAccountType,
   UsdBeneficiaryPaymentRail,
 } from "@/types/services";
-import { convertField, truncateString } from "@/utils/helpers";
+import { truncateString } from "@/utils/helpers";
 import {
   buildUsBankBeneficiaryPayload,
   formatPartnerBannerText,
+  formatUsdPaymentRailLabel,
+  getUsdBankPaymentRails,
   mapThirdPartyUsdBeneficiaryToPayload,
+  USD_RTP_HELPER_COPY,
 } from "@/utils/thirdPartyUsdBeneficiary";
 import { mapUsdBeneficiaryError } from "@/utils/usdBeneficiaryErrors";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -75,13 +79,8 @@ interface FormContentProps {
   setIsSubmitting: (submitting: boolean) => void;
   routingRailHint?: string | null;
   onClearRoutingRailError?: () => void;
+  paymentRailOptions: UsdBeneficiaryPaymentRail[];
 }
-
-const PAYMENT_RAIL_OPTIONS: UsdBeneficiaryPaymentRail[] = [
-  "ach_same_day",
-  "ach",
-  "wire",
-];
 
 const FormContent = ({
   submitRef,
@@ -91,6 +90,7 @@ const FormContent = ({
   setIsSubmitting,
   routingRailHint,
   onClearRoutingRailError,
+  paymentRailOptions,
 }: FormContentProps) => {
   const {
     errors,
@@ -289,7 +289,7 @@ const FormContent = ({
             Payment Rail
           </label>
           <div className="flex flex-col gap-3">
-            {PAYMENT_RAIL_OPTIONS.map((option) => (
+            {paymentRailOptions.map((option) => (
               <div
                 onClick={() => {
                   clearRoutingRailMismatch();
@@ -305,12 +305,15 @@ const FormContent = ({
                     setFieldValue("payment_rail", option);
                   }}
                 />
-                <span className="text-sm text-gray-700 capitalize">
-                  {convertField(option).toUpperCase()}
+                <span className="text-sm text-gray-700">
+                  {formatUsdPaymentRailLabel(option)}
                 </span>
               </div>
             ))}
           </div>
+          {values.payment_rail === "rtp" ? (
+            <p className="text-raiz-gray-400 text-xs">{USD_RTP_HELPER_COPY}</p>
+          ) : null}
           {errors.payment_rail && touched.payment_rail && (
             <div className="text-red-500 text-sm mt-1">
               {errors.payment_rail}
@@ -414,10 +417,13 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
     useState<IThirdPartyUsdBeneficiary | null>(null);
   const [isAddingPartner, setIsAddingPartner] = useState(false);
   const [routingRailHint, setRoutingRailHint] = useState<string | null>(null);
-  // const { data: fieldsData, isLoading: fieldLoading } = useQuery({
-  //   queryKey: ["us-bank-benefiary-fields"],
-  //   queryFn: GetUSBeneficiaryFormFields,
-  // });
+  const [partnerPaymentRail, setPartnerPaymentRail] =
+    useState<UsdBeneficiaryPaymentRail>("ach");
+  const { data: fieldsData } = useQuery({
+    queryKey: ["usd-beneficiary-form-fields"],
+    queryFn: GetUSBeneficiaryFormFields,
+  });
+  const paymentRailOptions = getUsdBankPaymentRails(fieldsData?.bank);
   const submitRef = useRef<HTMLButtonElement>(null);
   const formikRef = useRef<FormikProps<FormValues>>(null);
   const [isFormValid, setIsFormValid] = useState(false);
@@ -469,9 +475,13 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
     city: stringField("City"),
     state: stringField("State"),
     postal_code: stringField("Postal code"),
-    payment_rail: z.enum(["ach", "wire", "ach_same_day"], {
-      required_error: "Payment rail is required",
-    }),
+    payment_rail: z
+      .string()
+      .refine(
+        (value): value is UsdBeneficiaryPaymentRail =>
+          paymentRailOptions.includes(value as UsdBeneficiaryPaymentRail),
+        { message: "Payment rail is required" },
+      ),
   });
 
   const applyFieldErrors = (fieldErrors: Record<string, string>) => {
@@ -551,6 +561,9 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
 
   const handlePartnerSelect = (partner: IThirdPartyUsdBeneficiary) => {
     setSelectedPartner(partner);
+    setPartnerPaymentRail(
+      paymentRailOptions.includes("ach") ? "ach" : paymentRailOptions[0],
+    );
     setShowPartnerModal(false);
     setShowReviewModal(true);
   };
@@ -560,7 +573,10 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
 
     try {
       setIsAddingPartner(true);
-      const payload = mapThirdPartyUsdBeneficiaryToPayload(selectedPartner);
+      const payload = mapThirdPartyUsdBeneficiaryToPayload(
+        selectedPartner,
+        partnerPaymentRail,
+      );
       await AddBeneficiaryMutation.mutateAsync(payload);
       setShowReviewModal(false);
       setSelectedPartner(null);
@@ -672,6 +688,13 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
                         20,
                       )}
                     </p>
+                    {user?.usd_beneficiary?.payment_rail ? (
+                      <p className="text-center text-raiz-gray-400 text-[11px] leading-none">
+                        {formatUsdPaymentRailLabel(
+                          user.usd_beneficiary.payment_rail,
+                        )}
+                      </p>
+                    ) : null}
                   </button>
                 ))}
               </div>
@@ -711,6 +734,7 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
               setIsSubmitting={setIsSubmitting}
               routingRailHint={routingRailHint}
               onClearRoutingRailError={() => setRoutingRailHint(null)}
+              paymentRailOptions={paymentRailOptions}
             />
           </Formik>
         </div>
@@ -741,6 +765,9 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
           partner={selectedPartner}
           onConfirm={handlePartnerReviewConfirm}
           loading={isAddingPartner}
+          paymentRails={paymentRailOptions}
+          paymentRail={partnerPaymentRail}
+          onPaymentRailChange={setPartnerPaymentRail}
         />
       ) : null}
     </div>

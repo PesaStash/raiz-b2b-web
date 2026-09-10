@@ -15,6 +15,9 @@ interface Props {
 
 const TxnReceipt = ({ close, transaction }: Props) => {
   const [step, setStep] = useState(1);
+  const paymentProofUrl =
+    transaction.swift?.payment_proof_url ||
+    transaction.alipay_wechat?.payment_proof_url;
 
   const displayScreen = () => {
     switch (step) {
@@ -24,10 +27,11 @@ const TxnReceipt = ({ close, transaction }: Props) => {
             close={close}
             transaction={transaction}
             goNext={() => setStep(2)}
-            onViewProof={
-              transaction.alipay_wechat?.payment_proof_url
-                ? () => setStep(3)
-                : undefined
+            onViewProof={paymentProofUrl ? () => setStep(3) : undefined}
+            proofLabel={
+              transaction.swift?.payment_proof_url
+                ? "View payment evidence"
+                : "View telex"
             }
           />
         );
@@ -45,9 +49,9 @@ const TxnReceipt = ({ close, transaction }: Props) => {
         );
       case 3:
         return (
-          transaction?.alipay_wechat?.payment_proof_url && (
+          paymentProofUrl && (
             <PaymentProofPreview
-              proofUrl={transaction.alipay_wechat.payment_proof_url}
+              proofUrl={paymentProofUrl}
               onBack={() => setStep(1)}
             />
           )

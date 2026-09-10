@@ -2,6 +2,7 @@ import EnterPin from "@/components/transactions/EnterPin";
 import { SendMoneyUSBankApi } from "@/services/transactions";
 import { useSendStore } from "@/store/Send";
 import { ISendMoneyUsBankPayload } from "@/types/services";
+import { getUsdBeneficiaryId } from "@/utils/thirdPartyUsdBeneficiary";
 import {
   trackSendCompleted,
   trackTransactionFailed,
@@ -32,6 +33,7 @@ const UsdBankPay = ({ close, goNext, setPaymentError }: Props) => {
       qc.invalidateQueries({ queryKey: ["income-expense-chart"] });
       qc.invalidateQueries({ queryKey: ["transaction-report-categories"] });
       qc.invalidateQueries({ queryKey: ["today-outflow"] });
+      actions.setTransactionDetail(response);
       if (response?.transaction_status?.transaction_status === "completed") {
         actions.setStatus("success");
         trackSendCompleted({
@@ -40,12 +42,9 @@ const UsdBankPay = ({ close, goNext, setPaymentError }: Props) => {
           currency: "USD",
           recipientType: "external",
         });
-      } else if (
-        response?.transaction_status?.transaction_status === "pending"
-      ) {
+      } else {
         actions.setStatus("pending");
       }
-      actions.setTransactionDetail(response);
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (response: any) => {
@@ -68,7 +67,7 @@ const UsdBankPay = ({ close, goNext, setPaymentError }: Props) => {
       transaction_pin: pin,
       transaction_category_id: category?.transaction_category_id || 0,
       amount: Number(amount),
-      usd_beneficiary_id: usdBeneficiary?.usd_beneficiary_id || null,
+      usd_beneficiary_id: getUsdBeneficiaryId(usdBeneficiary) || null,
     };
     SendMoneyMutation.mutate(payload);
   };

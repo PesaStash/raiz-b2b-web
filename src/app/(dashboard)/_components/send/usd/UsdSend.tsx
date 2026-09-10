@@ -5,6 +5,7 @@ import { useSendStore } from "@/store/Send";
 
 import ToUsdBanks from "./bankTransfer/toBanks/ToUsdBanks";
 import ToGlobal from "./bankTransfer/toGlobal/ToGlobal";
+import SwiftSend from "./swift/SwiftSend";
 // import ToZelle from "./zelle/ToZelle";
 
 interface Props {
@@ -36,6 +37,8 @@ const UsdSend = ({ close }: Props) => {
             bankType="global"
           />
         );
+      case "swift":
+        return <SwiftSend close={() => actions.selectUSDSendOption(null)} />;
       // case "to debit card":
       //   return <ToDebitCard close={() => actions.selectUSDSendOption(null)} />;
       // case "to paypal":

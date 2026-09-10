@@ -1,10 +1,35 @@
 import { USAstateCodes } from "@/constants/misc";
 import {
+  FormField,
   IThirdPartyUsdBeneficiary,
   IUsBeneficiaryPayload,
   UsdBeneficiaryAccountType,
   UsdBeneficiaryPaymentRail,
 } from "@/types/services";
+
+export const USD_PAYMENT_RAIL_LABELS: Record<UsdBeneficiaryPaymentRail, string> =
+  {
+    ach: "ACH",
+    ach_same_day: "Same-day ACH",
+    wire: "Wire",
+    rtp: "RTP",
+  };
+
+export const USD_RTP_HELPER_COPY =
+  "Fast USD bank transfer where supported by the receiving bank.";
+
+export const FALLBACK_USD_BANK_PAYMENT_RAILS: UsdBeneficiaryPaymentRail[] = [
+  "ach",
+  "ach_same_day",
+  "wire",
+];
+
+const USD_PAYMENT_RAILS = new Set<UsdBeneficiaryPaymentRail>([
+  "ach",
+  "wire",
+  "ach_same_day",
+  "rtp",
+]);
 
 export interface UsBankBeneficiaryFormValues {
   label: string;
@@ -78,14 +103,53 @@ export function mapThirdPartyUsdBeneficiaryToFormValues(
   };
 }
 
-function normalizePaymentRail(
+export function isUsdBeneficiaryPaymentRail(
+  rail: string,
+): rail is UsdBeneficiaryPaymentRail {
+  return USD_PAYMENT_RAILS.has(rail as UsdBeneficiaryPaymentRail);
+}
+
+export function normalizePaymentRail(
   rail: string,
 ): UsdBeneficiaryPaymentRail {
-  if (rail === "ach-same-day" || rail === "ach_same_day") {
-    return "ach_same_day";
-  }
-  if (rail === "wire") return "wire";
+  const normalized = rail.trim().toLowerCase().replace(/[\s-]+/g, "_");
+  if (normalized === "ach_same_day") return "ach_same_day";
+  if (normalized === "wire") return "wire";
+  if (normalized === "rtp") return "rtp";
   return "ach";
+}
+
+export function formatUsdPaymentRailLabel(rail?: string | null): string {
+  if (!rail) return "";
+  const normalized = rail.trim().toLowerCase().replace(/[\s-]+/g, "_");
+  if (isUsdBeneficiaryPaymentRail(normalized)) {
+    return USD_PAYMENT_RAIL_LABELS[normalized];
+  }
+  return rail;
+}
+
+export function getUsdBankPaymentRails(
+  fields?: FormField[] | null,
+): UsdBeneficiaryPaymentRail[] {
+  const railField = fields?.find((field) => field.name === "payment_rail");
+  const advertised = (railField?.enum ?? [])
+    .map((value) => value.trim().toLowerCase().replace(/[\s-]+/g, "_"))
+    .filter(isUsdBeneficiaryPaymentRail);
+
+  return advertised.length > 0 ? advertised : FALLBACK_USD_BANK_PAYMENT_RAILS;
+}
+
+export function getUsdBeneficiaryId(
+  beneficiary?: {
+    usd_beneficiary_id?: string | null;
+    usd_beneficiary?: { usd_beneficiary_id?: string | null } | null;
+  } | null,
+): string {
+  return (
+    beneficiary?.usd_beneficiary?.usd_beneficiary_id ||
+    beneficiary?.usd_beneficiary_id ||
+    ""
+  );
 }
 
 export function buildUsBankBeneficiaryPayload(
@@ -127,13 +191,15 @@ const defaultUsBankBeneficiaryFormValues: UsBankBeneficiaryFormValues = {
 
 export function mapThirdPartyUsdBeneficiaryToPayload(
   template: IThirdPartyUsdBeneficiary,
+  paymentRail: UsdBeneficiaryPaymentRail = "ach",
 ): IUsBeneficiaryPayload {
-  return buildUsBankBeneficiaryPayload(
-    mapThirdPartyUsdBeneficiaryToFormValues(
+  return buildUsBankBeneficiaryPayload({
+    ...mapThirdPartyUsdBeneficiaryToFormValues(
       template,
       defaultUsBankBeneficiaryFormValues,
     ),
-  );
+    payment_rail: paymentRail,
+  });
 }
 
 const THIRD_PARTY_PARTNER_LOGOS: Record<string, string> = {

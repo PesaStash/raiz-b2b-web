@@ -56,6 +56,7 @@ export type IUSDSendOptions =
   | "to Raizer"
   | "usBank"
   | "internationalRemittance"
+  | "swift"
   | "to debit card"
   | "to paypal"
   | "to canada"
