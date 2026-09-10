@@ -34,6 +34,9 @@ import {
   IRequestFundsPayload,
   ISendCryptoPayload,
   ISendMoneyUsBankPayload,
+  ISwiftBeneficiariesResponse,
+  ISwiftBeneficiary,
+  ISwiftCreateBeneficiaryPayload,
   ISwapPayload,
   ITransactionCategory,
   ITransactionParams,
@@ -48,6 +51,7 @@ import {
   ICrossCurrencySwapRateResponse,
   IUsdBaseExchangeRateResponse,
   ICrossCurrencySwapPayload,
+  ISwiftSendResponse,
 } from "@/types/services";
 import { normalizeRemittanceFormFields } from "@/utils/remittanceFormFields";
 import {
@@ -185,10 +189,33 @@ export async function P2PDebitApi({
   return response.data;
 }
 
+function extractQuotedFee(data: unknown): number {
+  if (typeof data === "number" && Number.isFinite(data)) return data;
+  if (typeof data === "string") {
+    const parsed = Number(data);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  if (!data || typeof data !== "object") return 0;
+
+  const record = data as {
+    fee?: number | string;
+    fee_in_original_currency?: number | string;
+    data?: unknown;
+  };
+  const raw = record.fee_in_original_currency ?? record.fee;
+  if (raw !== undefined) {
+    const parsed = typeof raw === "string" ? Number(raw) : raw;
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  if (record.data) return extractQuotedFee(record.data);
+  return 0;
+}
+
 export const GetTransactionFeeApi = async (
   amount: number,
   transfer_type: "NGN" | "USD" | "WIRE",
   usd_beneficiary_id?: string,
+  payment_rail?: string,
 ): Promise<number> => {
   const params = new URLSearchParams({
     amount: String(amount),
@@ -197,10 +224,13 @@ export const GetTransactionFeeApi = async (
   if (usd_beneficiary_id) {
     params.set("usd_beneficiary_id", usd_beneficiary_id);
   }
+  if (payment_rail) {
+    params.set("payment_rail", payment_rail);
+  }
   const response = await AuthAxios.get(
     `/business/transactions/charges/get/usd/?${params.toString()}`,
   );
-  return response?.data;
+  return payment_rail ? extractQuotedFee(response?.data) : response?.data;
 };
 
 export const GetIntTransactionFeeApi = async (
@@ -799,6 +829,41 @@ export const AlipayWechatSendApi = async (payload: IAlipayWechatSendPayload): Pr
   const response = await AuthAxios.post(`/business/transactions/alipay-wechat/send/`, payload);
   return response.data;
 }
+
+export const CreateSwiftBeneficiaryApi = async (
+  payload: ISwiftCreateBeneficiaryPayload,
+): Promise<ISwiftBeneficiary> => {
+  const response = await AuthAxios.post(
+    `/business/transactions/swift/beneficiaries/`,
+    payload,
+  );
+  return response.data;
+};
+
+export const GetSwiftBeneficiariesApi = async (params: {
+  page?: number;
+  limit?: number;
+}): Promise<ISwiftBeneficiariesResponse> => {
+  const queryParams = Object.fromEntries(
+    Object.entries(params).filter(([, value]) => value != null),
+  );
+  const response = await AuthAxios.get(
+    `/business/transactions/swift/beneficiaries/`,
+    { params: queryParams, silent: true } as CustomAxiosRequestConfig,
+  );
+  return response.data;
+};
+
+export const SwiftSendApi = async (
+  formData: FormData,
+): Promise<ISwiftSendResponse> => {
+  const response = await AuthAxios.post(
+    `/business/transactions/swift/send/`,
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  );
+  return response.data;
+};
 
 export const GetCrossCurrencySwapRateApi = async (params: { from_currency: ICrossCurrencies, to_currency: ICrossCurrencies, amount: number }): Promise<ICrossCurrencySwapRateResponse> => {
   const queryParams = Object.fromEntries(Object.entries(params).filter(([, v]) => v != null));
