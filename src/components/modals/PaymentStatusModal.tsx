@@ -12,6 +12,7 @@ import {
   EntityForeignPayoutBeneficiary,
   IExternalAccount,
   IForeignBeneficiary,
+  ISwiftBeneficiary,
 } from "@/types/services";
 
 export type BeneficiaryType =
@@ -19,7 +20,8 @@ export type BeneficiaryType =
   | IExternalAccount
   | EntityBeneficiary
   | EntityForeignPayoutBeneficiary
-  | IForeignBeneficiary;
+  | IForeignBeneficiary
+  | ISwiftBeneficiary;
 interface Props {
   status: PaymentStatusType;
   amount: number;

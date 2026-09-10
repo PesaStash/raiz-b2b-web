@@ -8,6 +8,7 @@ import {
   copyToClipboard,
   formatAmount,
   getCurrencySymbol,
+  maskAccountNumber,
   truncateString,
 } from "@/utils/helpers";
 import ListDetailItem from "@/components/ui/ListDetailItem";
@@ -21,6 +22,7 @@ interface Props {
   transaction: ITransaction;
   goNext: () => void;
   onViewProof?: () => void;
+  proofLabel?: string;
 }
 
 const TxnReceiptDetail = ({
@@ -28,6 +30,7 @@ const TxnReceiptDetail = ({
   transaction,
   goNext,
   onViewProof,
+  proofLabel = "View telex",
 }: Props) => {
   const status = transaction?.transaction_status?.transaction_status;
 
@@ -72,7 +75,7 @@ const TxnReceiptDetail = ({
       <div className={`flex flex-col h-screen`}>
         <CenterModalHeader close={close} />
         <h2 className="md:text-xl text-base font-bold text-raiz-gray-950 mb-4">
-          {transaction?.third_party_name}
+          {transaction.swift?.recipient_name || transaction?.third_party_name}
         </h2>
         <div className="flex flex-col justify-between h-[90%] mt-2">
           <div className="w-full">
@@ -111,8 +114,33 @@ const TxnReceiptDetail = ({
 
                 <ListDetailItem
                   title="Beneficiary"
-                  value={transaction?.third_party_name}
+                  value={
+                    transaction.swift?.recipient_name ||
+                    transaction?.third_party_name
+                  }
                 />
+                {transaction.swift && (
+                  <>
+                    <ListDetailItem
+                      title="Bank"
+                      value={transaction.swift.bank_name}
+                    />
+                    <ListDetailItem
+                      title="Country"
+                      value={transaction.swift.country}
+                    />
+                    <ListDetailItem
+                      title="Account"
+                      value={maskAccountNumber(
+                        transaction.swift.account_number_or_iban,
+                      )}
+                    />
+                    <ListDetailItem
+                      title="SWIFT code"
+                      value={transaction.swift.swift_code}
+                    />
+                  </>
+                )}
 
                 <ListDetailItem
                   title="Date"
@@ -241,7 +269,7 @@ const TxnReceiptDetail = ({
                 className="gap-1.5 items-center"
                 variant="tertiary"
               >
-                View telex
+                {proofLabel}
               </Button>
             )}
           </div>

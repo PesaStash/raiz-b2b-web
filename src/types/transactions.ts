@@ -64,6 +64,21 @@ export interface ITransactionReportAlipayWechatDetails {
   liquidated_at: string | null;
 }
 
+export type SwiftReportStatus = "pending" | "completed" | "failed";
+
+export interface ITransactionReportSwiftDetails {
+  swift_transaction_request_id: string;
+  beneficiary_id: string;
+  recipient_name: string;
+  country: string;
+  account_number_or_iban: string;
+  swift_code: string;
+  bank_name: string;
+  status: SwiftReportStatus;
+  payment_proof_url: string | null;
+  invoice_url: string | null;
+}
+
 export interface ITransaction {
   wallet_id: string;
   transaction_type_id: number;
@@ -98,6 +113,7 @@ export interface ITransaction {
   payment_method: IPaymentMethod;
   transaction_category: ITransactionCategory;
   alipay_wechat?: ITransactionReportAlipayWechatDetails | null;
+  swift?: ITransactionReportSwiftDetails | null;
 }
 
 export interface IBillRequest {

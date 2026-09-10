@@ -132,7 +132,7 @@ function mapFastApiFieldErrors(
 function extractSelectedRailFromMessage(message: string): string | null {
   const match = message
     .toLowerCase()
-    .match(/supports?\s+(wire|ach_same_day|ach same day|ach)\b/);
+    .match(/supports?\s+(rtp|wire|ach_same_day|ach same day|ach)\b/);
   if (!match) return null;
   const rail = match[1].replace(/\s+/g, "_");
   return rail;

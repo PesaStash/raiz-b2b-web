@@ -345,7 +345,11 @@ export type NormalizedIntBeneficiaryFormFields = Record<
 >;
 
 export type UsdBeneficiaryAccountType = "checking" | "savings";
-export type UsdBeneficiaryPaymentRail = "ach" | "wire" | "ach_same_day";
+export type UsdBeneficiaryPaymentRail = "ach" | "wire" | "ach_same_day" | "rtp";
+
+export type UsdBeneficiaryFormFieldsResponse = Partial<
+  Record<IUsBeneficiaryOptionType, FormField[]>
+>;
 
 export interface IUsBeneficiaryPayload {
   optionType: IUsBeneficiaryOptionType;
@@ -389,6 +393,8 @@ export interface UsdBeneficiary {
   created_at: string;
   updated_at: string;
   account_number: string;
+  routing_number?: string | null;
+  bank_name?: string | null;
   payment_rail: UsdBeneficiaryPaymentRail;
 }
 
@@ -1156,6 +1162,120 @@ export interface IAlipayWechatSendPayload {
   channel: "alipay" | "wechat";
   amount: string;
   transaction_pin: string;
+}
+
+export type SwiftBeneficiaryType = "individual" | "business";
+export type SwiftRequestStatus = "pending" | "completed" | "failed";
+
+export interface ISwiftPagination {
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+
+export interface ISwiftBeneficiary {
+  swift_beneficiary_id: string;
+  entity_id: string;
+  country: string;
+  label: string;
+  account_name: string;
+  account_number_or_iban: string;
+  swift_code: string;
+  beneficiary_type: SwiftBeneficiaryType;
+  bank_name: string;
+  beneficiary_address: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  ranking: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ISwiftCreateBeneficiaryPayload {
+  country: string;
+  label: string;
+  account_name: string;
+  account_number_or_iban: string;
+  swift_code: string;
+  beneficiary_type: SwiftBeneficiaryType;
+  bank_name: string;
+  beneficiary_address: string;
+  city: string;
+  state: string;
+  postal_code: string;
+}
+
+export interface ISwiftBeneficiariesResponse {
+  beneficiaries: ISwiftBeneficiary[];
+  pagination: ISwiftPagination;
+}
+
+export interface ISwiftTransactionReportDetails {
+  swift_transaction_request_id: string;
+  beneficiary_id: string;
+  recipient_name: string;
+  country: string;
+  account_number_or_iban: string;
+  swift_code: string;
+  bank_name: string;
+  status: SwiftRequestStatus;
+  payment_proof_url: string | null;
+  invoice_url: string | null;
+}
+
+export interface ISwiftSendResponse {
+  swift_transaction_request_id: string;
+  entity_id: string;
+  wallet_id: string;
+  beneficiary_id: string;
+  amount: string;
+  fee_amount: string;
+  status: SwiftRequestStatus;
+  narration: string;
+  invoice_url: string | null;
+  initiated_at: string;
+  liquidated_at: string | null;
+  transaction_report_id: string | null;
+  original_ledger_transaction_id: string | null;
+  reversal_ledger_transaction_id: string | null;
+  payment_proof_url: string | null;
+  created_at: string;
+  updated_at: string;
+  transaction_report?: {
+    transaction_id: string;
+    transaction_status: string;
+    transaction_amount: string;
+    fee_amount: string;
+    currency: string;
+    swift: ISwiftTransactionReportDetails | null;
+  };
+}
+
+export interface ISwiftRequest {
+  swift_transaction_request_id: string;
+  sender_name?: string;
+  recipient_name: string;
+  country: string;
+  account_number_or_iban: string;
+  swift_code: string;
+  bank_name: string;
+  amount: string;
+  fee_amount: string;
+  status: SwiftRequestStatus;
+  narration: string;
+  invoice_url: string | null;
+  payment_proof_url: string | null;
+  initiated_at: string;
+  liquidated_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ISwiftRequestsResponse {
+  transactions: ISwiftRequest[];
+  pagination: ISwiftPagination;
 }
 
 export interface ICreateForeignAccountResponse {

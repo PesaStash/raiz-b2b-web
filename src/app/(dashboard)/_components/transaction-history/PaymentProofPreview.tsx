@@ -8,6 +8,7 @@ import { toast } from "sonner";
 interface Props {
   proofUrl: string;
   onBack: () => void;
+  isTelex?: boolean;
 }
 
 type ProofKind = "image" | "pdf" | "unknown";
@@ -39,7 +40,7 @@ function filenameFromDisposition(header: string | null, fallback: string) {
   return match?.[1] || fallback;
 }
 
-const PaymentProofPreview = ({ proofUrl, onBack }: Props) => {
+const PaymentProofPreview = ({ proofUrl, onBack, isTelex = false }: Props) => {
   const [failedImage, setFailedImage] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const kind = proofKindFromUrl(proofUrl);
@@ -104,7 +105,7 @@ const PaymentProofPreview = ({ proofUrl, onBack }: Props) => {
           className="gap-1.5 items-center"
           variant="secondary"
         >
-          Download telex
+          {isTelex ? "Download telex" : "Download payment proof"}
         </Button>
       </div>
     </div>
