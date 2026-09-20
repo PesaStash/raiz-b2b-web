@@ -758,35 +758,51 @@ export interface IPaymentNetwork {
   account_type: string;
 }
 
-export type AfricaCollectionMethodInput =
-  | "bank"
-  | "momo"
-  | "mobile_money"
-  | "mobile-money";
+export type AfricaPayinQuoteDirection = "usd_to_local" | "local_to_usd";
 
-export type AfricaCollectionMethod =
-  | "local_bank_transfer"
-  | "mobile_money"
-  | string;
+export interface AfricaPayinQuoteParams {
+  currency: string;
+  amount: number;
+  direction: AfricaPayinQuoteDirection;
+}
+
+export interface AfricaPayinQuoteResponse {
+  currency: string;
+  rate: number;
+  usd_amount: number;
+  local_amount: number;
+  direction: AfricaPayinQuoteDirection;
+  generated_at: string;
+}
+
+export type AfricaCollectionMethodInput = "bank" | "momo";
+
+export type AfricaCollectionMethod = "bank" | "momo" | string;
 
 export type AfricaPayinTransactionStatus =
   | "created"
+  | "pending_approval"
+  | "process"
+  | "processing"
   | "pending"
   | "complete"
   | "completed"
   | "failed"
+  | "expired"
   | "cancelled"
   | "canceled"
   | string;
 
 export interface AfricaCollectionRequest {
   channel_id: string;
-  network_id?: string | null;
-  account_type: AfricaCollectionMethodInput | string;
-  account_number?: string | null;
+  account_type: AfricaCollectionMethodInput;
   amount: number;
-  sender_name: string;
   transaction_description: string;
+  network_id?: string | null;
+  account_number?: string | null;
+  sender_name?: string | null;
+  payer_email?: string | null;
+  payer_id?: string | null;
   metadata?: Record<string, unknown> | null;
 }
 
@@ -815,10 +831,59 @@ export interface FinalizeAfricaPayinResponse extends InitiateAfricaPayinResponse
   payment_instruction?: string | null;
 }
 
+export interface AfricaPayinStatusResponse {
+  transaction_status?: AfricaPayinTransactionStatus | null;
+  onramp_status?: string | null;
+  status?: AfricaPayinTransactionStatus | null;
+}
+
 export interface AfricaPayinCountry {
   country_code: string;
   country_name: string;
   currency: string;
+}
+
+export interface RaizPaymentsPayerReadiness {
+  exists: boolean;
+  email_verified: boolean;
+  payer_id?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  country_code?: string | null;
+}
+
+export interface RaizPaymentsPayerProfile {
+  payer_id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  country_code: string;
+  email_verified: boolean;
+  email_verified_at?: string | null;
+}
+
+export interface RaizPaymentsPayerRegisterPayload {
+  email: string;
+  first_name: string;
+  last_name: string;
+  phone_number: string;
+  country_code: string;
+  address: string;
+  dob: string;
+  id_type: string;
+  id_number: string;
+}
+
+export interface InitiateFirstPartyAfricaPayinPayload {
+  data: AfricaCollectionRequest;
+  wallet_id: string;
+  /** Retain across retries of the same logical initiate. */
+  idempotencyKey?: string;
+}
+
+export interface FinalizeFirstPartyAfricaPayinPayload {
+  payin_id: string;
+  transaction_pin: string;
 }
 
 export interface FeedbackPayload {

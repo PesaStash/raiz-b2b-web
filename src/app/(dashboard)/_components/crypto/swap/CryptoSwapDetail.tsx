@@ -91,7 +91,7 @@ const CryptoSwapDetail = ({
   const displayValue = () => {
     if (isFocused || !amount)
       return amount ? `${getCurrencySymbol(swapFromCurrency)}${rawAmount}` : "";
-    const num = parseFloat(rawAmount);
+    const num = Number(rawAmount);
     return isNaN(num)
       ? ""
       : `${getCurrencySymbol(swapFromCurrency)}${num.toFixed(2)}`;

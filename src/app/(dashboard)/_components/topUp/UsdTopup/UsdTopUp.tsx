@@ -14,6 +14,7 @@ import TopupSuccess from "./TopupSuccess";
 import { toast } from "sonner";
 import TopUp from "../TopUp";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
+import AfricaCollectionTopUp from "./AfricaCollectionTopUp";
 
 interface Props {
   close: () => void;
@@ -46,17 +47,13 @@ const UsdTopUp = ({ close }: Props) => {
     switch (step) {
       case "type":
         return (
-          <>
-            {/* <TopupAmount goNext={() => setStep("type")} close={close} /> */}
-            <TopupTypeModal
-              goBack={() => {
-                // setStep("amount");
-                actions.setPaymentOption(null);
-                close();
-              }}
-              goNext={() => setStep("amount")}
-            />
-          </>
+          <TopupTypeModal
+            goBack={() => {
+              actions.setPaymentOption(null);
+              close();
+            }}
+            goNext={() => setStep("amount")}
+          />
         );
       case "amount":
         return <TopupAmount goNext={() => setStep("detail")} close={close} />;
@@ -109,6 +106,10 @@ const UsdTopUp = ({ close }: Props) => {
         <TopUp close={close} />
       </CenterModalWrapper>
     );
+  }
+
+  if (paymentOption === "africa-collection") {
+    return <AfricaCollectionTopUp close={close} onDone={handleDone} />;
   }
 
   return <>{displayScreen()}</>;

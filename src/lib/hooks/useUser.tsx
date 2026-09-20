@@ -6,12 +6,18 @@ import { GetItemFromCookie } from "@/utils/CookiesFunc";
 import { trackUserDataOnce } from "@/utils/analytics/userProps";
 import { useQuery } from "@tanstack/react-query";
 import { AxiosError } from "axios";
+import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 
-export const useUser = () => {
+export const useUser = (options?: { enabled?: boolean }) => {
   const { user, setUser, clearUser, updateUser, showBalance, setShowBalance } =
     useUserStore();
+  const pathname = usePathname();
   const token = GetItemFromCookie("access_token");
+  // Never fetch the authenticated profile on public payment-link pages.
+  const isPaymentLink = pathname?.startsWith("/pay") ?? false;
+  const shouldFetch =
+    (options?.enabled ?? true) && !!token && !isPaymentLink;
 
   const {
     data: userData,
@@ -24,7 +30,7 @@ export const useUser = () => {
   } = useQuery<IUser, AxiosError>({
     queryKey: ["user"],
     queryFn: FetchUserApi,
-    enabled: !!token,
+    enabled: shouldFetch,
   });
 
   useEffect(() => {
@@ -49,7 +55,8 @@ export const useUser = () => {
     setUser,
     updateUser,
     clearUser,
-    refetch,
+    // refetch() bypasses `enabled`; block it on payment-link pages.
+    refetch: isPaymentLink ? (async () => undefined as never) : refetch,
     isRefetching,
     showBalance,
     setShowBalance,

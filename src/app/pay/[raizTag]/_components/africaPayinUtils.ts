@@ -1,4 +1,5 @@
 import { getApiErrorMessage } from "@/utils/helpers";
+import { IPaymentChannel } from "@/types/services";
 
 const ALLOWED_TAGS = new Set([
   "P",
@@ -26,6 +27,11 @@ const ALLOWED_ATTRS: Record<string, Set<string>> = {
   A: new Set(["href", "target", "rel"]),
 };
 
+const PROVIDER_NAME_PATTERN =
+  /\b(yellow\s*card|yellowcard|gravv|receive|collection\s*provider)\b/gi;
+
+export const AFRICA_UNSUPPORTED_COUNTRY_CODES = new Set(["NG", "GH"]);
+
 const isSafeHref = (href: string) => {
   const value = href.trim().toLowerCase();
   return (
@@ -37,15 +43,21 @@ const isSafeHref = (href: string) => {
   );
 };
 
+export const scrubProviderNames = (value?: string | null): string => {
+  if (!value) return "";
+  return value.replace(PROVIDER_NAME_PATTERN, "payment method");
+};
+
 /**
  * Sanitize provider HTML payment instructions for safe rendering.
  * Falls back to escaped plain text with line breaks when DOM APIs are unavailable.
  */
 export const sanitizePaymentInstructionHtml = (html: string): string => {
   if (!html) return "";
+  const scrubbed = scrubProviderNames(html);
 
   if (typeof window === "undefined" || typeof DOMParser === "undefined") {
-    return html
+    return scrubbed
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
@@ -55,7 +67,7 @@ export const sanitizePaymentInstructionHtml = (html: string): string => {
   }
 
   const parser = new DOMParser();
-  const doc = parser.parseFromString(html, "text/html");
+  const doc = parser.parseFromString(scrubbed, "text/html");
 
   const walk = (node: Node) => {
     const children = Array.from(node.childNodes);
@@ -102,6 +114,12 @@ export const sanitizePaymentInstructionHtml = (html: string): string => {
 export type AfricaPayinUiErrorKind =
   | "recipient_unavailable"
   | "unsupported_country"
+  | "ghana_unsupported"
+  | "nigeria_palmpay"
+  | "payer_not_found"
+  | "payer_verification_required"
+  | "wallet_unavailable"
+  | "kyb_incomplete"
   | "expired"
   | "already_finalized"
   | "validation"
@@ -114,6 +132,7 @@ export interface AfricaPayinUiError {
   message: string;
   status?: number;
   detail?: string;
+  correlationId?: string;
 }
 
 const extractDetail = (error: unknown): string => {
@@ -134,7 +153,24 @@ const extractDetail = (error: unknown): string => {
       .filter(Boolean)
       .join(" ");
   }
+  if (typeof (data as { message?: unknown }).message === "string") {
+    return String((data as { message: string }).message);
+  }
+  if (Array.isArray((data as { errors?: unknown }).errors)) {
+    return ((data as { errors: unknown[] }).errors)
+      .map((item) => (typeof item === "string" ? item : ""))
+      .filter(Boolean)
+      .join(" ");
+  }
   return "";
+};
+
+const extractCorrelationId = (error: unknown): string | undefined => {
+  if (!error || typeof error !== "object") return undefined;
+  const data = (error as { data?: unknown }).data;
+  if (!data || typeof data !== "object") return undefined;
+  const value = (data as { correlation_id?: unknown }).correlation_id;
+  return typeof value === "string" && value ? value : undefined;
 };
 
 export const mapAfricaPayinError = (error: unknown): AfricaPayinUiError => {
@@ -146,7 +182,78 @@ export const mapAfricaPayinError = (error: unknown): AfricaPayinUiError => {
       ? (error as { status: number }).status
       : undefined;
   const detail = extractDetail(error);
+  const correlationId = extractCorrelationId(error);
   const normalized = detail.toLowerCase();
+
+  if (correlationId && typeof console !== "undefined") {
+    console.warn("[africa-payin]", {
+      correlation_id: correlationId,
+      status,
+      detail: detail || undefined,
+    });
+  }
+
+  if (
+    normalized.includes("nigeria collections should use palmpay") ||
+    normalized.includes("nigeria collections should use palm pay")
+  ) {
+    return {
+      kind: "nigeria_palmpay",
+      message:
+        "Nigeria payments use bank transfer. Please continue with the Nigeria payment flow.",
+      status,
+      detail,
+      correlationId,
+    };
+  }
+
+  if (normalized.includes("ghana is not supported")) {
+    return {
+      kind: "ghana_unsupported",
+      message:
+        "This country is not available for this payment method. Please choose another supported country.",
+      status,
+      detail,
+      correlationId,
+    };
+  }
+
+  if (
+    normalized.includes("payer email verification is required") ||
+    normalized.includes("email verification is required before payment")
+  ) {
+    return {
+      kind: "payer_verification_required",
+      message: "Verify your email to continue.",
+      status,
+      detail,
+      correlationId,
+    };
+  }
+
+  if (normalized.includes("payer profile not found")) {
+    return {
+      kind: "payer_not_found",
+      message: "Please complete payer registration to continue.",
+      status,
+      detail,
+      correlationId,
+    };
+  }
+
+  if (
+    normalized.includes("wallet not found") ||
+    normalized.includes("wallet is not active")
+  ) {
+    return {
+      kind: "wallet_unavailable",
+      message:
+        "This wallet isn’t available for payments right now. Please try again later.",
+      status,
+      detail,
+      correlationId,
+    };
+  }
 
   if (
     status === 404 &&
@@ -159,13 +266,25 @@ export const mapAfricaPayinError = (error: unknown): AfricaPayinUiError => {
         "This recipient can’t receive local payments right now. Please contact the recipient.",
       status,
       detail,
+      correlationId,
+    };
+  }
+
+  if (
+    normalized.includes("recipient cannot receive funds via this payment channel")
+  ) {
+    return {
+      kind: "recipient_unavailable",
+      message:
+        "This recipient isn’t available for this payment method. Please choose another option.",
+      status,
+      detail,
+      correlationId,
     };
   }
 
   if (
     status === 403 ||
-    status === 409 ||
-    normalized.includes("verification") ||
     normalized.includes("destination is not configured")
   ) {
     return {
@@ -174,16 +293,38 @@ export const mapAfricaPayinError = (error: unknown): AfricaPayinUiError => {
         "This recipient isn’t set up to receive this payment method yet. Please contact the recipient.",
       status,
       detail,
+      correlationId,
     };
   }
 
-  if (normalized.includes("country is not supported")) {
+  if (
+    status === 409 ||
+    normalized.includes("kyb") ||
+    normalized.includes("business address") ||
+    normalized.includes("registration number") ||
+    normalized.includes("complete your profile")
+  ) {
+    return {
+      kind: "kyb_incomplete",
+      message:
+        "Complete your business profile and verification before topping up.",
+      status,
+      detail,
+      correlationId,
+    };
+  }
+
+  if (
+    normalized.includes("country is not supported") ||
+    normalized.includes("not supported for africa collections")
+  ) {
     return {
       kind: "unsupported_country",
       message:
-        "Local payments aren’t available for this recipient’s country yet.",
+        "This country is not available for this payment method. Please choose another supported country.",
       status,
       detail,
+      correlationId,
     };
   }
 
@@ -194,15 +335,20 @@ export const mapAfricaPayinError = (error: unknown): AfricaPayinUiError => {
         "This recipient’s profile is incomplete for local payments. Please contact the recipient.",
       status,
       detail,
+      correlationId,
     };
   }
 
-  if (normalized.includes("expired")) {
+  if (
+    normalized.includes("expired") ||
+    normalized.includes("initiate a new transaction")
+  ) {
     return {
       kind: "expired",
       message: "This payment session expired. Please start a new payment.",
       status,
       detail,
+      correlationId,
     };
   }
 
@@ -212,28 +358,32 @@ export const mapAfricaPayinError = (error: unknown): AfricaPayinUiError => {
       message: "This payment was already confirmed. Refreshing the latest status.",
       status,
       detail,
+      correlationId,
     };
   }
 
   if (status === 400 || status === 422) {
     return {
       kind: "validation",
-      message: getApiErrorMessage(
-        error,
-        "Please check the payment details and try again.",
+      message: scrubProviderNames(
+        getApiErrorMessage(
+          error,
+          "Please check the payment details and try again.",
+        ),
       ),
       status,
       detail,
+      correlationId,
     };
   }
 
-  if (status === 502 || status === 503) {
+  if (status === 502 || status === 503 || status === 500) {
     return {
       kind: "temporary",
-      message:
-        "Local payments are temporarily unavailable. Please try again later.",
+      message: "We could not start this payment. Please try again.",
       status,
       detail,
+      correlationId,
     };
   }
 
@@ -243,17 +393,21 @@ export const mapAfricaPayinError = (error: unknown): AfricaPayinUiError => {
       message: "We couldn’t find this payment session.",
       status,
       detail,
+      correlationId,
     };
   }
 
   return {
     kind: "generic",
-    message: getApiErrorMessage(
-      error,
-      "Something went wrong while setting up this payment.",
+    message: scrubProviderNames(
+      getApiErrorMessage(
+        error,
+        "Something went wrong while setting up this payment.",
+      ),
     ),
     status,
     detail,
+    correlationId,
   };
 };
 
@@ -264,14 +418,90 @@ export const getChannelLabel = (channelNameOrId?: string | null) => {
     normalized === "momo" ||
     normalized === "mobile_money" ||
     normalized === "mobile-money" ||
-    normalized.includes("mobile")
+    normalized.includes("mobile") ||
+    normalized.includes("momo")
   ) {
     return "Mobile money";
   }
   return "Bank transfer";
 };
 
+export const isMomoChannel = (
+  channel?: Pick<IPaymentChannel, "channel_name" | "channel_id"> | null,
+  accountType?: string | null,
+  channelName?: string | null,
+  channelId?: string | null,
+) => {
+  const candidates = [
+    accountType,
+    channel?.channel_name,
+    channel?.channel_id,
+    channelName,
+    channelId,
+  ]
+    .filter(Boolean)
+    .map((value) => String(value).toLowerCase());
+
+  return candidates.some(
+    (value) =>
+      value === "momo" ||
+      value === "mobile_money" ||
+      value === "mobile-money" ||
+      value.includes("mobile") ||
+      value.includes("momo"),
+  );
+};
+
+export const resolveAccountType = (
+  channel?: Pick<IPaymentChannel, "channel_name" | "channel_id"> | null,
+  accountType?: string | null,
+  channelName?: string | null,
+  channelId?: string | null,
+): "bank" | "momo" =>
+  isMomoChannel(channel, accountType, channelName, channelId) ? "momo" : "bank";
+
+export const filterAfricaPayinCountries = <
+  T extends { country_code: string },
+>(
+  countries: T[] | undefined | null,
+): T[] =>
+  (countries || []).filter(
+    (country) =>
+      !AFRICA_UNSUPPORTED_COUNTRY_CODES.has(
+        String(country.country_code || "").toUpperCase(),
+      ),
+  );
+
 export const getAfricaCountryFlagUrl = (countryCode?: string | null) => {
   if (!countryCode) return "/icons/website.svg";
   return `https://flagcdn.com/w40/${countryCode.toLowerCase()}.png`;
+};
+
+/** Initiate accepts USD between 1 and 20000. */
+export const AFRICA_USD_AMOUNT_MIN = 1;
+export const AFRICA_USD_AMOUNT_MAX = 20000;
+
+export const clampAfricaUsdLimit = (
+  value: number,
+  bound: "min" | "max" = "min",
+): number => {
+  if (!Number.isFinite(value) || value <= 0) {
+    return bound === "min" ? AFRICA_USD_AMOUNT_MIN : AFRICA_USD_AMOUNT_MAX;
+  }
+  // Round up to 2dp so we never understate the limit after conversion.
+  const rounded = Math.ceil(value * 100) / 100;
+  return Math.min(
+    AFRICA_USD_AMOUNT_MAX,
+    Math.max(AFRICA_USD_AMOUNT_MIN, rounded),
+  );
+};
+
+export const copyToClipboard = async (value: string) => {
+  if (!value || typeof navigator === "undefined") return false;
+  try {
+    await navigator.clipboard.writeText(value);
+    return true;
+  } catch {
+    return false;
+  }
 };

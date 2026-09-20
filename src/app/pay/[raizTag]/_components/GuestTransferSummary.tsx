@@ -10,7 +10,7 @@ import dayjs from "dayjs";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { getChannelLabel } from "./africaPayinUtils";
+import { getChannelLabel, isMomoChannel } from "./africaPayinUtils";
 
 interface Props {
   goBack: () => void;
@@ -30,6 +30,7 @@ const GuestTransferSummary = ({
   const {
     payout_currency,
     amount,
+    local_amount,
     expires_at,
     channel_name,
     channel_id,
@@ -37,17 +38,15 @@ const GuestTransferSummary = ({
     purpose,
     transaction_description,
     guestAccount,
+    account_type,
+    payer_email,
+    network_name,
   } = useGuestSendStore();
 
   const [timeLeft, setTimeLeft] = useState<number>(0);
-  const currencySymbol = getCurrencySymbol(payout_currency);
-  const methodLabel = getChannelLabel(channel_name || channel_id);
-  const isMomo =
-    channel_id === "momo" ||
-    channel_name === "momo" ||
-    channel_name === "mobile_money" ||
-    channel_name === "mobile-money" ||
-    channel_name?.toLowerCase().includes("mobile");
+  const localCurrencySymbol = getCurrencySymbol(payout_currency);
+  const methodLabel = getChannelLabel(channel_name || channel_id || account_type);
+  const isMomo = isMomoChannel(null, account_type, channel_name, channel_id);
 
   useEffect(() => {
     if (!expires_at) return;
@@ -94,54 +93,84 @@ const GuestTransferSummary = ({
       <div className="flex flex-col h-full justify-between items-center w-full mt-5">
         <div className="p-7 bg-[#EAECFF99] rounded-[20px] w-full grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="w-full flex flex-col items-start text-left">
-            <span className="text-left text-sm md:text-base text-gray-500 font-normal leading-normal">
-              Amount
+            <span className="text-left text-sm text-gray-500 font-normal leading-normal">
+              Amount to recipient
             </span>
-            <p className="text-left text-zinc-900 text-base md:text-lg font-semibold leading-normal">
-              {`${currencySymbol}${Number(amount).toLocaleString()}`}
+            <p className="text-left text-zinc-900 text-base  font-semibold leading-normal">
+              {`$${Number(amount).toLocaleString()} USD`}
             </p>
           </div>
           <div className="w-full flex flex-col items-start text-left">
-            <span className="text-left text-sm md:text-base text-gray-500 font-normal leading-normal">
+            <span className="text-left text-sm  text-gray-500 font-normal leading-normal">
+              You pay
+            </span>
+            <p className="text-left text-zinc-900 text-base  font-semibold leading-normal">
+              {`${localCurrencySymbol}${Number(local_amount).toLocaleString()} ${payout_currency}`}
+            </p>
+          </div>
+          <div className="w-full flex flex-col items-start text-left">
+            <span className="text-left text-sm  text-gray-500 font-normal leading-normal">
               Recipient
             </span>
-            <p className="text-left text-zinc-900 text-base md:text-lg font-semibold leading-normal capitalize">
+            <p className="text-left text-zinc-900 text-base  font-semibold leading-normal capitalize">
               {recipientName || "Raiz user"}
             </p>
           </div>
           <div className="w-full flex flex-col items-start text-left">
-            <span className="text-left text-sm md:text-base text-gray-500 font-normal leading-normal">
+            <span className="text-left text-sm  text-gray-500 font-normal leading-normal">
               Payment method
             </span>
-            <p className="text-left text-zinc-900 text-base md:text-lg font-semibold leading-normal">
+            <p className="text-left text-zinc-900 text-base font-semibold leading-normal">
               {methodLabel}
             </p>
           </div>
           <div className="w-full flex flex-col items-start text-left">
-            <span className="text-left text-sm md:text-base text-gray-500 font-normal leading-normal">
-              Payer name
+            <span className="text-left text-sm  text-gray-500 font-normal leading-normal">
+              Your name 
             </span>
-            <p className="text-left text-zinc-900 text-base md:text-lg font-semibold leading-normal">
-              {sender_name || "N/A"}
+            <p className="text-left text-zinc-900 text-base font-semibold leading-normal">
+              {sender_name || "You"}
             </p>
           </div>
+          {payer_email && (
+            <div className="w-full flex flex-col items-start text-left">
+              <span className="text-left text-sm  text-gray-500 font-normal leading-normal">
+                Your email
+              </span>
+              <p className="text-left wrap-break-word text-zinc-900 text-base  font-semibold leading-normal">
+                {payer_email}
+              </p>
+            </div>
+          )}
           <div className="w-full flex flex-col items-start text-left md:col-span-2">
-            <span className="text-left text-sm md:text-base text-gray-500 font-normal leading-normal">
+            <span className="text-left text-sm  text-gray-500 font-normal leading-normal">
               Description
             </span>
-            <p className="text-left text-zinc-900 text-base md:text-lg font-semibold leading-normal">
+            <p className="text-left text-zinc-900 text-base wrap-break-word  font-semibold leading-normal">
               {transaction_description || purpose || "N/A"}
             </p>
           </div>
           {isMomo && (
-            <div className="w-full flex flex-col items-start text-left">
-              <span className="text-left text-sm md:text-base text-gray-500 font-normal leading-normal">
-                Phone number
-              </span>
-              <p className="text-left text-zinc-900 text-base md:text-lg font-semibold leading-normal">
-                {guestAccount || "N/A"}
-              </p>
-            </div>
+            <>
+              {network_name && (
+                <div className="w-full flex flex-col items-start text-left">
+                  <span className="text-left text-sm md:text-base text-gray-500 font-normal leading-normal">
+                    Network
+                  </span>
+                  <p className="text-left text-zinc-900 text-base md:text-lg font-semibold leading-normal">
+                    {network_name}
+                  </p>
+                </div>
+              )}
+              <div className="w-full flex flex-col items-start text-left">
+                <span className="text-left text-sm md:text-base text-gray-500 font-normal leading-normal">
+                  Mobile money account
+                </span>
+                <p className="text-left text-zinc-900 text-base md:text-lg font-semibold leading-normal">
+                  {guestAccount || "N/A"}
+                </p>
+              </div>
+            </>
           )}
         </div>
         <div className="flex flex-col gap-5 w-full mt-5">

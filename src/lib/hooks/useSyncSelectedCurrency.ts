@@ -7,7 +7,8 @@ import { ICurrencyName } from "@/types/misc";
 export function useSyncSelectedCurrency({
   enabled = true,
 }: { enabled?: boolean } = {}) {
-  const { user } = useUser();
+  // Pass enabled through so public routes (e.g. /pay) do not call FetchUserApi.
+  const { user } = useUser({ enabled });
   const { selectedCurrency, syncWithUser } = useCurrencyStore();
   const { actions: sendActions } = useSendStore();
 

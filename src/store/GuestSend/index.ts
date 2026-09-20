@@ -59,6 +59,7 @@ export const isTerminalAfricaPayinStatus = (status?: string | null) => {
     status === "complete" ||
     status === "completed" ||
     status === "failed" ||
+    status === "expired" ||
     status === "cancelled" ||
     status === "canceled"
   );
@@ -70,15 +71,32 @@ export const isSuccessAfricaPayinStatus = (status?: string | null) =>
 export const isCancelledAfricaPayinStatus = (status?: string | null) =>
   status === "cancelled" || status === "canceled";
 
+export const isExpiredAfricaPayinStatus = (status?: string | null) =>
+  status === "expired";
+
+export const isProcessingAfricaPayinStatus = (status?: string | null) =>
+  status === "process" ||
+  status === "processing" ||
+  status === "pending_approval" ||
+  status === "created";
+
+export const isPendingPaymentAfricaPayinStatus = (status?: string | null) =>
+  status === "pending";
+
 export const normalizeAfricaPayinStep = (
   status: string | null | undefined,
   fallback: GuestAfricaPayinStep = "details",
 ): GuestAfricaPayinStep => {
   if (isSuccessAfricaPayinStatus(status)) return "status";
   if (status === "failed") return "status";
+  if (isExpiredAfricaPayinStatus(status)) return "status";
   if (isCancelledAfricaPayinStatus(status)) return "status";
-  if (status === "pending") return "instructions";
-  if (status === "created") return "summary";
+  if (isPendingPaymentAfricaPayinStatus(status)) return "instructions";
+  if (isProcessingAfricaPayinStatus(status)) {
+    return status === "created" || status === "pending_approval"
+      ? "summary"
+      : "instructions";
+  }
   return fallback;
 };
 
@@ -109,6 +127,7 @@ export const buildAfricaPayinSessionSnapshot = (
     payin_id: state.payin_id,
     lifecycleStep: state.lifecycleStep,
     amount: state.amount,
+    local_amount: state.local_amount,
     payout_currency: state.payout_currency,
     channel_id: state.channel_id,
     channel_name: state.channel_name,
@@ -120,9 +139,19 @@ export const buildAfricaPayinSessionSnapshot = (
     transaction_description: state.transaction_description || state.purpose,
     expires_at: state.expires_at,
     payment_instruction: state.payment_instruction,
+    collection_account_number: state.collection_account_number,
+    collection_bank_name: state.collection_bank_name,
+    collection_account_name: state.collection_account_name,
     collection_method: state.collection_method,
     status: state.status,
     guestLocalCurrency: state.guestLocalCurrency,
     guestAccount: state.guestAccount,
+    payer_email: state.payer_email,
+    payer_id: state.payer_id,
+    payer_first_name: state.payer_first_name,
+    payer_last_name: state.payer_last_name,
+    payer_country_code: state.payer_country_code,
+    payer_email_verified: state.payer_email_verified,
+    payer_exists: state.payer_exists,
   };
 };

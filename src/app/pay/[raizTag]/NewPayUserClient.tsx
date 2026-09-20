@@ -21,6 +21,7 @@ import PayLocalAmount from "./_components/PayLocalAmount";
 import GuestPayDetail from "./_components/GuestPayDetail";
 import {
   clearAfricaPayinSession,
+  isCancelledAfricaPayinStatus,
   loadAfricaPayinSession,
   normalizeAfricaPayinStep,
   useGuestSendStore,
@@ -137,12 +138,13 @@ const RaizPaymentPage = () => {
   const username = (params?.raizTag as string) || "";
   const [mobileOpen, setMobileOpen] = useState<string | null>("local");
   const [screen, setScreen] = useState<GuestPaymentType | "detail" | null>(
-    "local",
+    "detail",
   );
   const [localStep, setLocalStep] = useState<"amount" | GuestAfricaPayinStep>(
-    "amount",
+    "payer_email",
   );
-  const [africaStep, setAfricaStep] = useState<GuestAfricaPayinStep>("details");
+  const [africaStep, setAfricaStep] =
+    useState<GuestAfricaPayinStep>("payer_email");
   const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
   const [transferCurrency, setTransferCurrency] =
     useState<TransferCurrencyType>("USD");
@@ -184,9 +186,18 @@ const RaizPaymentPage = () => {
         return;
       }
 
+      // Cancelled sessions must not resume — start a fresh payment flow.
+      if (isCancelledAfricaPayinStatus(snapshot.status)) {
+        clearAfricaPayinSession(username);
+        actions.resetPaymentSession();
+        setSessionRestored(true);
+        return;
+      }
+
       actions.setFields({
         payin_id: snapshot.payin_id,
         amount: snapshot.amount,
+        local_amount: snapshot.local_amount || "",
         payout_currency: snapshot.payout_currency,
         channel_id: snapshot.channel_id,
         channel_name: snapshot.channel_name,
@@ -198,11 +209,21 @@ const RaizPaymentPage = () => {
         transaction_description: snapshot.transaction_description,
         expires_at: snapshot.expires_at,
         payment_instruction: snapshot.payment_instruction,
+        collection_account_number: snapshot.collection_account_number || "",
+        collection_bank_name: snapshot.collection_bank_name || "",
+        collection_account_name: snapshot.collection_account_name || "",
         collection_method: snapshot.collection_method,
         status: snapshot.status,
         guestLocalCurrency: snapshot.guestLocalCurrency,
         guestAccount: snapshot.guestAccount || "",
         lifecycleStep: snapshot.lifecycleStep,
+        payer_email: snapshot.payer_email || "",
+        payer_id: snapshot.payer_id || "",
+        payer_first_name: snapshot.payer_first_name || "",
+        payer_last_name: snapshot.payer_last_name || "",
+        payer_country_code: snapshot.payer_country_code || "",
+        payer_email_verified: !!snapshot.payer_email_verified,
+        payer_exists: !!snapshot.payer_exists,
       });
       setPaymentMethod(snapshot.channel_id || null);
       setScreen("detail");
@@ -210,6 +231,16 @@ const RaizPaymentPage = () => {
 
       try {
         const latestStatus = await GetAfricaPayinStatus(snapshot.payin_id);
+        if (isCancelledAfricaPayinStatus(latestStatus)) {
+          clearAfricaPayinSession(username);
+          actions.resetPaymentSession();
+          setPaymentMethod(null);
+          setScreen(null);
+          setMobileOpen(null);
+          setAfricaStep("payer_email");
+          setLocalStep("payer_email");
+          return;
+        }
         const nextStep = normalizeAfricaPayinStep(
           latestStatus,
           snapshot.lifecycleStep,
@@ -219,12 +250,14 @@ const RaizPaymentPage = () => {
           lifecycleStep: nextStep,
         });
         setAfricaStep(nextStep);
-        setLocalStep(nextStep === "details" ? "amount" : nextStep);
+        setLocalStep(
+          nextStep === "details" || nextStep === "payer_email"
+            ? nextStep
+            : nextStep,
+        );
       } catch {
         setAfricaStep(snapshot.lifecycleStep);
-        setLocalStep(
-          snapshot.lifecycleStep === "details" ? "amount" : snapshot.lifecycleStep,
-        );
+        setLocalStep(snapshot.lifecycleStep);
       } finally {
         setSessionRestored(true);
       }
@@ -288,31 +321,58 @@ const RaizPaymentPage = () => {
   );
 
   const handleMethodClick = (id: GuestPaymentType) => {
-    if (id !== "local" && screen === "detail") {
-      // Leaving an in-progress local flow keeps session in storage.
+    if (id === "local") {
+      setScreen("detail");
+      setLocalStep("payer_email");
+      setAfricaStep("payer_email");
+      setMobileOpen("local");
+      return;
     }
     setScreen((prev) => (prev === id ? null : id));
     setMobileOpen((prev) => (prev === id ? null : id));
-    if (id === "local") {
-      setLocalStep("amount");
-      setAfricaStep("details");
-    }
   };
 
-  const closeLocalFlow = () => {
+  const goToPayerEmailStep = () => {
+    setScreen("detail");
+    setLocalStep("payer_email");
+    setAfricaStep("payer_email");
+    setMobileOpen("local");
+  };
+
+  const goToAmountStep = () => {
     setScreen("local");
     setLocalStep("amount");
     setAfricaStep("details");
     setMobileOpen("local");
   };
 
+  const goToPaymentDetailsStep = () => {
+    setScreen("detail");
+    setLocalStep("details");
+    setAfricaStep("details");
+    setMobileOpen("local");
+  };
+
+  const closeLocalFlow = () => {
+    goToPayerEmailStep();
+  };
+
   const exitLocalToMethods = () => {
     clearAfricaPayinSession(username);
     actions.resetPaymentSession();
     setPaymentMethod(null);
-    setScreen("local");
-    setLocalStep("amount");
-    setAfricaStep("details");
+    goToPayerEmailStep();
+  };
+
+  const routeToNigeriaPalmPay = () => {
+    clearAfricaPayinSession(username);
+    actions.resetPaymentSession();
+    setPaymentMethod(null);
+    setTransferCurrency("NGN");
+    setScreen("transfer");
+    setMobileOpen("transfer");
+    setLocalStep("payer_email");
+    setAfricaStep("payer_email");
   };
 
   const displayScreen = () => {
@@ -324,12 +384,8 @@ const RaizPaymentPage = () => {
           return (
             <PayLocalAmount
               data={data}
-              goBack={exitLocalToMethods}
-              goNext={() => {
-                setScreen("detail");
-                setLocalStep("details");
-                setAfricaStep("details");
-              }}
+              goBack={goToPayerEmailStep}
+              goNext={goToPaymentDetailsStep}
               paymentMethod={paymentMethod}
               setPaymentMethod={setPaymentMethod}
             />
@@ -347,12 +403,11 @@ const RaizPaymentPage = () => {
                 setAfricaStep(next);
                 setLocalStep(next);
               }}
-              goBack={() => {
-                setScreen("local");
-                setLocalStep("amount");
-                setAfricaStep("details");
-              }}
+              goBack={exitLocalToMethods}
               close={closeLocalFlow}
+              onNigeriaPalmPay={routeToNigeriaPalmPay}
+              onPayerReady={goToAmountStep}
+              onBackToAmount={goToAmountStep}
             />
           );
         }
@@ -615,12 +670,8 @@ const RaizPaymentPage = () => {
                           {id === "local" && data && localStep === "amount" && (
                             <PayLocalAmount
                               data={data}
-                              goBack={exitLocalToMethods}
-                              goNext={() => {
-                                setScreen("detail");
-                                setLocalStep("details");
-                                setAfricaStep("details");
-                              }}
+                              goBack={goToPayerEmailStep}
+                              goNext={goToPaymentDetailsStep}
                               paymentMethod={paymentMethod}
                               setPaymentMethod={setPaymentMethod}
                             />
@@ -634,12 +685,11 @@ const RaizPaymentPage = () => {
                                 setAfricaStep(next);
                                 setLocalStep(next);
                               }}
-                              goBack={() => {
-                                setScreen("local");
-                                setLocalStep("amount");
-                                setAfricaStep("details");
-                              }}
+                              goBack={exitLocalToMethods}
                               close={closeLocalFlow}
+                              onNigeriaPalmPay={routeToNigeriaPalmPay}
+                              onPayerReady={goToAmountStep}
+                              onBackToAmount={goToAmountStep}
                             />
                           )}
                           {id === "transfer" && data && (
@@ -811,7 +861,7 @@ const RaizPaymentPage = () => {
               !screen || !mobileOpen ? "hidden md:block" : "md:block"
             }`}
           >
-           {selectedMethodObj?.id === "local" && localStep === "details" ? null : <div className="flex items-start justify-between mb-11">
+           {selectedMethodObj?.id === "local" && localStep !== "amount" ? null : <div className="flex items-start justify-between mb-11">
               <div>
                 <h1 className="text-[23px] font-semibold text-raiz-gray-950 mb-1">
                   {selectedMethodObj?.label}

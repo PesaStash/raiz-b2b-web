@@ -33,16 +33,17 @@ const handleError = async (error: CustomAxiosError) => {
     // Check for 401 status and redirect to login
     if (error.response?.status === 401) {
       if (typeof window !== "undefined") {
-        const authRoutes = [
+        const publicRoutes = [
           "/login",
           "/register",
           "/forgot-password",
           "/verify",
+          "/pay",
         ];
-        const isAuthRoute = authRoutes.some((route) =>
+        const isPublicRoute = publicRoutes.some((route) =>
           window.location.pathname.startsWith(route),
         );
-        if (!isAuthRoute) {
+        if (!isPublicRoute) {
           window.location.href = "/login";
         }
       }
@@ -89,7 +90,12 @@ AuthAxios.interceptors.request.use(
       config.method &&
       mutatingMethods.includes(config.method.toLowerCase())
     ) {
-      config.headers["idempotency-key"] = crypto.randomUUID();
+      // Retain a caller-supplied key so retries of the same logical request
+      // share an idempotency key.
+      const existingKey = config.headers["idempotency-key"];
+      if (!existingKey) {
+        config.headers["idempotency-key"] = crypto.randomUUID();
+      }
     }
 
     return config;

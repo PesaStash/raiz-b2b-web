@@ -20,12 +20,22 @@ export const getLastThreeMonths = () => {
   ];
 };
 
-// Format time to display as "00:59"
+// Format time as "MM:SS", or "HH:MM:SS" when 60+ minutes remain.
 export const formatTime = (seconds: number) => {
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
+  const total = Math.max(0, Math.floor(seconds));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const remainingSeconds = total % 60;
+
+  if (hours > 0) {
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(
+      2,
+      "0",
+    )}:${String(remainingSeconds).padStart(2, "0")}`;
+  }
+
   return `${String(minutes).padStart(2, "0")}:${String(
-    remainingSeconds
+    remainingSeconds,
   ).padStart(2, "0")}`;
 };
 

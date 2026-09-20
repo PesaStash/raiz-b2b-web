@@ -6,7 +6,10 @@ import { useGuestSendStore } from "@/store/GuestSend";
 import { useQuery } from "@tanstack/react-query";
 import { GetAfricaPayinCountriesApi } from "@/services/business";
 import { IntCountryType, IntCurrencyCode } from "@/types/services";
-import { getAfricaCountryFlagUrl } from "./africaPayinUtils";
+import {
+  filterAfricaPayinCountries,
+  getAfricaCountryFlagUrl,
+} from "./africaPayinUtils";
 
 interface Props {
   close: () => void;
@@ -24,7 +27,7 @@ const GuestSelectCurrency = ({ close, onSelect }: Props) => {
 
   const countriesArr: IIntCountry[] = useMemo(
     () =>
-      countries
+      filterAfricaPayinCountries(countries)
         ?.map((each) => ({
           name: each.country_name,
           value: each.country_code as IntCountryType,
@@ -40,16 +43,19 @@ const GuestSelectCurrency = ({ close, onSelect }: Props) => {
   };
 
   const handleSelect = (selectedCurrency: IIntCountry) => {
-    if (onSelect) {
-      onSelect(selectedCurrency);
-    } else {
-      actions.setFields({
-        guestLocalCurrency: selectedCurrency,
-        country_code: selectedCurrency.value,
-        channel_id: "",
-        channel_name: "",
-      });
-    }
+    actions.setFields({
+      guestLocalCurrency: selectedCurrency,
+      country_code: selectedCurrency.value,
+      channel_id: "",
+      channel_name: "",
+      network_id: "",
+      network_name: "",
+      account_type: "",
+      guestAccount: "",
+      min: 1,
+      max: 20000,
+    });
+    onSelect?.(selectedCurrency);
     close();
   };
 

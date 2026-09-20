@@ -10,6 +10,7 @@ import SuccessStatus from "../transactions/status/SuccessStatus";
 import {
   EntityBeneficiary,
   EntityForeignPayoutBeneficiary,
+  IAlipayWechatBeneficiary,
   IExternalAccount,
   IForeignBeneficiary,
   ISwiftBeneficiary,
@@ -21,7 +22,8 @@ export type BeneficiaryType =
   | EntityBeneficiary
   | EntityForeignPayoutBeneficiary
   | IForeignBeneficiary
-  | ISwiftBeneficiary;
+  | ISwiftBeneficiary
+  | IAlipayWechatBeneficiary;
 interface Props {
   status: PaymentStatusType;
   amount: number;
@@ -35,6 +37,7 @@ interface Props {
 }
 
 const getAccountName = (user: BeneficiaryType): string => {
+  if ("alipay_wechat_beneficiary_id" in user) return user.name || "";
   if ("account_name" in user) return user.account_name;
   if ("bank_account_name" in user) return user?.bank_account_name || "";
   if ("usd_beneficiary" in user) return user.usd_beneficiary.account_name || "";
