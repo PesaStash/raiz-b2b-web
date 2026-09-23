@@ -301,7 +301,7 @@ const AfricaCollectionTopUp = ({ close, onDone }: Props) => {
       const mapped = mapAfricaPayinError(error);
       if (mapped.kind === "nigeria_palmpay") {
         toast.error(mapped.message);
-        setShowUsBankFallback(true);
+        topupActions.setPaymentOption("bank-transfer");
         return;
       }
       toast.error(mapped.message);
