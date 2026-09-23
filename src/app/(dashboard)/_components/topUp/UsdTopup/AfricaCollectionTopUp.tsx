@@ -8,7 +8,6 @@ import InputField from "@/components/ui/InputField";
 import SelectField from "@/components/ui/SelectField";
 import ErrorMessage from "@/components/ui/ErrorMessage";
 import PhoneNumberInput from "@/components/ui/PhoneNumberInput";
-import EnterPin from "@/components/transactions/EnterPin";
 import AfricaPaymentInstructions from "@/components/transactions/AfricaPaymentInstructions";
 import GuestSendStatusModal from "@/app/pay/[raizTag]/_components/GuestSendStatusModal";
 import {
@@ -36,8 +35,6 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { useFormik } from "formik";
 import { toFormikValidationSchema } from "zod-formik-adapter";
-import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
-import TopUp from "../TopUp";
 import { Country } from "react-phone-number-input";
 import { findWalletByCurrency, getCurrencySymbol } from "@/utils/helpers";
 import { useTopupStore } from "@/store/TopUp";
@@ -57,7 +54,6 @@ import InputLabel from "@/components/ui/InputLabel";
 type AfricaTopupStep =
   | "setup"
   | "review"
-  | "pin"
   | "instructions"
   | "status";
 
@@ -96,8 +92,6 @@ const AfricaCollectionTopUp = ({ close, onDone }: Props) => {
   const [collectionBankName, setCollectionBankName] = useState("");
   const [collectionMethod, setCollectionMethod] = useState("");
   const [paymentError, setPaymentError] = useState("");
-  const [pin, setPin] = useState("");
-  const [showUsBankFallback, setShowUsBankFallback] = useState(false);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const initiateIdempotencyKeyRef = useRef<string | null>(null);
   const lastInitiatePayloadRef = useRef<string | null>(null);
@@ -140,14 +134,7 @@ const AfricaCollectionTopUp = ({ close, onDone }: Props) => {
 
   // Lock country to the business entity profile (not user-selectable).
   useEffect(() => {
-    if (!entityCountryCode) return;
-
-    if (entityCountryCode === "NG") {
-      setShowUsBankFallback(true);
-      return;
-    }
-
-    if (!discoveryMatch) return;
+    if (!entityCountryCode || !discoveryMatch) return;
 
     setCountry((prev) => {
       if (prev?.value === discoveryMatch.country_code) return prev;
@@ -262,7 +249,6 @@ const AfricaCollectionTopUp = ({ close, onDone }: Props) => {
       setCollectionAccountNumber("");
       setCollectionAccountName("");
       setCollectionBankName("");
-      setPin("");
       setStep("setup");
       return;
     }
@@ -339,7 +325,6 @@ const AfricaCollectionTopUp = ({ close, onDone }: Props) => {
     },
     onError: async (error) => {
       const mapped = mapAfricaPayinError(error);
-      setPin("");
       if (mapped.kind === "already_finalized") {
         // Instructions are still useful; no status polling on first-party top-up.
         if (paymentInstruction || collectionAccountNumber || isMomo) {
@@ -487,16 +472,6 @@ const AfricaCollectionTopUp = ({ close, onDone }: Props) => {
     },
   });
 
-  useEffect(() => {
-    if (pin.length === 4 && payinId && step === "pin") {
-      finalizeMutation.mutate({
-        payin_id: payinId,
-        transaction_pin: pin,
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pin, payinId, step]);
-
   const handleRestart = () => {
     stopPolling();
     initiateIdempotencyKeyRef.current = null;
@@ -509,7 +484,6 @@ const AfricaCollectionTopUp = ({ close, onDone }: Props) => {
     setCollectionAccountNumber("");
     setCollectionAccountName("");
     setCollectionBankName("");
-    setPin("");
     setStep("setup");
   };
 
@@ -518,27 +492,6 @@ const AfricaCollectionTopUp = ({ close, onDone }: Props) => {
     topupActions.setPaymentOption(null);
     close();
   };
-
-  if (showUsBankFallback) {
-    return (
-      <CenterModalWrapper close={handleClose}>
-        <TopUp close={handleClose} />
-      </CenterModalWrapper>
-    );
-  }
-
-  if (step === "pin") {
-    return (
-      <EnterPin
-        pin={pin}
-        setPin={setPin}
-        close={() => {
-          setPin("");
-          setStep("review");
-        }}
-      />
-    );
-  }
 
   if (step === "status") {
     return (
@@ -609,7 +562,7 @@ const AfricaCollectionTopUp = ({ close, onDone }: Props) => {
                 Review top-up
               </h3>
               <p className="text-zinc-900 text-xs leading-tight">
-                Confirm the details, then enter your PIN to continue.
+                Confirm the details, then continue to get payment instructions.
               </p>
             </div>
             <button onClick={handleClose}>
@@ -670,12 +623,12 @@ const AfricaCollectionTopUp = ({ close, onDone }: Props) => {
             <Button
               loading={finalizeMutation.isPending}
               onClick={() => {
+                if (!payinId) return;
                 setPaymentError("");
-                setPin("");
-                setStep("pin");
+                finalizeMutation.mutate({ payin_id: payinId });
               }}
             >
-              Enter PIN
+              Continue
             </Button>
             <Button
               className="bg-zinc-200 text-zinc-900"
@@ -758,7 +711,7 @@ const AfricaCollectionTopUp = ({ close, onDone }: Props) => {
                 this top-up method.
               </p>
             )}
-            {isEntityCountryUnsupported && entityCountryCode !== "NG" && (
+            {isEntityCountryUnsupported && (
               <p className="text-sm text-red-600">
                 This payment method is not available for{" "}
                 {entityCountry?.country_name || "your business country"}.

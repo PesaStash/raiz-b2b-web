@@ -883,7 +883,6 @@ export interface InitiateFirstPartyAfricaPayinPayload {
 
 export interface FinalizeFirstPartyAfricaPayinPayload {
   payin_id: string;
-  transaction_pin: string;
 }
 
 export interface FeedbackPayload {
@@ -1421,4 +1420,155 @@ export interface IUpdateGatewayDefaultWalletResponse {
     currency: "USD" | "NGN";
     wallet_id: string;
   };
+}
+
+// ─── Gateway Bridge Subaccounts ───────────────────────────────────────────────
+
+export type GatewaySubaccountStatus =
+  | "created"
+  | "under_review"
+  | "requires_kyc"
+  | "active"
+  | "rejected"
+  | "failed";
+
+export type GatewayRemittanceSettlementType =
+  | "raiz_usd_wallet"
+  | "external_stablecoin_wallet";
+
+export type GatewayExternalWalletCurrency = "USDC" | "USDT";
+
+export type GatewayExternalWalletRail =
+  | "arbitrum"
+  | "avalanche_c_chain"
+  | "base"
+  | "ethereum"
+  | "optimism"
+  | "polygon"
+  | "solana"
+  | "stellar"
+  | "tempo"
+  | "tron";
+
+export interface IGatewaySubaccountSummary {
+  total_requested: number;
+  active: number;
+  under_review: number;
+  requires_kyc: number;
+  rejected: number;
+  failed: number;
+}
+
+export interface IGatewayCustomerSnapshot {
+  first_name?: string | null;
+  last_name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  requested_currencies?: string[] | null;
+}
+
+export interface IGatewaySourceDepositInstructions {
+  payment_rails?: string[] | null;
+}
+
+export interface IGatewaySubaccountAccount {
+  subaccount_account_id: string;
+  currency: string;
+  status?: string | null;
+  bridge_virtual_account_id?: string | null;
+  account_name?: string | null;
+  account_number?: string | null;
+  routing_number?: string | null;
+  sort_code?: string | null;
+  iban?: string | null;
+  bic?: string | null;
+  bank_name?: string | null;
+  bank_address?: string | null;
+  source_deposit_instructions?: IGatewaySourceDepositInstructions | null;
+}
+
+export interface IGatewaySubaccount {
+  subaccount_id: string;
+  business_account_id: string;
+  gateway_business_id?: string | null;
+  gateway_subaccount_id: string;
+  external_customer_id?: string | null;
+  bridge_customer_id?: string | null;
+  status: GatewaySubaccountStatus | string;
+  bridge_status?: string | null;
+  customer_snapshot?: IGatewayCustomerSnapshot | null;
+  requested_currencies?: string[] | null;
+  rejection_reasons?: unknown[];
+  retry_eligible?: boolean;
+  kyc_link?: string | null;
+  missing_requirements?: unknown[];
+  accounts?: IGatewaySubaccountAccount[];
+  created_at: string;
+  updated_at: string;
+  projection_version?: number;
+}
+
+export interface IGatewaySubaccountsListParams {
+  status?: GatewaySubaccountStatus | string;
+  page?: number;
+  limit?: number;
+}
+
+export interface IGatewaySubaccountsListResponse {
+  total: number;
+  page: number;
+  limit: number;
+  items: IGatewaySubaccount[];
+}
+
+export type GatewaySubaccountActivityDirection = "incoming" | "outgoing";
+
+export interface IGatewaySubaccountActivity {
+  subaccount_activity_id: string;
+  direction: GatewaySubaccountActivityDirection | string;
+  currency: string;
+  amount: string;
+  fee_amount?: string | null;
+  status: string;
+  rail?: string | null;
+  bridge_event_id?: string | null;
+  bridge_deposit_id?: string | null;
+  bridge_transfer_id?: string | null;
+  created_at: string;
+}
+
+export interface IGatewaySubaccountActivitiesParams {
+  start_date?: string;
+  end_date?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface IGatewaySubaccountActivitiesResponse {
+  total: number;
+  page: number;
+  limit: number;
+  items: IGatewaySubaccountActivity[];
+}
+
+export interface IGatewayRemittanceSettlementValidation {
+  status?: string | null;
+}
+
+export interface IGatewayRemittanceSettlement {
+  settlement_type: GatewayRemittanceSettlementType | string;
+  usd_wallet_id?: string | null;
+  external_wallet_currency?: GatewayExternalWalletCurrency | string | null;
+  external_wallet_rail?: GatewayExternalWalletRail | string | null;
+  external_wallet_address?: string | null;
+  external_wallet_status?: string | null;
+  validation_result?: IGatewayRemittanceSettlementValidation | null;
+}
+
+export interface IUpdateGatewayRemittanceSettlementPayload {
+  settlement_type: GatewayRemittanceSettlementType;
+  usd_wallet_id?: string;
+  external_wallet_currency?: GatewayExternalWalletCurrency;
+  external_wallet_rail?: GatewayExternalWalletRail;
+  external_wallet_address?: string;
 }

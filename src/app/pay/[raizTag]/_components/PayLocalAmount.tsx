@@ -1,5 +1,4 @@
 "use client";
-import Avatar from "@/components/ui/Avatar";
 import ErrorMessage from "@/components/ui/ErrorMessage";
 import { IBusinessPaymentData, IPaymentChannel } from "@/types/services";
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -7,13 +6,11 @@ import { z } from "zod";
 import Image from "next/image";
 import GuestSelectCurrency from "./GuestSelectCurrency";
 import SelectField from "@/components/ui/SelectField";
-import Button from "@/components/ui/Button";
-import Link from "next/link";
+import PayStepActions from "./PayStepActions";
 import { useGuestSendStore } from "@/store/GuestSend";
 import { useQuery } from "@tanstack/react-query";
 import {
   GetAfricaPayinChannelsApi,
-  GetAfricaPayinNetworksApi,
   QuoteAfricaPayinRateApi,
 } from "@/services/business";
 import {
@@ -24,8 +21,8 @@ import {
   isMomoChannel,
   resolveAccountType,
 } from "./africaPayinUtils";
-import PhoneNumberInput from "@/components/ui/PhoneNumberInput";
-import { Country } from "react-phone-number-input";
+import { useDebounce } from "@/lib/hooks/useDebounce";
+import { getCurrencySymbol } from "@/utils/helpers";
 
 interface Props {
   data: IBusinessPaymentData;
@@ -37,7 +34,6 @@ interface Props {
 }
 
 const PayLocalAmount = ({
-  data,
   goBack,
   goNext,
   paymentMethod,
@@ -51,8 +47,6 @@ const PayLocalAmount = ({
     actions,
     max,
     min,
-    network_id,
-    guestAccount,
     channel_name,
     account_type,
   } = useGuestSendStore();
@@ -63,6 +57,35 @@ const PayLocalAmount = ({
 
   const countryCode = guestLocalCurrency?.value || "";
   const localCurrency = guestLocalCurrency?.currency || "";
+  const localCurrencySymbol = getCurrencySymbol(localCurrency);
+  const debouncedAmount = useDebounce(amount, 400);
+  const parsedDebouncedAmount = Number(debouncedAmount || 0);
+  const canQuoteFx =
+    !!localCurrency &&
+    !!debouncedAmount &&
+    !Number.isNaN(parsedDebouncedAmount) &&
+    parsedDebouncedAmount > 0;
+
+  const {
+    data: fxQuote,
+    isFetching: fxQuoteFetching,
+    isError: fxQuoteError,
+  } = useQuery({
+    queryKey: [
+      "africa-payin-usd-to-local",
+      localCurrency,
+      parsedDebouncedAmount,
+    ],
+    queryFn: () =>
+      QuoteAfricaPayinRateApi({
+        currency: localCurrency,
+        amount: parsedDebouncedAmount,
+        direction: "usd_to_local",
+      }),
+    enabled: canQuoteFx,
+    retry: false,
+    staleTime: 30_000,
+  });
 
   const { data: channels = [], isLoading: channelsLoading } = useQuery({
     queryKey: ["africa-payin-channels", countryCode],
@@ -71,7 +94,8 @@ const PayLocalAmount = ({
   });
 
   const selectedChannel = useMemo(
-    () => channels.find((channel) => channel.channel_id === paymentMethod) || null,
+    () =>
+      channels.find((channel) => channel.channel_id === paymentMethod) || null,
     [channels, paymentMethod],
   );
 
@@ -81,12 +105,6 @@ const PayLocalAmount = ({
     channel_name,
     paymentMethod,
   );
-
-  const { data: networks = [], isLoading: networksLoading } = useQuery({
-    queryKey: ["africa-payin-networks", countryCode, paymentMethod],
-    queryFn: () => GetAfricaPayinNetworksApi(countryCode, paymentMethod),
-    enabled: !!countryCode && !!paymentMethod && isMomo,
-  });
 
   const localMin = selectedChannel?.min ?? null;
   const localMax = selectedChannel?.max ?? null;
@@ -122,20 +140,11 @@ const PayLocalAmount = ({
       let usdMax = clampAfricaUsdLimit(maxQuote.usd_amount, "max");
 
       if (usdMin > usdMax) {
-        // Prefer a coherent range if quotes invert after rounding.
         [usdMin, usdMax] = [usdMax, usdMin];
       }
 
       return { min: usdMin, max: usdMax };
     },
-    // enabled:
-    //   !!selectedChannel &&
-    //   !!localCurrency &&
-    //   localMin != null &&
-    //   localMax != null &&
-    //   localMin > 0 &&
-    //   localMax > 0,
-    // staleTime: 60_000,
   });
 
   const limitsReady = !!selectedChannel && !!usdLimits && !usdLimitsError;
@@ -181,23 +190,30 @@ const PayLocalAmount = ({
       z
         .string()
         .regex(/^\d*\.?\d{0,2}$/, "Enter a valid amount (max 2 decimal places)")
-        .refine((val) => {
-          if (!limitsReady) return true;
-          const parsed = parseFloat(val);
-          return !Number.isNaN(parsed) && parsed >= (min || AFRICA_USD_AMOUNT_MIN);
-        }, {
-          message: `Amount must be at least $${(min || AFRICA_USD_AMOUNT_MIN).toLocaleString()} USD`,
-        })
-        .refine((val) => {
-          if (!limitsReady) return true;
-          const parsed = parseFloat(val);
-          return (
-            Number.isNaN(parsed) ||
-            parsed <= (max || AFRICA_USD_AMOUNT_MAX)
-          );
-        }, {
-          message: `Amount must not exceed $${(max || AFRICA_USD_AMOUNT_MAX).toLocaleString()} USD`,
-        }),
+        .refine(
+          (val) => {
+            if (!limitsReady) return true;
+            const parsed = parseFloat(val);
+            return (
+              !Number.isNaN(parsed) && parsed >= (min || AFRICA_USD_AMOUNT_MIN)
+            );
+          },
+          {
+            message: `Amount must be at least $${(min || AFRICA_USD_AMOUNT_MIN).toLocaleString()} USD`,
+          },
+        )
+        .refine(
+          (val) => {
+            if (!limitsReady) return true;
+            const parsed = parseFloat(val);
+            return (
+              Number.isNaN(parsed) || parsed <= (max || AFRICA_USD_AMOUNT_MAX)
+            );
+          },
+          {
+            message: `Amount must not exceed $${(max || AFRICA_USD_AMOUNT_MAX).toLocaleString()} USD`,
+          },
+        ),
     [min, max, limitsReady],
   );
 
@@ -239,7 +255,7 @@ const PayLocalAmount = ({
 
   const displayValue = () => {
     if (isFocused || !amount) return amount ? `$${rawAmount}` : "";
-    const num = parseFloat(rawAmount);
+    const num = Number(rawAmount.replace(/,/g, ""));
     return isNaN(num)
       ? ""
       : `$${num.toLocaleString(undefined, {
@@ -253,15 +269,9 @@ const PayLocalAmount = ({
     value: channel.channel_id,
   }));
 
-  const networkOptions = networks.map((network) => ({
-    label: network.network_name,
-    value: network.network_id,
-  }));
-
   const goNextHandler = () => {
     if (!paymentMethod || error || !amount || !guestLocalCurrency) return;
     if (!limitsReady) return;
-    if (isMomo && (!network_id || !guestAccount)) return;
     goNext();
   };
 
@@ -271,8 +281,7 @@ const PayLocalAmount = ({
     !!paymentMethod &&
     !!guestLocalCurrency &&
     limitsReady &&
-    !limitsPending &&
-    (!isMomo || (!!network_id && !!guestAccount));
+    !limitsPending;
 
   const formatUsdLimit = (value: number) =>
     `$${value.toLocaleString(undefined, {
@@ -282,31 +291,54 @@ const PayLocalAmount = ({
 
   return (
     <section className="flex flex-col h-full">
-      <div className="flex flex-col h-full justify-between items-center w-full px-4 md:px-0 mt-5">
-        <div className="w-full h-full overflow-y-auto">
-          <button type="button" onClick={goBack} className="mb-2">
-            <Image
-              className="w-3 h-3 md:w-[18px] md:h-[18px]"
-              src={"/icons/arrow-left.svg"}
-              width={18.48}
-              height={18.48}
-              alt="back"
-            />
-          </button>
-          <div className="flex flex-col justify-center items-center">
-            <div className="relative w-10 h-10">
-              <Avatar
-                src={data?.account_user?.selfie_image}
-                name={data?.account_user?.username}
-              />
+      <div className="flex flex-col h-full justify-between relative items-center w-full">
+        <div className="w-full">
+          <header className="flex items-start justify-between mb-4">
+            <div>
+             
+              <h2 className="hidden md:block text-raiz-gray-950 text-xl md:text-[23px] font-bold md:font-semibold leading-tight md:leading-10">
+                Send in USD
+              </h2>
+              <p className="hidden md:block text-raiz-gray-700 text-[15px] font-normal leading-snug">
+                How much do you want to send in (USD)?
+              </p>
             </div>
-            <p className="text-center mt-4 justify-start text-zinc-900 text-sm font-bold leading-none capitalize">
-              {data?.account_user?.username}
-            </p>
-            <p className="text-center mt-10 justify-start text-zinc-900 text-sm md:text-base mb-3">
-              How much do you want to send in USD?
-            </p>
-            <div className="relative w-full mt-3">
+            <svg
+              width="48"
+              height="48"
+              viewBox="0 0 48 48"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className="hidden md:block shrink-0"
+            >
+              <rect
+                width="48"
+                height="48"
+                rx="16"
+                fill="#EAECFF"
+                fillOpacity="0.4"
+              />
+              <path
+                d="M34.084 16.376C33.872 15.147 32.906 14.119 31.688 13.849C30.385 13.56 29.199 14.086 28.489 15H24V33H30C31.657 33 33 31.657 33 30V19.33C33.814 18.643 34.289 17.567 34.084 16.376Z"
+                fill="#F2ED9F"
+              />
+              <path
+                d="M31 12C28.239 12 26 14.239 26 17C26 18.977 28.001 21.704 29.471 23.441C30.27 24.385 31.73 24.385 32.529 23.441C33.999 21.704 36 18.977 36 17C36 14.239 33.761 12 31 12ZM31 19.143C29.817 19.143 28.857 18.184 28.857 17C28.857 15.816 29.817 14.857 31 14.857C32.183 14.857 33.143 15.817 33.143 17C33.143 18.183 32.183 19.143 31 19.143Z"
+                fill="#EDB637"
+              />
+              <path
+                d="M18.697 13.786L16.459 15.126C15.554 15.668 15 16.645 15 17.7V31.106C15 32.38 16.39 33.167 17.482 32.512L18.696 31.785C19.098 31.544 19.547 31.415 20 31.395V13.397C19.547 13.417 19.098 13.546 18.697 13.786Z"
+                fill="#F2ED9F"
+              />
+              <path
+                d="M21.359 13.6829C20.931 13.4699 20.463 13.3759 20 13.3969V31.3949C20.464 31.3749 20.932 31.4689 21.36 31.6829L24 32.9999V14.9999L21.359 13.6829Z"
+                fill="#EDB637"
+              />
+            </svg>
+          </header>
+
+          <div className="flex flex-col justify-center items-center mt-1 md:mt-6 mb-4">
+            <div className="relative w-full">
               <input
                 ref={inputRef}
                 value={displayValue()}
@@ -318,31 +350,88 @@ const PayLocalAmount = ({
                 className="w-full h-16 bg-transparent text-center text-2xl md:text-4xl font-bold focus:outline-none"
               />
             </div>
-            <div className="py-2 px-4 rounded-2xl flex items-center gap-3 text-zinc-900 text-[10px] md:text-xs bg-indigo-100/60">
+            <p className="text-primary2 text-xs  font-medium mt-1 text-center bg-[#F9F5FF] py-2 px-4 rounded-2xl">
               {limitsPending ? (
                 <span>Loading USD limits…</span>
               ) : usdLimitsError && selectedChannel ? (
                 <span>Unable to load USD limits. Please try again.</span>
               ) : limitsReady ? (
-                <>
-                  <div className="flex items-center gap-1">
-                    <span>Min</span>
-                    <span className="font-bold">{formatUsdLimit(min)}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span>Max</span>
-                    <span className="font-bold">{formatUsdLimit(max)}</span>
-                  </div>
-                </>
+                <span>
+                  Min {formatUsdLimit(min)} · Max {formatUsdLimit(max)}
+                </span>
               ) : (
-                <span>Select a payment method to see USD limits</span>
+                <span>Select a payment method to see USD limit</span>
               )}
-            </div>
-
+            </p>
+            {canQuoteFx && (
+              <div className="mt-2 w-full flex justify-center">
+                {fxQuoteFetching && !fxQuote ? (
+                  <p className="text-xs text-zinc-500">Getting rate…</p>
+                ) : fxQuote && !fxQuoteError ? (
+                  <div className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 rounded-full bg-[#EAECFF99] px-3 py-1.5">
+                    <p className="text-xs text-zinc-900">
+                      <span className="text-zinc-500">You pay </span>
+                      <span className="font-semibold">
+                        {localCurrencySymbol}
+                        {Number(fxQuote.local_amount).toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}{" "}
+                        {localCurrency}
+                      </span>
+                    </p>
+                    {fxQuote.rate > 0 && (
+                      <p className="text-[11px] text-zinc-500">
+                        · $1 = {localCurrencySymbol}
+                        {Number(fxQuote.rate).toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 4,
+                        })}
+                      </p>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            )}
             {error && <ErrorMessage message={error} />}
           </div>
+
+          <div className="mt-4 mb-5">
+            <p className="text-zinc-900 text-sm font-medium mb-3 font-brSonoma leading-normal">
+              <span className="md:hidden">Your Currency</span>
+              <span className="hidden md:inline">Recipient Currency</span>
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowCurrency(true)}
+              className="flex justify-between items-center p-3.5 bg-gray-100 rounded-xl w-full"
+            >
+              <div className="flex gap-2 items-center min-w-0">
+                <Image
+                  src={guestLocalCurrency?.logo ?? "/icons/website.svg"}
+                  width={24}
+                  height={24}
+                  alt=""
+                  className="rounded-full object-cover"
+                />
+                <span className="text-zinc-900 text-[13px] md:text-sm font-normal leading-tight truncate">
+                  {guestLocalCurrency
+                    ? `${guestLocalCurrency.currency} - ${guestLocalCurrency.name}`
+                    : "Select currency"}
+                </span>
+              </div>
+              <Image
+                src="/icons/arrow-down.svg"
+                alt=""
+                width={16}
+                height={16}
+                className="shrink-0"
+              />
+            </button>
+          </div>
+
           <SelectField
-            label="Payment method"
+            label="Payment Method"
             placeholder={
               channelsLoading
                 ? "Loading payment methods..."
@@ -364,107 +453,28 @@ const PayLocalAmount = ({
                 network_id: "",
                 network_name: "",
                 guestAccount: "",
-                // Keep previous USD defaults until the quote resolves.
                 min: AFRICA_USD_AMOUNT_MIN,
                 max: AFRICA_USD_AMOUNT_MAX,
               });
             }}
             value={
               paymentMethod
-                ? channelOptions.find((option) => option.value === paymentMethod) ||
-                  null
+                ? channelOptions.find(
+                    (option) => option.value === paymentMethod,
+                  ) || null
                 : null
             }
             height="auto"
           />
-          <div className="mt-8 mb-5">
-            <p className="text-zinc-900 text-sm font-medium mb-3 font-brSonoma leading-normal">
-              Your currency
-            </p>
-            <div className="flex justify-between items-center p-3.5 bg-gray-100 rounded-xl">
-              <div className="flex gap-1 items-center">
-                <Image
-                  src={guestLocalCurrency?.logo ?? "/icons/website.svg"}
-                  width={24}
-                  height={14}
-                  alt=""
-                />
-                <span className="text-zinc-900 text-[13px] md:text-sm font-normal leading-tight">
-                  {guestLocalCurrency
-                    ? `${guestLocalCurrency.name} (${guestLocalCurrency.currency})`
-                    : "Select currency"}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowCurrency(true)}
-                className="px-1.5 py-1 bg-zinc-200 rounded-lg text-zinc-700 text-xs font-medium font-brSonoma leading-tight"
-              >
-                {guestLocalCurrency ? "Change" : "Select"}
-              </button>
-            </div>
-          </div>
-
-          {isMomo && (
-            <div className="mt-4 flex flex-col gap-4">
-              <SelectField
-                label="Mobile money network"
-                placeholder={
-                  networksLoading
-                    ? "Loading networks..."
-                    : "Select mobile money network"
-                }
-                name="network"
-                options={networkOptions}
-                onChange={(i) => {
-                  if (!i?.value) return;
-                  const network = networks.find(
-                    (item) => item.network_id === String(i.value),
-                  );
-                  actions.setFields({
-                    network_id: String(i.value),
-                    network_name: network?.network_name || String(i.label || ""),
-                  });
-                }}
-                value={
-                  network_id
-                    ? networkOptions.find((option) => option.value === network_id) ||
-                      null
-                    : null
-                }
-                height="auto"
-              />
-              <PhoneNumberInput
-                defaultCountry={(guestLocalCurrency?.value || "KE") as Country}
-                label="Mobile money account number"
-                value={guestAccount}
-                onChange={(value) =>
-                  actions.setField("guestAccount", value || "")
-                }
-              />
-            </div>
-          )}
         </div>
-        <div className="w-full py-5">
-          <Button disabled={!canContinue} onClick={goNextHandler}>
-            Continue
-          </Button>
-          <p className="text-[13px] text-raiz-gray-900 text-center mt-2">
-            Don&#39;t have Raiz?{" "}
-            <Link
-              target="_blank"
-              className="font-bold"
-              href={"https://raizapp.onelink.me/RiOx/webdirect"}
-            >
-              Download
-            </Link>{" "}
-            Raiz app |{" "}
-            <Link target="_blank" className="font-bold" href={"/register"}>
-              Sign up{" "}
-            </Link>{" "}
-            on Raiz Business
-          </p>
-        </div>
+        <PayStepActions
+          onBack={goBack}
+          onContinue={goNextHandler}
+          continueDisabled={!canContinue}
+          continueLabel={
+            isMomo ? "Continue to provider" : "Continue to description"
+          }
+        />
       </div>
       {showCurrency && (
         <GuestSelectCurrency

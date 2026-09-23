@@ -16,6 +16,7 @@ import SwiftBeneficiarySelect from "./SwiftBeneficiarySelect";
 import SwiftAmountEntry from "./SwiftAmountEntry";
 import SwiftSummary from "./SwiftSummary";
 import SwiftPay from "./SwiftPay";
+import { isSwiftInvoiceRequired } from "./SwiftInvoiceDropzone";
 
 type SwiftStep = "beneficiary" | "amount" | "summary" | "pay" | "status";
 
@@ -56,9 +57,22 @@ const SwiftSend = ({ close }: Props) => {
       if (!beneficiary) {
         throw new Error("Missing SWIFT beneficiary");
       }
+      const numericAmount = Number(amount);
+      if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+        throw new Error("Enter a valid amount");
+      }
+      const invoiceRequired = isSwiftInvoiceRequired(
+        beneficiary.beneficiary_type,
+        numericAmount,
+      );
+      if (invoiceRequired && !invoiceFile) {
+        throw new Error(
+          "An invoice is required when paying a business or sending more than $5,000",
+        );
+      }
       const form = new FormData();
       form.append("beneficiary_id", beneficiary.swift_beneficiary_id);
-      form.append("amount", amount);
+      form.append("amount", numericAmount.toFixed(2));
       form.append("narration", narration.trim());
       form.append("transaction_pin", transactionPin);
       if (invoiceFile) form.append("invoice_file", invoiceFile);

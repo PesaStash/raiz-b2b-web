@@ -1,8 +1,7 @@
 "use client";
 import React, { useState } from "react";
-import Image from "next/image";
 import { useMutation } from "@tanstack/react-query";
-import Button from "@/components/ui/Button";
+import PayStepActions from "./PayStepActions";
 import OtpInputWithTimer from "@/components/ui/OtpInputWithTimer";
 import { useGuestSendStore } from "@/store/GuestSend";
 import {
@@ -73,23 +72,14 @@ const GuestPayerVerify = ({ goBack, goNext }: Props) => {
   };
 
   return (
-    <section className="flex flex-col h-full px-4">
-      <div className="mt-4">
-        <button type="button" onClick={goBack}>
-          <Image
-            className="w-3 h-3 md:w-[18px] md:h-[18px]"
-            src={"/icons/arrow-left.svg"}
-            width={18.48}
-            height={18.48}
-            alt="back"
-          />
-        </button>
+    <section className="flex flex-col h-full px-0 md:px-4">
+      <div className="mt-2 md:mt-4">
         <header className="flex items-center justify-between">
-          <h2 className="text-raiz-gray-950 text-lg md:text-[23px] font-semibold leading-10">
+          <h2 className="text-raiz-gray-950 text-xl md:text-[23px] font-bold md:font-semibold leading-tight md:leading-10">
             Verify your email
           </h2>
         </header>
-        <p className="text-raiz-gray-700 text-[13px] md:text-[15px] font-normal leading-snug">
+        <p className="text-raiz-gray-700 text-[15px] font-normal leading-snug">
           Verify your email to continue. We sent a code to{" "}
           <span className="font-semibold">{payer_email}</span>.
         </p>
@@ -105,14 +95,13 @@ const GuestPayerVerify = ({ goBack, goNext }: Props) => {
             onResend={handleResend}
           />
         </div>
-        <Button
-          type="button"
-          onClick={handleVerify}
-          disabled={verifyOtpMutation.isPending || otp.length < 6}
-          loading={verifyOtpMutation.isPending}
-        >
-          Verify email
-        </Button>
+        <PayStepActions
+          onBack={goBack}
+          onContinue={handleVerify}
+          continueLabel="Verify email"
+          continueDisabled={verifyOtpMutation.isPending || otp.length < 6}
+          continueLoading={verifyOtpMutation.isPending}
+        />
       </div>
     </section>
   );

@@ -19,6 +19,7 @@ const dashboardRoutes = [
   "/invoice",
   "/customers",
   "/bill-requests",
+  "/gateway",
   "/developers",
 ];
 

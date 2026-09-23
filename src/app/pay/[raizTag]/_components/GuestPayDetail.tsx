@@ -30,7 +30,7 @@ import {
 } from "@/services/business";
 import { toast } from "sonner";
 import { mapAfricaPayinError } from "./africaPayinUtils";
-import { getCurrencySymbol } from "@/utils/helpers";
+import { getAppRatingLink, getCurrencySymbol } from "@/utils/helpers";
 import Button from "@/components/ui/Button";
 import { GuestPayStatusType } from "@/types/transactions";
 
@@ -133,6 +133,16 @@ const GuestPayDetail = ({
         "The payment will be received when the transfer is completed.",
       );
     }
+  }, [actions, close, setStep, stopPolling, username]);
+
+  const handleSuccessDone = useCallback(() => {
+    sessionActiveRef.current = false;
+    stopPolling();
+    clearAfricaPayinSession(username);
+    setStep("payer_email");
+    close();
+    actions.resetPaymentSession();
+    window.location.assign(getAppRatingLink());
   }, [actions, close, setStep, stopPolling, username]);
 
   const handleRestart = useCallback(() => {
@@ -447,8 +457,7 @@ const GuestPayDetail = ({
               persistSession("details");
             }}
             goNext={confirmReview}
-            onCancel={cancelPayment}
-            loading={finalizeMutation.isPending || denyMutation.isPending}
+            loading={finalizeMutation.isPending}
             recipientName={
               data?.account_user?.account_name ||
               data?.account_user?.username ||
@@ -472,6 +481,7 @@ const GuestPayDetail = ({
             amount={amount}
             currency="USD"
             close={handleDone}
+            onSuccessDone={handleSuccessDone}
             error={paymentError}
             tryAgain={handleRestart}
             viewReceipt={() => setStep("receipt")}
@@ -524,7 +534,15 @@ const GuestPayDetail = ({
               </div>
             </div>
             <div className="mt-auto pb-2">
-              <Button onClick={handleDone}>Done</Button>
+              <Button
+                onClick={
+                  isSuccessAfricaPayinStatus(status)
+                    ? handleSuccessDone
+                    : handleDone
+                }
+              >
+                Done
+              </Button>
             </div>
           </section>
         );

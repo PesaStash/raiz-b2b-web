@@ -129,8 +129,6 @@ const DashboardSummary = () => {
     actions.reset(user);
   };
 
-  const canSwap = NGNAcct && USDAcct;
-
   const handleActionButton = (action: actionBtnKeytype) => {
     if (
       branchState.isNgnBranch &&
@@ -365,10 +363,16 @@ const DashboardSummary = () => {
           <MobileQuickActions
             onSend={() => handleActionButton("send")}
             onReceive={() => handleActionButton("request")}
-            onAddFunds={() => handleActionButton("topUp")}
+            onAddFunds={() => {
+              if (selectedCurrency.name === "SBC") {
+                toast.warning(
+                  "Add funds is not available for your crypto wallet.",
+                );
+                return;
+              }
+              handleActionButton("topUp");
+            }}
             onSwap={handleSwapClick}
-            hideSwap={!canSwap || selectedCurrency.name === "SBC"}
-            hideAddFunds={selectedCurrency.name === "SBC"}
           />
         </div>
       )}

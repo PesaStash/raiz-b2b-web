@@ -885,7 +885,6 @@ export const SwiftSendApi = async (
   const response = await AuthAxios.post(
     `/business/transactions/swift/send/`,
     formData,
-    { headers: { "Content-Type": "multipart/form-data" } },
   );
   return response.data;
 };
@@ -969,11 +968,10 @@ export const InitiateAuthAfricaPayinApi = async ({
 
 export const FinalizeAuthAfricaPayinApi = async ({
   payin_id,
-  transaction_pin,
 }: FinalizeFirstPartyAfricaPayinPayload): Promise<FinalizeAfricaPayinResponse> => {
   const response = await AuthAxios.post(
     `${AUTH_AFRICA_PAYIN_BASE}/finalize/?payin_id=${encodeURIComponent(payin_id)}`,
-    { transaction_pin },
+    undefined,
     { silent: true } as CustomAxiosRequestConfig,
   );
   return response.data;

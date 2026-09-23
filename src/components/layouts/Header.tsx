@@ -418,7 +418,7 @@ const Header = () => {
           )}
         </div>
       )}
-      <div ref={actionDropdownRef} className="relative hidden sm:block">
+      <div ref={actionDropdownRef} className="relative hidden lg:block">
         <button
           onClick={() => setShowActionOpts((prev) => !prev)}
           className="flex justify-between items-center gap-2 min-w-0 w-auto px-3 lg:min-w-[175px] lg:px-4 xl:min-w-[220px] h-12 bg-raiz-gray-50 rounded-[20px] transition-all duration-200 outline outline-1 outline-offset-[-1px] outline-white"

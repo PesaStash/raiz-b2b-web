@@ -17,6 +17,8 @@ import Image from "next/image";
 interface Props {
   status: GuestPayStatusType;
   close: () => void;
+  /** Success Done only — opens App Store / Play Store after clearing session. */
+  onSuccessDone?: () => void;
   error: string;
   tryAgain: () => void;
   viewReceipt: () => void;
@@ -64,6 +66,7 @@ const TerminalMessage = ({
 const GuestSendStatusModal = ({
   status,
   close,
+  onSuccessDone,
   error,
   tryAgain,
   viewReceipt,
@@ -79,7 +82,7 @@ const GuestSendStatusModal = ({
         <SuccessStatus
           text="Your payment has been confirmed."
           title={`You've successfully sent ${amountLabel} to ${merchantName}`}
-          close={close}
+          close={onSuccessDone || close}
           viewReceipt={viewReceipt}
         />
       );
