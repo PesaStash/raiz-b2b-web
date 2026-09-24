@@ -11,12 +11,18 @@ import WebhookSettings from "@/app/(dashboard)/developers/_components/WebhookSet
 
 type GatewayTab = "api-keys" | "settlement" | "ngn-payouts" | "webhooks";
 
-const TABS: { id: GatewayTab; label: string }[] = [
-  { id: "api-keys", label: "Developer API Keys" },
-  { id: "settlement", label: "Settlement Settings" },
-  { id: "ngn-payouts", label: "NGN Virtual Payouts" },
-  { id: "webhooks", label: "Webhook Settings" },
-];
+const TABS: { id: GatewayTab | "remittance"; label: string; href?: string }[] =
+  [
+    { id: "api-keys", label: "Developer API Keys" },
+    { id: "settlement", label: "Settlement Settings" },
+    {
+      id: "remittance",
+      label: "Remittance Settlement",
+      href: "/gateway/settlement",
+    },
+    { id: "ngn-payouts", label: "NGN Virtual Payouts" },
+    { id: "webhooks", label: "Webhook Settings" },
+  ];
 
 const GatewaySettingsPage = () => {
   const [showModal, setShowModal] = useState(false);
@@ -43,17 +49,9 @@ const GatewaySettingsPage = () => {
                   />
                 </svg>
               </Link>
-              <div className="min-w-0">
-                <h2 className="hidden md:block text-raiz-gray-950 text-xl md:text-[23px] font-bold leading-7">
-                  Gateway Settings
-                </h2>
-                <Link
-                  href="/gateway/settlement"
-                  className="inline-block mt-1 text-sm text-[#7F56D9] hover:underline font-medium"
-                >
-                  Remittance settlement
-                </Link>
-              </div>
+              <h2 className="hidden md:block text-raiz-gray-950 text-xl md:text-[23px] font-bold leading-7 min-w-0">
+                Gateway Settings
+              </h2>
             </div>
             {activeTab === "api-keys" && (
               <div className="flex flex-wrap justify-between items-center gap-3 shrink-0">
@@ -79,20 +77,32 @@ const GatewaySettingsPage = () => {
           </div>
 
           <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto no-scrollbar -mx-1 px-1">
-            {TABS.map((tab) => (
-              <button
-                type="button"
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`pb-1 text-xs md:text-sm text-raiz-gray-950  border-b-2 transition-colors whitespace-nowrap shrink-0 ${
-                  activeTab === tab.id
-                    ? "border-[#7F56D9] font-semibold"
-                    : "border-transparent  hover:text-raiz-gray-700"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+            {TABS.map((tab) => {
+              const className = `pb-1 text-xs md:text-sm text-raiz-gray-950 border-b-2 transition-colors whitespace-nowrap shrink-0 ${
+                activeTab === tab.id
+                  ? "border-[#7F56D9] font-semibold"
+                  : "border-transparent hover:text-raiz-gray-700"
+              }`;
+
+              if (tab.href) {
+                return (
+                  <Link key={tab.id} href={tab.href} className={className}>
+                    {tab.label}
+                  </Link>
+                );
+              }
+
+              return (
+                <button
+                  type="button"
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as GatewayTab)}
+                  className={className}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 

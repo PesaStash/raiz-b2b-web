@@ -18,7 +18,29 @@ import {
   GatewayExternalWalletRail,
   GatewayRemittanceSettlementType,
 } from "@/types/services";
+import { IWallet } from "@/types/user";
+import { formatAmount } from "@/utils/helpers";
 import { GATEWAY_EXTERNAL_RAIL_OPTIONS } from "../_utils/subaccountHelpers";
+
+const formatUsdWalletLabel = (wallet: IWallet) => {
+  const name = wallet.wallet_name || "USD Wallet";
+  const accountName = wallet.account_name?.trim();
+  const balance = formatAmount(wallet.account_balance ?? 0, {
+    currency: "USD",
+  });
+
+  return [
+    name,
+    accountName && accountName.toLowerCase() !== name.toLowerCase()
+      ? accountName
+      : null,
+    wallet.bank_name,
+    wallet.account_number,
+    balance,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+};
 
 const ASSET_OPTIONS: Option[] = [
   { value: "USDC", label: "USDC" },
@@ -47,9 +69,7 @@ const RemittanceSettlementPage = () => {
     () =>
       usdWallets.map((wallet) => ({
         value: wallet.wallet_id,
-        label: `${wallet.wallet_name || "USD Wallet"}${
-          wallet.account_number ? ` · ${wallet.account_number}` : ""
-        }`,
+        label: formatUsdWalletLabel(wallet),
       })),
     [usdWallets],
   );
@@ -117,9 +137,9 @@ const RemittanceSettlementPage = () => {
     <div className="flex flex-col gap-5 md:gap-6 min-w-0 pb-24 md:pb-8 max-w-3xl">
       <div className="flex items-center gap-3">
         <Link
-          href="/gateway"
+          href="/gateway/settings"
           className="inline-flex items-center justify-center size-9 rounded-full border border-raiz-gray-200 hover:bg-raiz-gray-50 shrink-0"
-          aria-label="Back to Gateway"
+          aria-label="Back to Gateway Settings"
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path
