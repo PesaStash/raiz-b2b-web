@@ -1,4 +1,5 @@
 "use client";
+import { BusinessWrite } from "@/components/team/BusinessWrite";
 import Button from "@/components/ui/Button";
 import React from "react";
 import InvoicesTable from "./_components/InvoicesTable";
@@ -15,7 +16,7 @@ const InvoicePage = () => {
         <h2 className="hidden md:block text-zinc-900 text-2xl font-bold leading-7">
           Invoices
         </h2>
-        <Link href="/invoice/create-new" className="ml-auto shrink-0">
+        <BusinessWrite><Link href="/invoice/create-new" className="ml-auto shrink-0">
           <Button
             className="!h-9 md:!h-10  px-3.5 w-[157px] whitespace-nowrap"
             icon={
@@ -30,7 +31,7 @@ const InvoicePage = () => {
           >
             <span className="ml-2 text-sm">New Invoice</span>
           </Button>
-        </Link>
+        </Link></BusinessWrite>
       </div>
       <InvoicesTable />
       {/* <AnimatePresence>

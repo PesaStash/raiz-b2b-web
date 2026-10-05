@@ -1,10 +1,9 @@
 "use client";
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import DeveloperKeysTable from "@/app/(dashboard)/developers/_components/DeveloperKeysTable";
-import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
-import CreateKeysModal from "@/app/(dashboard)/developers/_components/CreateKeysModal";
 import SettlementSettings from "@/app/(dashboard)/developers/_components/SettlementSettings";
 import NgnPayoutSettings from "@/app/(dashboard)/developers/_components/NgnPayoutSettings";
 import WebhookSettings from "@/app/(dashboard)/developers/_components/WebhookSettings";
@@ -25,7 +24,7 @@ const TABS: { id: GatewayTab | "remittance"; label: string; href?: string }[] =
   ];
 
 const GatewaySettingsPage = () => {
-  const [showModal, setShowModal] = useState(false);
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<GatewayTab>("api-keys");
 
   return (
@@ -57,7 +56,7 @@ const GatewaySettingsPage = () => {
               <div className="flex flex-wrap justify-between items-center gap-3 shrink-0">
                 <div className="hidden md:block" />
                 <Button
-                  onClick={() => setShowModal(true)}
+                  onClick={() => router.push("/gateway/settings/keys/new")}
                   className="px-5 py-2.5 h-10 gap-2 rounded-full flex items-center w-full sm:w-auto sm:min-w-[188px]"
                   icon={
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -153,7 +152,7 @@ const GatewaySettingsPage = () => {
                 </p>
               </div>
             </div>
-            <DeveloperKeysTable onGenerateKey={() => setShowModal(true)} />
+            <DeveloperKeysTable onGenerateKey={() => router.push("/gateway/settings/keys/new")} />
           </>
         )}
 
@@ -168,11 +167,7 @@ const GatewaySettingsPage = () => {
 
         {activeTab === "webhooks" && <WebhookSettings />}
       </section>
-      {showModal && (
-        <CenterModalWrapper close={() => setShowModal(false)}>
-          <CreateKeysModal close={() => setShowModal(false)} />
-        </CenterModalWrapper>
-      )}
+
     </>
   );
 };

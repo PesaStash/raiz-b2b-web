@@ -1,4 +1,5 @@
 "use client";
+import { withBusinessWrite } from "@/components/team/BusinessWrite";
 import React, { useState } from "react";
 import Tabs from "@/components/ui/Tabs";
 import SideWrapperHeader from "@/components/SideWrapperHeader";
@@ -76,4 +77,4 @@ const NgnSend = ({ close }: { close: () => void }) => {
   );
 };
 
-export default NgnSend;
+export default withBusinessWrite(NgnSend);

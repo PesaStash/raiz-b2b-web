@@ -1,5 +1,6 @@
 "use client";
 
+import { usePermissions } from "@/lib/hooks/usePermissions";
 import React, { ReactNode, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -54,6 +55,7 @@ type StatusConfig = {
 
 const Sidebar = () => {
   const { user, refetch } = useUser();
+  const { canManageTeam, canWriteBusiness } = usePermissions();
   const pathName = usePathname();
   const { selectedCurrency } = useCurrencyStore();
   const { effectiveCollapsed, isLargeDesktop, toggleCollapsed } = useSidebar();
@@ -319,7 +321,10 @@ const Sidebar = () => {
     },
   ];
 
-  const activeStatus = statuses.find((s) => s.condition) ?? null;
+  const visibleStatuses = canWriteBusiness
+    ? statuses.filter((status) => status.condition)
+    : [];
+  const activeStatus = visibleStatuses[0] ?? null;
 
   const triggerActiveStatus = () => {
     if (!activeStatus) return;
@@ -331,8 +336,8 @@ const Sidebar = () => {
     [],
   );
   const manageItems = useMemo(
-    () => SidebarMenus.filter((m) => m.section === "manage"),
-    [],
+    () => SidebarMenus.filter((m) => m.section === "manage" && (m.link !== "/team" || canManageTeam)),
+    [canManageTeam],
   );
 
   const renderSection = (
@@ -450,13 +455,11 @@ const Sidebar = () => {
           {renderSection("overview", overviewItems)}
           {renderSection("manage", manageItems, true)}
 
-          {!effectiveCollapsed && verificationStatus && (
+          {!effectiveCollapsed && verificationStatus && visibleStatuses.length > 0 && (
             <div className="mt-auto flex w-full flex-col gap-3 pt-4">
-              {statuses.map((status, index) =>
-                status.condition ? (
-                  <StatusCard key={index} {...status} />
-                ) : null,
-              )}
+              {visibleStatuses.map((status) => (
+                <StatusCard key={status.title} {...status} />
+              ))}
             </div>
           )}
         </nav>

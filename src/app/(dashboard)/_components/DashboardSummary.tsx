@@ -1,4 +1,6 @@
 "use client";
+import { usePermissions } from "@/lib/hooks/usePermissions";
+
 import React, { useEffect, useState } from "react";
 import { AnimatePresence } from "motion/react";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
@@ -52,6 +54,7 @@ const PROFILE_COMPLETED_KEY = "raiz_profile_completed_fired";
 
 const DashboardSummary = () => {
   const { user, refetch, isLoading } = useUser();
+  const { canWriteBusiness } = usePermissions();
   const walletData = user?.business_account?.wallets;
   const { actions: sendActions } = useSendStore();
   const { actions } = useSwapStore();
@@ -384,7 +387,7 @@ const DashboardSummary = () => {
           Hi, {user?.first_name} 👋🏾{" "}
         </h1>
         <div className="flex flex-wrap gap-2 md:gap-4 items-center">
-          {actionBtnsOpts.map(({ name, key, icon }) => {
+          {(canWriteBusiness ? actionBtnsOpts : []).map(({ name, key, icon }) => {
             const isSwap = key === "swap";
             if (
               key !== "swap" &&

@@ -1,4 +1,5 @@
 import React, { useRef, useState } from "react";
+import { BusinessWrite } from "@/components/team/BusinessWrite";
 import SideModalWrapper from "../SideModalWrapper";
 import SideWrapperHeader from "@/components/SideWrapperHeader";
 import Image from "next/image";
@@ -180,15 +181,15 @@ const ReceivedRequests = ({
                                 </div>
                               </div>
                               <div className="flex gap-2 items-center">
-                                <button
+                                <BusinessWrite><button
                                   onClick={() =>
                                     handleClickRequest(each, "reject")
                                   }
                                   className="px-5 py-2 bg-orange-100 rounded-3xl inline-flex justify-center items-center text-zinc-800 text-xs font-medium font-brSonoma "
                                 >
                                   Reject
-                                </button>
-                                <button
+                                </button></BusinessWrite>
+                                <BusinessWrite><button
                                   onClick={() =>
                                     handleClickRequest(each, "accept")
                                   }
@@ -205,7 +206,7 @@ const ReceivedRequests = ({
                                       fill="#F4F4F4"
                                     />
                                   </svg>
-                                </button>
+                                </button></BusinessWrite>
                               </div>
                             </div>
                           </div>

@@ -8,6 +8,11 @@ import { toast } from "sonner";
 import { GetItemFromCookie } from "@/utils/CookiesFunc";
 import { fetchPublicIP, getApiErrorMessage } from "@/utils/helpers";
 
+import { endSession, refreshSessionProfile } from "@/lib/session";
+import { readApiError } from "@/lib/apiError";
+import { canMakeRequest, isPublicPath } from "@/lib/permissions";
+import { useUserStore } from "@/store/useUserStore";
+
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
 interface ErrorResponseData {
@@ -32,22 +37,15 @@ const handleError = async (error: CustomAxiosError) => {
 
     // Check for 401 status and redirect to login
     if (error.response?.status === 401) {
-      if (typeof window !== "undefined") {
-        const publicRoutes = [
-          "/login",
-          "/register",
-          "/forgot-password",
-          "/verify",
-          "/pay",
-        ];
-        const isPublicRoute = publicRoutes.some((route) =>
-          window.location.pathname.startsWith(route),
-        );
-        if (!isPublicRoute) {
-          window.location.href = "/login";
-        }
+      if (typeof window !== "undefined" && !isPublicPath(window.location.pathname)) {
+        const { code } = readApiError(error);
+        endSession(/deactivat|inactive/.test(code));
       }
-      return Promise.reject(error.response);
+      return Promise.reject(error.response ?? error);
+    }
+    if (error.response?.status === 403) {
+      useUserStore.setState({ sessionVerified: false });
+      if (!error.config?.url?.replace(/\/$/, "").endsWith("/account_user/me")) refreshSessionProfile();
     }
     if (!isSilent) {
       const message = getApiErrorMessage(error, "An error occurred");
@@ -59,7 +57,7 @@ const handleError = async (error: CustomAxiosError) => {
     // Never let error-display logic crash the app.
   }
 
-  return Promise.reject(error.response);
+  return Promise.reject(error.response ?? error);
 };
 
 // Fetch IP and cache it
@@ -72,6 +70,14 @@ export const AuthAxios: AxiosInstance = axios.create({
 AuthAxios.interceptors.request.use(
   async (config) => {
     const token = GetItemFromCookie("access_token");
+    const method = (config.method ?? "get").toLowerCase();
+    const path = new URL(config.url ?? "/", "https://local.invalid").pathname;
+    const state = useUserStore.getState();
+    if (!canMakeRequest(state.sessionVerified ? state.user : null, method, path)) {
+      throw new axios.AxiosError("Your role does not allow this action.", "ERR_FORBIDDEN", config, undefined, {
+        status: 403, statusText: "Forbidden", data: { message: "Your role does not allow this action." }, headers: {}, config,
+      });
+    }
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

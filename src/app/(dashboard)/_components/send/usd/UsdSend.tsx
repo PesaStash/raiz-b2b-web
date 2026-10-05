@@ -1,3 +1,4 @@
+import { withBusinessWrite } from "@/components/team/BusinessWrite";
 import React from "react";
 import SendOptions from "./SendOptions";
 import ToRaizers from "./toRaizers/ToRaizers";
@@ -54,4 +55,4 @@ const UsdSend = ({ close }: Props) => {
   return <>{displayStep()}</>;
 };
 
-export default UsdSend;
+export default withBusinessWrite(UsdSend);

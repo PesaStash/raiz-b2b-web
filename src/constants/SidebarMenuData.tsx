@@ -535,6 +535,12 @@ export const SidebarMenus: ISidebarMenuItem[] = [
     icon: SettingsIcon,
   },
   {
+    name: "Team members",
+    link: "/team",
+    section: "manage",
+    icon: () => iconBox("/icons/sidebar/profile-2user.svg", "Team members"),
+  },
+  {
     name: "Feedback & Requests",
     link: "#",
     section: "manage",

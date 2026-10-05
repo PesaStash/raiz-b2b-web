@@ -1,4 +1,6 @@
 "use client";
+import { usePermissions } from "@/lib/hooks/usePermissions";
+
 
 type Props = {
   onSend: () => void;
@@ -100,6 +102,8 @@ const actions: {
 ];
 
 const MobileQuickActions = (props: Props) => {
+  const { canWriteBusiness } = usePermissions();
+  if (!canWriteBusiness) return null;
   return (
     <div className="mt-5 grid grid-cols-2 gap-2 md:grid-cols-4 lg:hidden">
       {actions.map((action) => (

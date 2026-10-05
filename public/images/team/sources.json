@@ -1,0 +1,155 @@
+{
+  "figmaFile": "7EWVhlnNFEoaVxYBp6j07O",
+  "assets": [
+    {
+      "file": "invite.svg",
+      "node": "31856:42889",
+      "source": "https://www.figma.com/api/mcp/asset/99356201-d3a8-4057-8bf3-d80539f4d117.svg"
+    },
+    {
+      "file": "radio.svg",
+      "node": "31856:42889",
+      "source": "https://www.figma.com/api/mcp/asset/e57e8c6f-633a-4e12-b385-ba0826bed164.svg"
+    },
+    {
+      "file": "info.svg",
+      "node": "31856:42889",
+      "source": "https://www.figma.com/api/mcp/asset/58a3503b-03bf-4cc6-9d46-2428b8d60ae6.svg"
+    },
+    {
+      "file": "developer.svg",
+      "node": "31856:39942",
+      "source": "https://www.figma.com/api/mcp/asset/60efb4a0-597e-46bc-b0a5-a7e90662a849.svg"
+    },
+    {
+      "file": "admin.svg",
+      "node": "31856:40535",
+      "source": "https://www.figma.com/api/mcp/asset/3acafac6-071a-472b-8539-5d64f1460b27.svg"
+    },
+    {
+      "file": "deactivate.svg",
+      "node": "31856:41128",
+      "source": "https://www.figma.com/api/mcp/asset/517362f7-0308-442d-8c3e-77ff8b2dcffc.svg"
+    },
+    {
+      "file": "reactivate.svg",
+      "node": "31856:41721",
+      "source": "https://www.figma.com/api/mcp/asset/616cd161-e2a8-47a9-95db-8e8a977af70c.svg"
+    },
+    {
+      "file": "revoke.svg",
+      "node": "31856:42314",
+      "source": "https://www.figma.com/api/mcp/asset/92a91e12-1e49-4de3-b520-4b6ab69c163d.svg"
+    },
+    {
+      "file": "resend.svg",
+      "node": "31856:39349",
+      "source": "https://www.figma.com/api/mcp/asset/f2e23538-3cec-462a-b2de-30b54db62242.svg"
+    },
+    {
+      "file": "success.svg",
+      "node": "31856:44854",
+      "source": "https://www.figma.com/api/mcp/asset/186a2561-8ff2-4c33-9b5b-f32e14d37f2c.svg"
+    },
+    {
+      "file": "signed-out.svg",
+      "node": "31856:44965",
+      "source": "https://www.figma.com/api/mcp/asset/ce620161-fbba-4e60-9957-45df09ffc155.svg"
+    },
+    {
+      "file": "expired.svg",
+      "node": "31856:45082",
+      "source": "https://www.figma.com/api/mcp/asset/8523fd48-5fed-4f8f-bd91-c74a7ef0e404.svg"
+    },
+    {
+      "file": "unavailable.svg",
+      "node": "31856:45194",
+      "source": "https://www.figma.com/api/mcp/asset/c31a2d69-1d5c-4974-a096-852c735ca619.svg"
+    },
+    {
+      "file": "used.svg",
+      "node": "31856:45305",
+      "source": "https://www.figma.com/api/mcp/asset/ac0fd00a-53f8-429e-8a59-25762c4b9250.svg"
+    },
+    {
+      "file": "invitation-hero.png",
+      "node": "31856:44648",
+      "source": "https://www.figma.com/api/mcp/asset/efe4adec-e94f-4053-89be-d730a0a96498.png"
+    },
+    {
+      "file": "name.svg",
+      "node": "31856:44648",
+      "source": "https://www.figma.com/api/mcp/asset/6b3f7f1f-ac10-42ca-abf0-25a7f9185fac.svg"
+    },
+    {
+      "file": "lock-field.svg",
+      "node": "31856:44648",
+      "source": "https://www.figma.com/api/mcp/asset/672e8b9e-920d-4443-b21a-2eb464d671c8.svg"
+    },
+    {
+      "file": "back.svg",
+      "node": "31843:50539",
+      "source": "https://www.figma.com/api/mcp/asset/2685569b-72b1-4427-80fc-e5d3cf66b0c0.svg"
+    },
+    {
+      "file": "user-plus.svg",
+      "node": "31843:50539",
+      "source": "https://www.figma.com/api/mcp/asset/79d86e33-afa7-43b9-85f9-ceb7cff17fe8.svg"
+    },
+    {
+      "file": "lock-mobile.svg",
+      "node": "31843:50539",
+      "source": "https://www.figma.com/api/mcp/asset/609c6be9-7881-4bd4-bcbd-c4ec23d532d8.svg"
+    },
+    {
+      "file": "add.svg",
+      "node": "31856:37556",
+      "source": "https://www.figma.com/api/mcp/asset/7f8e2837-dd08-49c5-923b-34eaf538a3de.svg"
+    },
+    {
+      "file": "more.svg",
+      "node": "31856:37563",
+      "source": "https://www.figma.com/api/mcp/asset/3f7ceddb-1bd8-438e-acee-81172434b67e.svg"
+    },
+    {
+      "file": "calendar.svg",
+      "node": "31856:37563",
+      "source": "https://www.figma.com/api/mcp/asset/c0481cf3-9e32-430c-a440-5ac39d290cc8.svg"
+    },
+    {
+      "file": "filter.svg",
+      "node": "31856:37563",
+      "source": "https://www.figma.com/api/mcp/asset/faa294e4-604b-4253-b992-497ef706b83d.svg"
+    },
+    {
+      "file": "person.svg",
+      "node": "31856:37563",
+      "source": "https://www.figma.com/api/mcp/asset/9a98f143-872d-4312-a056-0c4c9abd86e7.svg"
+    },
+    {
+      "file": "lock.svg",
+      "node": "31856:37563",
+      "source": "https://www.figma.com/api/mcp/asset/f1521eea-505c-47b5-bafd-bbc04eedd3be.svg"
+    },
+    {
+      "file": "members-empty.svg",
+      "node": "31856:44616",
+      "source": "https://www.figma.com/api/mcp/asset/818f895b-dcc0-46b0-ac98-0672a7e84506.svg"
+    },
+    {
+      "file": "key.svg",
+      "node": "31856:38113",
+      "source": "https://www.figma.com/api/mcp/asset/55a9911f-ba7f-4258-8baa-6bc0af200dd0.svg"
+    },
+    {
+      "file": "restriction.svg",
+      "node": "31856:38113",
+      "source": "https://www.figma.com/api/mcp/asset/641112df-0e8a-449d-8aa9-04b2f5f43ffd.svg"
+    },
+    {
+      "file": "scope-lock.svg",
+      "node": "31856:38113",
+      "source": "https://www.figma.com/api/mcp/asset/f4bd51d7-db22-4390-86f2-6377ff6e3e4f.svg"
+    }
+  ]
+}

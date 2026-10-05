@@ -1,4 +1,7 @@
 "use client";
+import { BusinessWrite } from "@/components/team/BusinessWrite";
+import { usePermissions } from "@/lib/hooks/usePermissions";
+
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -50,7 +53,7 @@ const ASSET_OPTIONS: Option[] = [
 const RemittanceSettlementPage = () => {
   const { user } = useUser();
   const queryClient = useQueryClient();
-  const isPrimary = user?.is_primary ?? false;
+  const { canWriteBusiness: isPrimary } = usePermissions();
 
   const { data, isLoading } = useQuery({
     queryKey: ["gateway-remittance-settlement"],
@@ -132,6 +135,8 @@ const RemittanceSettlementPage = () => {
       external_wallet_address: address.trim(),
     });
   };
+
+  if (!isPrimary) return <section className="bg-white rounded-2xl p-6 space-y-3"><Link href="/gateway/settings" className="text-sm underline">Back to Gateway settings</Link><h1 className="text-xl font-bold">Remittance settlement</h1><p className="text-sm text-raiz-gray-600">An owner or admin can change settlement settings.</p>{isLoading ? <p role="status">Loading…</p> : <dl className="space-y-3 text-sm"><div><dt>Settlement destination</dt><dd className="font-semibold">{settlementType === "raiz_usd_wallet" ? "Raiz USD wallet" : "External stablecoin wallet"}</dd></div><div><dt>{settlementType === "raiz_usd_wallet" ? "Wallet" : "Address"}</dt><dd className="break-all">{settlementType === "raiz_usd_wallet" ? walletOptions.find(option=>option.value===usdWalletId)?.label || "Not configured" : `${asset} · ${rail} · ${address}`}</dd></div></dl>}</section>;
 
   return (
     <div className="flex flex-col gap-5 md:gap-6 min-w-0 pb-24 md:pb-8 max-w-3xl">
@@ -304,14 +309,14 @@ const RemittanceSettlementPage = () => {
         ) : null}
 
         <div className="flex justify-end">
-          <Button
+          <BusinessWrite><Button
             className="!w-auto h-11 px-6 rounded-full"
             disabled={!canSave}
             loading={isPending}
             onClick={handleSave}
           >
             Save settlement
-          </Button>
+          </Button></BusinessWrite>
         </div>
       </div>
     </div>

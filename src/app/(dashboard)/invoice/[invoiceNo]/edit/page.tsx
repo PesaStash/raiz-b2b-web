@@ -1,4 +1,5 @@
 "use client";
+import { withBusinessWrite } from "@/components/team/BusinessWrite";
 import React, { useRef, useState, useEffect } from "react";
 import { Formik, FormikProps } from "formik";
 import { z } from "zod";
@@ -890,4 +891,4 @@ const EditInvoicePage = () => {
   );
 };
 
-export default EditInvoicePage;
+export default withBusinessWrite(EditInvoicePage);

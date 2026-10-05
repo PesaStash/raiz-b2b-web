@@ -1,4 +1,5 @@
 "use client";
+import { BusinessWrite } from "@/components/team/BusinessWrite";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -231,7 +232,7 @@ const MobileSettingsMenu = () => {
           badge={<NotificationRecipientsNewBadge className="shrink-0 px-2 py-0.5 w-auto" />}
           showDivider
         />
-        <MenuRow
+        <BusinessWrite><MenuRow
           icon={freezeMenu.icon()}
           title={
             freezeType === "disable" ? "Freeze Account" : "Unfreeze Account"
@@ -239,7 +240,7 @@ const MobileSettingsMenu = () => {
           subtitle="Temporarily block all debits"
           onClick={handleFreezeClick}
           showDivider
-        />
+        /></BusinessWrite>
       </Section>
 
       <Section label="Help & Support">
@@ -268,12 +269,12 @@ const MobileSettingsMenu = () => {
       </Section>
 
       <Section label="Account actions">
-        <MenuRow
+        <BusinessWrite><MenuRow
           icon={deleteMenu.icon()}
           title="Delete Account"
           subtitle="Contact support to remove your account"
           onClick={handleDeleteClick}
-        />
+        /></BusinessWrite>
       </Section>
 
       <Section label="Session">

@@ -1,4 +1,5 @@
 "use client";
+import { BusinessWrite } from "@/components/team/BusinessWrite";
 import Button from "@/components/ui/Button";
 import React, { useState } from "react";
 import CustomersTable from "./_components/CustomersTable";
@@ -15,7 +16,7 @@ const CustomerPage = () => {
         <h2 className="hidden md:block text-zinc-900 text-xl md:text-2xl font-bold leading-7">
           Customers
         </h2>
-        <Button
+        <BusinessWrite><Button
           onClick={() => setShowAddCustomer(true)}
           className="w-full sm:w-auto min-w-0 sm:min-w-[175px] h-11"
           icon={
@@ -29,7 +30,7 @@ const CustomerPage = () => {
           iconPosition="left"
         >
           <span className="ml-2 sm:ml-4">Add Customer</span>
-        </Button>
+        </Button></BusinessWrite>
       </div>
       <CustomersTable />
       <AnimatePresence>

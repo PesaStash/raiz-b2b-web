@@ -1,3 +1,4 @@
+import { withBusinessWrite } from "@/components/team/BusinessWrite";
 import Button from "@/components/ui/Button";
 import Overlay from "@/components/ui/Overlay";
 import Radio from "@/components/ui/Radio";
@@ -643,4 +644,4 @@ const Step = ({ status, title, description, children, isLast }: StepProps) => {
   );
 };
 
-export default AccountUpgrade;
+export default withBusinessWrite(AccountUpgrade);

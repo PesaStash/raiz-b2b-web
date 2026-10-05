@@ -1,4 +1,5 @@
 "use client";
+import { withBusinessWrite } from "@/components/team/BusinessWrite";
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { useFormik } from "formik";
@@ -193,4 +194,4 @@ const SetTransactionPin = ({ close }: Props) => {
   );
 };
 
-export default SetTransactionPin;
+export default withBusinessWrite(SetTransactionPin);

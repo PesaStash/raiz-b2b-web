@@ -1,4 +1,6 @@
 const PAGE_TITLES: { match: string | RegExp; title: string }[] = [
+  { match: "/team/invite", title: "Invite team member" },
+  { match: "/team", title: "Team members" },
   { match: /^\/$/, title: "Dashboard" },
   { match: "/transactions", title: "Transactions" },
   { match: "/customers", title: "Customers" },

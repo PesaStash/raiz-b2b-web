@@ -1,4 +1,5 @@
 "use client";
+import { withBusinessWrite } from "@/components/team/BusinessWrite";
 import React, { useEffect, useRef, useState } from "react";
 import SwapDetail from "./SwapDetail";
 import SwapConfirmation from "./SwapConfirmation";
@@ -394,4 +395,4 @@ const Swap = ({ close }: Props) => {
   return <div>{displayScreen()}</div>;
 };
 
-export default Swap;
+export default withBusinessWrite(Swap);

@@ -1,4 +1,7 @@
 "use client";
+import { usePathname } from "next/navigation";
+import { isPublicPath } from "@/lib/permissions";
+import { clearLocalSession } from "@/lib/session";
 import { useCallback } from "react";
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
@@ -18,6 +21,7 @@ import { getAnalyticsUserId } from "@/utils/analytics/userProps";
 const AUTO_LOGOUT_TIME = 10 * 60 * 1000; //  10 mins
 
 export const useAutoLogout = () => {
+  const pathname = usePathname();
   const clearUser = useUserStore.getState().clearUser;
   const router = useRouter();
   const qc = useQueryClient();
@@ -43,6 +47,7 @@ export const useAutoLogout = () => {
       RemoveItemFromCookie("access_token");
       qc.clear();
       clearUser();
+      clearLocalSession();
       router.push("/login");
     },
     onError: () => {
@@ -57,6 +62,7 @@ export const useAutoLogout = () => {
       RemoveItemFromCookie("access_token");
       qc.clear();
       clearUser();
+      clearLocalSession();
       router.push("/login");
     },
   });
@@ -64,13 +70,13 @@ export const useAutoLogout = () => {
   const onIdle = useCallback(() => {
     // Only execute logout if user is logged in
     const accessToken = Cookies.get("access_token");
-    if (!accessToken) {
+    if (!accessToken || isPublicPath(pathname)) {
       return; // Exit early if not authenticated
     }
 
     console.log("Logging out due to inactivity...");
     logoutMutation.mutate();
-  }, [logoutMutation]);
+  }, [logoutMutation, pathname]);
 
   // Use react-idle-timer to manage the idle state reliably
   useIdleTimer({
