@@ -47,7 +47,8 @@ const RaizReceipt = ({
       alert("Failed to generate receipt. Please try again.");
     }
   };
-  const { user } = useUser();
+  // Guest payment-link receipts must not call FetchUserApi.
+  const { user } = useUser({ enabled: type !== "guest" });
 
   useEffect(() => {
     const timer = setTimeout(() => {

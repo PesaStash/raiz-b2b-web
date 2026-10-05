@@ -1,4 +1,6 @@
 "use client";
+import { endSession, sessionGeneration } from "@/lib/session";
+import { isInactiveFlag, isPublicPath } from "@/lib/permissions";
 import { FetchUserApi } from "@/services/user";
 import { useUserStore } from "@/store/useUserStore";
 import { IUser } from "@/types/user";
@@ -6,15 +8,22 @@ import { GetItemFromCookie } from "@/utils/CookiesFunc";
 import { trackUserDataOnce } from "@/utils/analytics/userProps";
 import { useQuery } from "@tanstack/react-query";
 import { AxiosError } from "axios";
+import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 
-export const useUser = () => {
+export const useUser = (options?: { enabled?: boolean }) => {
   const { user, setUser, clearUser, updateUser, showBalance, setShowBalance } =
     useUserStore();
+  const pathname = usePathname();
   const token = GetItemFromCookie("access_token");
+  // Never fetch the authenticated profile on public payment-link pages.
+  const isPaymentLink = isPublicPath(pathname ?? "");
+  const shouldFetch =
+    (options?.enabled ?? true) && !!token && !isPaymentLink;
 
   const {
     data: userData,
+    dataUpdatedAt,
     isLoading: isFetching,
     error: fetchError,
     isSuccess,
@@ -23,16 +32,27 @@ export const useUser = () => {
     isRefetching,
   } = useQuery<IUser, AxiosError>({
     queryKey: ["user"],
-    queryFn: FetchUserApi,
-    enabled: !!token,
+    queryFn: async () => {
+      const generation = sessionGeneration();
+      const result = await FetchUserApi();
+      if (generation !== sessionGeneration()) throw new Error("Session ended");
+      if (isInactiveFlag(result.active)) { endSession(true); throw new Error("Access deactivated"); }
+      return result;
+    },
+    staleTime: 30000,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchInterval: 60000,
+    retry: false,
+    enabled: shouldFetch,
   });
 
   useEffect(() => {
-    if (isSuccess && userData) {
+    if (isSuccess && userData && shouldFetch && GetItemFromCookie("access_token")) {
       setUser(userData);
       trackUserDataOnce(userData);
     }
-  }, [isSuccess, userData, setUser]);
+  }, [isSuccess, userData, dataUpdatedAt, setUser, shouldFetch]);
 
   useEffect(() => {
     if (isError && fetchError) {
@@ -43,13 +63,14 @@ export const useUser = () => {
   }, [isError, fetchError]);
 
   return {
-    user: user || userData,
+    user: userData || user || undefined,
     isLoading: isFetching,
     error: fetchError,
     setUser,
     updateUser,
     clearUser,
-    refetch,
+    // refetch() bypasses `enabled`; block it on payment-link pages.
+    refetch: isPaymentLink ? (async () => undefined as never) : refetch,
     isRefetching,
     showBalance,
     setShowBalance,

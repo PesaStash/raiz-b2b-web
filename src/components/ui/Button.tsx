@@ -57,7 +57,7 @@ const Button: React.FC<ButtonProps> = ({
   const variants = {
     primary: getPrimaryStyles(),
     secondary: `bg-zinc-200 hover:bg-zinc-300 text-zinc-900`,
-    tertiary: `border border-zinc-300 hover:bg-zinc-600 text-zinc-900`,
+    tertiary: `border border-zinc-300 hover:bg-zinc-300 text-zinc-900`,
   };
 
   const widthStyles = {

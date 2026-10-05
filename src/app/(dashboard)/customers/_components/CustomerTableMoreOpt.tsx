@@ -1,4 +1,5 @@
 "use client";
+import { withBusinessWrite } from "@/components/team/BusinessWrite";
 import React, { useState } from "react";
 import { useOutsideClick } from "@/lib/hooks/useOutsideClick";
 import Image from "next/image";
@@ -78,4 +79,4 @@ const CustomerTableMoreOpt = ({
   );
 };
 
-export default CustomerTableMoreOpt;
+export default withBusinessWrite(CustomerTableMoreOpt);

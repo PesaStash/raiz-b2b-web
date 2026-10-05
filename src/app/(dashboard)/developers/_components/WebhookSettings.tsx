@@ -1,4 +1,6 @@
 "use client";
+import { usePermissions } from "@/lib/hooks/usePermissions";
+
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -55,7 +57,7 @@ const webhookToForm = (webhook: IGatewayWebhook): FormState => ({
 const WebhookSettings = () => {
   const { user } = useUser();
   const queryClient = useQueryClient();
-  const canEdit = user?.is_primary ?? false;
+  const { canManageDeveloperTools: canEdit } = usePermissions();
 
   const [form, setForm] = useState<FormState>(emptyForm);
   const [savedForm, setSavedForm] = useState<FormState>(emptyForm);

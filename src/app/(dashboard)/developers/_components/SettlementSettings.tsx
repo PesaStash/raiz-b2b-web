@@ -1,4 +1,7 @@
 "use client";
+import { BusinessWrite } from "@/components/team/BusinessWrite";
+import { usePermissions } from "@/lib/hooks/usePermissions";
+
 
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
@@ -161,7 +164,7 @@ const SettlementSettings = () => {
   const usdWallet = findWalletByCurrency(user, "USD");
   const ngnEligible = isWalletCompleted(ngnWallet);
   const usdEligible = isWalletCompleted(usdWallet);
-  const isPrimary = user?.is_primary ?? false;
+  const { canWriteBusiness: isPrimary } = usePermissions();
 
   const selectedWallet =
     selectedCurrency === "NGN" ? ngnWallet : usdWallet;
@@ -200,6 +203,8 @@ const SettlementSettings = () => {
     if (!canSave) return;
     mutate({ currency: selectedCurrency });
   };
+
+  if (!isPrimary) return <section className="bg-white rounded-2xl p-6 space-y-3"><h2 className="font-bold text-lg">Settlement settings</h2><p className="text-sm text-raiz-gray-600">An owner or admin can change settlement settings.</p><p className="text-sm">Default settlement currency: <strong>{savedCurrency}</strong></p><p className="text-sm">{selectedWallet?.account_name} {selectedWallet?.bank_name} {selectedWallet?.account_number}</p></section>;
 
   return (
     <div className="flex flex-col gap-4">
@@ -313,17 +318,17 @@ const SettlementSettings = () => {
 
         {!isPrimary && (
           <p className="text-raiz-gray-600 text-sm">
-            Only the primary business user can change this setting.
+            Only an owner or admin can change this setting.
           </p>
         )}
 
-        <Button
+        <BusinessWrite><Button
           onClick={handleSave}
           disabled={!canSave}
           className="w-full sm:w-fit px-6 py-2.5 h-10 rounded-full"
         >
           {isPending ? "Saving..." : "Save Settings"}
-        </Button>
+        </Button></BusinessWrite>
       </div>
     </div>
   );

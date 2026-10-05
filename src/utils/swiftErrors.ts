@@ -142,8 +142,13 @@ export function mapSwiftError(
   if (
     normalized.includes("unsupported file") ||
     normalized.includes("file type") ||
+    normalized.includes("jpeg, png, gif, webp, or pdf") ||
     normalized.includes("file too large") ||
-    normalized.includes("too large")
+    normalized.includes("too large") ||
+    normalized.includes("15 mb") ||
+    normalized.includes("document file is required") ||
+    normalized.includes("document file size exceeds") ||
+    normalized.includes("invoice is required")
   ) {
     return {
       kind: "file",

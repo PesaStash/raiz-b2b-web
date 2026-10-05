@@ -1,4 +1,5 @@
 "use client";
+import { usePermissions } from "@/lib/hooks/usePermissions";
 
 import Link from "next/link";
 import Image from "next/image";
@@ -31,6 +32,7 @@ const LogoutIcon = () => (
 );
 
 const MobileDrawer = () => {
+  const { canManageTeam } = usePermissions();
   const { isDrawerOpen, closeDrawer } = useMobileNav();
   const pathName = usePathname();
   const { user } = useUser();
@@ -94,7 +96,7 @@ const MobileDrawer = () => {
               </div>
 
               <nav className="flex-1 overflow-y-auto px-3 py-4 flex flex-col gap-1">
-                {SidebarMenus.map((item, index) => {
+                {SidebarMenus.filter(item => item.link !== "/team" || canManageTeam).map((item, index) => {
                   if (item.action === "feedback") {
                     return (
                       <button

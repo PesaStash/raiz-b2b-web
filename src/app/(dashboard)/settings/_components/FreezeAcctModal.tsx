@@ -1,4 +1,5 @@
 "use client";
+import { withBusinessWrite } from "@/components/team/BusinessWrite";
 import Button from "@/components/ui/Button";
 import NumberKeypad from "@/components/ui/NumberKeyPad";
 import Overlay from "@/components/ui/Overlay";
@@ -108,4 +109,4 @@ const FreezeAcctModal = ({ close, type }: Props) => {
   );
 };
 
-export default FreezeAcctModal;
+export default withBusinessWrite(FreezeAcctModal);

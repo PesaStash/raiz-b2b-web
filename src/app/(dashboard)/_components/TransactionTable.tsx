@@ -36,6 +36,7 @@ import ForeignSend from "./send/foreign/ForeignSend";
 import { AnimatePresence } from "motion/react";
 import SideModalWrapper from "./SideModalWrapper";
 import Pagination from "@/components/ui/Pagination";
+import StatusBadge from "@/components/ui/StatusBadge";
 import Image from "next/image";
 import DateRange from "../transactions/_components/DateRange";
 import { format } from "date-fns";
@@ -190,19 +191,14 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
       header: "Status",
       cell: (info) => {
         const status = info.getValue();
-        const dotColor =
+        const tone =
           status === "completed"
-            ? "bg-green-500"
+            ? "success"
             : status === "pending"
-              ? "bg-yellow-500"
-              : "bg-red-500";
+              ? "warning"
+              : "danger";
 
-        return (
-          <div className="w-fit flex items-center px-1.5 py-0.5 gap-1 text-xs font-brSonoma border border-raiz-gray-200 rounded-md">
-            <span className={`w-2 h-2 rounded-full ${dotColor}`}></span>
-            {status}
-          </div>
-        );
+        return <StatusBadge label={status} tone={tone} variant="outlined" />;
       },
     }),
     columnHelper.accessor("transaction_report_id", {

@@ -1,16 +1,19 @@
 "use client";
+import { usePermissions } from "@/lib/hooks/usePermissions";
+
 import React from "react";
 import { PartChildProps } from "../../help&support/_components/HelpSupportNav";
 import { loginSecurityData } from "@/constants/SettingsMenuData";
 import Image from "next/image";
 
 const LsNav = ({ setPart }: PartChildProps) => {
+  const { canWriteBusiness } = usePermissions();
   const handleNavigate = (part: number) => {
     setPart(part);
   };
   return (
     <div className=" flex flex-col gap-5 mt-10 w-full">
-      {loginSecurityData.map((data, index) => {
+      {loginSecurityData.filter(item => canWriteBusiness || item.part !== 2).map((data, index) => {
         return (
           <button
             onClick={() => handleNavigate(data.part)}

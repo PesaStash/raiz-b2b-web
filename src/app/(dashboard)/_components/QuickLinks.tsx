@@ -1,4 +1,6 @@
 "use client";
+import { usePermissions } from "@/lib/hooks/usePermissions";
+
 import Image from "next/image";
 import React, { useState } from "react";
 import NGNAcctInfo from "./acctInfo/NGNAcctInfo";
@@ -42,6 +44,7 @@ const Links: { title: string; icon: string; key: key }[] = [
 ];
 
 const QuickLinks = () => {
+  const { canWriteBusiness } = usePermissions();
   const { selectedCurrency } = useCurrencyStore();
   const [openModal, setOpenModal] = useState<key | null>(null);
   const { user } = useUser();
@@ -117,7 +120,7 @@ const QuickLinks = () => {
         </button> */}
       </div>
       <div className="flex justify-between gap-7 w-full overflow-x-scroll">
-        {Links.map((each, i) => (
+        {Links.filter(link => canWriteBusiness || link.key !== "top-up").map((each, i) => (
           <button
             key={i}
             onClick={() => handleQuickLinkClick(each.key)}

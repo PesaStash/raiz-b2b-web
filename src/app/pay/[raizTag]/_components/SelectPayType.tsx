@@ -68,7 +68,7 @@ const SelectPayType = ({
 
   const displayValue = () => {
     if (isFocused || !amount) return amount ? `$${rawAmount}` : "";
-    const num = parseFloat(rawAmount);
+    const num = Number(rawAmount);
     return isNaN(num) ? "" : `$${num.toFixed(2)}`;
   };
 

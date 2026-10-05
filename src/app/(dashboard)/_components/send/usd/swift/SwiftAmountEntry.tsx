@@ -7,7 +7,9 @@ import { formatAmount, getApiErrorMessage } from "@/utils/helpers";
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
-import SwiftInvoiceDropzone from "./SwiftInvoiceDropzone";
+import SwiftInvoiceDropzone, {
+  isSwiftInvoiceRequired,
+} from "./SwiftInvoiceDropzone";
 
 interface Props {
   beneficiary: ISwiftBeneficiary;
@@ -36,6 +38,10 @@ const SwiftAmountEntry = ({
   const [invoiceError, setInvoiceError] = useState("");
   const numericAmount = Number(debouncedAmount);
   const canQuote = Number.isFinite(numericAmount) && numericAmount > 0;
+  const invoiceRequired = isSwiftInvoiceRequired(
+    beneficiary.beneficiary_type,
+    Number(amount) || 0,
+  );
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedAmount(amount), 400);
@@ -59,10 +65,12 @@ const SwiftAmountEntry = ({
   const narrationValid =
     narration.trim().length >= 2 && narration.trim().length <= 500;
   const amountValid = /^\d+(\.\d{1,2})?$/.test(amount) && numericAmount > 0;
+  const invoiceValid = !invoiceRequired || !!invoiceFile;
 
   const canContinue =
     amountValid &&
     narrationValid &&
+    invoiceValid &&
     !invoiceError &&
     amount === debouncedAmount &&
     canQuote &&
@@ -111,9 +119,16 @@ const SwiftAmountEntry = ({
         <SwiftInvoiceDropzone
           file={invoiceFile}
           error={invoiceError}
+          required={invoiceRequired}
           onChange={onInvoiceChange}
           onError={setInvoiceError}
         />
+        {invoiceRequired && !invoiceFile && !invoiceError ? (
+          <p className="text-raiz-gray-500 text-xs mt-2">
+            An invoice is required when paying a business or sending more than
+            $5,000.
+          </p>
+        ) : null}
       </div>
 
       <div className="rounded-2xl bg-raiz-gray-50 p-4 mt-2 mb-6">

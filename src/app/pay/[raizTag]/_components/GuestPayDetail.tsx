@@ -4,13 +4,18 @@ import GuestPayAmount from "./GuestPayAmount";
 import GuestTransferSummary from "./GuestTransferSummary";
 import GuestPaymentInstructions from "./GuestPaymentInstructions";
 import GuestSendStatusModal from "./GuestSendStatusModal";
+import GuestPayerEmail from "./GuestPayerEmail";
+import GuestPayerRegister from "./GuestPayerRegister";
+import GuestPayerVerify from "./GuestPayerVerify";
 import {
   buildAfricaPayinSessionSnapshot,
   clearAfricaPayinSession,
   isCancelledAfricaPayinStatus,
+  isExpiredAfricaPayinStatus,
+  isPendingPaymentAfricaPayinStatus,
+  isProcessingAfricaPayinStatus,
   isSuccessAfricaPayinStatus,
   isTerminalAfricaPayinStatus,
-  normalizeAfricaPayinStep,
   saveAfricaPayinSession,
   useGuestSendStore,
 } from "@/store/GuestSend";
@@ -21,10 +26,11 @@ import {
   DenyAfricaPayinApi,
   FinalizeAfricaPayinApi,
   GetAfricaPayinStatus,
+  RequestRaizPaymentsPayerEmailOtpApi,
 } from "@/services/business";
 import { toast } from "sonner";
 import { mapAfricaPayinError } from "./africaPayinUtils";
-import { getCurrencySymbol } from "@/utils/helpers";
+import { getAppRatingLink, getCurrencySymbol } from "@/utils/helpers";
 import Button from "@/components/ui/Button";
 import { GuestPayStatusType } from "@/types/transactions";
 
@@ -35,9 +41,12 @@ interface Props {
   setStep: (v: GuestAfricaPayinStep) => void;
   goBack: () => void;
   username: string;
+  onNigeriaPalmPay?: () => void;
+  onPayerReady?: () => void;
+  onBackToAmount?: () => void;
 }
 
-const POLL_INTERVAL_MS = 8000;
+const POLL_INTERVAL_MS = 20000;
 const POLL_TIMEOUT_MS = 15 * 60 * 1000;
 
 const GuestPayDetail = ({
@@ -47,21 +56,28 @@ const GuestPayDetail = ({
   setStep,
   goBack,
   username,
+  onNigeriaPalmPay,
+  onPayerReady,
+  onBackToAmount,
 }: Props) => {
   const [paymentError, setPaymentError] = useState("");
   const {
     amount,
+    local_amount,
     payout_currency,
     status,
     actions,
     payin_id,
     payment_instruction,
+    payer_email,
   } = useGuestSendStore();
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const pollStartedAtRef = useRef<number | null>(null);
+  const sessionActiveRef = useRef(true);
 
   const persistSession = useCallback(
     (nextStep?: GuestAfricaPayinStep) => {
+      if (!sessionActiveRef.current) return;
       if (nextStep) {
         actions.setField("lifecycleStep", nextStep);
       }
@@ -76,6 +92,23 @@ const GuestPayDetail = ({
     [actions, username],
   );
 
+  const requestOtpAndVerify = useCallback(async () => {
+    const email = payer_email || useGuestSendStore.getState().payer_email;
+    if (!email) {
+      setStep("payer_email");
+      return;
+    }
+    try {
+      await RequestRaizPaymentsPayerEmailOtpApi(email);
+      toast.success("OTP sent to your email");
+    } catch (error) {
+      const mapped = mapAfricaPayinError(error);
+      toast.error(mapped.message);
+    }
+    setStep("payer_verify");
+    persistSession("payer_verify");
+  }, [payer_email, persistSession, setStep]);
+
   const stopPolling = useCallback(() => {
     if (pollingRef.current) {
       clearInterval(pollingRef.current);
@@ -85,52 +118,92 @@ const GuestPayDetail = ({
   }, []);
 
   const handleDone = useCallback(() => {
+    const currentStatus = useGuestSendStore.getState().status;
+    sessionActiveRef.current = false;
     stopPolling();
     clearAfricaPayinSession(username);
-    actions.resetPaymentSession();
-    setStep("details");
+    setStep("payer_email");
     close();
+    actions.resetPaymentSession();
+    if (
+      isPendingPaymentAfricaPayinStatus(currentStatus) ||
+      isProcessingAfricaPayinStatus(currentStatus)
+    ) {
+      toast.success(
+        "The payment will be received when the transfer is completed.",
+      );
+    }
+  }, [actions, close, setStep, stopPolling, username]);
+
+  const handleSuccessDone = useCallback(() => {
+    sessionActiveRef.current = false;
+    stopPolling();
+    clearAfricaPayinSession(username);
+    setStep("payer_email");
+    close();
+    actions.resetPaymentSession();
+    window.location.assign(getAppRatingLink());
   }, [actions, close, setStep, stopPolling, username]);
 
   const handleRestart = useCallback(() => {
+    sessionActiveRef.current = false;
     stopPolling();
     clearAfricaPayinSession(username);
     actions.resetPaymentSession();
     setPaymentError("");
-    setStep("details");
+    setStep("payer_email");
     goBack();
   }, [actions, goBack, setStep, stopPolling, username]);
 
   const applyStatus = useCallback(
     (nextStatus: string) => {
+      if (!sessionActiveRef.current) return;
+      if (!useGuestSendStore.getState().payin_id) return;
       actions.setField("status", nextStatus as GuestPayStatusType);
-      if (isSuccessAfricaPayinStatus(nextStatus) || nextStatus === "failed") {
+      if (
+        isSuccessAfricaPayinStatus(nextStatus) ||
+        nextStatus === "failed" ||
+        isExpiredAfricaPayinStatus(nextStatus)
+      ) {
         stopPolling();
         setStep("status");
         persistSession("status");
         if (nextStatus === "failed") {
           setPaymentError("Payment failed. Please try again.");
         }
+        if (isExpiredAfricaPayinStatus(nextStatus)) {
+          setPaymentError("This payment expired. Please start a new payment.");
+        }
         return;
       }
       if (isCancelledAfricaPayinStatus(nextStatus)) {
         stopPolling();
-        setStep("status");
-        persistSession("status");
+        clearAfricaPayinSession(username);
+        actions.resetPaymentSession();
+        setPaymentError("");
+        setStep("payer_email");
+        goBack();
         return;
       }
-      if (nextStatus === "pending") {
+      if (
+        nextStatus === "pending" ||
+        nextStatus === "process" ||
+        nextStatus === "processing"
+      ) {
         setStep("instructions");
         persistSession("instructions");
       }
     },
-    [actions, persistSession, setStep, status, stopPolling],
+    [actions, goBack, persistSession, setStep, stopPolling, username],
   );
 
   const fetchStatusOnce = useCallback(async () => {
-    if (!payin_id) return null;
+    const id = payin_id;
+    if (!id || !sessionActiveRef.current) return null;
     try {
-      const nextStatus = await GetAfricaPayinStatus(payin_id);
+      const nextStatus = await GetAfricaPayinStatus(id);
+      if (!sessionActiveRef.current) return null;
+      if (useGuestSendStore.getState().payin_id !== id) return null;
       if (nextStatus) applyStatus(nextStatus);
       return nextStatus;
     } catch (error) {
@@ -141,9 +214,13 @@ const GuestPayDetail = ({
   }, [applyStatus, payin_id]);
 
   const startPolling = useCallback(() => {
-    if (!payin_id || pollingRef.current) return;
+    if (!payin_id || pollingRef.current || !sessionActiveRef.current) return;
     pollStartedAtRef.current = Date.now();
     pollingRef.current = setInterval(async () => {
+      if (!sessionActiveRef.current) {
+        stopPolling();
+        return;
+      }
       if (
         pollStartedAtRef.current &&
         Date.now() - pollStartedAtRef.current > POLL_TIMEOUT_MS
@@ -166,11 +243,8 @@ const GuestPayDetail = ({
     onSuccess: (res) => {
       actions.setFields({
         payin_id: res.payin_id,
-        amount: String(res.amount),
-        payout_amount: String(res.payout_amount ?? 0),
-        rate: res.rate ?? 0,
+        // Keep initiate USD/local amounts; finalize may return an older shape.
         expires_at: res.expires_at,
-        payout_currency: res.payout_currency,
         collection_account_number: res.collection_account_number || "",
         collection_bank_name: res.collection_bank_name || "",
         collection_account_name: res.collection_account_name || "",
@@ -187,6 +261,11 @@ const GuestPayDetail = ({
     },
     onError: async (error) => {
       const mapped = mapAfricaPayinError(error);
+      if (mapped.kind === "nigeria_palmpay") {
+        toast.error(mapped.message);
+        onNigeriaPalmPay?.();
+        return;
+      }
       if (mapped.kind === "already_finalized") {
         const nextStatus = await fetchStatusOnce();
         if (nextStatus === "pending" || payment_instruction) {
@@ -206,6 +285,14 @@ const GuestPayDetail = ({
         handleRestart();
         return;
       }
+      if (mapped.kind === "payer_verification_required") {
+        void requestOtpAndVerify();
+        return;
+      }
+      if (mapped.kind === "payer_not_found") {
+        setStep("payer_register");
+        return;
+      }
       toast.error(mapped.message);
       setPaymentError(mapped.message);
     },
@@ -214,10 +301,8 @@ const GuestPayDetail = ({
   const denyMutation = useMutation({
     mutationFn: (id: string) => DenyAfricaPayinApi(id),
     onSuccess: () => {
-      actions.setField("status", "cancelled");
-      stopPolling();
-      clearAfricaPayinSession(username);
-      setStep("status");
+      toast.success("Payment cancelled");
+      handleRestart();
     },
     onError: (error) => {
       const mapped = mapAfricaPayinError(error);
@@ -240,7 +325,13 @@ const GuestPayDetail = ({
   };
 
   useEffect(() => {
-    if (step === "instructions" && payin_id) {
+    if (payin_id) {
+      sessionActiveRef.current = true;
+    }
+  }, [payin_id]);
+
+  useEffect(() => {
+    if (step === "instructions" && payin_id && sessionActiveRef.current) {
       startPolling();
       void fetchStatusOnce();
     }
@@ -254,27 +345,108 @@ const GuestPayDetail = ({
   }, [stopPolling]);
 
   useEffect(() => {
-    if (payin_id) persistSession(step);
+    // Never re-persist a cancelled payin — cancel clears storage, and this
+    // effect previously rewrote the session because payin_id was still set.
+    if (!payin_id || !sessionActiveRef.current) return;
+    if (isCancelledAfricaPayinStatus(status)) {
+      clearAfricaPayinSession(username);
+      return;
+    }
+    persistSession(step);
   }, [
     payin_id,
     step,
     amount,
+    local_amount,
     payout_currency,
     status,
     payment_instruction,
     persistSession,
+    username,
   ]);
 
   const displayStep = () => {
     switch (step) {
+      case "payer_email":
+        return (
+          <GuestPayerEmail
+            goBack={goBack}
+            onNeedRegister={() => {
+              setStep("payer_register");
+              persistSession("payer_register");
+            }}
+            onNeedVerify={() => {
+              setStep("payer_verify");
+              persistSession("payer_verify");
+            }}
+            onVerified={() => {
+              if (onPayerReady) {
+                onPayerReady();
+                return;
+              }
+              setStep("details");
+              persistSession("details");
+            }}
+          />
+        );
+      case "payer_register":
+        return (
+          <GuestPayerRegister
+            goBack={() => setStep("payer_email")}
+            goNext={() => {
+              setStep("payer_verify");
+              persistSession("payer_verify");
+            }}
+            onVerified={() => {
+              if (onPayerReady) {
+                onPayerReady();
+                return;
+              }
+              setStep("details");
+              persistSession("details");
+            }}
+          />
+        );
+      case "payer_verify":
+        return (
+          <GuestPayerVerify
+            goBack={() =>
+              setStep(
+                useGuestSendStore.getState().payer_exists
+                  ? "payer_email"
+                  : "payer_register",
+              )
+            }
+            goNext={() => {
+              if (onPayerReady) {
+                onPayerReady();
+                return;
+              }
+              setStep("details");
+              persistSession("details");
+            }}
+          />
+        );
       case "details":
         return (
           <GuestPayAmount
-            close={goBack}
+            close={() => {
+              if (onBackToAmount) {
+                onBackToAmount();
+                return;
+              }
+              setStep("payer_email");
+              persistSession("payer_email");
+            }}
             goNext={() => {
               setStep("summary");
               persistSession("summary");
             }}
+            onNigeriaPalmPay={onNigeriaPalmPay}
+            onNeedVerify={() => {
+              void requestOtpAndVerify();
+            }}
+            onNeedRegister={() => setStep("payer_register")}
           />
         );
       case "summary":
@@ -285,8 +457,7 @@ const GuestPayDetail = ({
               persistSession("details");
             }}
             goNext={confirmReview}
-            onCancel={cancelPayment}
-            loading={finalizeMutation.isPending || denyMutation.isPending}
+            loading={finalizeMutation.isPending}
             recipientName={
               data?.account_user?.account_name ||
               data?.account_user?.username ||
@@ -295,9 +466,11 @@ const GuestPayDetail = ({
           />
         );
       case "instructions":
+        if (!payin_id) return null;
         return (
           <GuestPaymentInstructions
             onCancel={cancelPayment}
+            onDone={handleDone}
             cancelling={denyMutation.isPending}
           />
         );
@@ -306,8 +479,9 @@ const GuestPayDetail = ({
           <GuestSendStatusModal
             status={status}
             amount={amount}
-            currency={payout_currency}
+            currency="USD"
             close={handleDone}
+            onSuccessDone={handleSuccessDone}
             error={paymentError}
             tryAgain={handleRestart}
             viewReceipt={() => setStep("receipt")}
@@ -326,10 +500,17 @@ const GuestPayDetail = ({
             </h2>
             <div className="mt-5 p-7 bg-[#EAECFF99] rounded-[20px] space-y-4">
               <div>
-                <p className="text-sm text-gray-500">Amount paid</p>
+                <p className="text-sm text-gray-500">Amount sent</p>
+                <p className="text-lg font-semibold text-zinc-900">
+                  $
+                  {Number(amount).toLocaleString()}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Local amount paid</p>
                 <p className="text-lg font-semibold text-zinc-900">
                   {getCurrencySymbol(payout_currency)}
-                  {Number(amount).toLocaleString()}
+                  {Number(local_amount).toLocaleString()}
                 </p>
               </div>
               <div>
@@ -353,7 +534,15 @@ const GuestPayDetail = ({
               </div>
             </div>
             <div className="mt-auto pb-2">
-              <Button onClick={handleDone}>Done</Button>
+              <Button
+                onClick={
+                  isSuccessAfricaPayinStatus(status)
+                    ? handleSuccessDone
+                    : handleDone
+                }
+              >
+                Done
+              </Button>
             </div>
           </section>
         );

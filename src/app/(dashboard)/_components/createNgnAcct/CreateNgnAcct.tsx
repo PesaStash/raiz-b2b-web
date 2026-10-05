@@ -1,4 +1,5 @@
 "use client";
+import { withBusinessWrite } from "@/components/team/BusinessWrite";
 
 import DiditVerificationWebview from "@/app/(dashboard)/_components/createNgnAcct/DiditVerificationWebview";
 import Button from "@/components/ui/Button";
@@ -241,4 +242,4 @@ function RequirementDetail({
   );
 }
 
-export default CreateNgnAcct;
+export default withBusinessWrite(CreateNgnAcct);

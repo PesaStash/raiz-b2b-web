@@ -2,6 +2,7 @@
 import React from "react";
 import Overlay from "../ui/Overlay";
 import Button from "../ui/Button";
+import { clearLocalSession } from "@/lib/session";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { LogoutApi } from "@/services/auth";
 import { useRouter } from "next/navigation";
@@ -22,6 +23,7 @@ const LogoutModal = ({ close }: { close: () => void }) => {
   const token = GetItemFromCookie("access_token") ?? "";
   const logoutMutation = useMutation({
     mutationFn: () => LogoutApi(token),
+    onError: () => { clearLocalSession(); router.replace("/login"); close(); },
     onSuccess: () => {
       pushDataLayerEvent("logout", {
         user_id: getAnalyticsUserId(user) || undefined,
@@ -36,6 +38,7 @@ const LogoutModal = ({ close }: { close: () => void }) => {
       RemoveItemFromCookie("accessToken");
       qc.clear();
       clearUser();
+      clearLocalSession();
       router.push("/login");
       close();
     },

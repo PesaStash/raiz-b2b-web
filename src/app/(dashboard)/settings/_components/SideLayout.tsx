@@ -1,4 +1,6 @@
 "use client";
+import { usePermissions } from "@/lib/hooks/usePermissions";
+
 import { SettingsMenus } from "@/constants/SettingsMenuData";
 import Image from "next/image";
 import Link from "next/link";
@@ -18,6 +20,7 @@ import ProfileAvatarUpload from "./ProfileAvatarUpload";
 import NotificationRecipientsNewBadge from "./NotificationRecipientsNewBadge";
 
 const SideLayout = () => {
+  const { canWriteBusiness } = usePermissions();
   const [showLevels, setShowLevels] = useState(false);
   const [showRaizScore, setShowRaizScore] = useState(false);
   const [showRaizTag, setShowRaizTag] = useState(false);
@@ -90,6 +93,7 @@ const SideLayout = () => {
               </span>
             </button> */}
             <button
+              disabled={!canWriteBusiness}
               onClick={() => setShowRaizTag(true)}
               className="px-2 h-[22px] bg-opacity-30 bg-neutral-300 flex gap-0.5 justify-center items-center rounded-3xl"
             >
@@ -114,7 +118,7 @@ const SideLayout = () => {
         </div>
       </div>
       <nav className="flex flex-col gap-5 mb-10">
-        {SettingsMenus.map((menu, index) => {
+        {SettingsMenus.filter(menu => canWriteBusiness || menu.type !== "button").map((menu, index) => {
           const isLink = menu.type !== "button";
 
           if (isLink) {

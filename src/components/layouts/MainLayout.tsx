@@ -19,7 +19,9 @@ const dashboardRoutes = [
   "/invoice",
   "/customers",
   "/bill-requests",
+  "/gateway",
   "/developers",
+  "/team",
 ];
 
 const isDashboardRoute = (pathName: string) =>
@@ -53,6 +55,8 @@ const MainLayoutContent = ({
   shouldShowSideNav: boolean;
 }) => {
   const { effectiveCollapsed } = useSidebar();
+  const pathname = usePathname();
+  const isTeam = pathname.startsWith("/team");
   const mainMarginClass = effectiveCollapsed
     ? "md:ml-[88px]"
     : "md:ml-[88px] lg:ml-[256px]";
@@ -69,7 +73,7 @@ const MainLayoutContent = ({
       >
         {shouldShowSideNav && (
           <>
-            <MobileHeader />
+            {!isTeam && <MobileHeader />}
             <div className="hidden md:block">
               <Header />
             </div>
@@ -79,7 +83,7 @@ const MainLayoutContent = ({
       </main>
       {shouldShowSideNav && (
         <>
-          <MobileBottomNav />
+          {!isTeam && <MobileBottomNav />}
           <MobileDrawer />
         </>
       )}

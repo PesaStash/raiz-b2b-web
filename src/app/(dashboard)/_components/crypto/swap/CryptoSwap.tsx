@@ -1,4 +1,5 @@
 "use client";
+import { withBusinessWrite } from "@/components/team/BusinessWrite";
 import { useCryptoSwapStore } from "@/store/CryptoSwap";
 import React, { useState } from "react";
 import SwapCoinType from "./SwapCoinType";
@@ -117,4 +118,4 @@ const CryptoSwap = ({ close }: Props) => {
   return <div>{displayScreen()}</div>;
 };
 
-export default CryptoSwap;
+export default withBusinessWrite(CryptoSwap);

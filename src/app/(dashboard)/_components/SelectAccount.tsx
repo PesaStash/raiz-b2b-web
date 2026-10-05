@@ -1,3 +1,4 @@
+import { usePermissions } from "@/lib/hooks/usePermissions";
 import Overlay from "@/components/ui/Overlay";
 import React from "react";
 import Image from "next/image";
@@ -44,6 +45,7 @@ const SelectAccount = ({
   isNgnBranch = false,
 }: Props) => {
   const { user, refetch } = useUser();
+  const { canWriteBusiness } = usePermissions();
   const { actions } = useSendStore();
   const { selectedCurrency, setSelectedCurrency } = useCurrencyStore();
   const NGNAcct = findWalletByCurrency(user, "NGN");
@@ -178,6 +180,7 @@ const SelectAccount = ({
         <div className="flex flex-col mt-3 md:mt-4">
           {/* USD */}
           <button
+            style={{ display: !canWriteBusiness && !USDAcct ? "none" : undefined }}
             onClick={handleUsd}
             className={`px-3 py-4  justify-between items-center gap-10 rounded-[20px] w-full  inline-flex ${
               selectedCurrency.name === "USD" && USDAcct
@@ -215,7 +218,8 @@ const SelectAccount = ({
           {/* NGN */}
           {isNigerian && (
             <button
-              onClick={handleNgn}
+              style={{ display: !canWriteBusiness && !NGNAcct ? "none" : undefined }}
+            onClick={handleNgn}
               className={`px-3 py-4  justify-between items-center gap-10 w-full rounded-[20px]  inline-flex ${
                 selectedCurrency.name === "NGN" && NGNAcct
                   ? "bg-[#eaecff]/60"
@@ -251,6 +255,7 @@ const SelectAccount = ({
           )}
         {/* GBP */}
           <button
+            style={{ display: !canWriteBusiness && !GBPAcct ? "none" : undefined }}
             onClick={() => handleForeign("GBP")}
             className={`px-3 py-4 justify-between items-center gap-10 w-full rounded-[20px] inline-flex ${
               selectedCurrency.name === "GBP" && GBPAcct
@@ -292,6 +297,7 @@ const SelectAccount = ({
 
           {/* EUR */}
           <button
+            style={{ display: !canWriteBusiness && !EURAcct ? "none" : undefined }}
             onClick={() => handleForeign("EUR")}
             className={`px-3 py-4 justify-between items-center gap-10 w-full rounded-[20px] inline-flex ${
               selectedCurrency.name === "EUR" && EURAcct
@@ -332,6 +338,7 @@ const SelectAccount = ({
           </button>
   {/* Crypto */}
           <button
+            style={{ display: !canWriteBusiness && !CryptoAcct ? "none" : undefined }}
             onClick={handleCrypto}
             className={`px-3 py-4  justify-between items-center gap-10 w-full rounded-[20px]  inline-flex ${
               selectedCurrency.name === "SBC" && CryptoAcct

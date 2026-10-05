@@ -1,4 +1,5 @@
 "use client";
+import { withBusinessWrite } from "@/components/team/BusinessWrite";
 import React, { useState } from "react";
 import { PartChildProps } from "../../help&support/_components/HelpSupportNav";
 import TrxnOtpForm from "./TrxnOtpForm";
@@ -64,4 +65,4 @@ const ChangeTransactionPin = ({ setPart }: PartChildProps) => {
   return <div className="h-full flex flex-col">{displayStep()}</div>;
 };
 
-export default ChangeTransactionPin;
+export default withBusinessWrite(ChangeTransactionPin);
