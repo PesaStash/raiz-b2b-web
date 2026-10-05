@@ -11,13 +11,26 @@ export const SWIFT_INVOICE_TYPES = [
   "application/pdf",
 ];
 export const SWIFT_MAX_INVOICE_BYTES = 15 * 1024 * 1024;
+export const SWIFT_INVOICE_AMOUNT_THRESHOLD = 5000;
+
+export function isSwiftInvoiceRequired(
+  beneficiaryType: string | undefined | null,
+  amount: number,
+): boolean {
+  return (
+    beneficiaryType === "business" || amount > SWIFT_INVOICE_AMOUNT_THRESHOLD
+  );
+}
 
 export function validateSwiftInvoice(file: File): string | null {
+  if (!file.size) {
+    return "Document file is required";
+  }
   if (!SWIFT_INVOICE_TYPES.includes(file.type)) {
-    return "Upload a JPEG, PNG, GIF, WEBP, or PDF invoice.";
+    return "Document must be a jpeg, png, gif, webp, or pdf file";
   }
   if (file.size > SWIFT_MAX_INVOICE_BYTES) {
-    return "Invoice must be 15 MB or smaller.";
+    return "Document file size exceeds the 15 MB limit";
   }
   return null;
 }
@@ -25,11 +38,18 @@ export function validateSwiftInvoice(file: File): string | null {
 interface Props {
   file: File | null;
   error?: string;
+  required?: boolean;
   onChange: (file: File | null) => void;
   onError?: (message: string) => void;
 }
 
-const SwiftInvoiceDropzone = ({ file, error, onChange, onError }: Props) => {
+const SwiftInvoiceDropzone = ({
+  file,
+  error,
+  required = false,
+  onChange,
+  onError,
+}: Props) => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (next?: File) => {
@@ -52,7 +72,7 @@ const SwiftInvoiceDropzone = ({ file, error, onChange, onError }: Props) => {
   return (
     <div className="w-full">
       <p className="text-raiz-gray-950 text-sm font-medium mb-3">
-        Invoice upload (optional)
+        Invoice upload{required ? " (required)" : " (optional)"}
       </p>
       <button
         type="button"

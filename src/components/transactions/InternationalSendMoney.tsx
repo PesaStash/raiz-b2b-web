@@ -93,7 +93,7 @@ const InternationalSendMoney = ({
   const displayValue = () => {
     if (isFocused || !amount)
       return amount ? `${getCurrencySymbol(currency)}${rawAmount}` : "";
-    const num = parseFloat(rawAmount);
+    const num = Number(rawAmount);
     return isNaN(num) ? "" : `${getCurrencySymbol(currency)}${num.toFixed(2)}`;
   };
 

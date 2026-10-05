@@ -38,7 +38,7 @@ const handleError = async (error: CustomAxiosError) => {
   } catch {
     // Never let error-display logic crash the app.
   }
-  return Promise.reject(error.response);
+  return Promise.reject(error.response ?? error);
 };
 
 export const PublicAxios = axios.create({
@@ -53,7 +53,7 @@ const addNetworkCheckInterceptor = (axiosInstance: AxiosInstance) => {
     async (requestConfig) => {
       try {
         const cancelTokenSource: CancelTokenSource = axios.CancelToken.source();
-        requestConfig.cancelToken = cancelTokenSource.token;
+        if (!requestConfig.signal) requestConfig.cancelToken = cancelTokenSource.token;
 
         if (!cachedIP) {
           cachedIP = await fetchPublicIP();

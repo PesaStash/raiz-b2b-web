@@ -1,4 +1,5 @@
 "use client";
+import { withBusinessWrite } from "@/components/team/BusinessWrite";
 import Button from "@/components/ui/Button";
 import InputField from "@/components/ui/InputField";
 import { useFormik } from "formik";
@@ -229,4 +230,4 @@ const EditCustomer = ({ close, customer }: Props) => {
   );
 };
 
-export default EditCustomer;
+export default withBusinessWrite(EditCustomer);

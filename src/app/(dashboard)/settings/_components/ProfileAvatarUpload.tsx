@@ -1,4 +1,6 @@
 "use client";
+import { usePermissions } from "@/lib/hooks/usePermissions";
+
 
 import Image from "next/image";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -22,6 +24,7 @@ const sizeClasses = {
 };
 
 const ProfileAvatarUpload = ({ size = "md", className = "" }: Props) => {
+  const { canWriteBusiness } = usePermissions();
   const { user } = useUser();
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -91,10 +94,10 @@ const ProfileAvatarUpload = ({ size = "md", className = "" }: Props) => {
         className={`${dims.img} rounded-full object-cover`}
         onError={() => setPreviewUrl("/images/default-pfp.svg")}
       />
-      <button
+      {canWriteBusiness && <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        disabled={busy}
+        disabled={busy || !canWriteBusiness}
         className={`${dims.btn} bg-raiz-gray-700 rounded-full border-2 border-white absolute left-[20%] flex items-center justify-center ${
           busy ? "opacity-50 cursor-not-allowed" : "active:scale-95"
         }`}
@@ -110,14 +113,14 @@ const ProfileAvatarUpload = ({ size = "md", className = "" }: Props) => {
             alt=""
           />
         )}
-      </button>
+      </button>}
       <input
         ref={inputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp"
         className="sr-only"
         onChange={handleImageUpload}
-        disabled={busy}
+        disabled={busy || !canWriteBusiness}
       />
     </div>
   );

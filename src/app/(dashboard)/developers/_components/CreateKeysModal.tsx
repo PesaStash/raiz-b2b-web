@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 import InputField from "@/components/ui/InputField";
 import SelectField, { Option } from "@/components/ui/SelectField";
-import Checkbox from "@/components/ui/Checkbox";
 import Button from "@/components/ui/Button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -17,9 +16,19 @@ import NewAPIkeyModal from "./NewAPIkeyModal";
 import { IDeveloperApiKey } from "@/types/services";
 import { pushDataLayerEvent } from "@/utils/analytics/dataLayer";
 import Skeleton from "react-loading-skeleton";
+import { usePermissions } from "@/lib/hooks/usePermissions";
+import { canRequestScope, isProductionDeployment } from "@/lib/permissions";
+import {
+  TeamError,
+  TeamIcon,
+  ownerBadge,
+  scopeSwitch,
+  teamSurface,
+} from "@/components/team/TeamUI";
 
 interface Props {
   close: () => void;
+  fullPage?: boolean;
 }
 
 const ENVIRONMENTS: Option[] = [
@@ -27,7 +36,12 @@ const ENVIRONMENTS: Option[] = [
   { value: "sandbox", label: "Test/Sandbox" },
 ];
 
-const CreateKeysModal = ({ close }: Props) => {
+const CreateKeysModal = ({ close, fullPage = false }: Props) => {
+  const { role, canManageDeveloperTools } = usePermissions();
+  const production = isProductionDeployment(
+    process.env.NEXT_PUBLIC_DEPLOYMENT_ENV,
+  );
+  const restricted = role === "developer" && production;
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [environment, setEnvironment] = useState<Option | null>(
@@ -40,23 +54,15 @@ const CreateKeysModal = ({ close }: Props) => {
   const [showAPIDetailModal, setShowAPIDetailModal] = useState(false);
   const [APIKey, setAPIKey] = useState<IDeveloperApiKey | null>(null);
 
-  const { data: permissionOptions = [], isLoading: isPermissionsLoading } =
-    useQuery({
-      queryKey: ["developer-permissions"],
-      queryFn: FetchDeveloperPermissionsApi,
-    });
-
-  const groupedPermissions = useMemo(() => {
-    return permissionOptions.reduce<Record<string, typeof permissionOptions>>(
-      (groups, permission) => {
-        const group = permission.group || "Other";
-        if (!groups[group]) groups[group] = [];
-        groups[group].push(permission);
-        return groups;
-      },
-      {},
-    );
-  }, [permissionOptions]);
+  const {
+    data: permissionOptions = [],
+    isLoading: isPermissionsLoading,
+    isError,
+    refetch,
+  } = useQuery({
+    queryKey: ["developer-permissions"],
+    queryFn: FetchDeveloperPermissionsApi,
+  });
 
   const { mutate, isPending } = useMutation({
     mutationFn: GenerateAPIKeys,
@@ -73,6 +79,7 @@ const CreateKeysModal = ({ close }: Props) => {
   });
 
   const togglePermission = (id: string, checked: boolean) => {
+    if (!canRequestScope(role, id, production)) return;
     if (checked) {
       setPermissions((prev) => [...prev, id]);
     } else {
@@ -81,6 +88,9 @@ const CreateKeysModal = ({ close }: Props) => {
   };
 
   const handleContinue = () => {
+    if (!canManageDeveloperTools || isPending) return;
+    if (permissions.some((scope) => !canRequestScope(role, scope, production)))
+      return toast.error("Your role cannot request these scopes.");
     if (!name.trim()) return toast.warning("Key Name is required");
     if (!environment) return toast.warning("Environment is required");
     if (!expiration) return toast.warning("Expiration is required");
@@ -102,103 +112,152 @@ const CreateKeysModal = ({ close }: Props) => {
 
   return (
     <>
-      <CenterModalHeader close={close} />
-      <div className="w-full xl:max-h-[85vh] lg:max-h-[80vh] flex flex-col font-brSonoma">
-        <h2 className="mb-6 text-base md:text-xl font-bold text-raiz-gray-950">
-          Generate new API key
-        </h2>
-
-        <div className="bg-raiz-gray-50 rounded-[20px] flex flex-col flex-1 overflow-y-auto no-scrollbar gap-6 p-1 sm:p-6">
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-semibold text-raiz-gray-950">
-              Key Name
-            </label>
-            <InputField
-              name="keyName"
-              placeholder="Enter a name that describes how this key will be used"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
+      {!fullPage && <CenterModalHeader close={close} />}
+      <section className={`${teamSurface} py-6`}>
+        <div className="flex justify-between gap-4 mb-10">
+          <div>
+            <h1 className="text-[23px] font-bold">
+              Create{" "}
+              {environment?.value === "production" ? "production" : "sandbox"}{" "}
+              API key
+            </h1>
+            <p className="text-[13px] text-raiz-gray-600 mt-1">
+              Choose the least access this key needs. You can revoke it at any
+              time.
+            </p>
           </div>
-
-          <div className="flex flex-col gap-2 relative z-20">
-            <label className="text-sm font-semibold text-raiz-gray-950">
-              Environment
+          <span className={`${ownerBadge} capitalize self-start`}>{role}</span>
+        </div>
+        <div className="grid lg:grid-cols-[360px_minmax(0,1fr)] gap-5 items-start">
+          <div className="bg-white rounded-2xl p-[22px] flex flex-col gap-4">
+            <span className="rounded-full bg-[#f6f1fc] p-3 self-start">
+              <TeamIcon name="key" />
+            </span>
+            <label className="text-xs font-semibold">
+              Key name
+              <InputField
+                name="keyName"
+                placeholder="Production checkout"
+                className="!bg-white !border-[#e4e0ea]"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={isPending}
+              />
             </label>
-            <SelectField
-              options={ENVIRONMENTS}
-              value={environment}
-              onChange={setEnvironment}
-              placeholder="Select environment"
-            />
-          </div>
-
-          <div className="flex flex-col gap-2 relative z-10">
-            <label className="text-sm font-semibold text-raiz-gray-950">
+            <div>
+              <label className="text-xs font-semibold">Environment</label>
+              <SelectField
+                options={ENVIRONMENTS}
+                value={environment}
+                onChange={setEnvironment}
+                placeholder="Select environment"
+              />
+            </div>
+            <label className="text-xs font-semibold">
               Expiration
+              <InputField
+                name="expiration"
+                type="datetime-local"
+                value={expiration}
+                onChange={(e) => setExpiration(e.target.value)}
+                min={dayjs().format("YYYY-MM-DDTHH:mm")}
+                disabled={isPending}
+              />
             </label>
-            <InputField
-              name="expiration"
-              type="datetime-local"
-              value={expiration}
-              onChange={(e) => setExpiration(e.target.value)}
-              min={dayjs().format("YYYY-MM-DDTHH:mm")}
-            />
-          </div>
-
-          <div className="flex flex-col gap-3">
-            <label className="text-sm font-semibold text-raiz-gray-950">
-              Permissions
-            </label>
-            {isPermissionsLoading ? (
-              <Skeleton count={4} height={72} className="mb-2" />
-            ) : (
-              Object.entries(groupedPermissions).map(([group, items]) => (
-                <div key={group} className="flex flex-col gap-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-raiz-gray-500">
-                    {group}
+            {restricted && (
+              <div className="bg-[#fffaeb] rounded-[10px] p-[14px] flex gap-2 text-xs">
+                <TeamIcon name="restriction" />
+                <div>
+                  <strong className="text-[#b54708]">
+                    Developer restriction
+                  </strong>
+                  <p className="mt-1 leading-relaxed">
+                    Developers cannot add money-moving scopes to production
+                    keys. Ask an owner or admin to create this key.
                   </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {items.map((item) => {
-                      const isChecked = permissions.includes(item.key);
-                      return (
-                        <div
-                          key={item.key}
-                          className={`flex items-start gap-3 p-4 rounded-xl transition-colors cursor-pointer hover:bg-raiz-gray-200 ${!isChecked ? "bg-raiz-gray-100" : "bg-[#EAECFF99]"}`}
-                          onClick={() => togglePermission(item.key, !isChecked)}
-                        >
-                          <div className="mt-0.5">
-                            <Checkbox
-                              checked={isChecked}
-                              onChange={(checked) =>
-                                togglePermission(item.key, checked)
-                              }
-                            />
-                          </div>
-                          <div className="flex flex-col select-none">
-                            <span className="text-[13px] font-semibold text-raiz-gray-950 leading-tight mb-1">
-                              {item.label}
-                            </span>
-                            <span className="text-[13px] text-raiz-gray-600 leading-tight">
-                              {item.description}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
                 </div>
-              ))
+              </div>
             )}
           </div>
+          <div className="bg-white rounded-2xl p-[22px]">
+            <h2 className="font-bold">API scopes</h2>
+            <p className="text-[11px] text-raiz-gray-600 mb-3">
+              {restricted
+                ? "Read and Gateway tools are available. Money movement is disabled."
+                : "Select the permissions this key needs."}
+            </p>
+            {isPermissionsLoading ? (
+              <Skeleton count={5} height={64} />
+            ) : isError ? (
+              <TeamError retry={() => void refetch()}>
+                Unable to load API scopes.
+              </TeamError>
+            ) : (
+              permissionOptions.map((item) => {
+                const disabled = !canRequestScope(role, item.key, production);
+                const checked = !disabled && permissions.includes(item.key);
+                return (
+                  <label
+                    key={item.key}
+                    className={`border-t border-[#e4e0ea] py-3 flex items-center gap-3 ${disabled ? "text-[#8f829e]" : "cursor-pointer"}`}
+                  >
+                    <div className="flex-1">
+                      <span className="text-xs font-bold">{item.label}</span>
+                      {disabled && (
+                        <span className="ml-2 text-[10px] bg-[#eeeaf2] rounded-full px-2 py-1">
+                          Restricted
+                        </span>
+                      )}
+                      <p className="text-[11px] mt-1 text-raiz-gray-600">
+                        {item.description}
+                      </p>
+                      {disabled && (
+                        <p className="text-[10px] mt-1">
+                          Owner or admin required in production.
+                        </p>
+                      )}
+                    </div>
+                    {disabled && <TeamIcon name="scope-lock" />}
+                    <input
+                      type="checkbox"
+                      role="switch"
+                      aria-label={item.label}
+                      checked={checked}
+                      disabled={disabled || isPending}
+                      onChange={(e) =>
+                        togglePermission(item.key, e.target.checked)
+                      }
+                      className={scopeSwitch}
+                    />
+                  </label>
+                );
+              })
+            )}
+            <div className="flex gap-3 mt-5">
+              <Button
+                onClick={close}
+                disabled={isPending}
+                className="!bg-[#f3eff7] !text-[#443852]"
+              >
+                Cancel
+              </Button>
+              <Button
+                loading={isPending}
+                disabled={
+                  !canManageDeveloperTools ||
+                  isPermissionsLoading ||
+                  isError ||
+                  !permissions.length ||
+                  !name.trim()
+                }
+                onClick={handleContinue}
+              >
+                Create API key
+              </Button>
+            </div>
+          </div>
         </div>
-
-        <div className="mt-4 pt-4">
-          <Button loading={isPending} onClick={handleContinue} className="py-4">
-            Continue
-          </Button>
-        </div>
-      </div>
+      </section>
 
       {showAPIDetailModal && APIKey && (
         <NewAPIkeyModal data={APIKey} close={close} />

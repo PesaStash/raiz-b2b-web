@@ -1,3 +1,5 @@
+import { useUserStore } from "@/store/useUserStore";
+import { accountAccess, canRequestScope, isProductionDeployment } from "@/lib/permissions";
 import { AuthAxios, CustomAxiosRequestConfig } from "@/lib/authAxios";
 import {
   IAPILogsParams,
@@ -24,6 +26,9 @@ export const FetchDeveloperApiKeysApi = async (): Promise<
 export const GenerateAPIKeys = async (
   payload: IGenerateDeveloperKeysAPI,
 ): Promise<IDeveloperApiKey> => {
+  const state = useUserStore.getState();
+  const { role } = accountAccess(state.sessionVerified ? state.user : null);
+  if (payload.permissions.some(scope => !canRequestScope(role, scope, isProductionDeployment(process.env.NEXT_PUBLIC_DEPLOYMENT_ENV)))) throw new Error("Your role cannot request these API scopes.");
   const response = await AuthAxios.post("/b2b/developers/keys", payload);
   return response?.data;
 };

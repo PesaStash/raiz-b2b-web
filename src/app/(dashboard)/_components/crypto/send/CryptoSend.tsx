@@ -1,4 +1,5 @@
 "use client";
+import { withBusinessWrite } from "@/components/team/BusinessWrite";
 import React, { useState } from "react";
 import CoinTypeModal from "./CoinTypeModal";
 import AddRecipient from "./AddRecipient";
@@ -168,4 +169,4 @@ const CryptoSend = ({ close }: Props) => {
   return <>{displayStep()}</>;
 };
 
-export default CryptoSend;
+export default withBusinessWrite(CryptoSend);

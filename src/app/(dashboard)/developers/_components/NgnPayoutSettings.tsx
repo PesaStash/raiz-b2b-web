@@ -1,4 +1,7 @@
 "use client";
+import { BusinessWrite } from "@/components/team/BusinessWrite";
+import { usePermissions } from "@/lib/hooks/usePermissions";
+
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -120,7 +123,7 @@ const extractPayoutError = (error: unknown): string => {
 const NgnPayoutSettings = ({ onManageApiKeys, onManageWebhooks }: Props) => {
   const { user } = useUser();
   const queryClient = useQueryClient();
-  const isPrimary = user?.is_primary ?? false;
+  const { canWriteBusiness: isPrimary } = usePermissions();
   const eligibleWallets = useEligibleNgnPayoutWallets(user);
 
   const [form, setForm] = useState<FormState | null>(null);
@@ -378,6 +381,8 @@ const NgnPayoutSettings = ({ onManageApiKeys, onManageWebhooks }: Props) => {
 
   const primaryWebhook = webhooks[0];
 
+  if (!canEdit) return <section className="rounded-2xl bg-white p-6 space-y-4"><h2 className="text-lg font-bold">NGN Virtual Payouts</h2><p className="text-sm text-raiz-gray-600">Your role can view payout settings and diagnostics. An owner or admin can change these settings.</p><dl className="grid sm:grid-cols-2 gap-4 text-sm">{Object.entries({Status: settings.enabled ? "Enabled" : "Disabled", "Source wallet": selectedWallet?.wallet_name || settings.source_wallet_id || "Not configured", "Per-transaction limit (NGN)": settings.per_transaction_limit_ngn ?? "Not configured", "Daily limit (NGN)": settings.daily_limit_ngn ?? "Not configured", "Manual approval": settings.manual_approval_enabled ? `Above ${settings.manual_approval_threshold_ngn} NGN` : "Not required", "Verification": settings.kyb_status}).map(([label,value])=><div key={label}><dt className="text-raiz-gray-600">{label}</dt><dd className="font-semibold mt-1 break-all">{value}</dd></div>)}</dl>{blockers.length > 0 && <p className="text-sm">{blockers.map(blocker=>NGN_PAYOUT_BLOCKER_COPY[blocker] || blocker).join(" ")}</p>}<div className="flex flex-wrap gap-3"><Button width="fit" onClick={()=>setShowLogs(true)}>View payout logs</Button><Button width="fit" onClick={onManageApiKeys}>Manage API keys</Button><Button width="fit" onClick={onManageWebhooks}>Manage webhooks</Button></div>{showLogs && <PayoutLogsModal close={()=>setShowLogs(false)} />}</section>;
+
   return (
     <div className="flex flex-col gap-4 md:gap-6">
       {!settings.enabled &&
@@ -395,13 +400,13 @@ const NgnPayoutSettings = ({ onManageApiKeys, onManageWebhooks }: Props) => {
           title="Verification Required"
           description="Complete NGN business verification before enabling payouts."
           action={
-            <Button
+            <BusinessWrite><Button
               width="fit"
               className="px-5 py-2.5 h-10 rounded-full whitespace-nowrap"
               onClick={() => setShowVerification(true)}
             >
               Complete Verification
-            </Button>
+            </Button></BusinessWrite>
           }
         />
       )}
@@ -469,12 +474,12 @@ const NgnPayoutSettings = ({ onManageApiKeys, onManageWebhooks }: Props) => {
                   : "Allow API-driven NGN payout requests for your business. Merchant payout requests happen on Gateway using the API keys you generate."}
               </p>
             </div>
-            <ToggleSwitch
+            <BusinessWrite><ToggleSwitch
               checked={form.enabled}
               onChange={handleEnableToggle}
               disabled={!canToggleEnable}
               checkedColor="#4B0082"
-            />
+            /></BusinessWrite>
           </div>
         )}
 
@@ -512,13 +517,13 @@ const NgnPayoutSettings = ({ onManageApiKeys, onManageWebhooks }: Props) => {
 
             {canEdit && (
               <div className="pt-3">
-                <Button
+                <BusinessWrite><Button
                   width="fit"
                   className="px-6 py-3 h-auto rounded-full"
                   onClick={() => setShowCreateWallet(true)}
                 >
                   Create NGN Wallet →
-                </Button>
+                </Button></BusinessWrite>
               </div>
             )}
           </div>

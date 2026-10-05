@@ -1,4 +1,5 @@
 "use client";
+import { withBusinessWrite } from "@/components/team/BusinessWrite";
 import Spinner from "@/components/ui/Spinner";
 import { useUser } from "@/lib/hooks/useUser";
 import {
@@ -480,4 +481,4 @@ const Infos = ({ isNgnBranch = false }: InfosProps) => {
   );
 };
 
-export default Infos;
+export default withBusinessWrite(Infos);

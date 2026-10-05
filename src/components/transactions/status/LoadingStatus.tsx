@@ -15,6 +15,7 @@ const LoadingStatus: React.FC<LoadingStatusProps> = ({
 }) => {
   const getAccountName = (): string => {
     if (user) {
+      if ("alipay_wechat_beneficiary_id" in user) return user.name || "";
       if ("account_name" in user) return user.account_name; // ISearchedUser
       if ("bank_account_name" in user) return user?.bank_account_name || ""; // IExternalAccount
       if ("usd_beneficiary" in user) return user.usd_beneficiary.account_name; // EntityBeneficiary

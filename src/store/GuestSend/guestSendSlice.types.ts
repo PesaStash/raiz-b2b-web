@@ -12,6 +12,9 @@ export type BillingDetailsType = {
 
 export type GuestAfricaPayinStep =
   | "details"
+  | "payer_email"
+  | "payer_register"
+  | "payer_verify"
   | "summary"
   | "instructions"
   | "status"
@@ -28,7 +31,10 @@ export interface GuestSendState {
   transaction_description: string;
   payin_id: string;
   rate: number;
+  /** USD amount entered by the payer. */
   amount: string;
+  /** Local-currency amount returned by Africa payin initiation. */
+  local_amount: string;
   payout_amount: string;
   guestLocalCurrency: IIntCountry | null;
   expires_at: string | null;
@@ -48,6 +54,13 @@ export interface GuestSendState {
   stripeDetail: IStripeDetail | null;
   billingDetails: BillingDetailsType | null;
   transactionDetail: IP2pTransferResponse | null;
+  payer_email: string;
+  payer_id: string;
+  payer_first_name: string;
+  payer_last_name: string;
+  payer_country_code: string;
+  payer_email_verified: boolean;
+  payer_exists: boolean;
 }
 
 export interface GuestSendActions {
@@ -72,6 +85,7 @@ export const initialGuestSendState: GuestSendState = {
   payin_id: "",
   rate: 0,
   amount: "",
+  local_amount: "",
   payout_amount: "",
   guestLocalCurrency: null,
   expires_at: null,
@@ -87,10 +101,17 @@ export const initialGuestSendState: GuestSendState = {
   guestAccount: "",
   payout_currency: "",
   status: null,
-  lifecycleStep: "details",
+  lifecycleStep: "payer_email",
   stripeDetail: null,
   billingDetails: null,
   transactionDetail: null,
+  payer_email: "",
+  payer_id: "",
+  payer_first_name: "",
+  payer_last_name: "",
+  payer_country_code: "",
+  payer_email_verified: false,
+  payer_exists: false,
 };
 
 export interface GuestSendSlice extends GuestSendState {
@@ -101,7 +122,10 @@ export interface AfricaPayinSessionSnapshot {
   username: string;
   payin_id: string;
   lifecycleStep: GuestAfricaPayinStep;
+  /** USD amount entered by the payer. */
   amount: string;
+  /** Local-currency amount returned by Africa payin initiation. */
+  local_amount: string;
   payout_currency: string;
   channel_id: string;
   channel_name: string;
@@ -113,8 +137,18 @@ export interface AfricaPayinSessionSnapshot {
   transaction_description: string;
   expires_at: string | null;
   payment_instruction: string;
+  collection_account_number?: string;
+  collection_bank_name?: string;
+  collection_account_name?: string;
   collection_method: string;
   status: GuestPayStatusType | null;
   guestLocalCurrency: IIntCountry | null;
   guestAccount?: string;
+  payer_email?: string;
+  payer_id?: string;
+  payer_first_name?: string;
+  payer_last_name?: string;
+  payer_country_code?: string;
+  payer_email_verified?: boolean;
+  payer_exists?: boolean;
 }

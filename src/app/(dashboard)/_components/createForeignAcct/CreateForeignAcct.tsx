@@ -1,4 +1,5 @@
 "use client";
+import { withBusinessWrite } from "@/components/team/BusinessWrite";
 
 import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 import Button from "@/components/ui/Button";
@@ -190,4 +191,4 @@ const CreateForeignAcct = ({
   );
 };
 
-export default CreateForeignAcct;
+export default withBusinessWrite(CreateForeignAcct);

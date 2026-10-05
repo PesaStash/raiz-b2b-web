@@ -149,6 +149,9 @@ export interface IBusinessAccount {
 }
 
 export interface IUser {
+  role?: import("@/lib/permissions").AccountRole;
+  active?: import("@/lib/permissions").ActiveFlag;
+  effective_permissions?: string[] | Record<string, boolean>;
   first_name: string;
   last_name: string;
   business_account_id: string;

@@ -1,5 +1,6 @@
 "use client";
 
+import { usePermissions } from "@/lib/hooks/usePermissions";
 import React, { ReactNode, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -54,6 +55,7 @@ type StatusConfig = {
 
 const Sidebar = () => {
   const { user, refetch } = useUser();
+  const { canManageTeam, canWriteBusiness } = usePermissions();
   const pathName = usePathname();
   const { selectedCurrency } = useCurrencyStore();
   const { effectiveCollapsed, isLargeDesktop, toggleCollapsed } = useSidebar();
@@ -129,9 +131,8 @@ const Sidebar = () => {
 
   const isItemActive = (item: ISidebarMenuItem) => {
     if (item.action === "feedback") return showFeedbacks;
-    return item.link === "/"
-      ? pathName === item.link
-      : pathName.includes(item.link);
+    if (item.link === "/") return pathName === "/";
+    return pathName === item.link || pathName.startsWith(`${item.link}/`);
   };
 
   const statuses: StatusConfig[] = [
@@ -320,7 +321,10 @@ const Sidebar = () => {
     },
   ];
 
-  const activeStatus = statuses.find((s) => s.condition) ?? null;
+  const visibleStatuses = canWriteBusiness
+    ? statuses.filter((status) => status.condition)
+    : [];
+  const activeStatus = visibleStatuses[0] ?? null;
 
   const triggerActiveStatus = () => {
     if (!activeStatus) return;
@@ -332,8 +336,8 @@ const Sidebar = () => {
     [],
   );
   const manageItems = useMemo(
-    () => SidebarMenus.filter((m) => m.section === "manage"),
-    [],
+    () => SidebarMenus.filter((m) => m.section === "manage" && (m.link !== "/team" || canManageTeam)),
+    [canManageTeam],
   );
 
   const renderSection = (
@@ -372,7 +376,7 @@ const Sidebar = () => {
 
   return (
     <aside
-      className={`hidden md:flex fixed top-0 bottom-0 left-0 z-20 h-screen flex-col overflow-x-hidden border-r transition-[width] duration-200 ease-in-out ${
+      className={`hidden md:flex fixed top-0 bottom-0 left-0 z-20 h-screen flex-col overflow-x-hidden border-r transition-[width] duration-300 ease-in-out ${
         effectiveCollapsed
           ? "w-[88px] items-center border-raiz-gray-200 bg-white pb-6 pt-8"
           : "w-[88px] lg:w-[256px] border-raiz-gray-100 bg-raiz-gray-50 px-4 pb-4 pt-5"
@@ -382,25 +386,35 @@ const Sidebar = () => {
       <div
         className={`shrink-0 ${
           effectiveCollapsed
-            ? "mb-8 flex gap-3 items-center"
+            ? "mb-8 flex items-center"
             : "mb-5 flex h-11 w-full items-center justify-between"
         }`}
       >
-        <Link
-          href="/"
-          className={`flex items-center ${effectiveCollapsed ? "" : "gap-2"}`}
-          title="Raiz"
-        >
-          <Image
-            src="/icons/Logo-2.svg"
-            width={effectiveCollapsed ? 40 : 36}
-            height={effectiveCollapsed ? 40 : 36}
-            alt="Raiz"
-            className={
-              effectiveCollapsed ? "size-7" : "size-9 shrink-0 rounded-[22px]"
-            }
-          />
-          {!effectiveCollapsed && (
+        {effectiveCollapsed ? (
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            className="flex items-center outline-none"
+            aria-label="Expand sidebar"
+            title="Expand sidebar"
+          >
+            <Image
+              src="/icons/Logo-2.svg"
+              width={40}
+              height={40}
+              alt="Raiz"
+              className="size-10"
+            />
+          </button>
+        ) : (
+          <Link href="/" className="flex items-center gap-2" title="Raiz">
+            <Image
+              src="/icons/Logo-2.svg"
+              width={36}
+              height={36}
+              alt="Raiz"
+              className="size-9 shrink-0 rounded-[22px]"
+            />
             <Image
               src="/icons/sidebar/raiz-wordmark.svg"
               alt="Raiz"
@@ -408,8 +422,8 @@ const Sidebar = () => {
               height={20}
               className="h-5 w-auto"
             />
-          )}
-        </Link>
+          </Link>
+        )}
         {!effectiveCollapsed && isLargeDesktop && (
           <button
             type="button"
@@ -423,22 +437,6 @@ const Sidebar = () => {
               width={18}
               height={18}
               className="size-[18px]"
-            />
-          </button>
-        )}
-        {effectiveCollapsed && isLargeDesktop && (
-          <button
-            type="button"
-            onClick={toggleCollapsed}
-            aria-label="Expand sidebar"
-            className=" flex size-[18px] items-center justify-center outline-none hover:opacity-70"
-          >
-            <Image
-              src="/icons/sidebar/sidebar-left.svg"
-              alt=""
-              width={18}
-              height={18}
-              className="size-[18px] scale-x-[-1]"
             />
           </button>
         )}
@@ -457,13 +455,11 @@ const Sidebar = () => {
           {renderSection("overview", overviewItems)}
           {renderSection("manage", manageItems, true)}
 
-          {!effectiveCollapsed && verificationStatus && (
+          {!effectiveCollapsed && verificationStatus && visibleStatuses.length > 0 && (
             <div className="mt-auto flex w-full flex-col gap-3 pt-4">
-              {statuses.map((status, index) =>
-                status.condition ? (
-                  <StatusCard key={index} {...status} />
-                ) : null,
-              )}
+              {visibleStatuses.map((status) => (
+                <StatusCard key={status.title} {...status} />
+              ))}
             </div>
           )}
         </nav>

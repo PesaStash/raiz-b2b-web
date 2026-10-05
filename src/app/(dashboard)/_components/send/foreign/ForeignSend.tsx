@@ -1,4 +1,5 @@
 "use client";
+import { withBusinessWrite } from "@/components/team/BusinessWrite";
 
 import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 import SideWrapperHeader from "@/components/SideWrapperHeader";
@@ -67,4 +68,4 @@ const ForeignSend = ({ close }: Props) => {
   );
 };
 
-export default ForeignSend;
+export default withBusinessWrite(ForeignSend);

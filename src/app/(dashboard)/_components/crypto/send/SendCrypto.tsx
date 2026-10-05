@@ -110,7 +110,7 @@ const SendCrypto = ({
   const displayValue = () => {
     if (isFocused || !amount)
       return amount ? `${selectedCurrency.sign}${rawAmount}` : "";
-    const num = parseFloat(rawAmount);
+    const num = Number(rawAmount);
     return isNaN(num) ? "" : `${selectedCurrency.sign}${num.toFixed(2)}`;
   };
 

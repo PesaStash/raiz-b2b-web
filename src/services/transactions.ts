@@ -18,6 +18,8 @@ import {
   IExternalBeneficiaryPayload,
   IExternalTransferPayload,
   ForeignCurrency,
+  FinalizeAfricaPayinResponse,
+  FinalizeFirstPartyAfricaPayinPayload,
   IForeignBeneficiariesParams,
   IForeignBeneficiariesResponse,
   IForeignBeneficiaryPayload,
@@ -28,9 +30,15 @@ import {
   IIntBeneficiaryPayload,
   IIntSendPayload,
   IntCurrencyCode,
+  AfricaPayinQuoteParams,
+  AfricaPayinQuoteResponse,
+  InitiateAfricaPayinResponse,
+  InitiateFirstPartyAfricaPayinPayload,
   IP2pBeneficiariesParams,
   IP2PTransferPayload,
   IP2pTransferResponse,
+  IPaymentChannel,
+  IPaymentNetwork,
   IRequestFundsPayload,
   ISendCryptoPayload,
   ISendMoneyUsBankPayload,
@@ -52,14 +60,31 @@ import {
   IUsdBaseExchangeRateResponse,
   ICrossCurrencySwapPayload,
   ISwiftSendResponse,
+  AfricaPayinStatusResponse,
 } from "@/types/services";
 import { normalizeRemittanceFormFields } from "@/utils/remittanceFormFields";
 import {
+  GuestPayStatusType,
   INgnTempPaymentLinkPayload,
   IRate,
   ITransactionClass,
 } from "@/types/transactions";
 import { ICrossCurrencies } from "@/types/misc";
+
+const AUTH_AFRICA_PAYIN_BASE = "business/transactions/payins/africa";
+
+const extractAfricaPayinStatus = (
+  payload: GuestPayStatusType | AfricaPayinStatusResponse | string | null,
+): GuestPayStatusType => {
+  if (!payload) return null;
+  if (typeof payload === "string") return payload as GuestPayStatusType;
+  return (
+    (payload.transaction_status as GuestPayStatusType) ||
+    (payload.status as GuestPayStatusType) ||
+    (payload.onramp_status as GuestPayStatusType) ||
+    null
+  );
+};
 
 export const FetchTransactionReportApi = async (
   params: ITransactionParams,
@@ -860,7 +885,6 @@ export const SwiftSendApi = async (
   const response = await AuthAxios.post(
     `/business/transactions/swift/send/`,
     formData,
-    { headers: { "Content-Type": "multipart/form-data" } },
   );
   return response.data;
 };
@@ -875,3 +899,103 @@ export const CrossCurrencySwapApi = async (payload: ICrossCurrencySwapPayload) =
   const response = await AuthAxios.post(`/business/transactions/swap/cross-currency/`, payload);
   return response.data;
 }
+
+export const GetAuthAfricaPayinCountriesApi = async (): Promise<
+  {
+    country_code: string;
+    country_name: string;
+    currency: string;
+  }[]
+> => {
+  const response = await AuthAxios.get(`${AUTH_AFRICA_PAYIN_BASE}/countries/`);
+  return response?.data;
+};
+
+export const GetAuthAfricaPayinChannelsApi = async (
+  country_code: string | null,
+): Promise<IPaymentChannel[]> => {
+  const response = await AuthAxios.get(
+    `${AUTH_AFRICA_PAYIN_BASE}/channels/?country_code=${encodeURIComponent(
+      country_code || "",
+    )}`,
+  );
+  return response?.data;
+};
+
+export const GetAuthAfricaPayinNetworksApi = async (
+  country_code: string | null,
+  channel_id: string | null,
+): Promise<IPaymentNetwork[]> => {
+  const response = await AuthAxios.get(
+    `${AUTH_AFRICA_PAYIN_BASE}/networks/?country_code=${encodeURIComponent(
+      country_code || "",
+    )}&channel_id=${encodeURIComponent(channel_id || "")}`,
+  );
+  return response?.data;
+};
+
+export const QuoteAuthAfricaPayinRateApi = async (
+  params: AfricaPayinQuoteParams,
+): Promise<AfricaPayinQuoteResponse> => {
+  const response = await AuthAxios.get(`${AUTH_AFRICA_PAYIN_BASE}/rates/quote/`, {
+    params: {
+      currency: params.currency,
+      amount: params.amount,
+      direction: params.direction,
+    },
+    silent: true,
+  } as CustomAxiosRequestConfig);
+  return response?.data;
+};
+
+export const InitiateAuthAfricaPayinApi = async ({
+  data,
+  wallet_id,
+  idempotencyKey,
+}: InitiateFirstPartyAfricaPayinPayload): Promise<InitiateAfricaPayinResponse> => {
+  const response = await AuthAxios.post(
+    `${AUTH_AFRICA_PAYIN_BASE}/initiate/?wallet_id=${encodeURIComponent(wallet_id)}`,
+    data,
+    {
+      silent: true,
+      headers: idempotencyKey
+        ? { "idempotency-key": idempotencyKey }
+        : undefined,
+    } as CustomAxiosRequestConfig,
+  );
+  return response.data;
+};
+
+export const FinalizeAuthAfricaPayinApi = async ({
+  payin_id,
+}: FinalizeFirstPartyAfricaPayinPayload): Promise<FinalizeAfricaPayinResponse> => {
+  const response = await AuthAxios.post(
+    `${AUTH_AFRICA_PAYIN_BASE}/finalize/?payin_id=${encodeURIComponent(payin_id)}`,
+    undefined,
+    { silent: true } as CustomAxiosRequestConfig,
+  );
+  return response.data;
+};
+
+export const GetAuthAfricaPayinStatusApi = async (
+  payin_id: string,
+): Promise<GuestPayStatusType> => {
+  const response = await AuthAxios.get(
+    `${AUTH_AFRICA_PAYIN_BASE}/status/${encodeURIComponent(payin_id)}/`,
+    { silent: true } as CustomAxiosRequestConfig,
+  );
+  return extractAfricaPayinStatus(
+    response?.data as GuestPayStatusType | AfricaPayinStatusResponse | string | null,
+  );
+};
+
+export const DenyAuthAfricaPayinApi = async (
+  payin_id: string,
+): Promise<{ message: string }> => {
+  const response = await AuthAxios.post(
+    `${AUTH_AFRICA_PAYIN_BASE}/deny/?payin_id=${encodeURIComponent(payin_id)}`,
+    undefined,
+    { silent: true } as CustomAxiosRequestConfig,
+  );
+  return response.data;
+};

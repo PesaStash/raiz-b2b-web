@@ -6,10 +6,7 @@ import Avatar from "@/components/ui/Avatar";
 import GuestPayWithCard from "./GuestPayWithCard";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
-import {
-  FetchPaymentInfoApi,
-  GetAfricaPayinStatus,
-} from "@/services/business";
+import { FetchPaymentInfoApi, GetAfricaPayinStatus } from "@/services/business";
 import Spinner from "@/components/ui/Spinner";
 import GuestPayWithZelle from "./GuestPayWithZelle";
 import GuestPayWithTransfer, {
@@ -19,13 +16,20 @@ import * as motion from "motion/react-client";
 import { fetchPublicIP } from "@/utils/helpers";
 import PayLocalAmount from "./_components/PayLocalAmount";
 import GuestPayDetail from "./_components/GuestPayDetail";
+import PayLocalStepper, {
+  PayLocalUiStep,
+  PayLocalStepperNodeId,
+} from "./_components/PayLocalStepper";
+import PayLocalProvider from "./_components/PayLocalProvider";
 import {
   clearAfricaPayinSession,
+  isCancelledAfricaPayinStatus,
   loadAfricaPayinSession,
   normalizeAfricaPayinStep,
   useGuestSendStore,
 } from "@/store/GuestSend";
 import { GuestAfricaPayinStep } from "@/store/GuestSend/guestSendSlice.types";
+import { isMomoChannel } from "./_components/africaPayinUtils";
 
 export type GuestPaymentType = "card" | "transfer" | "zelle" | "local";
 export type GuestPayDetailsSteps = GuestAfricaPayinStep;
@@ -36,7 +40,7 @@ const paymentMethodsArr: {
   icon: (active: boolean) => JSX.Element;
   subText: string;
 }[] = [
-    // {
+  // {
   //   id: "card",
   //   label: "Pay with card",
   //   icon: (active: boolean) => (
@@ -57,19 +61,20 @@ const paymentMethodsArr: {
     id: "local",
     label: "Pay locally",
     icon: (active: boolean) => (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <svg
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
         <path
-          d="M12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22Z"
+          d="M11.9999 13.4299C13.723 13.4299 15.1199 12.0331 15.1199 10.3099C15.1199 8.58681 13.723 7.18994 11.9999 7.18994C10.2768 7.18994 8.87988 8.58681 8.87988 10.3099C8.87988 12.0331 10.2768 13.4299 11.9999 13.4299Z"
           stroke={active ? "#3C2875" : "#A89AB9"}
           strokeWidth="1.5"
         />
         <path
-          d="M8 12H16"
-          stroke={active ? "#3C2875" : "#A89AB9"}
-          strokeWidth="1.5"
-        />
-        <path
-          d="M12 16V8"
+          d="M3.61995 8.49C5.58995 -0.169998 18.42 -0.159997 20.38 8.5C21.53 13.58 18.37 17.88 15.6 20.54C13.59 22.48 10.41 22.48 8.38995 20.54C5.62995 17.88 2.46995 13.57 3.61995 8.49Z"
           stroke={active ? "#3C2875" : "#A89AB9"}
           strokeWidth="1.5"
         />
@@ -137,18 +142,39 @@ const RaizPaymentPage = () => {
   const username = (params?.raizTag as string) || "";
   const [mobileOpen, setMobileOpen] = useState<string | null>("local");
   const [screen, setScreen] = useState<GuestPaymentType | "detail" | null>(
-    "local",
+    "detail",
   );
-  const [localStep, setLocalStep] = useState<"amount" | GuestAfricaPayinStep>(
-    "amount",
-  );
-  const [africaStep, setAfricaStep] = useState<GuestAfricaPayinStep>("details");
+  const [localStep, setLocalStep] = useState<PayLocalUiStep>("payer_email");
+  const [africaStep, setAfricaStep] =
+    useState<GuestAfricaPayinStep>("payer_email");
   const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
   const [transferCurrency, setTransferCurrency] =
     useState<TransferCurrencyType>("USD");
   const [isUSUser, setIsUSUser] = useState(false);
   const [sessionRestored, setSessionRestored] = useState(false);
-  const { actions } = useGuestSendStore();
+  const {
+    actions,
+    account_type,
+    channel_name,
+    channel_id,
+    payer_exists,
+    payer_email,
+    payin_id,
+  } = useGuestSendStore();
+  const isLocalMomo = isMomoChannel(
+    null,
+    account_type,
+    channel_name,
+    channel_id || paymentMethod,
+  );
+  const showLocalStepper =
+    screen === "local" ||
+    screen === "detail" ||
+    mobileOpen === "local";
+  const showIdentityStep =
+    localStep === "payer_register" ||
+    africaStep === "payer_register" ||
+    (!payer_exists && !!payer_email);
 
   useEffect(() => {
     const detectCountry = async () => {
@@ -184,9 +210,18 @@ const RaizPaymentPage = () => {
         return;
       }
 
+      // Cancelled sessions must not resume — start a fresh payment flow.
+      if (isCancelledAfricaPayinStatus(snapshot.status)) {
+        clearAfricaPayinSession(username);
+        actions.resetPaymentSession();
+        setSessionRestored(true);
+        return;
+      }
+
       actions.setFields({
         payin_id: snapshot.payin_id,
         amount: snapshot.amount,
+        local_amount: snapshot.local_amount || "",
         payout_currency: snapshot.payout_currency,
         channel_id: snapshot.channel_id,
         channel_name: snapshot.channel_name,
@@ -198,11 +233,21 @@ const RaizPaymentPage = () => {
         transaction_description: snapshot.transaction_description,
         expires_at: snapshot.expires_at,
         payment_instruction: snapshot.payment_instruction,
+        collection_account_number: snapshot.collection_account_number || "",
+        collection_bank_name: snapshot.collection_bank_name || "",
+        collection_account_name: snapshot.collection_account_name || "",
         collection_method: snapshot.collection_method,
         status: snapshot.status,
         guestLocalCurrency: snapshot.guestLocalCurrency,
         guestAccount: snapshot.guestAccount || "",
         lifecycleStep: snapshot.lifecycleStep,
+        payer_email: snapshot.payer_email || "",
+        payer_id: snapshot.payer_id || "",
+        payer_first_name: snapshot.payer_first_name || "",
+        payer_last_name: snapshot.payer_last_name || "",
+        payer_country_code: snapshot.payer_country_code || "",
+        payer_email_verified: !!snapshot.payer_email_verified,
+        payer_exists: !!snapshot.payer_exists,
       });
       setPaymentMethod(snapshot.channel_id || null);
       setScreen("detail");
@@ -210,6 +255,16 @@ const RaizPaymentPage = () => {
 
       try {
         const latestStatus = await GetAfricaPayinStatus(snapshot.payin_id);
+        if (isCancelledAfricaPayinStatus(latestStatus)) {
+          clearAfricaPayinSession(username);
+          actions.resetPaymentSession();
+          setPaymentMethod(null);
+          setScreen(null);
+          setMobileOpen(null);
+          setAfricaStep("payer_email");
+          setLocalStep("payer_email");
+          return;
+        }
         const nextStep = normalizeAfricaPayinStep(
           latestStatus,
           snapshot.lifecycleStep,
@@ -219,12 +274,14 @@ const RaizPaymentPage = () => {
           lifecycleStep: nextStep,
         });
         setAfricaStep(nextStep);
-        setLocalStep(nextStep === "details" ? "amount" : nextStep);
+        setLocalStep(
+          nextStep === "details" || nextStep === "payer_email"
+            ? nextStep
+            : nextStep,
+        );
       } catch {
         setAfricaStep(snapshot.lifecycleStep);
-        setLocalStep(
-          snapshot.lifecycleStep === "details" ? "amount" : snapshot.lifecycleStep,
-        );
+        setLocalStep(snapshot.lifecycleStep);
       } finally {
         setSessionRestored(true);
       }
@@ -288,31 +345,140 @@ const RaizPaymentPage = () => {
   );
 
   const handleMethodClick = (id: GuestPaymentType) => {
-    if (id !== "local" && screen === "detail") {
-      // Leaving an in-progress local flow keeps session in storage.
+    if (id === "local") {
+      if (mobileOpen === "local") {
+        setMobileOpen(null);
+        setScreen(null);
+        return;
+      }
+      setScreen("detail");
+      setLocalStep("payer_email");
+      setAfricaStep("payer_email");
+      setMobileOpen("local");
+      return;
     }
     setScreen((prev) => (prev === id ? null : id));
     setMobileOpen((prev) => (prev === id ? null : id));
-    if (id === "local") {
-      setLocalStep("amount");
-      setAfricaStep("details");
-    }
   };
 
-  const closeLocalFlow = () => {
+  const goToPayerEmailStep = () => {
+    setScreen("detail");
+    setLocalStep("payer_email");
+    setAfricaStep("payer_email");
+    setMobileOpen("local");
+  };
+
+  const goToAmountStep = () => {
     setScreen("local");
     setLocalStep("amount");
     setAfricaStep("details");
     setMobileOpen("local");
   };
 
+  const goToProviderStep = () => {
+    setScreen("local");
+    setLocalStep("provider");
+    setAfricaStep("details");
+    setMobileOpen("local");
+  };
+
+  const goToPaymentDetailsStep = () => {
+    setScreen("detail");
+    setLocalStep("details");
+    setAfricaStep("details");
+    setMobileOpen("local");
+  };
+
+  const goToIdentityStep = () => {
+    setScreen("detail");
+    setLocalStep("payer_register");
+    setAfricaStep("payer_register");
+    setMobileOpen("local");
+  };
+
+  const goToConfirmStep = () => {
+    if (!payin_id) return;
+    setScreen("detail");
+    setLocalStep("summary");
+    setAfricaStep("summary");
+    setMobileOpen("local");
+  };
+
+  const handleStepperClick = (step: PayLocalStepperNodeId) => {
+    switch (step) {
+      case "verify":
+        goToPayerEmailStep();
+        return;
+      case "identity":
+        goToIdentityStep();
+        return;
+      case "amount":
+        goToAmountStep();
+        return;
+      case "provider":
+        goToProviderStep();
+        return;
+      case "details":
+        goToPaymentDetailsStep();
+        return;
+      case "confirm":
+        goToConfirmStep();
+        return;
+      default:
+        return;
+    }
+  };
+
+  const goFromAmountContinue = () => {
+    const state = useGuestSendStore.getState();
+    const momo = isMomoChannel(
+      null,
+      state.account_type,
+      state.channel_name,
+      state.channel_id || paymentMethod,
+    );
+    if (momo) {
+      goToProviderStep();
+      return;
+    }
+    goToPaymentDetailsStep();
+  };
+
+  const goBackFromDetails = () => {
+    const state = useGuestSendStore.getState();
+    const momo = isMomoChannel(
+      null,
+      state.account_type,
+      state.channel_name,
+      state.channel_id || paymentMethod,
+    );
+    if (momo) {
+      goToProviderStep();
+      return;
+    }
+    goToAmountStep();
+  };
+
+  const closeLocalFlow = () => {
+    goToPayerEmailStep();
+  };
+
   const exitLocalToMethods = () => {
     clearAfricaPayinSession(username);
     actions.resetPaymentSession();
     setPaymentMethod(null);
-    setScreen("local");
-    setLocalStep("amount");
-    setAfricaStep("details");
+    goToPayerEmailStep();
+  };
+
+  const routeToNigeriaPalmPay = () => {
+    clearAfricaPayinSession(username);
+    actions.resetPaymentSession();
+    setPaymentMethod(null);
+    setTransferCurrency("NGN");
+    setScreen("transfer");
+    setMobileOpen("transfer");
+    setLocalStep("payer_email");
+    setAfricaStep("payer_email");
   };
 
   const displayScreen = () => {
@@ -324,14 +490,18 @@ const RaizPaymentPage = () => {
           return (
             <PayLocalAmount
               data={data}
-              goBack={exitLocalToMethods}
-              goNext={() => {
-                setScreen("detail");
-                setLocalStep("details");
-                setAfricaStep("details");
-              }}
+              goBack={goToPayerEmailStep}
+              goNext={goFromAmountContinue}
               paymentMethod={paymentMethod}
               setPaymentMethod={setPaymentMethod}
+            />
+          );
+        }
+        if (data && localStep === "provider") {
+          return (
+            <PayLocalProvider
+              goBack={goToAmountStep}
+              goNext={goToPaymentDetailsStep}
             />
           );
         }
@@ -347,12 +517,11 @@ const RaizPaymentPage = () => {
                 setAfricaStep(next);
                 setLocalStep(next);
               }}
-              goBack={() => {
-                setScreen("local");
-                setLocalStep("amount");
-                setAfricaStep("details");
-              }}
+              goBack={exitLocalToMethods}
               close={closeLocalFlow}
+              onNigeriaPalmPay={routeToNigeriaPalmPay}
+              onPayerReady={goToAmountStep}
+              onBackToAmount={goBackFromDetails}
             />
           );
         }
@@ -407,13 +576,14 @@ const RaizPaymentPage = () => {
       </section>
     );
   }
-  const selectedMethodObj = paymentMethodsArr.find(
-    (item) => item.id === (screen === "detail" ? "local" : screen),
-  );
   return (
-    <div className="min-h-screen bg-[url('/images/paybg.gif')] bg-no-repeat bg-cover flex md:items-center justify-center p-0 md:p-4">
-      {/* Logo */}
-      <div className="absolute top-8 left-8">
+    <div className="relative min-h-screen flex flex-col md:items-center md:justify-center bg-black/90 p-0 md:p-4">
+      <div
+        aria-hidden
+        className="absolute inset-0 z-0 bg-[url('/images/paybg.gif')] bg-no-repeat bg-cover opacity-30 pointer-events-none"
+      />
+      {/* Desktop logo */}
+      <div className="absolute top-8 left-8 hidden md:block z-10">
         <Link href={"https://www.raiz.app"}>
           <Image
             src={"/icons/Logo-3.svg"}
@@ -424,60 +594,87 @@ const RaizPaymentPage = () => {
         </Link>
       </div>
 
+      {/* Mobile purple header with logo */}
+      <div className="md:hidden relative z-10 w-full pt-12 pb-8 px-5 shrink-0">
+        <Link href={"https://www.raiz.app"} className="inline-block">
+          <Image
+            src={"/icons/Logo-3.svg"}
+            alt="Raiz"
+            width={54}
+            height={25}
+          />
+        </Link>
+      </div>
+
       {/* Main Container */}
       {isLoading ? (
-        <div className="flex justify-center items-center w-full mt-5">
+        <div className="relative z-10 flex justify-center items-center w-full mt-5">
           <Spinner className="border-white" />
         </div>
       ) : (
-        <div className="w-full mt-[100px] lg:mt-[50px] xl:mt-0 max-w-4xl md:h-[80vh] bg-white rounded-[20px] rounded-b-none md:rounded-b-[20px] shadow-2xl overflow-hidden flex flex-col md:flex-row">
+        <div className="w-full flex-1 md:flex-initial -mt-4 md:mt-[100px] lg:mt-[50px] xl:mt-0 max-w-4xl md:h-[80vh] bg-white rounded-t-[20px] md:rounded-[20px] shadow-2xl overflow-visible md:overflow-hidden flex flex-col md:flex-row relative z-10">
           {/* Left Sidebar */}
-          <div className="w-full md:[32.8%] md:max-w-[296px] bg-[#FCFCFD]  flex flex-col">
+          <div className="w-full md:[32.8%] md:max-w-[296px] border md:border-none rounded-t-[20px] md:rounded-0 bg-[#FCFCFD] flex flex-col">
             {/* Store Info */}
-            <div className=" p-5 flex flex-row items-center gap-2 md:flex-col md:items-start">
+            <div className="p-5 flex flex-row items-center gap-2 md:flex-col md:items-start border-b-[1.5px] border-[#F3F1F6] md:border-b-0">
               <Avatar
                 size={36}
                 className="w-9 h-9 md:w-[48px] md:h-[48px] md:mb-3"
-                src={""}
-                name={""}
+                src={data?.account_user?.selfie_image || ""}
+                name={data?.account_user?.account_name || ""}
               />
-              <h2 className="text-base font-bold text-raiz-gray-950">{`${data?.account_user?.account_name}`}</h2>
+              <div className="md:contents">
+                <h2 className="text-lg md:text-base font-bold text-raiz-gray-950">
+                  {`${data?.account_user?.account_name}`}
+                </h2>
+              </div>
             </div>
 
             {/* Payment Methods */}
-            <div className="flex-1 mx-5 md:mx-0">
+            <div className="flex-1 md:mx-0">
               <h3 className="text-raiz-gray-950 mb-4 px-5 hidden md:block">
                 Payment Methods
               </h3>
-              <h3 className="text-raiz-gray-950 mb-4 block font-normal leading-6 md:hidden">
+              <h3 className="text-raiz-gray-950 px-5 pb-5 pt-3 block font-normal text-base leading-6 md:hidden">
                 Choose your payment method
               </h3>
-              <div className="block w-[calc(100%+40px)] -ml-[19px] mb-8 h-[1px] md:hidden border-b-[1.5px] border-[#F3F1F6]" />
-              <div className="space-y-4 md:space-y-1.5">
+              <div className="space-y-1.5 md:mx-0">
                 {paymentMethodsArr
                   .filter((method) => method.id !== "zelle" || isUSUser)
                   .map(({ id, label, icon }) => {
                     const active =
                       screen === id || (id === "local" && screen === "detail");
-                    const isOpen = mobileOpen === id || (id === "local" && screen === "detail" && mobileOpen === "local");
+                    const isOpen =
+                      mobileOpen === id ||
+                      (id === "local" &&
+                        screen === "detail" &&
+                        mobileOpen === "local");
+
+                    const mobileBarTint =
+                      active
+                        ? "bg-[#EAECFF]/60 md:bg-transparent"
+                        : "bg-[#EAECFF]/30 md:bg-transparent";
+                    const desktopActiveTint =
+                      isOpen || active
+                        ? "md:bg-indigo-50"
+                        : "md:bg-transparent";
 
                     return (
                       <div
                         key={id}
-                        className="md:border-none border rounded-xl"
+                        className="md:border-none md:rounded-xl"
                       >
                         <button
                           onClick={() => handleMethodClick(id)}
-                          className={`w-full flex items-center justify-between gap-3 px-5 py-3 border-t-[0.5px] md:border-t-0 border-b-0 rounded-xl transition-all
-                    ${isOpen || active ? "bg-indigo-50" : ""}`}
+                          className={`w-full flex items-center justify-between gap-3 px-5 py-4 md:py-3 md:rounded-xl transition-all ${mobileBarTint} ${desktopActiveTint}`}
                         >
                           <div className="flex gap-2 items-center">
                             {icon(isOpen || active)}
                             <span
-                              className={`text-xs md:text-base font-bold ${
+                              className={`text-[13px] md:text-base ${
                                 isOpen || active
-                                  ? "text-primary2"
-                                  : "text-raiz-gray-600"
+                                  ? "text-raiz-gray-950 md:text-primary2 font-bold"
+                                  : "text-raiz-gray-950 md:text-raiz-gray-600 font-bold md:font-normal"
                               }`}
                             >
                               {label}
@@ -606,23 +803,34 @@ const RaizPaymentPage = () => {
                           </div>
                         )}
                         <div
-                          className={`md:hidden overflow-auto no-scrollbar transition-all duration-300 
-                ${isOpen ? "max-h-[500px] py-4 px-2" : "max-h-0"}`}
+                          className={`md:hidden no-scrollbar transition-all duration-300 
+                ${isOpen ? "max-h-none py-4 px-5 overflow-visible" : "max-h-0 overflow-hidden py-0 px-5"}`}
                         >
+                          {id === "local" && isOpen && (
+                            <PayLocalStepper
+                              localStep={localStep}
+                              africaStep={africaStep}
+                              showIdentity={showIdentityStep}
+                              showProvider={isLocalMomo}
+                              onStepClick={handleStepperClick}
+                            />
+                          )}
                           {id === "card" && data && (
                             <GuestPayWithCard data={data} />
                           )}
                           {id === "local" && data && localStep === "amount" && (
                             <PayLocalAmount
                               data={data}
-                              goBack={exitLocalToMethods}
-                              goNext={() => {
-                                setScreen("detail");
-                                setLocalStep("details");
-                                setAfricaStep("details");
-                              }}
+                              goBack={goToPayerEmailStep}
+                              goNext={goFromAmountContinue}
                               paymentMethod={paymentMethod}
                               setPaymentMethod={setPaymentMethod}
+                            />
+                          )}
+                          {id === "local" && data && localStep === "provider" && (
+                            <PayLocalProvider
+                              goBack={goToAmountStep}
+                              goNext={goToPaymentDetailsStep}
                             />
                           )}
                           {id === "local" && data && screen === "detail" && (
@@ -634,12 +842,11 @@ const RaizPaymentPage = () => {
                                 setAfricaStep(next);
                                 setLocalStep(next);
                               }}
-                              goBack={() => {
-                                setScreen("local");
-                                setLocalStep("amount");
-                                setAfricaStep("details");
-                              }}
+                              goBack={exitLocalToMethods}
                               close={closeLocalFlow}
+                              onNigeriaPalmPay={routeToNigeriaPalmPay}
+                              onPayerReady={goToAmountStep}
+                              onBackToAmount={goBackFromDetails}
                             />
                           )}
                           {id === "transfer" && data && (
@@ -659,11 +866,11 @@ const RaizPaymentPage = () => {
             </div>
 
             {/* Connect Section */}
-            <div className="mt-8 pt-8 px-5 border-t border-gray-200">
-              <h3 className="text-sm font-semibold text-raiz-gray-950 mb-3">
+            <div className="mt-8 pt-5 md:pt-8 px-5 border-t-[1.5px] border-[#F3F1F6]">
+              <h3 className="text-sm font-semibold text-raiz-gray-950 mb-2 md:mb-3">
                 Connect with Raiz
               </h3>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center gap-2 md:gap-4">
                 <a
                   target="_blank"
                   href="https://www.instagram.com/p/DVMC7huiulF/?img_index=1&igsh=eWtrZHVrczI5dWEx"
@@ -703,7 +910,7 @@ const RaizPaymentPage = () => {
                       </linearGradient>
                     </defs>
                   </svg>
-                  <span className="text-[13px] font-semibold leading-snug tracking-tight">
+                  <span className="text-[13px] font-normal md:font-semibold leading-snug tracking-tight">
                     Instagram
                   </span>
                 </a>
@@ -740,7 +947,7 @@ const RaizPaymentPage = () => {
                       </clipPath>
                     </defs>
                   </svg>
-                  <span className="text-[13px] font-semibold leading-snug tracking-tight">
+                  <span className="text-[13px] font-normal md:font-semibold leading-snug tracking-tight">
                     Website
                   </span>
                 </a>
@@ -768,7 +975,7 @@ const RaizPaymentPage = () => {
                       fill="white"
                     />
                   </svg>
-                  <span className="text-[13px] font-semibold leading-snug tracking-tight">
+                  <span className="text-[13px] font-normal md:font-semibold leading-snug tracking-tight">
                     Facebook
                   </span>
                 </a>
@@ -776,11 +983,11 @@ const RaizPaymentPage = () => {
             </div>
 
             {/* Footer Links */}
-            <div className="mt-8  px-5 pb-8">
-              <p className="text-sm font-semibold text-gray-700 mb-2">
+            <div className="mt-8 md:mt-8 px-5 pb-8">
+              <p className="text-sm font-semibold text-raiz-gray-950 mb-2">
                 Don&apos;t have Raiz?
               </p>
-              <div className="flex gap-3 text-[13px]">
+              <div className="flex flex-wrap gap-2 md:gap-3 text-[13px]">
                 <a
                   target="_blank"
                   href="https://raizapp.onelink.me/RiOx/webdirect"
@@ -795,60 +1002,34 @@ const RaizPaymentPage = () => {
                 >
                   Play store (Android)
                 </a>
+                <Link
+                  href="/register"
+                  className="text-[13px] text-raiz-gray-950 underline inline-block"
+                >
+                  Sign up on Business
+                </Link>
               </div>
-              <Link
-                href="/register"
-                className="text-[13px] text-raiz-gray-950 underline mt-2 inline-block"
-              >
-                Sign up on Business
-              </Link>
             </div>
           </div>
           {/* Right Content */}
           <div
             id="payment-scroll-container"
-            className={`w-full md:w-[67.18%] hidden p-5  md:p-12 overflow-y-auto no-scrollbar ${
+            className={`w-full md:w-[67.18%] hidden p-5  md:py-12 md:px-10 overflow-y-auto no-scrollbar ${
               !screen || !mobileOpen ? "hidden md:block" : "md:block"
             }`}
           >
-           {selectedMethodObj?.id === "local" && localStep === "details" ? null : <div className="flex items-start justify-between mb-11">
-              <div>
-                <h1 className="text-[23px] font-semibold text-raiz-gray-950 mb-1">
-                  {selectedMethodObj?.label}
-                </h1>
-                <p className="text-raiz-gray-700 text-sm">
-                  {selectedMethodObj?.subText}
-                </p>
-              </div> 
-              <div className="w-10 h-10 ">
-                <svg
-                  width="40"
-                  height="40"
-                  viewBox="0 0 40 40"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    opacity="0.35"
-                    d="M30 10H20V3.33337H13.3333V10H10C7.23833 10 5 12.2384 5 15V30C5 32.7617 7.23833 35 10 35H30C32.7617 35 35 32.7617 35 30V15C35 12.2384 32.7617 10 30 10Z"
-                    fill="#C6ADD5"
-                  />
-                  <path
-                    d="M29.1667 25C30.5475 25 31.6667 23.8807 31.6667 22.5C31.6667 21.1193 30.5475 20 29.1667 20C27.786 20 26.6667 21.1193 26.6667 22.5C26.6667 23.8807 27.786 25 29.1667 25Z"
-                    fill="#493260"
-                  />
-                  <path
-                    d="M10 6.66671V10H15V3.33337H13.3333C11.4917 3.33337 10 4.82504 10 6.66671Z"
-                    fill="#733B9C"
-                  />
-                  <path
-                    d="M18.3333 10H26.6666V6.66671C26.6666 4.82504 25.1749 3.33337 23.3333 3.33337H18.3333V10Z"
-                    fill="#733B9C"
-                  />
-                </svg>
-              </div>
-            </div>}
-            {displayScreen()}
+            <div className="w-full h-full flex flex-col">
+              {showLocalStepper && (
+                <PayLocalStepper
+                  localStep={localStep}
+                  africaStep={africaStep}
+                  showIdentity={showIdentityStep}
+                  showProvider={isLocalMomo}
+                  onStepClick={handleStepperClick}
+                />
+              )}
+              {displayScreen()}
+            </div>
           </div>
         </div>
       )}

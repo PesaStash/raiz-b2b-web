@@ -1,4 +1,7 @@
 "use client";
+import { BusinessWrite } from "@/components/team/BusinessWrite";
+import { usePermissions } from "@/lib/hooks/usePermissions";
+
 import Image from "next/image";
 import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
@@ -84,6 +87,7 @@ const Header = () => {
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const [selectedAction, setSelectedAction] = useState<ModalKeys | null>(null);
   const [showActionOpts, setShowActionOpts] = useState(false);
+  const { canWriteBusiness } = usePermissions();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const params = useParams();
@@ -116,15 +120,15 @@ const Header = () => {
 
   useEffect(() => {
     if (!searchTerm) {
-      setSearchResults(searchItems);
+      setSearchResults(searchItems.filter(item=>canWriteBusiness || item.name !== "Create NGN Account"));
       return;
     }
 
     const results = searchItems.filter((item) =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()),
+      (canWriteBusiness || item.name !== "Create NGN Account") && item.name.toLowerCase().includes(searchTerm.toLowerCase()),
     );
     setSearchResults(results);
-  }, [searchTerm]);
+  }, [searchTerm, canWriteBusiness]);
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -164,7 +168,7 @@ const Header = () => {
       }
     }
     setSearchTerm("");
-    setSearchResults(searchItems);
+    setSearchResults(searchItems.filter(item=>canWriteBusiness || item.name !== "Create NGN Account"));
     setFocusedIndex(-1);
     setIsFocused(false);
     searchInputRef.current?.blur();
@@ -405,7 +409,7 @@ const Header = () => {
              Details
             </Link>
           ) : (
-            <Link
+            <BusinessWrite><Link
               className={`px-2 py-1 ${
                 pathName.endsWith("create-new")
                   ? "text-raiz-gray-900 font-semibold"
@@ -414,11 +418,11 @@ const Header = () => {
               href={"/invoice/create-new"}
             >
               New Invoice
-            </Link>
+            </Link></BusinessWrite>
           )}
         </div>
       )}
-      <div ref={actionDropdownRef} className="relative hidden sm:block">
+      {canWriteBusiness && <div ref={actionDropdownRef} className="relative hidden lg:block">
         <button
           onClick={() => setShowActionOpts((prev) => !prev)}
           className="flex justify-between items-center gap-2 min-w-0 w-auto px-3 lg:min-w-[175px] lg:px-4 xl:min-w-[220px] h-12 bg-raiz-gray-50 rounded-[20px] transition-all duration-200 outline outline-1 outline-offset-[-1px] outline-white"
@@ -470,7 +474,7 @@ const Header = () => {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </div>}
 
       <div className="flex gap-2 md:gap-4 items-center  shrink-0">
         <button

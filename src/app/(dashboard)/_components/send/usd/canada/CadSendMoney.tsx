@@ -117,7 +117,7 @@ const CadSendMoney = ({
 
   const displayValue = () => {
     if (isFocused || !amount) return amount ? `CA$${rawAmount}` : "";
-    const num = parseFloat(rawAmount);
+    const num = Number(rawAmount);
     return isNaN(num) ? "" : `CA$${num.toFixed(2)}`;
   };
 
