@@ -35,6 +35,33 @@ export type FailureReason =
 
 export type CardType = "virtual" | "physical";
 
+/** Contract-approved properties only: no card data, URLs, tokens, or emails. */
+export interface PaystackFundingAnalyticsProps {
+  actor_type: "business";
+  collection_id?: string;
+  reference?: string;
+  wallet_id?: string;
+  principal_amount?: string;
+  fee_amount?: string;
+  total_amount?: string;
+  status?: string;
+  settlement_status?: string;
+  polling_duration_ms?: number;
+  error_code?: string;
+}
+
+export type PaystackFundingEventName =
+  | "paystack_card_funding_opened"
+  | "paystack_card_funding_initialize_started"
+  | "paystack_card_funding_initialized"
+  | "paystack_card_funding_checkout_opened"
+  | "paystack_card_funding_checkout_closed"
+  | "paystack_card_funding_status_polled"
+  | "paystack_card_funding_completed"
+  | "paystack_card_funding_failed"
+  | "paystack_card_funding_review"
+  | "paystack_card_funding_disputed";
+
 /** Base params shared across events — never include PII. */
 export interface DataLayerEventMap {
   sign_up: {
@@ -146,6 +173,16 @@ export interface DataLayerEventMap {
     user_id?: string;
     session_duration_seconds?: number;
   };
+  paystack_card_funding_opened: PaystackFundingAnalyticsProps;
+  paystack_card_funding_initialize_started: PaystackFundingAnalyticsProps;
+  paystack_card_funding_initialized: PaystackFundingAnalyticsProps;
+  paystack_card_funding_checkout_opened: PaystackFundingAnalyticsProps;
+  paystack_card_funding_checkout_closed: PaystackFundingAnalyticsProps;
+  paystack_card_funding_status_polled: PaystackFundingAnalyticsProps;
+  paystack_card_funding_completed: PaystackFundingAnalyticsProps;
+  paystack_card_funding_failed: PaystackFundingAnalyticsProps;
+  paystack_card_funding_review: PaystackFundingAnalyticsProps;
+  paystack_card_funding_disputed: PaystackFundingAnalyticsProps;
 }
 
 export type DataLayerEventName = keyof DataLayerEventMap;

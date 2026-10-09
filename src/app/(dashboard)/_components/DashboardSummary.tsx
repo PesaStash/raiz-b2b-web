@@ -24,6 +24,7 @@ import NGNAcctInfo from "./acctInfo/NGNAcctInfo";
 import USDAcctInfo from "./acctInfo/USDAcctInfo";
 import DashboardAnalytics from "./charts/DashboardAnalytics";
 import UsdTopUp from "./topUp/UsdTopup/UsdTopUp";
+import NgnTopUp from "./topUp/NgnTopup/NgnTopUp";
 import { useTopupStore } from "@/store/TopUp";
 import { CurrencyTypeKey } from "@/store/Swap/swapSlice.types";
 import AccountUpgrade from "./AccountUpgrade";
@@ -120,6 +121,8 @@ const DashboardSummary = () => {
   };
 
   const currentWallet = getCurrentWallet();
+  const hasDedicatedTopUp =
+    selectedCurrency?.name === "USD" || selectedCurrency?.name === "NGN";
 
   const closeModal = () => {
     setOpenModal(null);
@@ -226,7 +229,7 @@ const DashboardSummary = () => {
           <Swap close={closeSwapModal} />
         );
       case "topUp":
-        return selectedCurrency?.name !== "USD" ? <TopUp close={closeModal} /> : null;
+        return !hasDedicatedTopUp ? <TopUp close={closeModal} /> : null;
       case "createNGN":
         return (
           <CreateNgnAcct
@@ -444,7 +447,7 @@ const DashboardSummary = () => {
       <AnimatePresence>
         {openModal !== null &&
         openModal !== "selectAcct" &&
-        (openModal !== "topUp" || selectedCurrency?.name !== "USD") ? (
+        (openModal !== "topUp" || !hasDedicatedTopUp) ? (
           <CenterModalWrapper
             close={closeModal}
             wrapperStyle={
@@ -467,6 +470,9 @@ const DashboardSummary = () => {
       )}
       {openModal === "topUp" && selectedCurrency?.name === "USD" && (
         <UsdTopUp close={closeModal} />
+      )}
+      {openModal === "topUp" && selectedCurrency?.name === "NGN" && (
+        <NgnTopUp close={closeModal} />
       )}
       {showAcctInfo && selectedCurrency ? (
         selectedCurrency.name === "NGN" ? (

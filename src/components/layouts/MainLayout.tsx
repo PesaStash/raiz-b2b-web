@@ -10,6 +10,7 @@ import MobileHeader from "./MobileHeader";
 import MobileDrawer from "./MobileDrawer";
 import { MobileNavProvider } from "@/context/MobileNavContext";
 import { SidebarProvider, useSidebar } from "@/context/SidebarContext";
+import PaystackCheckoutResume from "@/app/(dashboard)/_components/topUp/NgnTopup/PaystackCheckoutResume";
 
 const dashboardRoutes = [
   "/",
@@ -85,6 +86,7 @@ const MainLayoutContent = ({
         <>
           {!isTeam && <MobileBottomNav />}
           <MobileDrawer />
+          <PaystackCheckoutResume />
         </>
       )}
     </section>

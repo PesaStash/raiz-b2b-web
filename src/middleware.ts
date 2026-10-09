@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { PAYSTACK_CALLBACK_PATH } from "@/lib/paystackCardCollection";
 
 const ROUTES = {
   SIGNIN: "/login",
@@ -7,6 +8,12 @@ const ROUTES = {
 
 export async function middleware(request: NextRequest) {
   try {
+    // Mobile users return here from Paystack without a web session and are
+    // handed back to the app; the page itself never confirms payment.
+    if (request.nextUrl.pathname.replace(/\/$/, "") === PAYSTACK_CALLBACK_PATH) {
+      return NextResponse.next();
+    }
+
     // Check for access token
     const accessToken = request.cookies.get("access_token")?.value;
     if (!accessToken) {
@@ -34,5 +41,6 @@ export const config = {
     "/gateway/:path*",
     "/developers",
     "/developers/:path*",
+    "/fund-wallet/:path*",
   ],
 };

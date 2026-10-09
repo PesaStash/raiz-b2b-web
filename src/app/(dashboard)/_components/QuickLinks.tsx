@@ -8,6 +8,7 @@ import { useCurrencyStore } from "@/store/useCurrencyStore";
 import USDAcctInfo from "./acctInfo/USDAcctInfo";
 import ForeignAcctInfo from "./acctInfo/ForeignAcctInfo";
 import TopUp from "./topUp/TopUp";
+import NgnTopUp from "./topUp/NgnTopup/NgnTopUp";
 import Analytics from "./analytics/page";
 import { findWalletByCurrency } from "@/utils/helpers";
 import { useUser } from "@/lib/hooks/useUser";
@@ -97,7 +98,11 @@ const QuickLinks = () => {
       // case "swap":
       //   return <h1>Swap</h1>;
       case "top-up":
-        return <TopUp close={closeModal} />;
+        return selectedCurrency.name === "NGN" ? (
+          <NgnTopUp close={closeModal} />
+        ) : (
+          <TopUp close={closeModal} />
+        );
       case "analytics":
         return <Analytics close={closeModal} />;
       default:

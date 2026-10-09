@@ -5,6 +5,7 @@ import { useSendStore } from "@/store/Send";
 import { useSwapStore } from "@/store/Swap";
 import { useTopupStore } from "@/store/TopUp";
 import { useCryptoSwapStore } from "@/store/CryptoSwap";
+import { clearPendingPaystackCheckout } from "@/lib/paystackCheckoutSession";
 
 let client: QueryClient | undefined;
 let generation = 0;
@@ -23,6 +24,7 @@ export function clearLocalSession() {
   client?.clear();
   const entityId = useUserStore.getState().user?.business_account?.entity_id;
   if (typeof window !== "undefined" && entityId) localStorage.removeItem(`usd-onboarding-case:${entityId}`);
+  clearPendingPaystackCheckout(entityId);
   useUserStore.getState().clearUser();
   useUserStore.persist.clearStorage();
   useSendStore.setState(useSendStore.getInitialState());

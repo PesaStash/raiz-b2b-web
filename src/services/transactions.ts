@@ -70,8 +70,15 @@ import {
   ITransactionClass,
 } from "@/types/transactions";
 import { ICrossCurrencies } from "@/types/misc";
+import {
+  PaystackCardCollectionInitializeRequest,
+  PaystackCardCollectionInitializeResponse,
+  PaystackCardCollectionStatusResponse,
+} from "@/types/paystackCardCollection";
 
 const AUTH_AFRICA_PAYIN_BASE = "business/transactions/payins/africa";
+const PAYSTACK_CARD_COLLECTION_BASE =
+  "business/transactions/collections/paystack/card";
 
 const extractAfricaPayinStatus = (
   payload: GuestPayStatusType | AfricaPayinStatusResponse | string | null,
@@ -995,6 +1002,34 @@ export const DenyAuthAfricaPayinApi = async (
   const response = await AuthAxios.post(
     `${AUTH_AFRICA_PAYIN_BASE}/deny/?payin_id=${encodeURIComponent(payin_id)}`,
     undefined,
+    { silent: true } as CustomAxiosRequestConfig,
+  );
+  return response.data;
+};
+
+export const InitializePaystackCardCollectionApi = async ({
+  data,
+  idempotencyKey,
+}: {
+  data: PaystackCardCollectionInitializeRequest;
+  idempotencyKey: string;
+}): Promise<PaystackCardCollectionInitializeResponse> => {
+  const response = await AuthAxios.post(
+    `${PAYSTACK_CARD_COLLECTION_BASE}/initialize/`,
+    data,
+    {
+      silent: true,
+      headers: { "idempotency-key": idempotencyKey },
+    } as CustomAxiosRequestConfig,
+  );
+  return response.data;
+};
+
+export const GetPaystackCardCollectionStatusApi = async (
+  reference: string,
+): Promise<PaystackCardCollectionStatusResponse> => {
+  const response = await AuthAxios.get(
+    `${PAYSTACK_CARD_COLLECTION_BASE}/${encodeURIComponent(reference)}/status/`,
     { silent: true } as CustomAxiosRequestConfig,
   );
   return response.data;

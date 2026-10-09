@@ -36,6 +36,7 @@ import { useSwapStore } from "@/store/Swap";
 import { useTopupStore } from "@/store/TopUp";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import UsdTopUp from "@/app/(dashboard)/_components/topUp/UsdTopup/UsdTopUp";
+import NgnTopUp from "@/app/(dashboard)/_components/topUp/NgnTopup/NgnTopUp";
 import { useUser } from "@/lib/hooks/useUser";
 import { toast } from "sonner";
 import { CurrencyTypeKey } from "@/store/Swap/swapSlice.types";
@@ -193,6 +194,9 @@ const Header = () => {
     }
   };
 
+  const hasDedicatedTopUp =
+    selectedCurrency?.name === "USD" || selectedCurrency?.name === "NGN";
+
   const handleCloseModal = () => {
     setShowModal(null);
     sendActions.reset(selectedCurrency.name);
@@ -248,7 +252,7 @@ const Header = () => {
           <Swap close={handleCloseModal} />
         );
       case "topUp":
-        return selectedCurrency?.name !== "USD" ? (
+        return !hasDedicatedTopUp ? (
           <TopUp close={handleCloseModal} />
         ) : null;
       default:
@@ -546,7 +550,7 @@ const Header = () => {
       <AnimatePresence>
         {showModal !== null &&
         showModal !== "selectAcct" &&
-        (showModal !== "topUp" || selectedCurrency?.name !== "USD") && (
+        (showModal !== "topUp" || !hasDedicatedTopUp) && (
           <CenterModalWrapper
             close={handleCloseModal}
             wrapperStyle={
@@ -574,6 +578,9 @@ const Header = () => {
       )}
       {showModal === "topUp" && selectedCurrency?.name === "USD" && (
         <UsdTopUp close={handleCloseModal} />
+      )}
+      {showModal === "topUp" && selectedCurrency?.name === "NGN" && (
+        <NgnTopUp close={handleCloseModal} />
       )}
       {successful && <NgnSuccessModal close={() => setSuccessful(false)} />}
     </div>
