@@ -19,7 +19,6 @@ import { formatAmount } from "@/utils/helpers";
 import { useDebounce } from "@/lib/hooks/useDebounce";
 import { isCrossCurrencyNgnGbpEurSwap } from "@/store/Swap/swapSlice.types";
 import { ICrossCurrencies } from "@/types/misc";
-// import RaizReceipt from "@/components/transactions/RaizReceipt";
 
 export type SwapStep = "detail" | "confirmation" | "pay" | "status" | "receipt";
 

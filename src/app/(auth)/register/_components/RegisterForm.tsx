@@ -5,9 +5,7 @@ import CreateAccount from "./forms/CreateAccount";
 import SetPassword from "./forms/SetPassword";
 import Button from "@/components/ui/Button";
 import Link from "next/link";
-// import CreateUsername from "./forms/CreateUsername";
 import RegisterOtp from "./forms/RegisterOtp";
-// import UseCases from "./forms/UseCases";
 import Congrats from "./forms/Congrats";
 import { useFormik } from "formik";
 import { registerFormSchemas, sanitizeOtpInput } from "./validation";
@@ -33,8 +31,6 @@ const RegisterForm = () => {
     "createAccount",
     "setPassword",
     "otp",
-    // "createUsername",
-    // "useCases",
     "congrats",
   ];
 
@@ -43,8 +39,6 @@ const RegisterForm = () => {
     lastName: "",
     email: "",
     password: "",
-    // username: "",
-    // phone_number: "",
     country_id: "",
     referral_code: "",
     otp: "",
@@ -62,12 +56,13 @@ const RegisterForm = () => {
     validate: validateCurrentStep,
     validateOnChange: true,
     validateOnBlur: true,
-    onSubmit: (values) => console.log("form values", values),
+    // Submission happens per step through signupMutation.
+    onSubmit: () => undefined,
   });
 
   const signupMutation = useMutation({
     mutationFn: (data: IRegisterPayload) => SignupApi(data),
-    onSuccess: (response) => {
+    onSuccess: () => {
      
       handleNavigate("next");
     },
@@ -98,8 +93,7 @@ const RegisterForm = () => {
       );
       handleNavigate("next");
     },
-    onError: (error) => {
-      console.log("Signup failed:", error);
+    onError: () => {
       formik.setErrors({ otp: "Signup failed. Please try again." });
     },
   });

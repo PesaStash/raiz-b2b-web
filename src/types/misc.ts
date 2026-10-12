@@ -19,13 +19,10 @@ export interface ISidebarMenuItem {
 export interface IRegisterFormValues {
   email: string;
   password: string;
-  // username: string;
-  // phone_number: string;
   country_id: string;
   country_name?: string;
   referral_code?: string;
   otp: string;
-  // useCases?: number[];
   firstName: string;
   lastName: string;
   confirmPassword: string;

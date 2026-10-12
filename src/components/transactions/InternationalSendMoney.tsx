@@ -220,18 +220,6 @@ const InternationalSendMoney = ({
                 {formatAmount(minAmount)}
               </span>
             </div>
-            {/* {fee ? (
-              <div className="w-full flex justify-between items-center">
-                <span className="text-cyan-700 text-xs font-normal font-brSonoma leading-normal">
-                  Fee:
-                </span>
-                <div className="h-0.5 w-[75%] px-4 bg-white"></div>
-                <span className="text-zinc-900  text-xs font-semibold leading-none">
-                  {getCurrencySymbol(senderCurrency || "")}
-                  {fee?.toFixed(2) || "0.00"}
-                </span>
-              </div>
-            ) : null} */}
           </div>
 
           <Button

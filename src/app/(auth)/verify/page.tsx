@@ -3,14 +3,11 @@ import React from "react";
 import Slider from "../_components/authSlide/Slider";
 import OtpInputWithTimer from "@/components/ui/OtpInputWithTimer";
 import { useFormik } from "formik";
-// import { useMutation } from '@tanstack/react-query';
-// import { ResendSignupOtpApi } from '@/services/auth';
 import AnimatedSection from "@/components/ui/AnimatedSection";
 import { SignupVerifyOtpApi } from "@/services/auth";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
-// import { toast } from 'sonner';
 import Image from "next/image";
 import Button from "@/components/ui/Button";
 
@@ -35,17 +32,6 @@ const VerifyPage = () => {
       verifyOtpMutation.mutate({ otp: values.otp, email });
     },
   });
-  // const resendOtpMutation = useMutation({
-  //   mutationFn: (data: { email: string }) => ResendSignupOtpApi(data),
-  //   onSuccess: (response) => {
-  //     console.log("Signup successful:", response);
-  //     toast.success("OTP sent successfully! Check your email");
-  //   },
-  //   onError: (error) => {
-  //     console.log("Signup failed:", error);
-  //     formik.setErrors({ otp: "Signup failed. Please try again." });
-  //   },
-  // });
   return (
     <section className="p-6 md:p-12 lg:px-8 xl:px-12 h-[calc(100vh-2rem)] md:h-full min-h-[100vh]">
       <div className="flex flex-col  md:flex-row  h-full gap-12">
@@ -94,9 +80,6 @@ const VerifyPage = () => {
                   onChange={(val) => formik.setFieldValue("otp", val)}
                   error={formik.errors.otp}
                   touched={formik.touched.otp}
-                  //   onResend={() =>
-                  //     resendOtpMutation.mutate({ email: formik.values.email })
-                  //   }
                   length={6}
                 />
               </div>

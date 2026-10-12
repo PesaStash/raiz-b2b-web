@@ -1,4 +1,3 @@
-import SideWrapperHeader from "@/components/SideWrapperHeader";
 import Button from "@/components/ui/Button";
 import InputField from "@/components/ui/InputField";
 import InputLabel from "@/components/ui/InputLabel";
@@ -87,7 +86,6 @@ const FilterHistory = ({
   categories,
   setCategory,
 }: Props) => {
-  // const [modal, setModal] = useState<"start" | "end" | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const periods = ["Custom", "Current week", "Last week", "Current month"];
@@ -265,9 +263,8 @@ const FilterHistory = ({
       clearFilter();
       clearAll();
       close();
-    } catch (error) {
+    } catch {
       toast.error("Failed to generate bank statement");
-      console.log(error);
     } finally {
       setDownloading(false);
     }
@@ -287,26 +284,6 @@ const FilterHistory = ({
       <div className="flex flex-col justify-between gap-5 h-full">
         <div className="flex flex-col bg-raiz-gray-50 rounded-[20px] p-2 md:p-6 w-full">
           {/* activity */}
-          {/* <div className="">
-            <h4 className="text-zinc-900 text-xs font-bold leading-tight mb-[9px]">
-              Activity
-            </h4>
-            <div className="flex items-center gap-4 overflow-x-scroll no-scrollbar">
-              {activities.map((each, index) => (
-                <button
-                  onClick={() => setActivity(each.transaction_class_id)}
-                  className={`p-2 rounded-lg whitespace-nowrap  border-[0.5px] leading-tight text-xs ${
-                    each.transaction_class_id === activity
-                      ? "border-indigo-900 text-indigo-900 bg-indigo-100/60 "
-                      : "border-zinc-400 text-zinc-800   "
-                  } `}
-                  key={index}
-                >
-                  {convertField(each.transaction_class)}
-                </button>
-              ))}
-            </div>
-          </div> */}
           {/* Categoty */}
           <div className="">
             <h4 className="text-zinc-900 text-xs font-bold leading-tight mb-[9px]">

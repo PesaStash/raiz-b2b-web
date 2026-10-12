@@ -48,7 +48,6 @@ const InvoiceSettings = ({ close }: Props) => {
     },
   });
 
-  console.log(data);
 
   return (
     <Formik
@@ -67,9 +66,6 @@ const InvoiceSettings = ({ close }: Props) => {
         //   tax_level:
         //     values.tax_level === ""
         //       ? null
-        //       : (values.tax_level as "line" | "total"),
-        //   terms_and_conditions: values.terms,
-        // });
         CreateInvoiceMutation.mutate({
           discount_level:
             values.discount_level === ""
@@ -84,7 +80,6 @@ const InvoiceSettings = ({ close }: Props) => {
       }}
     >
       {(formik) => {
-        // console.log("errr", formik.errors);
         return (
           <form onSubmit={formik.handleSubmit} className="h-full flex flex-col">
             {/* Header */}

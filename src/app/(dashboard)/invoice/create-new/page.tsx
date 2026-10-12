@@ -18,13 +18,11 @@ import { CustomerSearchBox } from "../_components/CustomerSearchbox";
 import InputLabel from "@/components/ui/InputLabel";
 import Link from "next/link";
 import TaxSelect from "../_components/TaxSelect";
-// import DiscountInput from "../_components/DiscountInput";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import AddNewTax from "../_components/AddNewTax";
 import { useUser } from "@/lib/hooks/useUser";
 import InvoiceSettings from "../_components/InvoiceSettings";
 import { AnimatePresence } from "motion/react";
-import SideModalWrapper from "../../_components/SideModalWrapper";
 import AddNewCustomer from "../../customers/_components/AddNewCustomer";
 import { ICreateInvoicePayload, ICustomer } from "@/types/invoice";
 import SelectField from "@/components/ui/SelectField";
@@ -90,14 +88,10 @@ const CreateInvoicePage = () => {
   const { selectedCurrency } = useCurrencyStore();
   const { user } = useUser();
   const router = useRouter();
-  // const fileInputRef = useRef<HTMLInputElement | null>(null);
-  // const fileListBtnRef = useRef<HTMLButtonElement>(null);
   const formikRef = useRef<FormikProps<InvoiceFormValues>>(null);
   const customerBtnRef = useRef<HTMLButtonElement>(null);
   const currencyBtnRef = useRef<HTMLButtonElement>(null);
 
-  // const [files, setFiles] = useState<File[]>([]);
-  // const [showUploadedFiles, setShowUploadedFiles] = useState(false);
   const [showSearchBox, setShowSearchBox] = useState(false);
   const [showAddTaxModal, setShowAddTaxModal] = useState(false);
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
@@ -118,10 +112,6 @@ const CreateInvoicePage = () => {
 
   const today = new Date().toISOString().split("T")[0];
 
-  // const dropDownRef = useOutsideClick(
-  //   () => setShowUploadedFiles(false),
-  //   fileListBtnRef
-  // );
   const currencyDropdownRef = useOutsideClick(
     () => setShowCurrencyDropdown(false),
     currencyBtnRef,
@@ -132,20 +122,6 @@ const CreateInvoicePage = () => {
       value: each?.wallet_type?.currency || "",
       label: each?.wallet_type?.currency || "",
     })) || [];
-
-  // const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   const selectedFiles = e.target.files ? Array.from(e.target.files) : [];
-  //   setFiles((prev) => [...prev, ...selectedFiles]);
-  //   e.target.value = "";
-  // };
-
-  // const handleRemoveFile = (index: number) => {
-  //   setFiles((prev) => prev.filter((_, i) => i !== index));
-  // };
-
-  // const handleFileUploadClick = () => {
-  //   fileInputRef.current?.click();
-  // };
 
   const calculateTotals = (values: InvoiceFormValues) => {
     let subtotal = 0;
@@ -269,7 +245,6 @@ const CreateInvoicePage = () => {
       }),
     };
 
-    console.log("Submitting payload:", payload);
     const isDraft = submitType === "draft";
     CreateMutation.mutate({ payload, isDraft });
   };
@@ -747,9 +722,6 @@ const CreateInvoicePage = () => {
                   {discountType === "discount" && (
                     <div className="flex items-center justify-between gap-5">
                       <span>Discount:</span>
-                      {/* <span>{`${getCurrencySymbol(currency)}${formatAmount(
-                        totalDiscount
-                      )}`}</span> */}
 
                       <div className="mt-2">
                         <DiscountInput
@@ -784,217 +756,6 @@ const CreateInvoicePage = () => {
               </div>
 
               {/* File attachment */}
-              {/* <div className="relative w-64">
-                <h6 className="text-zinc-900 text-sm font-medium font-brSonoma mb-3">
-                  Attach File(s) to your Invoice
-                </h6>
-
-                <div className="h-[50px] flex justify-between bg-gray-100 rounded-tl-lg rounded-bl-lg w-[219px]">
-                  <button
-                    type="button"
-                    onClick={handleFileUploadClick}
-                    className="flex justify-between items-center h-full p-3.5 w-full"
-                  >
-                    <div className="flex gap-1">
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          d="M6.00002 11.3334V7.33337L4.66669 8.66671"
-                          stroke="#292D32"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M6 7.33337L7.33333 8.66671"
-                          stroke="#292D32"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M14.6666 6.66671V10C14.6666 13.3334 13.3333 14.6667 9.99998 14.6667H5.99998C2.66665 14.6667 1.33331 13.3334 1.33331 10V6.00004C1.33331 2.66671 2.66665 1.33337 5.99998 1.33337H9.33331"
-                          stroke="#292D32"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M14.6666 6.66671H12C9.99998 6.66671 9.33331 6.00004 9.33331 4.00004V1.33337L14.6666 6.66671Z"
-                          stroke="#292D32"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      <span className="text-zinc-900 text-sm font-normal leading-tight">
-                        Upload files
-                      </span>
-                    </div>
-                    <Image
-                      src={"/icons/arrow-down.svg"}
-                      alt=""
-                      width={16}
-                      height={16}
-                    />
-                  </button>
-
-                  <input
-                    type="file"
-                    multiple
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    className="sr-only"
-                  />
-
-                  <div className="relative">
-                    <button
-                      ref={fileListBtnRef}
-                      type="button"
-                      onClick={() => setShowUploadedFiles(!showUploadedFiles)}
-                      className="h-[50px] flex items-center justify-center gap-1 w-12 p-3.5 bg-raiz-usd-primary rounded-tr-lg rounded-br-lg relative z-10"
-                    >
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 12 12"
-                        fill="none"
-                      >
-                        <path
-                          d="M6.52998 5.46997C7.65498 6.59497 7.65498 8.41497 6.52998 9.53497C5.40498 10.655 3.58498 10.66 2.46498 9.53497C1.34498 8.40997 1.33998 6.58997 2.46498 5.46997"
-                          stroke="#FCFCFD"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M5.29498 6.70494C4.12498 5.53494 4.12498 3.63494 5.29498 2.45994C6.46498 1.28494 8.36498 1.28994 9.53998 2.45994C10.715 3.62994 10.71 5.52994 9.53998 6.70494"
-                          stroke="#FCFCFD"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      <span className="font-brSonoma text-sm text-gray-50">
-                        {files.length}
-                      </span>
-                    </button>
-
-                    {showUploadedFiles && files.length > 0 && (
-                      <div
-                        ref={dropDownRef}
-                        className="absolute bottom-[70%] right-0 left-[45%] w-72 bg-neutral-50 rounded-lg shadow-lg border border-gray-100 z-20"
-                      >
-                        <ul className="max-h-56 overflow-auto p-2 space-y-2">
-                          {files.map((file, index) => (
-                            <li
-                              key={index}
-                              className="flex justify-between items-center hover:bg-violet-100/60 p-2 rounded-md text-sm text-gray-700"
-                            >
-                              <div className="flex gap-3 items-center">
-                                <svg
-                                  width="20"
-                                  height="20"
-                                  viewBox="0 0 20 20"
-                                  fill="none"
-                                >
-                                  <path
-                                    d="M18.3334 8.33329V12.5C18.3334 16.6666 16.6667 18.3333 12.5001 18.3333H7.50008C3.33341 18.3333 1.66675 16.6666 1.66675 12.5V7.49996C1.66675 3.33329 3.33341 1.66663 7.50008 1.66663H11.6667"
-                                    stroke="#0D6494"
-                                    strokeWidth="1.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                  <path
-                                    d="M18.3334 8.33329H15.0001C12.5001 8.33329 11.6667 7.49996 11.6667 4.99996V1.66663L18.3334 8.33329Z"
-                                    stroke="#0D6494"
-                                    strokeWidth="1.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                  <path
-                                    d="M5.83325 10.8334H10.8333"
-                                    stroke="#0D6494"
-                                    strokeWidth="1.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                  <path
-                                    d="M5.83325 14.1666H9.16659"
-                                    stroke="#0D6494"
-                                    strokeWidth="1.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                </svg>
-                                <div className="flex flex-col gap-1">
-                                  <span>{truncateString(file.name, 20)}</span>
-                                  <span className="text-xs text-gray-500">
-                                    {(file.size / 1024).toFixed(1)} KB
-                                  </span>
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveFile(index)}
-                                className="group"
-                              >
-                                <svg
-                                  width="16"
-                                  height="16"
-                                  viewBox="0 0 16 16"
-                                  fill="none"
-                                >
-                                  <path
-                                    d="M14 3.98665C11.78 3.76665 9.54667 3.65332 7.32 3.65332C6 3.65332 4.68 3.71999 3.36 3.85332L2 3.98665"
-                                    stroke="#6F5B86"
-                                    strokeWidth="1.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                  <path
-                                    d="M5.66675 3.31337L5.81341 2.44004C5.92008 1.80671 6.00008 1.33337 7.12675 1.33337H8.87341C10.0001 1.33337 10.0867 1.83337 10.1867 2.44671L10.3334 3.31337"
-                                    stroke="#6F5B86"
-                                    strokeWidth="1.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                  <path
-                                    d="M12.5667 6.09338L12.1334 12.8067C12.06 13.8534 12 14.6667 10.14 14.6667H5.86002C4.00002 14.6667 3.94002 13.8534 3.86668 12.8067L3.43335 6.09338"
-                                    stroke="#6F5B86"
-                                    strokeWidth="1.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                  <path
-                                    d="M6.88672 11H9.10672"
-                                    stroke="#6F5B86"
-                                    strokeWidth="1.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                  <path
-                                    d="M6.33325 8.33337H9.66659"
-                                    stroke="#6F5B86"
-                                    strokeWidth="1.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                </svg>
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div> */}
 
               {/* Buttons */}
               <div className="flex flex-col-reverse lg:flex-row lg:justify-between border-t border-gray-100 py-6 lg:py-[30px] gap-5 lg:gap-8 items-stretch lg:items-center">

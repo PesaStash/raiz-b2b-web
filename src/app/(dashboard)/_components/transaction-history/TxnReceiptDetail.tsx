@@ -2,7 +2,6 @@
 import { ITransaction } from "@/types/transactions";
 import Image from "next/image";
 import React from "react";
-import SideModalWrapper from "../SideModalWrapper";
 import {
   convertTime,
   copyToClipboard,
@@ -14,7 +13,6 @@ import {
 import ListDetailItem from "@/components/ui/ListDetailItem";
 import dayjs from "dayjs";
 import Button from "@/components/ui/Button";
-import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 
 interface Props {

@@ -1,7 +1,5 @@
 "use client";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-// import SideModalWrapper from "../../../SideModalWrapper";
-import SideWrapperHeader from "@/components/SideWrapperHeader";
 import z from "zod";
 import { useTopupStore } from "@/store/TopUp";
 import Button from "@/components/ui/Button";
@@ -21,7 +19,6 @@ import {
   GetAllRates,
   InitiateZelleTopApi,
 } from "@/services/transactions";
-import SideModalWrapper from "../../SideModalWrapper";
 import { useUser } from "@/lib/hooks/useUser";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";

@@ -65,7 +65,7 @@ const SelectUser = () => {
       { account_number: acctNo, bank_code: bank?.bankCode },
     ],
     queryFn: async ({ queryKey }) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       const [_, params] = queryKey as [
         string,
         { account_number: string; bank_code: string },

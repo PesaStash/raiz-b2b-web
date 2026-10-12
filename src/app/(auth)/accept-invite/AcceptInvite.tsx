@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
-import useMediaQuery from "@mui/material/useMediaQuery";
+import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import Link from "next/link";
 import Image from "next/image";
 import { getInvitation, acceptInvitation } from "@/services/team";

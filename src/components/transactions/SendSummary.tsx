@@ -15,8 +15,6 @@ interface Props {
   fee: number;
 }
 
-
-
 const SendSummary = ({ goBack, goNext, fee }: Props) => {
   const {
     category,
@@ -53,7 +51,6 @@ const SendSummary = ({ goBack, goNext, fee }: Props) => {
 
   const recipientAccountNumber = useMemo(() => {
     if (!recipient) return "";
-    // if ("account_number" in recipient) return recipient.account_number || "";
     if ("usd_beneficiary" in recipient)
       return recipient.usd_beneficiary?.account_number || "";
     if ("foreign_currency_beneficiary" in recipient)

@@ -35,7 +35,6 @@ const CardAmount = ({
   formik,
 }: Props) => {
   const { amount,} = useGuestSendStore();
-  // const [error, setError] = useState<string | null>(null);
   const [showPayModal, setShowPayModal] = useState(false);
   const stripe = useStripe();
 
@@ -104,34 +103,9 @@ const CardAmount = ({
                 </form>
               </div>
              
-            {/* {error && <ErrorMessage message={error} />}       */}
           </div>
         </div>
         <div className="w-full py-5">
-          {/* <div className=" p-3.5 mb-3 bg-gray-100 w-full rounded-lg outline outline-1 outline-offset-[-1px] outline-white inline-flex flex-col justify-center items-start gap-2">
-            <div className="w-full flex justify-between items-center">
-              <span className="text-cyan-700 text-xs font-normal font-brSonoma leading-normal">
-                Recipient gets:
-              </span>
-              <div className="h-0.5 w-[50%] px-4 bg-white"></div>
-              <span className="text-zinc-900  text-xs font-semibold leading-none">
-                ${parseFloat(amount || "0").toFixed(2)}
-              </span>
-            </div>
-            <div className="w-full flex justify-between items-center">
-              <span className="text-cyan-700 text-xs font-normal font-brSonoma leading-normal">
-                Fee:
-              </span>
-              <div className="h-0.5 w-[75%] px-4 bg-white"></div>
-              {fee ? (
-                <span className="text-zinc-900  text-xs font-semibold leading-none">
-                  ${(fee / 100)?.toFixed(2) || "0.00"}
-                </span>
-              ) : (
-                "..."
-              )}
-            </div>
-          </div> */}
           <Button
             disabled={ !amount || !stripe || loading}
             loading={loading}

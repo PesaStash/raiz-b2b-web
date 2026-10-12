@@ -51,7 +51,7 @@ const PaymentProofPreview = ({ proofUrl, onBack, isTelex = false }: Props) => {
     try {
       const response = await fetch("/api/payment-proof", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-raiz-client": "web" },
         body: JSON.stringify({ url: proofUrl }),
       });
       if (!response.ok) {

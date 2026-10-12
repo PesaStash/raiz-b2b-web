@@ -54,7 +54,6 @@ const RaizReceipt = ({
     const timer = setTimeout(() => {
       handleShareReceipt();
       // Optionally close the modal after download
-      // close();
     }, 500);
 
     // Cleanup timeout on unmount

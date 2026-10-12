@@ -7,7 +7,6 @@ import { GetAllRates } from "@/services/transactions";
 import useCountryStore from "@/store/useCountryStore";
 import { useExchangeRatePreferenceStore } from "@/store/useExchangeRatePreferenceStore";
 import Skeleton from "react-loading-skeleton";
-import SideModalWrapper from "../SideModalWrapper";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 import ExchangeRateList from "./ExchangeRateList";
 import { AnimatePresence } from "motion/react";

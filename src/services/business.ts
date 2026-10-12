@@ -99,10 +99,6 @@ export const GetUsdOnboardingStatusApi = async (): Promise<IUsdOnboardingCase | 
 
   return body.data ?? null;
 };
-
-/** @deprecated Use RequestUsdOnboardingApi */
-export const CreateUSDWalletApi = RequestUsdOnboardingApi;
-
 export const ConfirmBridgeTosApi = async (): Promise<boolean> => {
   const response = await AuthAxios.get("/business/entities/tos/confirm/", {
     silent: true,
@@ -204,7 +200,7 @@ export const FetchPaymentInfoApi = async (
   userName: string
 ): Promise<IBusinessPaymentData> => {
   const response = await PublicAxios.get(
-    `/util/account_user/payment-information/${userName}/`
+    `/util/account_user/payment-information/${encodeURIComponent(userName)}/`
   );
   return response?.data;
 };

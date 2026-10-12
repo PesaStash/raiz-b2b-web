@@ -1,22 +1,14 @@
 import Cookies from "js-cookie";
 
-// Function to store a token in a cookie
-export const SetItemToCookie = (
-  key: string,
-  value: string,
-  expires?: number
-) => {
-  Cookies.set(key, value, {
-    expires: expires || 1,
-  });
-};
+/**
+ * The access token is held in an httpOnly cookie that scripts cannot read.
+ * The browser only sees this hint cookie ("1" while signed in), set and
+ * cleared by the server alongside the real session cookie.
+ */
+const SESSION_HINT_COOKIE = "raiz_auth";
 
-// Function to retrieve a token from the cookie
-export const GetItemFromCookie = (key: string) => {
-  return Cookies.get(key) || null;
-};
+export const hasSession = (): boolean => Cookies.get(SESSION_HINT_COOKIE) === "1";
 
-// Function to remove the token cookie
-export const RemoveItemFromCookie = (key: string) => {
-  Cookies.remove(key);
+export const clearSessionHint = () => {
+  Cookies.remove(SESSION_HINT_COOKIE, { path: "/" });
 };

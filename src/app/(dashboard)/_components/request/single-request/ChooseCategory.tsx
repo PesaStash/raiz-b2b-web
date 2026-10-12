@@ -1,6 +1,5 @@
 "use client";
 import CenterModalHeader from "@/components/layouts/CenterModalHeader";
-import SideWrapperHeader from "@/components/SideWrapperHeader";
 import Button from "@/components/ui/Button";
 import Spinner from "@/components/ui/Spinner";
 import { FetchTransactionCategoriesApi } from "@/services/transactions";
@@ -32,19 +31,6 @@ const ChooseCategory = ({ goBack, goNext, category, setCategory }: Props) => {
     }
   };
 
-  // const SkipButton = () => {
-  //   return (
-  //     <button
-  //       onClick={() => {
-  //         setCategory(null);
-  //         goNext();
-  //       }}
-  //       className="text-right justify-center text-zinc-700 text-sm leading-tight"
-  //     >
-  //       Skip
-  //     </button>
-  //   );
-  // };
 
   return (
     <div className="flex flex-col h-full mb-12">

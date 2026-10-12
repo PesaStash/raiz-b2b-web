@@ -84,8 +84,6 @@ const Payout = ({ close, goNext, setPaymentError }: Props) => {
     },
   });
 
-  // const totalPayable = fee ? parseFloat(amount) + fee : 0;
-
   const handleSend = () => {
     const payload: IP2PTransferPayload = {
       wallet_id: currentWallet?.wallet_id || null,
