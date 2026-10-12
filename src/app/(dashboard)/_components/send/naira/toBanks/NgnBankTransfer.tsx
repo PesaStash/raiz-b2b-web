@@ -1,5 +1,4 @@
 "use client";
-// import { useUser } from "@/lib/hooks/useUser";
 import { useSendStore } from "@/store/Send";
 import React, { useEffect, useState } from "react";
 import SelectUser from "./SelectUser";
@@ -51,8 +50,6 @@ const NgnBankTransfer = () => {
     actions.selectNGNSendOption("to Raizer");
     close();
   };
-
-  //   const totalPayable = fee ? parseFloat(amount) + fee : 0;
 
   const displayStep = () => {
     switch (step) {

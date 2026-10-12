@@ -113,12 +113,6 @@ export const FetchUserRewardsActivitiesApi = async ({
   );
   return response?.data;
 };
-
-export const SearchUsersApi = async (): Promise<IUser> => {
-  const response = await AuthAxios.get("/business/account_user/search/all");
-  return response?.data;
-};
-
 export const updateUsernameApi = async (username: string) => {
   const response = await AuthAxios.patch(
     "/business/account_user/username/",
@@ -166,7 +160,7 @@ export const SearchAllUsersApi = async (
 ): Promise<IUserSearchResponse> => {
   const queryParams = Object.fromEntries(
     Object.entries(params).filter(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       ([_, value]) => value !== undefined && value !== null,
     ),
   );

@@ -6,7 +6,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Overlay from "@/components/ui/Overlay";
 import Button from "@/components/ui/Button";
 import InputField from "@/components/ui/InputField";
-import SelectField from "@/components/ui/SelectField";
 import ErrorMessage from "@/components/ui/ErrorMessage";
 import { withBusinessWrite } from "@/components/team/BusinessWrite";
 import { useUser } from "@/lib/hooks/useUser";
@@ -36,6 +35,8 @@ import type {
 } from "@/types/paystackCardCollection";
 import { trackPaystackFunding } from "@/utils/analytics/paystackFunding";
 import PaystackFundingStatus from "./PaystackFundingStatus";
+import { safeHttpsUrl } from "@/lib/safeUrl";
+import { toast } from "sonner";
 
 type Step = "setup" | "review" | "status";
 
@@ -192,6 +193,11 @@ const PaystackCardTopUp = ({ close, goBack }: Props) => {
       setFormError({ kind: "unknown", message: "We couldn't open the payment page. Please try again.", canRetry: false });
       return;
     }
+    const authorizationUrl = safeHttpsUrl(checkout.authorization_url);
+    if (!authorizationUrl) {
+      toast.error("Card payment is unavailable right now. Please try again.");
+      return;
+    }
     setRedirecting(true);
     savePendingPaystackCheckout(entityId, buildPendingPaystackCheckout(checkout, checkoutWalletId));
     trackPaystackFunding("paystack_card_funding_checkout_opened", {
@@ -202,7 +208,7 @@ const PaystackCardTopUp = ({ close, goBack }: Props) => {
       fee_amount: checkout.fee_amount,
       total_amount: checkout.total_amount,
     });
-    window.location.assign(checkout.authorization_url);
+    window.location.assign(authorizationUrl);
   };
 
   const startNewCheckout = () => {
@@ -327,26 +333,6 @@ const PaystackCardTopUp = ({ close, goBack }: Props) => {
               You don&apos;t have an active NGN wallet that can receive card payments yet.
             </p>
           ) 
-          // : (
-          //   <div>
-          //     <SelectField
-          //       label="Wallet to fund"
-          //       name="wallet_id"
-          //       placeholder="Select NGN wallet"
-          //       options={walletOptions}
-          //       value={walletOptions.find((option) => option.value === walletId) ?? null}
-          //       onChange={(option) => {
-          //         setWalletId(String(option?.value ?? ""));
-          //         setFormError(null);
-          //       }}
-          //       disabled={availableWallets.length <= 1}
-          //       status={fieldErrors.wallet_id || formError?.kind === "wallet_reselect" ? "error" : null}
-          //       helper={fieldErrors.wallet_id ?? null}
-          //       isSearchable={false}
-          //       height="auto"
-          //     />
-          //   </div>
-          // )
           }
 
           <InputField

@@ -269,11 +269,6 @@ const TopUp = ({ close }: Props) => {
           </p>
         </div>
       </div>
-      {/* <Button
-            onClick={() => copyToClipboard(currentWallet?.account_number || "")}
-          >
-            Copy Account Details
-          </Button> */}
     </div>
   );
 };

@@ -98,13 +98,6 @@ const DashboardSummary = () => {
     SetItemToLocalStorage(firedKey, true);
   }, [branchState.showDashboard, user]);
 
-  // const currentWallet = useMemo(() => {
-  //   if (!user || !user?.business_account?.wallets || !selectedCurrency?.name)
-  //     return null;
-  //   return user?.business_account?.wallets.find(
-  //     (wallet) => wallet.wallet_type.currency === selectedCurrency.name
-  //   );
-  // }, [user, selectedCurrency]);
 
   const getCurrentWallet = () => {
     if (selectedCurrency.name === "NGN") {
@@ -341,27 +334,6 @@ const DashboardSummary = () => {
   return (
     <div className="w-full">
       {/* Accts */}
-      {/* <div className="flex items-center justify-between mb-6">
-        <h2 className="text-raiz-gray-950 text-2xl  font-bold leading-7">
-          {currentWallet
-            ? `${currentWallet?.wallet_type.currency} Account`
-            : "Account"}
-        </h2>
-        <button
-          onClick={() => setOpenModal("selectAcct")}
-          className="px-3 py-1 bg-violet-100/60 rounded-3xl inline-flex justify-center items-center gap-2"
-        >
-          <span className=" text-zinc-700 text-sm font-semibold font-brSonoma leading-tight">
-            Switch Account
-          </span>
-          <Image
-            src={"/icons/arrow-down.svg"}
-            width={18}
-            height={18}
-            alt="arrow down"
-          />
-        </button>
-      </div> */}
       {/* Mobile: wallets + quick actions */}
       {branchState.showDashboard && (
         <div className="lg:hidden">
@@ -422,7 +394,6 @@ const DashboardSummary = () => {
         </div>
       </div>
 
-      {/* <CustomersInfo /> */}
 
       {isLoading ? (
         <div className="flex justify-center items-center h-[50vh]">
@@ -442,7 +413,6 @@ const DashboardSummary = () => {
         </>
       )}
 
-      {/* <SalesReport /> */}
 
       <AnimatePresence>
         {openModal !== null &&
@@ -489,7 +459,6 @@ const DashboardSummary = () => {
           <></>
         )
       ) : null}
-      {/* {successful && <NgnSuccessModal close={() => setSuccessful(false)} />} */}
     </div>
   );
 };

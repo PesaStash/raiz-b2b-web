@@ -10,7 +10,7 @@ import PaystackFundingStatus from "@/app/(dashboard)/_components/topUp/NgnTopup/
 import PaystackStatusPanel from "@/app/(dashboard)/_components/topUp/NgnTopup/PaystackStatusPanel";
 import PaystackCardTopUp from "@/app/(dashboard)/_components/topUp/NgnTopup/PaystackCardTopUp";
 import PaystackAppReturn from "@/app/(dashboard)/_components/topUp/NgnTopup/PaystackAppReturn";
-import { GetItemFromCookie } from "@/utils/CookiesFunc";
+import { hasSession as hasWebSession } from "@/utils/CookiesFunc";
 
 /**
  * Paystack redirect target shared by web and mobile. Without a web session the
@@ -28,7 +28,7 @@ const PaystackCallbackPage = () => {
 
   useEffect(() => {
     callbackReferenceRef.current = consumePaystackCallbackReference();
-    setHasSession(!!GetItemFromCookie("access_token"));
+    setHasSession(hasWebSession());
   }, []);
 
   useEffect(() => {

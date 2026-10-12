@@ -1,5 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { RemoveItemFromCookie } from "@/utils/CookiesFunc";
+import { clearSessionHint } from "@/utils/CookiesFunc";
 import { useUserStore } from "@/store/useUserStore";
 import { useSendStore } from "@/store/Send";
 import { useSwapStore } from "@/store/Swap";
@@ -19,7 +19,15 @@ export function refreshSessionProfile() {
 }
 export function clearLocalSession() {
   generation += 1;
-  RemoveItemFromCookie("access_token");
+  clearSessionHint();
+  if (typeof window !== "undefined") {
+    // Clears the httpOnly session cookie, which scripts cannot remove.
+    void fetch("/api/auth/session", {
+      method: "DELETE",
+      headers: { "x-raiz-client": "web" },
+      keepalive: true,
+    }).catch(() => undefined);
+  }
   void client?.cancelQueries();
   client?.clear();
   const entityId = useUserStore.getState().user?.business_account?.entity_id;

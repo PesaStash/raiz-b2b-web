@@ -245,7 +245,6 @@ const SwapDetail = ({
                 {loading ? "..." : `${showFee()}`}
               </span>
             </div>
-            {/* )} */}
 
             {/* Rate */}
             {rateDisplay && (

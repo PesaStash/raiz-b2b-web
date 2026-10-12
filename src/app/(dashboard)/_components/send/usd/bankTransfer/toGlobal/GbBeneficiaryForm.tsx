@@ -107,11 +107,7 @@ const GbBeneficiaryForm = ({ methods, countryCode }: Props) => {
           );
 
           fieldSchema = fieldSchema.regex(regex, readableMessage);
-        } catch (error) {
-          console.log(
-            `Invalid regex pattern for ${field.name}: ${field.pattern}`,
-            error,
-          );
+        } catch {
         }
       }
 
@@ -239,8 +235,7 @@ const GbBeneficiaryForm = ({ methods, countryCode }: Props) => {
       try {
         await AddBeneficiaryMutation.mutateAsync(payload);
         resetForm();
-      } catch (error) {
-        console.log("Submission error:", error);
+      } catch {
       } finally {
         setSubmitting(false);
       }
@@ -258,7 +253,6 @@ const GbBeneficiaryForm = ({ methods, countryCode }: Props) => {
     if (name === "type") setShowModal("type");
     if (name === "beneficiary_type") setShowModal("ben");
     if (name === "sender_type") setShowModal("send");
-    // if (name === "bank_code") setShowModal("bank");
   };
 
   const closeModal = () => setShowModal(null);
@@ -316,9 +310,6 @@ const GbBeneficiaryForm = ({ methods, countryCode }: Props) => {
     }
   };
 
-  // console.log("formik valluess--------", formik.values);
-
-  // console.log("f--------errrrrs", formik.errors);
   return (
     <div className="my-5">
       <InputLabel content="UK Send type" />

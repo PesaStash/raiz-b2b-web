@@ -85,7 +85,6 @@ const ExternalPayout = ({ close, goNext, setPaymentError }: Props) => {
     },
   });
 
-  //   const totalPayable = fee ? parseFloat(amount) + fee : amount;
   const handleSend = () => {
     const payload: IExternalTransferPayload = {
       wallet_id: currentWallet?.wallet_id || "",

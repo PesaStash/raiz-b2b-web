@@ -1,67 +1,6 @@
-import { ICanadianBank } from "@/app/(dashboard)/_components/send/usd/canada/eft/CanadianBanksModal";
 import { AuthAxios, CustomAxiosRequestConfig } from "@/lib/authAxios";
 import { PublicAxios } from "@/lib/publicAxios";
-import {
-  IAcceptRequestPayload,
-  IAlipayWechatAmountQuoteResponse,
-  IAlipayWechatBeneficiariesResponse,
-  IAlipayWechatBeneficiary,
-  IAlipayWechatRateResponse,
-  IAlipayWechatSendPayload,
-  IAlipayWechatSendResponse,
-  IBeneficiariestResponse,
-  IBillRequestMetricsResponse,
-  IBillRequestParams,
-  IBillRequestResponse,
-  IBusinessPaymentData,
-  IExternalBeneficiariesResponse,
-  IExternalBeneficiaryPayload,
-  IExternalTransferPayload,
-  ForeignCurrency,
-  FinalizeAfricaPayinResponse,
-  FinalizeFirstPartyAfricaPayinPayload,
-  IForeignBeneficiariesParams,
-  IForeignBeneficiariesResponse,
-  IForeignBeneficiaryPayload,
-  IForeignWithdrawalPayload,
-  IInitialPayoutResponse,
-  IIntBeneficiariesParams,
-  IIntBeneficiariesResponse,
-  IIntBeneficiaryPayload,
-  IIntSendPayload,
-  IntCurrencyCode,
-  AfricaPayinQuoteParams,
-  AfricaPayinQuoteResponse,
-  InitiateAfricaPayinResponse,
-  InitiateFirstPartyAfricaPayinPayload,
-  IP2pBeneficiariesParams,
-  IP2PTransferPayload,
-  IP2pTransferResponse,
-  IPaymentChannel,
-  IPaymentNetwork,
-  IRequestFundsPayload,
-  ISendCryptoPayload,
-  ISendMoneyUsBankPayload,
-  ISwiftBeneficiariesResponse,
-  ISwiftBeneficiary,
-  ISwiftCreateBeneficiaryPayload,
-  ISwapPayload,
-  ITransactionCategory,
-  ITransactionParams,
-  ITxnReportResponse,
-  IThirdPartyUsdBeneficiariesResponse,
-  IUsBeneficiariesParams,
-  IUsBeneficiariesResponse,
-  IUsBeneficiaryPayload,
-  UsdBeneficiaryFormFieldsResponse,
-  NormalizedIntBeneficiaryFormFields,
-  VolumeAndActivityData,
-  ICrossCurrencySwapRateResponse,
-  IUsdBaseExchangeRateResponse,
-  ICrossCurrencySwapPayload,
-  ISwiftSendResponse,
-  AfricaPayinStatusResponse,
-} from "@/types/services";
+import { IAcceptRequestPayload, IAlipayWechatAmountQuoteResponse, IAlipayWechatBeneficiariesResponse, IAlipayWechatBeneficiary, IAlipayWechatRateResponse, IAlipayWechatSendPayload, IAlipayWechatSendResponse, IBeneficiariestResponse, IBillRequestMetricsResponse, IBillRequestParams, IBillRequestResponse, IExternalBeneficiariesResponse, IExternalBeneficiaryPayload, IExternalTransferPayload, ForeignCurrency, FinalizeAfricaPayinResponse, FinalizeFirstPartyAfricaPayinPayload, IForeignBeneficiariesParams, IForeignBeneficiariesResponse, IForeignBeneficiaryPayload, IForeignWithdrawalPayload, IInitialPayoutResponse, IIntBeneficiariesParams, IIntBeneficiariesResponse, IIntBeneficiaryPayload, IIntSendPayload, IntCurrencyCode, AfricaPayinQuoteParams, AfricaPayinQuoteResponse, InitiateAfricaPayinResponse, InitiateFirstPartyAfricaPayinPayload, IP2pBeneficiariesParams, IP2PTransferPayload, IP2pTransferResponse, IPaymentChannel, IPaymentNetwork, IRequestFundsPayload, ISendCryptoPayload, ISendMoneyUsBankPayload, ISwiftBeneficiariesResponse, ISwiftBeneficiary, ISwiftCreateBeneficiaryPayload, ISwapPayload, ITransactionCategory, ITransactionParams, ITxnReportResponse, IThirdPartyUsdBeneficiariesResponse, IUsBeneficiariesParams, IUsBeneficiariesResponse, IUsBeneficiaryPayload, UsdBeneficiaryFormFieldsResponse, NormalizedIntBeneficiaryFormFields, VolumeAndActivityData, ICrossCurrencySwapRateResponse, IUsdBaseExchangeRateResponse, ICrossCurrencySwapPayload, ISwiftSendResponse, AfricaPayinStatusResponse } from "@/types/services";
 import { normalizeRemittanceFormFields } from "@/utils/remittanceFormFields";
 import {
   GuestPayStatusType,
@@ -98,7 +37,7 @@ export const FetchTransactionReportApi = async (
 ): Promise<ITxnReportResponse> => {
   const queryParams = Object.fromEntries(
     Object.entries(params).filter(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       ([_, value]) => value !== undefined && value !== null,
     ),
   );
@@ -114,7 +53,7 @@ export const FetchBillRequestApi = async (
 ): Promise<IBillRequestResponse> => {
   const queryParams = Object.fromEntries(
     Object.entries(params).filter(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       ([_, value]) => value !== undefined && value !== null,
     ),
   );
@@ -131,7 +70,7 @@ export const FetchBillRequestMetricsApi = async (params: {
 }): Promise<IBillRequestMetricsResponse> => {
   const queryParams = Object.fromEntries(
     Object.entries(params).filter(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       ([_, value]) => value !== undefined && value !== null,
     ),
   );
@@ -167,7 +106,7 @@ export const AcceptRequestApi = async ({
 
 export const RejectRequestApi = async (request_id: string, reason?: string) => {
   const response = await AuthAxios.patch(
-    `/business/transactions/requests/funds/${request_id}/decline/?reason_for_decline=${reason}`,
+    `/business/transactions/requests/funds/${request_id}/decline/?reason_for_decline=${encodeURIComponent(reason ?? "")}`,
     null,
     {
       params: {
@@ -199,7 +138,7 @@ export const FetchSentRequestApi = async (
 ): Promise<IBillRequestResponse> => {
   const queryParams = Object.fromEntries(
     Object.entries(params).filter(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       ([_, value]) => value !== undefined && value !== null,
     ),
   );
@@ -274,22 +213,12 @@ export const GetIntTransactionFeeApi = async (
   );
   return response?.data;
 };
-
-export const GetCadTransactionFeeApi = async (
-  cad_amount: number,
-): Promise<number> => {
-  const response = await AuthAxios.get(
-    `/business/transactions/withdrawal/usd/interac-exchange-rate/?cad_amount=${cad_amount}`,
-  );
-  return response?.data;
-};
-
 export const FetchP2PBeneficiariesApi = async (
   params: IP2pBeneficiariesParams,
 ): Promise<IBeneficiariestResponse> => {
   const queryParams = Object.fromEntries(
     Object.entries(params).filter(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       ([_, value]) => value !== undefined && value !== null,
     ),
   );
@@ -338,7 +267,7 @@ export const FetchExternalBeneficiariesApi = async (
 ): Promise<IExternalBeneficiariesResponse> => {
   const queryParams = Object.fromEntries(
     Object.entries(params).filter(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       ([_, value]) => value !== undefined && value !== null,
     ),
   );
@@ -369,16 +298,6 @@ export async function GetExchangeRate(
   );
   return response.data;
 }
-
-export async function GetSwapRate(
-  currencyCode: string,
-): Promise<IUsdBaseExchangeRateResponse> {
-  const response = await AuthAxios.get(
-    `/business/transactions/swap/exchange-rates/?currency=${currencyCode}`,
-  );
-  return response.data;
-}
-
 export async function SellDollarApi(payload: ISwapPayload) {
   const response = await AuthAxios.post(
     "/business/transactions/swap/sell-dollar/",
@@ -446,7 +365,7 @@ export const FetchUsBeneficiariesApi = async (
 ): Promise<IUsBeneficiariesResponse> => {
   const queryParams = Object.fromEntries(
     Object.entries(params).filter(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       ([_, value]) => value !== undefined && value !== null,
     ),
   );
@@ -487,7 +406,7 @@ export const FetchForeignBeneficiariesApi = async (
 ): Promise<IForeignBeneficiariesResponse> => {
   const queryParams = Object.fromEntries(
     Object.entries(params).filter(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       ([_, value]) => value !== undefined && value !== null,
     ),
   );
@@ -497,14 +416,6 @@ export const FetchForeignBeneficiariesApi = async (
   );
   return response?.data;
 };
-
-export const GetCanadianBanks = async (): Promise<ICanadianBank[]> => {
-  const response = await AuthAxios.get(
-    `/business/transactions/withdrawal/usd/beneficiaries/canada/banks/`,
-  );
-  return response?.data;
-};
-
 export const SendMoneyUSBankApi = async (
   data: ISendMoneyUsBankPayload,
 ): Promise<IP2pTransferResponse> => {
@@ -550,7 +461,7 @@ export const FetchIntBeneficiariesApi = async (
 ): Promise<IIntBeneficiariesResponse> => {
   const queryParams = Object.fromEntries(
     Object.entries(params).filter(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       ([_, value]) => value !== undefined && value !== null,
     ),
   );
@@ -563,7 +474,7 @@ export const FetchIntBeneficiariesApi = async (
 
 export const CreateIntBeneficiary = async (payload: IIntBeneficiaryPayload) => {
   const response = await AuthAxios.post(
-    `/business/transactions/remittance/beneficiary/?country=${payload.country}&customer_email=${payload.customer_email}`,
+    `/business/transactions/remittance/beneficiary/?country=${encodeURIComponent(payload.country)}&customer_email=${encodeURIComponent(payload.customer_email ?? "")}`,
     payload.data,
   );
   return response?.data;
@@ -586,7 +497,7 @@ export const SendIntBeneficiariesApi = async ({
 }: IIntSendPayload): Promise<IP2pTransferResponse> => {
   const queryParams = Object.fromEntries(
     Object.entries(params).filter(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       ([_, value]) => value !== undefined && value !== null,
     ),
   );
@@ -619,59 +530,7 @@ export const GetMinAmountApi = async (currency: IntCurrencyCode) => {
     `/business/transactions/remittance/account-types/minimum-amount/?currency=${currency}`,
   );
   return response?.data;
-};
-
-export const createStripePaymentIntent = async (
-  amountInCents: number,
-  payment_method_id: string,
-  data: IBusinessPaymentData,
-) => {
-  const res = await PublicAxios.post(
-    `/admin/transaction/topup/usd/create-intent/?name=${data?.account_user?.username}&email=${data?.email}&entity_id=${data?.account_user?.entity_id}`,
-    {
-      transaction_amount: amountInCents,
-      curreny: "USD",
-      payment_method_id,
-    },
-  );
-
-  return {
-    ...res.data,
-    payment_method_id,
-  };
-};
-
-export const confirmStripePaymentIntent = async (
-  payment_intent_id: string,
-  data: IBusinessPaymentData,
-  payer: {
-    firstName: string;
-    lastName: string;
-    email: string;
-  },
-  purpose: string,
-) => {
-  const params = {
-    entity_id: data?.account_user?.entity_id,
-    payer_first_name: payer.firstName,
-    payer_last_name: payer.lastName,
-    payer_email: payer.email,
-    payment_description: purpose,
-  };
-
-  const res = await PublicAxios.post(
-    "/admin/transaction/topup/usd/confirm-intent/",
-    {
-      payment_intent: payment_intent_id,
-      currency: "USD",
-    },
-    { params },
-  );
-
-  return res.data;
-};
-
-export const GetTransactionsAnalyticsStatusApi = async (
+};export const GetTransactionsAnalyticsStatusApi = async (
   wallet_id: string | null,
 ): Promise<{
   pending: number;
@@ -746,10 +605,9 @@ export const createGuestStripePaymentIntent = async ({
   entity_id: string;
   sender_name: string;
   sender_email: string;
-  // currency: IntCurrencyCode;
 }) => {
   const res = await PublicAxios.post(
-    `/admin/transaction/payins/africa/card/create-intent/?sender_name=${sender_name}&sender_email=${sender_email}&entity_id=${entity_id}`,
+    `/admin/transaction/payins/africa/card/create-intent/?sender_name=${encodeURIComponent(sender_name)}&sender_email=${encodeURIComponent(sender_email)}&entity_id=${encodeURIComponent(entity_id)}`,
     {
       transaction_amount: amountInCents,
       currency: "USD",
@@ -812,7 +670,7 @@ export const CreateNgnTempPaymentLink = async (
 ) => {
   const queryParams = Object.fromEntries(
     Object.entries(params).filter(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       ([_, value]) => value !== undefined && value !== null,
     ),
   );
@@ -834,7 +692,6 @@ export const GetUsdAmountTempPaymentLink = async (amount: string) => {
   return response.data;
 };
 
-
 export const GetAlipayWechatRateApi = async (channel: "alipay" | "wechat"): Promise<IAlipayWechatRateResponse> => {
   const response = await AuthAxios.get(`/business/transactions/alipay-wechat/rate/?channel=${channel}`);
   return response.data;
@@ -855,7 +712,6 @@ export const GetAlipayWechatBeneficiariesApi = async (params: { page?: number; l
   const response = await AuthAxios.get(`/business/transactions/alipay-wechat/beneficiaries/`, { params: queryParams, silent: true } as CustomAxiosRequestConfig);
   return response.data;
 }
-
 
 export const AlipayWechatSendApi = async (payload: IAlipayWechatSendPayload): Promise<IAlipayWechatSendResponse> => {
   const response = await AuthAxios.post(`/business/transactions/alipay-wechat/send/`, payload);

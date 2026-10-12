@@ -388,7 +388,6 @@ const FrBeneficiaryForm = ({ fields, countryCode, reset }: Props) => {
         entity.entity_address[0].country.country_name
       ) {
       }
-      console.log(JSON.stringify(values, null, 2));
       let sendObject = {};
       if (sendType === "INDIVIDUAL") {
         sendObject = {
@@ -434,7 +433,6 @@ const FrBeneficiaryForm = ({ fields, countryCode, reset }: Props) => {
         customer_email: user?.business_account?.business_email || null,
         country: countryCode as IntCountryType,
       };
-      console.log(JSON.stringify(data, null, 2));
       AddBeneficiaryMutation.mutate(data);
     },
   });

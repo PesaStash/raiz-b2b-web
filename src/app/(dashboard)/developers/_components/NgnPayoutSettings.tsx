@@ -36,10 +36,7 @@ import CreateNgnAcct from "@/app/(dashboard)/_components/createNgnAcct/CreateNgn
 import AccountUpgrade from "@/app/(dashboard)/_components/AccountUpgrade";
 import PayoutLogsModal from "./payout/PayoutLogsModal";
 import EnablePayoutConfirmModal from "./payout/EnablePayoutConfirmModal";
-import {
-  PayoutAlertBanner,
-  PayoutPreviewRow,
-} from "./payout/PayoutUiParts";
+import { PayoutAlertBanner } from "./payout/PayoutUiParts";
 import Skeleton from "react-loading-skeleton";
 import { HiOutlineDocumentText } from "react-icons/hi2";
 import dayjs from "dayjs";
@@ -528,24 +525,6 @@ const NgnPayoutSettings = ({ onManageApiKeys, onManageWebhooks }: Props) => {
             )}
           </div>
         ) : (
-          // blockers.length > 0 && (
-          //   <div className="rounded-xl border border-raiz-gray-100 bg-white p-4">
-          //     <p className="text-sm font-bold text-raiz-gray-950 mb-2">
-          //       Setup requirements
-          //     </p>
-          //     <ul className="flex flex-col gap-2">
-          //       {blockers.map((blocker) => (
-          //         <li
-          //           key={blocker}
-          //           className="text-sm text-raiz-gray-600 flex items-start gap-2"
-          //         >
-          //           <span className="mt-1.5 size-1.5 rounded-full bg-[#F2A735] shrink-0" />
-          //           {NGN_PAYOUT_BLOCKER_COPY[blocker] ?? blocker}
-          //         </li>
-          //       ))}
-          //     </ul>
-          //   </div>
-          // )
           null
         )}
 
@@ -669,35 +648,6 @@ const NgnPayoutSettings = ({ onManageApiKeys, onManageWebhooks }: Props) => {
           </>
         )}
 
-        {/* {!showCompactActiveView &&
-          !showMissingWalletState &&
-          !settings.enabled &&
-          !settings.can_enable &&
-          !hasKybBlocker &&
-          !hasWalletBlocker && (
-          <div className="flex flex-col gap-3">
-            <PayoutPreviewRow
-              title="Source Wallet"
-              description="Link and choose the virtual wallet that funds all outgoing automated payouts."
-            />
-            <PayoutPreviewRow
-              title="Payout Limits"
-              description="Set up per-transaction and daily NGN ceilings for your business."
-            />
-            <PayoutPreviewRow
-              title="Manual Approval"
-              description="Configure manual security thresholds that require high-tier team review."
-            />
-            <PayoutPreviewRow
-              title="Allowed Destinations"
-              description="Restrict NGN payouts to approved Nigerian bank accounts."
-            />
-            <PayoutPreviewRow
-              title="Webhooks"
-              description="Receive instant API callbacks for created, failed, and reversed payouts."
-            />
-          </div>
-        )} */}
 
         {!showCompactActiveView &&
           !showMissingWalletState &&

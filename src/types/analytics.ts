@@ -191,3 +191,10 @@ export type DataLayerPayload<T extends DataLayerEventName> =
   DataLayerEventMap[T] & {
     event: T;
   };
+
+export interface DateOption {
+  label: string;
+  value: string;
+  dateRange: string;
+  days: number | null;
+}

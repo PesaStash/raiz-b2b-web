@@ -3,13 +3,9 @@ import { BusinessWrite } from "@/components/team/BusinessWrite";
 import Button from "@/components/ui/Button";
 import React from "react";
 import InvoicesTable from "./_components/InvoicesTable";
-// import { AnimatePresence } from "motion/react";
-// import SideModalWrapper from "../_components/SideModalWrapper";
-// import InvoiceSettings from "./_components/InvoiceSettings";
 import Link from "next/link";
 
 const InvoicePage = () => {
-  // const [showSettings, setShowSettings] = useState(false);
   return (
     <section className="min-w-0 h-full bg-transparent md:bg-raiz-gray-50 p-0 md:p-6 rounded-none md:rounded-[20px]">
       <div className="flex justify-between items-center gap-3 mb-3 md:mb-8">
@@ -34,13 +30,6 @@ const InvoicePage = () => {
         </Link></BusinessWrite>
       </div>
       <InvoicesTable />
-      {/* <AnimatePresence>
-        {showSettings ? (
-          <SideModalWrapper close={() => setShowSettings(false)}>
-            <InvoiceSettings close={() => setShowSettings(false)} />
-          </SideModalWrapper>
-        ) : null}
-      </AnimatePresence> */}
     </section>
   );
 };

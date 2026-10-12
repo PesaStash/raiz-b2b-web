@@ -1,7 +1,6 @@
 "use client";
 import React from "react";
 import Image from "next/image";
-import SideWrapperHeader from "../SideWrapperHeader";
 import { useSendStore } from "@/store/Send";
 import { useQuery } from "@tanstack/react-query";
 import { FetchTransactionCategoriesApi } from "@/services/transactions";
@@ -23,19 +22,6 @@ const Categories = ({ goBack, goNext, loading }: Props) => {
     queryKey: ["transactions-category"],
     queryFn: () => FetchTransactionCategoriesApi(),
   });
-  // const SkipButton = () => {
-  //   return (
-  //     <button
-  //       onClick={() => {
-  //         actions.selectCategory(null);
-  //         goNext();
-  //       }}
-  //       className="text-right justify-center text-zinc-700 text-sm leading-tight"
-  //     >
-  //       Skip
-  //     </button>
-  //   );
-  // };
 
   const handleSelect = (newCategory: ITransactionCategory) => {
     if (

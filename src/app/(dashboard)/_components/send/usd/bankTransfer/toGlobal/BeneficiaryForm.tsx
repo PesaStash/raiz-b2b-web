@@ -716,8 +716,6 @@ const BeneficiaryForm = ({
     },
   });
 
-  // console.log("formik.errors", formik.errors);
-  // console.log("values", formik.values);
 
   const handleOpenModal = (
     value: string[] | Bank[] | undefined,
@@ -807,9 +805,6 @@ const BeneficiaryForm = ({
                   field?.fields,
                   bankDetailsFields,
                 )}
-                {/* <p className="text-raiz-gray-950 text-sm font-medium mt-3 -mb-3">
-                  Bank Details
-                </p> */}
                 {bankDetailsFields.map((bankField) =>
                   bankField.name === "bank_code" ? (
                     <div className="mt-[15px]" key={bankField.name}>

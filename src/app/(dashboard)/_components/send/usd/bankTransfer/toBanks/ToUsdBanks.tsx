@@ -1,6 +1,4 @@
 import React, { useEffect, useState } from "react";
-// import BankTypeModal from "./BankTypeModal";
-// import SendOptions from "../SendOptions";
 import AddBeneficiary from "./AddBeneficiary";
 import { useSendStore } from "@/store/Send";
 import SendMoney from "@/components/transactions/SendMoney";
