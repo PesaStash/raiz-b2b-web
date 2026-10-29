@@ -55,8 +55,6 @@ type ModalKeys =
 
 const searchItems = [
   { name: "Dashboard", type: "route", path: "/" },
-  // { name: "Top Up", type: "modal" },
-  // { name: "Send", type: "modal" },
   { name: "Create NGN Account", type: "modal" },
   { name: "Rewards", type: "modal" },
   { name: "Notifications", type: "modal" },

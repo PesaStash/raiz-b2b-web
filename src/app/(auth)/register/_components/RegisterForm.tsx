@@ -89,8 +89,7 @@ const RegisterForm = () => {
       formik.setErrors({});
       formik.setTouched({});
     },
-    onError: (error) => {
-      console.log("Signup failed:", error);
+    onError: () => {
       formik.setErrors({ otp: "We couldn’t verify your code. Check it and try again." });
     },
   });

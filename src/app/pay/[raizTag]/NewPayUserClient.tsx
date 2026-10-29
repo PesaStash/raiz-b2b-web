@@ -13,7 +13,6 @@ import GuestPayWithTransfer, {
   TransferCurrencyType,
 } from "./GuestPayWithTransfer";
 import * as motion from "motion/react-client";
-import { fetchPublicIP } from "@/utils/helpers";
 import PayLocalAmount from "./_components/PayLocalAmount";
 import GuestPayDetail from "./_components/GuestPayDetail";
 import PayLocalStepper, {
@@ -40,23 +39,6 @@ const paymentMethodsArr: {
   icon: (active: boolean) => JSX.Element;
   subText: string;
 }[] = [
-  // {
-  //   id: "card",
-  //   label: "Pay with card",
-  //   icon: (active: boolean) => (
-  //     <svg width="24" height="24" viewBox="0 0 24 24">
-  //       <path
-  //         d="M22 7.55002C22 8.21002 21.46 8.75002 20.8 8.75002H3.2C2.54 8.75002 2 8.21002 2 7.55002V7.54002C2 5.25002 3.85 3.40002 6.14 3.40002H17.85C20.14 3.40002 22 5.26002 22 7.55002Z"
-  //         fill={active ? "#3C2875" : "#A89AB9"}
-  //       />
-  //       <path
-  //         d="M2 11.45V16.46C2 18.75 3.85 20.6 6.14 20.6H17.85C20.14 20.6 22 18.74 22 16.45V11.45C22 10.79 21.46 10.25 20.8 10.25H3.2C2.54 10.25 2 10.79 2 11.45Z"
-  //         fill={active ? "#3C2875" : "#A89AB9"}
-  //       />
-  //     </svg>
-  //   ),
-  //   subText: "Pay with your credit or debit card",
-  // },
   {
     id: "local",
     label: "Pay locally",
@@ -179,9 +161,8 @@ const RaizPaymentPage = () => {
   useEffect(() => {
     const detectCountry = async () => {
       try {
-        const ip = await fetchPublicIP();
-        if (!ip) return;
-        const res = await fetch(`https://api.country.is/${ip}`);
+        // Looks up the visitor's own address; no IP is sent from here.
+        const res = await fetch("https://api.country.is/");
         if (res.ok) {
           const data = await res.json();
           if (data?.country === "US") {

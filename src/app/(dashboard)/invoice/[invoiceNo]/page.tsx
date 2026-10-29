@@ -95,9 +95,8 @@ const InvoiceDetail = () => {
     try {
       await downloadInvoice(invoiceRef, data.invoice_number, "pdf");
       toast.success("Pdf downloaded successfully ");
-    } catch (error) {
+    } catch {
       toast.error("Error downloading pdf");
-      console.log(error);
     }
   };
 

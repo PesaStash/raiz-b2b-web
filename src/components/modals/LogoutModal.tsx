@@ -6,7 +6,6 @@ import { clearLocalSession } from "@/lib/session";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { LogoutApi } from "@/services/auth";
 import { useRouter } from "next/navigation";
-import { GetItemFromCookie, RemoveItemFromCookie } from "@/utils/CookiesFunc";
 import { useUser } from "@/lib/hooks/useUser";
 import {
   clearUsdOnboardingCase,
@@ -20,9 +19,8 @@ const LogoutModal = ({ close }: { close: () => void }) => {
   const router = useRouter();
   const { clearUser, user } = useUser();
   const qc = useQueryClient();
-  const token = GetItemFromCookie("access_token") ?? "";
   const logoutMutation = useMutation({
-    mutationFn: () => LogoutApi(token),
+    mutationFn: () => LogoutApi(),
     onError: () => { clearLocalSession(); router.replace("/login"); close(); },
     onSuccess: () => {
       pushDataLayerEvent("logout", {
@@ -35,7 +33,6 @@ const LogoutModal = ({ close }: { close: () => void }) => {
         clearUsdOnboardingCase(entityId);
         qc.removeQueries({ queryKey: [...USD_ONBOARDING_QUERY_KEY, entityId] });
       }
-      RemoveItemFromCookie("accessToken");
       qc.clear();
       clearUser();
       clearLocalSession();

@@ -29,12 +29,10 @@ import { ITransaction } from "@/types/transactions";
 import Skeleton from "react-loading-skeleton";
 import { usePathname } from "next/navigation";
 import Button from "@/components/ui/Button";
-import { useSendStore } from "@/store/Send";
 import NgnSend from "./send/naira/NgnSend";
 import UsdSend from "./send/usd/UsdSend";
 import ForeignSend from "./send/foreign/ForeignSend";
 import { AnimatePresence } from "motion/react";
-import SideModalWrapper from "./SideModalWrapper";
 import Pagination from "@/components/ui/Pagination";
 import StatusBadge from "@/components/ui/StatusBadge";
 import Image from "next/image";
@@ -438,17 +436,6 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
               ) : null}
             </div>
             {/* export */}
-            {/* <button className="flex gap-1.5 items-center px-3.5 py-2.5 rounded-lg shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] outline outline-1 outline-offset-[-1px] outline-zinc-200 ">
-              <Image
-                src={"/icons/export.svg"}
-                alt="Export"
-                width={20}
-                height={20}
-              />
-              <span className="text-zinc-800 text-sm font-bold leading-none">
-                Export
-              </span>
-            </button> */}
           </div>
         )}
       </div>

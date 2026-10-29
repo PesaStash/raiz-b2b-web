@@ -141,8 +141,9 @@ const FormContent = ({
   }, []);
 
   useEffect(() => {
-    if (error as any) {
-      toast.error((error as any)?.data[0]?.data?.message);
+    if (error) {
+      const apiError = error as { data?: Array<{ data?: { message?: string } }> };
+      toast.error(apiError?.data?.[0]?.data?.message);
       return;
     }
     if (routingInfo?.data?.name) {
@@ -408,7 +409,6 @@ const FormContent = ({
 };
 
 const USBankBeneficiary = ({ close, goNext }: Props) => {
-  // const [labelFilter, setLabelFilter] = useState("");
   const { actions } = useSendStore();
   const [showBeneficiary, setShowBeneficiary] = useState(false);
   const [showPartnerModal, setShowPartnerModal] = useState(false);
@@ -540,7 +540,7 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
 
       try {
         // Bypass QueryClient cache entirely to ensure we get the fresh DB list
-        const updatedData = await FetchUsBeneficiariesApi(queryParams as any);
+        const updatedData = await FetchUsBeneficiariesApi(queryParams as Parameters<typeof FetchUsBeneficiariesApi>[0]);
 
         const oldIds = new Set(beneficiaries.map((b) => b.usd_beneficiary_id));
         const newBen = updatedData?.beneficiaries?.find(
@@ -551,8 +551,7 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
           actions.selectUsdBeneficiary(newBen);
           goNext();
         }
-      } catch (err) {
-        console.log("Failed to fetch latest beneficiaries", err);
+      } catch {
       }
 
       qc.invalidateQueries({ queryKey: ["us-bank-beneficiaries"] });

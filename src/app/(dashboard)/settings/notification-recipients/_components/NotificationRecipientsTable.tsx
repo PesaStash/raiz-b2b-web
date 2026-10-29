@@ -14,7 +14,6 @@ import { AnimatePresence } from "motion/react";
 import { useQuery } from "@tanstack/react-query";
 import Button from "@/components/ui/Button";
 import Avatar from "@/components/ui/Avatar";
-import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 import Overlay from "@/components/ui/Overlay";
 import { FetchNotificationEmailsApi } from "@/services/business";
 import { INotificationEmail } from "@/types/services";

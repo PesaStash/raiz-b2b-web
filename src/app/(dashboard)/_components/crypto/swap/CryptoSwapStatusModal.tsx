@@ -9,13 +9,10 @@ import { PaymentStatusType } from "@/types/transactions";
 
 interface Props {
   status: PaymentStatusType;
-  // amount: number;
   close: () => void;
   error: string;
   tryAgain: () => void;
   viewReceipt: () => void;
-  //   swapToCurrency: string;
-  //   amount: string;
 }
 
 const CryptoSwapStatusModal = ({

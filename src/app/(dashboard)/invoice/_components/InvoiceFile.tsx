@@ -186,7 +186,6 @@ const InvoiceFile = forwardRef<HTMLDivElement, Props>(({ data }, ref) => {
       <div className="w-full py-6 sm:py-8 flex flex-col sm:flex-row gap-3 sm:gap-8 text-zinc-800 font-semibold text-sm border-t border-gray-100 break-all">
         <span>{user?.business_account?.business_phone_number}</span>
         <span>{user?.email}</span>
-        {/* <span>{data?.customer?.website}</span> */}
       </div>
     </section>
   );

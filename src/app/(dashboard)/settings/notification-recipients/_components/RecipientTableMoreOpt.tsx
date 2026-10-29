@@ -53,19 +53,6 @@ const RecipientTableMoreOpt = ({
                 Edit
               </button>
             </li>
-            {/* <li>
-              <button
-                type="button"
-                onClick={() => {
-                  onDelete(recipient);
-                  setIsOpen(false);
-                }}
-                className="w-full text-left flex items-center gap-2.5 px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 active:bg-red-100"
-              >
-                <Image src="/icons/trash.svg" alt="" width={16} height={16} />
-                Delete Recipient
-              </button>
-            </li> */}
           </ul>
         </div>
       )}

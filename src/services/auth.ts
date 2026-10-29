@@ -1,4 +1,4 @@
-import { AuthAxios } from "@/lib/authAxios";
+import { AuthAxios, CustomAxiosRequestConfig } from "@/lib/authAxios";
 import { PublicAxios } from "@/lib/publicAxios";
 import { IChangePasswordPayload, IResetPinPayload } from "@/types/services";
 
@@ -21,12 +21,6 @@ export interface IResetPasswordPayload {
   otp: string;
   email: string;
 }
-
-export async function CountriesApi() {
-  const response = await PublicAxios.get("/countries/");
-  return response.data;
-}
-
 export const SignupApi = async (data: IRegisterPayload) => {
   const response = await PublicAxios.post("/business/auth/sign-up/", data);
   return response?.data;
@@ -83,12 +77,11 @@ export const ResetPasswordApi = async (data: IResetPasswordPayload) => {
   return response?.data;
 };
 
-export const LogoutApi = async (token: string) => {
+/** The proxy adds the token RaizServer revokes and clears the session cookies. */
+export const LogoutApi = async () => {
   const response = await AuthAxios.post("/business/auth/logout/", null, {
-    params: {
-      token,
-    },
-  });
+    silent: true,
+  } as CustomAxiosRequestConfig);
   return response?.data;
 };
 
@@ -106,7 +99,7 @@ export async function SetTransactionPinApi(
   const response = await AuthAxios.patch(
     "/business/auth/transaction-pin/",
     data,
-    options?.silent ? ({ silent: true } as any) : undefined
+    options?.silent ? ({ silent: true } as CustomAxiosRequestConfig) : undefined
   );
   return response.data;
 }

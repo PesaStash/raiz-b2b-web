@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { sbcType } from "@/app/(dashboard)/_components/crypto/send/CryptoSend";
-import { ACCOUNT_CURRENCIES, SWAP_ACCOUNT_CURRENCIES } from "@/constants/misc";
+import { ACCOUNT_CURRENCIES } from "@/constants/misc";
 import { PaymentStatusType } from "@/types/transactions";
 import { IUser, IWallet } from "@/types/user";
 

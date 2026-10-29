@@ -5,7 +5,6 @@ import { useFormik } from "formik";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { LoginOtpApi, LoginApi, ILoginPayload } from "@/services/auth";
 import { toast } from "sonner";
-import { SetItemToCookie } from "@/utils/CookiesFunc";
 import { clearUsdOnboardingSessionState, USD_ONBOARDING_QUERY_KEY } from "@/lib/hooks/useUsdOnboarding";
 import { pushDataLayerEvent } from "@/utils/analytics/dataLayer";
 import EmailVerificationCard from "../../_components/EmailVerificationCard";
@@ -24,7 +23,7 @@ const LoginOtp = ({ setStep, from, email, password }: Props) => {
   const loginMutation = useMutation({
     mutationFn: (data: { email: string; otp: string }) => LoginOtpApi(data),
     onSuccess: (response) => {
-      SetItemToCookie("access_token", response?.access_token);
+      // The /api/raiz proxy stores the token in an httpOnly cookie.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const res = response as any;
       const userId =

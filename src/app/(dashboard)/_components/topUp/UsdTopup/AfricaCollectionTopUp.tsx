@@ -212,8 +212,6 @@ const AfricaCollectionTopUp = ({ close, onDone }: Props) => {
     //   localMin != null &&
     //   localMax != null &&
     //   localMin > 0 &&
-    //   localMax > 0,
-    // staleTime: 60_000,
   });
 
   const limitsReady = !!channelId && !!usdLimits && !usdLimitsError;
@@ -648,7 +646,6 @@ const AfricaCollectionTopUp = ({ close, onDone }: Props) => {
       </Overlay>
     );
   }
-
 
   return (
     <Overlay close={handleClose} width="400px">

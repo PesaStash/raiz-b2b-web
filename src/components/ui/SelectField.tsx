@@ -91,8 +91,6 @@ const SelectField: React.FC<SelectFieldProps> = ({
     }),
     dropdownIndicator: (provided: any) => ({
       ...provided,
-      //   paddingLeft: "14px",
-      //   paddingRight: "14px",
     }),
 
     placeholder: (provided: any) => ({

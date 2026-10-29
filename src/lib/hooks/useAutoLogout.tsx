@@ -3,12 +3,11 @@ import { usePathname } from "next/navigation";
 import { isPublicPath } from "@/lib/permissions";
 import { clearLocalSession } from "@/lib/session";
 import { useCallback } from "react";
-import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useIdleTimer } from "react-idle-timer";
 import { LogoutApi } from "@/services/auth";
-import { GetItemFromCookie, RemoveItemFromCookie } from "@/utils/CookiesFunc";
+import { hasSession } from "@/utils/CookiesFunc";
 import { useUserStore } from "@/store/useUserStore";
 import {
   clearUsdOnboardingCase,
@@ -28,10 +27,7 @@ export const useAutoLogout = () => {
 
   // Define logout mutation
   const logoutMutation = useMutation({
-    mutationFn: () => {
-      const token = GetItemFromCookie("access_token") ?? "";
-      return LogoutApi(token);
-    },
+    mutationFn: () => LogoutApi(),
     onSuccess: () => {
       const user = useUserStore.getState().user;
       pushDataLayerEvent("logout", {
@@ -44,7 +40,6 @@ export const useAutoLogout = () => {
         clearUsdOnboardingCase(entityId);
         qc.removeQueries({ queryKey: [...USD_ONBOARDING_QUERY_KEY, entityId] });
       }
-      RemoveItemFromCookie("access_token");
       qc.clear();
       clearUser();
       clearLocalSession();
@@ -59,7 +54,6 @@ export const useAutoLogout = () => {
         clearUsdOnboardingCase(entityId);
         qc.removeQueries({ queryKey: [...USD_ONBOARDING_QUERY_KEY, entityId] });
       }
-      RemoveItemFromCookie("access_token");
       qc.clear();
       clearUser();
       clearLocalSession();
@@ -69,12 +63,10 @@ export const useAutoLogout = () => {
 
   const onIdle = useCallback(() => {
     // Only execute logout if user is logged in
-    const accessToken = Cookies.get("access_token");
-    if (!accessToken || isPublicPath(pathname)) {
+    if (!hasSession() || isPublicPath(pathname)) {
       return; // Exit early if not authenticated
     }
 
-    console.log("Logging out due to inactivity...");
     logoutMutation.mutate();
   }, [logoutMutation, pathname]);
 

@@ -62,9 +62,7 @@ const GuestStripePayment = ({ goBack, goNext, data }: Props) => {
           payer_email: billingDetails?.email || "",
           payment_description: billingDetails?.purpose || "",
         });
-        // toast.success("Payment confirmed successfully!");
         goNext();
-        console.log(res)
         actions.setTransactionDetail(res)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {

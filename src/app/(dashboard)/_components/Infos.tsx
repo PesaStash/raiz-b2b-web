@@ -6,7 +6,6 @@ import {
   useUsdOnboardingStatus,
 } from "@/lib/hooks/useUsdOnboarding";
 import { useUsdOnboardingFlow } from "@/lib/hooks/useUsdOnboardingFlow";
-import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { findWalletByCurrency } from "@/utils/helpers";
 import {
   canStartNgnAccountSetup,

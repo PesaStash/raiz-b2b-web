@@ -1,11 +1,9 @@
 "use client";
-import SideWrapperHeader from "@/components/SideWrapperHeader";
 import Avatar from "@/components/ui/Avatar";
 import Button from "@/components/ui/Button";
 import EmptyList from "@/components/ui/EmptyList";
 import InputField from "@/components/ui/InputField";
 import ModalTrigger from "@/components/ui/ModalTrigger";
-// import Radio from "@/components/ui/Radio";
 import Spinner from "@/components/ui/Spinner";
 import { useUser } from "@/lib/hooks/useUser";
 import {
@@ -241,11 +239,7 @@ const GlobalBeneficiary = ({ close }: Props) => {
           );
 
           fieldSchema = fieldSchema.regex(regex, readableMessage);
-        } catch (error) {
-          console.log(
-            `Invalid regex pattern for ${fieldName}: ${field.pattern}`,
-            error,
-          );
+        } catch {
         }
       }
 
@@ -313,14 +307,14 @@ const GlobalBeneficiary = ({ close }: Props) => {
     values: Record<string, string>,
     objectFields: string[],
   ) => {
-    const transformed = { ...values } as Record<string, any>;
+    const transformed: Record<string, unknown> = { ...values };
     const sortedObjectFields = [...objectFields].sort(
       (left, right) => right.length - left.length,
     );
 
     sortedObjectFields.forEach((objectField) => {
       const prefix = `${objectField}_`;
-      const nestedValues: Record<string, string> = {};
+      const nestedValues: Record<string, unknown> = {};
 
       Object.keys(transformed).forEach((key) => {
         if (key.startsWith(prefix)) {
@@ -499,7 +493,7 @@ const GlobalBeneficiary = ({ close }: Props) => {
       },
     ],
     queryFn: async ({ queryKey }) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       const [_, params] = queryKey as [
         string,
         { account_number: string; bank_code: string },
@@ -712,11 +706,6 @@ const GlobalBeneficiary = ({ close }: Props) => {
                   label: "Account Number",
                   pattern: "^\\+86[1][3-9]\\d{9}$",
                 },
-                // {
-                //   name: "account_name",
-                //   label: "Account Name",
-                //   pattern: "[^\\s@]+(\\s+)[^\\s@]+",
-                // },
               ]}
             />
           )}

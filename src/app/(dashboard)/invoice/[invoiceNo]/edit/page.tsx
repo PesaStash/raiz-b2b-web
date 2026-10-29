@@ -25,7 +25,6 @@ import { CustomerSearchBox } from "../../_components/CustomerSearchbox";
 import TaxSelect from "../../_components/TaxSelect";
 import DiscountInput from "../../_components/DiscountInput";
 import AddNewTax from "../../_components/AddNewTax";
-import SideModalWrapper from "@/app/(dashboard)/_components/SideModalWrapper";
 import { ACCOUNT_CURRENCIES } from "@/constants/misc";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 import InvoiceMobileBack from "../../_components/InvoiceMobileBack";
@@ -286,7 +285,6 @@ const EditInvoicePage = () => {
       }),
     };
 
-    console.log("Submitting payload:", payload);
     const isDraft = submitType === "draft";
     UpdateMutation.mutate({ payload, isDraft });
   };
@@ -297,8 +295,6 @@ const EditInvoicePage = () => {
     switch (showSideModal) {
       case "customer":
         return <AddNewCustomer close={closeSideModal} />;
-      //   case "settings":
-      //     return <InvoiceSettings close={closeSideModal} />;
       default:
         break;
     }
