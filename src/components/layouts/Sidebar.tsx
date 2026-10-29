@@ -3,13 +3,10 @@
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import React, { ReactNode, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ISidebarMenuItem, SidebarSection } from "@/types/misc";
-import {
-  SIDEBAR_SECTION_LABELS,
-  SidebarMenus,
-} from "@/constants/SidebarMenuData";
+import { SidebarMenus } from "@/constants/SidebarMenuData";
 import SideModalWrapper from "@/app/(dashboard)/_components/SideModalWrapper";
 import { AnimatePresence } from "motion/react";
 import CreateNgnAcct from "@/app/(dashboard)/_components/createNgnAcct/CreateNgnAcct";
@@ -57,6 +54,8 @@ const Sidebar = () => {
   const { user, refetch } = useUser();
   const { canManageTeam, canWriteBusiness } = usePermissions();
   const pathName = usePathname();
+  const onboardingRouter = useRouter();
+  const isKyb = pathName.startsWith("/onboarding");
   const { selectedCurrency } = useCurrencyStore();
   const { effectiveCollapsed, isLargeDesktop, toggleCollapsed } = useSidebar();
 
@@ -131,7 +130,7 @@ const Sidebar = () => {
 
   const isItemActive = (item: ISidebarMenuItem) => {
     if (item.action === "feedback") return showFeedbacks;
-    if (item.link === "/") return pathName === "/";
+    if (item.link === "/") return pathName === "/" || isKyb;
     return pathName === item.link || pathName.startsWith(`${item.link}/`);
   };
 
@@ -159,7 +158,7 @@ const Sidebar = () => {
       action: (
         <div className=" w-full">
           <button
-            onClick={() => setShowModal("acctSetup")}
+            onClick={() => onboardingRouter.push("/onboarding/business")}
             className="group px-6 py-2.5 w-full flex items-center gap-3 justify-center  bg-white border-2 border-[#F8F7FA] text-[#3C2875] font-bold rounded-3xl text-sm hover:bg-gray-50 transition-colors  disabled:opacity-50"
           >
             <span>Get Started</span>
@@ -174,7 +173,7 @@ const Sidebar = () => {
         </div>
       ),
       bg: "bg-[#FFF3E666]",
-      onAction: () => setShowModal("acctSetup"),
+      onAction: () => onboardingRouter.push("/onboarding/business"),
     },
     {
       condition: canSetTransactionPin(verificationStatus) && !hasTransactionPin,
@@ -259,14 +258,14 @@ const Sidebar = () => {
           </defs>
         </svg>
       ),
-      title: "Request a USD Account",
+      title: "Set up a USD Account",
       description:
-        "Submit a request and our team will contact you to complete USD verification.",
+        "Complete your business details and submit for operations review.",
       action: (
         <button
           onClick={() => usdFlow.startUsdRequest()}
           className="text-white bg-primary py-3 px-5 rounded-full text-sm font-semibold flex items-center gap-2"
-          disabled={usdFlow.isUsdActionPending || usdFlow.hasRequestedUsd}
+          disabled={usdFlow.isUsdActionPending}
         >
           {usdFlow.isUsdActionPending ? (
             <Spinner className="!w-4 !h-4 !border-t-2 !border-b-2" />
@@ -290,14 +289,14 @@ const Sidebar = () => {
         "Manage funds and make transactions in Naira, simplifying local payments and daily finances.",
       action: (
         <button
-          onClick={() => setShowModal("getNgn")}
+          onClick={() => onboardingRouter.push("/onboarding/ngn")}
           className="text-white bg-primary py-3 px-5 rounded-full text-sm font-semibold flex items-center gap-2"
         >
           Get Naira Account
         </button>
       ),
       bg: "bg-[#eaecff]/40",
-      onAction: () => setShowModal("getNgn"),
+      onAction: () => onboardingRouter.push("/onboarding/ngn"),
     },
     {
       condition:
@@ -339,37 +338,34 @@ const Sidebar = () => {
     () => SidebarMenus.filter((m) => m.section === "manage" && (m.link !== "/team" || canManageTeam)),
     [canManageTeam],
   );
+  const allNavItems = useMemo(
+    () => [...overviewItems, ...manageItems],
+    [overviewItems, manageItems],
+  );
+
+  const renderNavItems = (items: ISidebarMenuItem[]) =>
+    items.map((item, index) => (
+      <SidebarNavItem
+        key={`${item.link}-${item.name}-${index}`}
+        item={item}
+        isActive={isItemActive(item)}
+        collapsed={effectiveCollapsed}
+        badgeCount={pendingBillCount}
+        onFeedbackClick={() => setShowFeedbacks(true)}
+      />
+    ));
 
   const renderSection = (
     section: SidebarSection,
     items: ISidebarMenuItem[],
     showDividerBefore = false,
   ) => (
-    <div
-      key={section}
-      className={`flex flex-col gap-2`}
-    >
-      {showDividerBefore && effectiveCollapsed && (
+    <div key={section} className="flex flex-col gap-2">
+      {showDividerBefore && (
         <div className="mx-auto h-px w-8 bg-[#EBE8F0]" />
       )}
-      {!effectiveCollapsed && (
-        <p className="flex h-8 items-center font-monzo text-[11px] font-bold uppercase tracking-normal text-raiz-gray-500">
-          {SIDEBAR_SECTION_LABELS[section]}
-        </p>
-      )}
-      <div
-        className={`flex flex-col ${effectiveCollapsed ? "items-center gap-2" : "gap-2"}`}
-      >
-        {items.map((item, index) => (
-          <SidebarNavItem
-            key={`${section}-${index}`}
-            item={item}
-            isActive={isItemActive(item)}
-            collapsed={effectiveCollapsed}
-            badgeCount={pendingBillCount}
-            onFeedbackClick={() => setShowFeedbacks(true)}
-          />
-        ))}
+      <div className="flex flex-col items-center gap-2">
+        {renderNavItems(items)}
       </div>
     </div>
   );
@@ -379,7 +375,9 @@ const Sidebar = () => {
       className={`hidden md:flex fixed top-0 bottom-0 left-0 z-20 h-screen flex-col overflow-x-hidden border-r transition-[width] duration-300 ease-in-out ${
         effectiveCollapsed
           ? "w-[88px] items-center border-raiz-gray-200 bg-white pb-6 pt-8"
-          : "w-[88px] lg:w-[256px] border-raiz-gray-100 bg-raiz-gray-50 px-4 pb-4 pt-5"
+          : isKyb
+            ? "w-[88px] lg:w-[280px] border-kyb-border bg-white px-4 pb-4 pt-8"
+            : "w-[88px] lg:w-[280px] border-raiz-gray-100 bg-white px-4 pb-4 pt-8"
       }`}
     >
       {/* Brand header */}
@@ -387,7 +385,7 @@ const Sidebar = () => {
         className={`shrink-0 ${
           effectiveCollapsed
             ? "mb-8 flex items-center"
-            : "mb-5 flex h-11 w-full items-center justify-between"
+            : "mb-6 flex w-full items-center justify-between px-2"
         }`}
       >
         {effectiveCollapsed ? (
@@ -407,20 +405,20 @@ const Sidebar = () => {
             />
           </button>
         ) : (
-          <Link href="/" className="flex items-center gap-2" title="Raiz">
+          <Link href="/" className="flex items-center gap-2.5" title="Raiz">
             <Image
               src="/icons/Logo-2.svg"
-              width={36}
-              height={36}
+              width={40}
+              height={40}
               alt="Raiz"
-              className="size-9 shrink-0 rounded-[22px]"
+              className="size-10 shrink-0 rounded-[25px]"
             />
             <Image
               src="/icons/sidebar/raiz-wordmark.svg"
               alt="Raiz"
-              width={48}
-              height={20}
-              className="h-5 w-auto"
+              width={54}
+              height={22}
+              className="h-[22px] w-auto"
             />
           </Link>
         )}
@@ -449,13 +447,19 @@ const Sidebar = () => {
       >
         <nav
           className={`flex w-full min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden ${
-            effectiveCollapsed ? "items-center gap-8" : "gap-5"
+            effectiveCollapsed ? "items-center gap-8" : "gap-1"
           }`}
         >
-          {renderSection("overview", overviewItems)}
-          {renderSection("manage", manageItems, true)}
+          {effectiveCollapsed ? (
+            <>
+              {renderSection("overview", overviewItems)}
+              {renderSection("manage", manageItems, true)}
+            </>
+          ) : (
+            renderNavItems(allNavItems)
+          )}
 
-          {!effectiveCollapsed && verificationStatus && visibleStatuses.length > 0 && (
+          {!isKyb && !effectiveCollapsed && verificationStatus && visibleStatuses.length > 0 && (
             <div className="mt-auto flex w-full flex-col gap-3 pt-4">
               {visibleStatuses.map((status) => (
                 <StatusCard key={status.title} {...status} />
@@ -482,6 +486,7 @@ const Sidebar = () => {
             </button>
           )}
 
+          {isKyb && !effectiveCollapsed && <section className="mb-6 hidden rounded-lg bg-[#FFFAF5] px-4 py-5 lg:block"><span className="mb-4 flex size-12 items-center justify-center rounded-full bg-white"><Image src="/images/kyb/support.svg" width={24} height={24} alt="" /></span><h2 className="text-sm font-bold">Need a hand getting verified?</h2><p className="mt-2 text-sm leading-5 text-kyb-muted">Our team can help you through your business verification.</p><a href="mailto:support@raiz.app" className="mt-8 flex items-center justify-center gap-3 rounded-full border border-kyb-border bg-white px-6 py-4 text-sm font-bold text-primary2">Contact support <span aria-hidden>→</span></a></section>}
           <AccountFooter
             collapsed={effectiveCollapsed}
             userPfp={userPfp}
@@ -527,10 +532,6 @@ const Sidebar = () => {
     </aside>
   );
 };
-
-function collapsedSectionGap(showDividerBefore: boolean) {
-  return showDividerBefore ? "gap-8" : "gap-2";
-}
 
 export default Sidebar;
 

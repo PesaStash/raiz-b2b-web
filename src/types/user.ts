@@ -197,6 +197,9 @@ export interface ISearchedUser {
 }
 
 export type UsdKybCaseStatus =
+  | "awaiting_admin_review"
+  | "requires_correction"
+  | "awaiting_ubo"
   | "not_started"
   | "collecting"
   | "ready_for_review"

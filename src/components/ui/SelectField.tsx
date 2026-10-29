@@ -34,6 +34,8 @@ interface SelectFieldProps {
   minHeight?: string;
   placeholderStyle?: React.CSSProperties;
   labelClass?: string;
+  instanceId?: string;
+  formatOptionLabel?: (option: Option) => React.ReactNode;
 }
 
 const SelectField: React.FC<SelectFieldProps> = ({
@@ -56,7 +58,9 @@ const SelectField: React.FC<SelectFieldProps> = ({
   bgColor = "#F3F1F6",
   minHeight = "50px",
   placeholderStyle,
-  labelClass
+  labelClass,
+  instanceId,
+  formatOptionLabel,
 }) => {
   const [optionsIsShown, setOptionsIsShown] = useState<boolean>(false);
   const [selectedOption, setSelectedOption] = useState<Option | null>(value);
@@ -153,6 +157,9 @@ const SelectField: React.FC<SelectFieldProps> = ({
     >
       {label && <InputLabel content={label} labelClass={labelClass} />}
       <Select
+        formatOptionLabel={formatOptionLabel}
+        aria-label={label || name || placeholder}
+        instanceId={instanceId}
         className={`${
           status === "success"
             ? "focus:border-[#2BAC47] !border-[#2BAC47] active:border-[#2BAC47] bg-[#F1F8F2] border-2 focus:border-2"

@@ -14,6 +14,9 @@ export interface UsdTimelineStep {
 
 const STATUS_LABELS: Record<string, string> = {
   not_started: "Not started",
+  awaiting_admin_review: "Operations review",
+  requires_correction: "Changes requested",
+  awaiting_ubo: "Waiting for owner verification",
   collecting: "Collecting",
   ready_for_review: "Ready for review",
   submitted_to_bridge: "Under review",

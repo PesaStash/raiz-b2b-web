@@ -9,6 +9,7 @@ interface CheckboxProps {
   label?: string;
   checkMarkColor?: string;
   labelClass?: string;
+  disabled?: boolean;
 }
 
 const Checkbox: React.FC<CheckboxProps> = ({
@@ -20,6 +21,7 @@ const Checkbox: React.FC<CheckboxProps> = ({
   label,
   checkMarkColor = "#5ac88a",
   labelClass,
+  disabled = false,
 }) => {
   const checkboxId = id || Math.random().toString(36).substr(2, 9);
 
@@ -29,14 +31,16 @@ const Checkbox: React.FC<CheckboxProps> = ({
         type="checkbox"
         id={checkboxId}
         checked={checked}
+        aria-label={label}
+        disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}
         className="sr-only"
       />
       <label
         htmlFor={checkboxId}
-        className={`flex items-center justify-center w-[18px] h-[18px] border-2 rounded-md cursor-pointer transition-colors duration-200 ease-in-out ${
-          checked ? bgStyle : "bg-white border-gray-300"
-        }`}
+        className={`flex items-center justify-center w-[18px] h-[18px] border-2 rounded-md transition-colors duration-200 ease-in-out ${
+          disabled ? "cursor-not-allowed" : "cursor-pointer"
+        } ${checked ? bgStyle : "bg-white border-gray-300"}`}
         style={{
           minWidth: "20px",
           minHeight: "20px",
