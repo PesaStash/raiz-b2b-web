@@ -44,7 +44,7 @@ const ResetOtp = ({ email, setPage, setOtp }: Props) => {
   return (
     <form
       onSubmit={formik.handleSubmit}
-      className="h-full flex flex-col -mt-2 justify-between "
+      className="flex flex-col gap-6"
     >
       <div>
         <button onClick={() => setPage(1)} type="button">
@@ -57,10 +57,10 @@ const ResetOtp = ({ email, setPage, setOtp }: Props) => {
         </button>
         <header className="flex  justify-between mt-2">
           <div>
-            <h2 className="text-raiz-gray-950 text-[23px] font-semibold  leading-10">
+            <h2 className="text-raiz-gray-950 text-[28px] font-bold  leading-10">
               Enter OTP
             </h2>
-            <p className="text-raiz-gray-700 text-[15px] font-normal  leading-snug mb-[44px]">
+            <p className="text-raiz-gray-700 text-[15px] font-normal  leading-snug mb-6">
               Please enter the OTP code sent to your email {email}
             </p>
           </div>
@@ -119,7 +119,7 @@ const ResetOtp = ({ email, setPage, setOtp }: Props) => {
           </div>
         </div>
       </div>
-      <Button type="submit" disabled={!formik.isValid || !formik.dirty}>
+      <Button className="auth-submit" type="submit" disabled={!formik.isValid || !formik.dirty}>
         Confirm & continue
       </Button>
     </form>

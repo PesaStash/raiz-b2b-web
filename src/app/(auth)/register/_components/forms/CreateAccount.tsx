@@ -1,7 +1,6 @@
 "use client";
 import Image from "next/image";
 import React, { useEffect, useMemo, useState } from "react";
-import CountryOriginInfoModal from "../CountryOriginInfoModal";
 import { FormikProps } from "formik";
 import { IRegisterFormValues } from "@/types/misc";
 import InputField from "@/components/ui/InputField";
@@ -9,6 +8,7 @@ import InputLabel from "@/components/ui/InputLabel";
 import AnimatedSection from "@/components/ui/AnimatedSection";
 import SelectField from "@/components/ui/SelectField";
 import useCountryStore from "@/store/useCountryStore";
+import { newPasswordSchema } from "../validation";
 
 export interface RegisterFormProps {
   formik: FormikProps<IRegisterFormValues>;
@@ -17,152 +17,123 @@ export interface RegisterFormProps {
 }
 
 const CreateAccount = ({ formik }: RegisterFormProps) => {
-  const [showCountryInfo, setShowCountryInfo] = useState(false);
-  const { countries, fetchCountries, loading: countriesLoading } =
-    useCountryStore();
-
-  useEffect(() => {
-    fetchCountries();
-  }, [fetchCountries]);
-
-  const countryOptions = useMemo(
-    () =>
-      countries.map((country) => ({
-        value: String(country.country_id),
-        label: country.country_name,
-      })),
-    [countries]
-  );
-
-  const selectedCountry = useMemo(
-    () =>
-      countryOptions.find(
-        (option) => String(option.value) === String(formik.values.country_id)
-      ) ?? null,
-    [countryOptions, formik.values.country_id]
-  );
+  const [showPassword, setShowPassword] = useState(false);
+  const { countries, fetchCountries, loading: countriesLoading, error } = useCountryStore();
+  useEffect(() => { fetchCountries(); }, [fetchCountries]);
+  const countryOptions = useMemo(() => countries.map(country => ({ value: String(country.country_id), label: country.country_name })), [countries]);
+  const selectedCountry = countryOptions.find(option => option.value === formik.values.country_id) ?? null;
+  const country = countries.find(country => String(country.country_id) === formik.values.country_id);
+  const password = formik.values.password;
+  const strongPassword = newPasswordSchema.safeParse(password).success;
+  const strength = [password.length >= 8, /[A-Z]/.test(password) && /[a-z]/.test(password), /\d/.test(password), /[!@#$%^&*(),.?":{}|<>]/.test(password)].filter(Boolean).length;
 
   return (
-    <AnimatedSection key="create-acct" className=" flex flex-col">
-      <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-        <path
-          d="M30 35H10C7.23833 35 5 32.7617 5 30V10C5 7.23833 7.23833 5 10 5H30C32.7617 5 35 7.23833 35 10V30C35 32.7617 32.7617 35 30 35Z"
-          fill="#E9E0EF"
-        />
-        <path
-          d="M20 20C22.7614 20 25 17.7614 25 15C25 12.2386 22.7614 10 20 10C17.2386 10 15 12.2386 15 15C15 17.7614 17.2386 20 20 20Z"
-          fill="#733B9C"
-        />
-        <path
-          d="M24.9998 23.334H14.9998C13.1582 23.334 11.6665 24.8257 11.6665 26.6673C11.6665 28.509 13.1582 30.0007 14.9998 30.0007H24.9998C26.8415 30.0007 28.3332 28.509 28.3332 26.6673C28.3332 24.8257 26.8415 23.334 24.9998 23.334Z"
-          fill="#493260"
-        />
-      </svg>
-      <header className="flex items-center justify-between ">
-        <h2 className="text-raiz-gray-950 md:text-[23px] text-xl font-semibold  leading-10">
-          Create your account
-        </h2>
+    <AnimatedSection key="create-acct" className="auth-register-fields flex flex-col gap-6">
+      <header>
+        <h1 className="text-[28px] font-bold leading-10 md:text-[32px]">Open a business account</h1>
+        <p className="mt-2.5 text-[15px] leading-[22px] text-[#6b6b80]">Start with the basics. You’ll add the business details after, and we save as you go.</p>
       </header>
-      <p className="text-raiz-gray-700 text-sm md:text-[15px]  font-normal  leading-snug">
-        Let&#39;s start by getting to know you
-      </p>
-      <div className="flex flex-col justify-between h-full">
-        <div>
-          <div className="md:mt-[44px] mt-8 flex flex-col md:gap-5 gap-2 ">
-            <div className="flex flex-col gap-2">
-              <div className="flex gap-2 items-center">
-                <InputLabel content="Country of Origin" />
-                <button type="button" onClick={() => setShowCountryInfo(true)}>
-                  <Image
-                    src={"/icons/tooltip-info.svg"}
-                    alt="country"
-                    width={20}
-                    height={20}
-                  />
-                </button>
-              </div>
-              <SelectField
-                name="country_id"
-                placeholder="Enter country"
-                options={countryOptions}
-                value={selectedCountry}
-                isLoading={countriesLoading}
-                onChange={(option) => {
-                  const id =
-                    option?.value != null ? String(option.value) : "";
-                  formik.setFieldValue("country_id", id, true);
-                  formik.setFieldValue(
-                    "country_name",
-                    option?.label ?? "",
-                    false
-                  );
-                  formik.setFieldTouched("country_id", true, false);
-                }}
-                status={
-                  formik.touched.country_id && formik.errors.country_id
-                    ? "error"
-                    : null
-                }
-                helper={
-                  formik.touched.country_id && formik.errors.country_id
-                    ? String(formik.errors.country_id)
-                    : null
-                }
-              />
-            </div>
-            <InputField
-              placeholder="Enter first name"
-              label="First Name"
-              {...formik.getFieldProps("firstName")}
-              status={
-                formik.touched.firstName && formik.errors.firstName
-                  ? "error"
-                  : null
-              }
-              errorMessage={formik.touched.firstName && formik.errors.firstName}
-            />
-            <InputField
-              placeholder="Enter last name"
-              label="Last Name"
-              {...formik.getFieldProps("lastName")}
-              status={
-                formik.touched.lastName && formik.errors.lastName
-                  ? "error"
-                  : null
-              }
-              errorMessage={formik.touched.lastName && formik.errors.lastName}
-            />
-            <InputField
-              placeholder="Enter your  work email address"
-              label="Work Email"
-              type="email"
-              {...formik.getFieldProps("email")}
-              status={
-                formik.touched.email && formik.errors.email ? "error" : null
-              }
-              errorMessage={formik.touched.email && formik.errors.email}
+      <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <InputField
+            aria-label="First Name"
+            label="First Name"
+            placeholder="Enter first name"
+            autoComplete="given-name"
+            {...formik.getFieldProps("firstName")}
+            status={formik.touched.firstName && formik.errors.firstName ? "error" : null}
+            errorMessage={formik.touched.firstName && formik.errors.firstName}
+          />
+          <InputField
+            aria-label="Last Name"
+            label="Last Name"
+            placeholder="Enter last name"
+            autoComplete="family-name"
+            {...formik.getFieldProps("lastName")}
+            status={formik.touched.lastName && formik.errors.lastName ? "error" : null}
+            errorMessage={formik.touched.lastName && formik.errors.lastName}
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <InputLabel content="Where is the business registered?" />
+          <div className="relative">
+            {country && (country.country_code?.toUpperCase() === "NG" || country.country_name === "Nigeria") && <Image
+              className="pointer-events-none absolute left-4 top-4 z-10 rounded-[3px]"
+              src="/images/auth/ng-flag.png"
+              width={24}
+              height={16}
+              alt=""
+            />}
+            <SelectField
+              instanceId="register-country"
+              name="country_id"
+              className="auth-country !rounded-xl !shadow-none"
+              placeholder="Select country"
+              options={countryOptions}
+              value={selectedCountry}
+              isLoading={countriesLoading}
+              bgColor="#f4f4f8"
+              minHeight="48px"
+              height="48px"
+              controlPadding={country?.country_code?.toUpperCase() === "NG" || country?.country_name === "Nigeria" ? "0 12px 0 48px" : "0 15px"}
+              onChange={option => {
+                formik.setFieldValue("country_id", option?.value != null ? String(option.value) : "", true);
+                formik.setFieldValue("country_name", option?.label ?? "", false);
+                formik.setFieldTouched("country_id", true, false);
+              }}
+              status={formik.touched.country_id && formik.errors.country_id ? "error" : null}
+              helper={formik.touched.country_id && formik.errors.country_id ? String(formik.errors.country_id) : null}
             />
           </div>
-          <div className="flex gap-2 mt-3 items-start">
-            <button className="w-5 h-5">
+          {error ? <p role="alert" className="text-[13px] text-raiz-error">Unable to load countries. <button
+            type="button"
+            className="underline"
+            onClick={() => fetchCountries(true)}
+          >Try again</button>
+          </p> : country?.currency === "NGN" || country?.country_name === "Nigeria" ? <p className="text-[13px] leading-[19px] text-[#6b6b80]">You’ll also get a naira balance for local payments.</p> : null}
+        </div>
+        <InputField
+          aria-label="Work email"
+          label="Work email"
+          placeholder="you@company.com"
+          type="email"
+          autoComplete="email"
+          {...formik.getFieldProps("email")}
+          status={formik.touched.email && formik.errors.email ? "error" : null}
+          errorMessage={formik.touched.email && formik.errors.email}
+        />
+        <div className="flex flex-col gap-2.5">
+          <InputField
+            aria-label="Create a password"
+            label="Create a password"
+            placeholder="Enter your password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="new-password"
+            {...formik.getFieldProps("password")}
+            className="pr-12"
+            icon={<button
+              type="button"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-pressed={showPassword}
+              onClick={() => setShowPassword(!showPassword)}
+            >
               <Image
-                src={"/icons/tooltip-info.svg"}
-                alt="country"
+                src="/images/auth/eye.svg"
                 width={20}
                 height={20}
+                alt=""
               />
-            </button>
-
-            <p className="text-raiz-gray-600 text-xs font-medium font-brSonoma leading-[18px]">
-              By signing up, you agree to receive OTPs and security alerts from
-              Raiz. Reply STOP to opt out.
-            </p>
+            </button>}
+            status={formik.touched.password && formik.errors.password ? "error" : null}
+            errorMessage={formik.touched.password && formik.errors.password}
+          />
+          <div className="flex gap-1.5" aria-label={`Password strength: ${strongPassword ? "strong" : strength ? "needs improvement" : "empty"}`}>{[1, 2, 3, 4].map(bar => <span key={bar} className={`h-1 flex-1 rounded-sm ${bar <= strength ? strongPassword ? "bg-[#1f9d55]" : "bg-amber-500" : "bg-[#e4e0ea]"}`} />)}</div>
+          <div className="flex flex-wrap justify-between gap-1 text-[13px] leading-[19px]">
+            <p className={strongPassword ? "font-semibold text-[#1f9d55]" : "text-[#6b6b80]"}>{strongPassword ? "Strong password" : password ? "Keep going" : "Choose a password"}</p>
+            <p className="text-[#6b6b80]" title="Include uppercase and lowercase letters">8+ characters, a number and a symbol</p>
           </div>
         </div>
       </div>
-      {showCountryInfo && (
-        <CountryOriginInfoModal close={() => setShowCountryInfo(false)} />
-      )}
     </AnimatedSection>
   );
 };

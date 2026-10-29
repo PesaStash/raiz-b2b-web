@@ -1,14 +1,14 @@
 "use client";
 import React, { useMemo, useState } from "react";
-import Image from "next/image";
 import CreateAccount from "./forms/CreateAccount";
-import SetPassword from "./forms/SetPassword";
 import Button from "@/components/ui/Button";
 import Link from "next/link";
 import RegisterOtp from "./forms/RegisterOtp";
 import Congrats from "./forms/Congrats";
+import AuthLayout from "../../_components/AuthLayout";
+import EmailVerificationLayout from "../../_components/EmailVerificationLayout";
 import { useFormik } from "formik";
-import { registerFormSchemas, sanitizeOtpInput } from "./validation";
+import { registerFormSchemas, createAccountSchema, sanitizeOtpInput } from "./validation";
 import { IRegisterFormValues } from "@/types/misc";
 import { toFormikValidate } from "zod-formik-adapter";
 import { useRouter } from "next/navigation";
@@ -19,17 +19,14 @@ import {
   SignupVerifyOtpApi,
 } from "@/services/auth";
 import { AnimatePresence } from "motion/react";
-import Checkbox from "@/components/ui/Checkbox";
 import { pushDataLayerEvent } from "@/utils/analytics/dataLayer";
 import { getAnalyticsUserType } from "@/utils/analytics/userProps";
 
 const RegisterForm = () => {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
-  const [checked, setChecked] = useState(false);
   const steps = [
     "createAccount",
-    "setPassword",
     "otp",
     "congrats",
   ];
@@ -43,11 +40,10 @@ const RegisterForm = () => {
     referral_code: "",
     otp: "",
     confirmPassword: "",
-    // useCases: [],
   };
 
   const validateCurrentStep = useMemo(
-    () => toFormikValidate(registerFormSchemas[currentStep as keyof typeof registerFormSchemas]),
+    () => toFormikValidate(currentStep === 1 ? createAccountSchema : registerFormSchemas[currentStep === 2 ? 3 : 4]),
     [currentStep],
   );
 
@@ -56,14 +52,12 @@ const RegisterForm = () => {
     validate: validateCurrentStep,
     validateOnChange: true,
     validateOnBlur: true,
-    // Submission happens per step through signupMutation.
-    onSubmit: () => undefined,
+    onSubmit: () => btnAction(),
   });
 
   const signupMutation = useMutation({
     mutationFn: (data: IRegisterPayload) => SignupApi(data),
     onSuccess: () => {
-     
       handleNavigate("next");
     },
   });
@@ -91,39 +85,24 @@ const RegisterForm = () => {
         },
         { dedupId: `sign_up:${userId}` },
       );
-      handleNavigate("next");
+      setCurrentStep(3);
+      formik.setErrors({});
+      formik.setTouched({});
     },
     onError: () => {
-      formik.setErrors({ otp: "Signup failed. Please try again." });
+      formik.setErrors({ otp: "We couldn’t verify your code. Check it and try again." });
     },
   });
 
   const disableProgress = () => {
     switch (currentStep) {
       case 1:
-        return (
-          !formik.values.email ||
-          !formik.values.firstName ||
-          !formik.values.lastName ||
-          !formik.values.country_id ||
-          !!formik.errors.email ||
-          !!formik.errors.firstName ||
-          !!formik.errors.lastName ||
-          !!formik.errors.country_id ||
-          !checked
-        );
-      case 2:
-        return (
-          !formik.values.password ||
-          !formik.values.confirmPassword ||
-          !!formik.errors.password ||
-          !!formik.errors.confirmPassword
-        );
-      case 3: {
+        return !createAccountSchema.safeParse(formik.values).success;
+      case 2: {
         const otp = sanitizeOtpInput(formik.values.otp);
         return otp.length !== 6 || !!formik.errors.otp;
       }
-      case 4:
+      case 3:
         return false;
       default:
         return true;
@@ -147,10 +126,8 @@ const RegisterForm = () => {
   };
 
   const btnAction = () => {
-    if (!disableProgress()) {
+    if (!isLoading && !disableProgress()) {
       if (currentStep === 1) {
-        handleNavigate("next");
-      } else if (currentStep === 2) {
         const payload: IRegisterPayload = {
           email: formik.values.email,
           password: formik.values.password,
@@ -160,7 +137,7 @@ const RegisterForm = () => {
           referral_code: formik.values.referral_code || null,
         };
         signupMutation.mutate(payload);
-      } else if (currentStep === 3) {
+      } else if (currentStep === 2) {
         verifyOtpMutation.mutate({
           otp: formik.values.otp,
           email: formik.values.email,
@@ -176,14 +153,15 @@ const RegisterForm = () => {
       case 1:
         return <CreateAccount formik={formik} />;
       case 2:
-        return (
-          <SetPassword goBack={() => handleNavigate("back")} formik={formik} />
-        );
+        return <RegisterOtp
+          goBack={() => handleNavigate("back")}
+          formik={formik}
+          loading={verifyOtpMutation.isPending}
+          onComplete={otp => {
+            if (!verifyOtpMutation.isPending) verifyOtpMutation.mutate({ otp, email: formik.values.email });
+          }}
+        />;
       case 3:
-        return (
-          <RegisterOtp goBack={() => handleNavigate("back")} formik={formik} />
-        );
-      case 4:
         return <Congrats />;
       default:
     }
@@ -191,63 +169,36 @@ const RegisterForm = () => {
 
   const isLoading = signupMutation.isPending || verifyOtpMutation.isPending;
 
-  return (
-    <div className="py-4 px-0 md:px-3 xl:px-8 lg:w-[50%] xl:w-[46%] h-full flex flex-col justify-between gap-6 md:gap-10 lg:gap-[60px]">
-      <Image className="w-[80px] md:w-[91.78px]" src={"/icons/Logo.svg"} width={91.78} height={32} alt="Logo" />
-      <div className="flex flex-col h-full  justify-between">
-        <AnimatePresence>{displayStep(currentStep)}</AnimatePresence>
-        <div className="flex flex-col gap-3 mt-3">
-          {currentStep === 1 && (
-            <div className="flex gap-1">
-              <Checkbox
-                checked={checked}
-                onChange={(checked: boolean) => setChecked(checked)}
-              />
-              <p className="text-raiz-gray-600 text-xs md:text-[13px] font-normal  leading-tight">
-                By continuing, you agree to Raiz&#39;s{" "}
-                <Link
-                  className="text-raiz-gray-800 font-bold leading-[18.20px] hover:underline"
-                  href={"https://www.raiz.app/terms"}
-                  target="_blank"
-                >
-                  Term of Service
-                </Link>{" "}
-                and acknowledge our{" "}
-                <Link
-                  className="text-raiz-gray-800 font-bold leading-[18.20px] hover:underline"
-                  href={"https://www.raiz.app/privacy-policy"}
-                  target="_blank"
-                >
-                  Privacy Policy
-                </Link>{" "}
-                .
-              </p>
-            </div>
-          )}
-          <Button
-            // type={currentStep < steps.length - 1 ? "button" : "submit"}
-            loading={isLoading}
-            disabled={!!disableProgress()}
-            onClick={btnAction}
-          >
-            {isLoading
-              ? currentStep === 2
-                ? "Signing Up..."
-                : "Verifying..."
-              : "Continue"}
-          </Button>
-          {currentStep === 1 && (
-            <p className="text-raiz-gray-800 text-xs md:text-[13px] font-normal  leading-tight mt-3 text-center pb-3 lg:pb-0">
-              Already have an account?{" "}
-              <Link className=" font-bold leading-[18.20px]" href={"/login"}>
-                Login
-              </Link>
-            </p>
-          )}
-        </div>
-      </div>
-    </div>
+  const content = (
+    <form onSubmit={formik.handleSubmit} className={`w-full ${currentStep === 2 ? "max-w-[488px]" : "auth-register-form max-w-[440px]"}`}>
+      <AnimatePresence mode="wait">{displayStep(currentStep)}</AnimatePresence>
+      {currentStep !== 2 && <div className="auth-register-actions mt-6 flex flex-col gap-3">
+        <Button
+          className="auth-submit"
+          type="submit"
+          loading={isLoading}
+          disabled={!!disableProgress() || isLoading}
+        >
+          {currentStep === 1 ? "Create account" : "Continue to login"}
+        </Button>
+        {currentStep === 1 && <p className="text-[13px] leading-5 text-[#6b6b80]">By creating an account you agree to our <Link
+          className="font-semibold text-[#14141e] hover:underline"
+          href="https://www.raiz.app/terms"
+          target="_blank"
+          rel="noopener noreferrer"
+        >Terms</Link> and <Link
+          className="font-semibold text-[#14141e] hover:underline"
+          href="https://www.raiz.app/privacy-policy"
+          target="_blank"
+          rel="noopener noreferrer"
+        >Privacy Policy</Link>.</p>}
+      </div>}
+    </form>
   );
+
+  return currentStep === 2
+    ? <EmailVerificationLayout>{content}</EmailVerificationLayout>
+    : <AuthLayout>{content}</AuthLayout>;
 };
 
 export default RegisterForm;

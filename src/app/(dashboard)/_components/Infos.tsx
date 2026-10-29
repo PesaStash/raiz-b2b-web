@@ -8,7 +8,6 @@ import {
 import { useUsdOnboardingFlow } from "@/lib/hooks/useUsdOnboardingFlow";
 import { findWalletByCurrency } from "@/utils/helpers";
 import {
-  canRequestUsdAccount,
   canStartNgnAccountSetup,
   canSetTransactionPin,
   dismissInfosAddAccounts,
@@ -290,20 +289,6 @@ const Infos = ({ isNgnBranch = false }: InfosProps) => {
   };
 
   const handleUsdAction = async () => {
-    if (
-      usdFlow.hasRequestedUsd ||
-      !canRequestUsdAccount(user, verificationStatus, effectiveUsdCase) ||
-      usdFlow.isUsdActionPending
-    ) {
-      if (usdFlow.hasRequestedUsd) {
-        toast.info(
-          "Your USD account request is already pending. Our team will contact you to complete verification."
-        );
-      } else if (!canRequestUsdAccount(user, verificationStatus, effectiveUsdCase)) {
-        toast.info("USD account request is not available in your current state.");
-      }
-      return;
-    }
     await usdFlow.startUsdRequest();
   };
 

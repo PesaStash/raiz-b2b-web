@@ -3,11 +3,10 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import Link from "next/link";
-import Image from "next/image";
 import { getInvitation, acceptInvitation } from "@/services/team";
 import { invitationErrorState, readApiError } from "@/lib/apiError";
 import { isInvitationExpired, personName, roleDescriptions } from "@/lib/team";
-import Slider from "../_components/authSlide/Slider";
+import AuthLayout from "../_components/AuthLayout";
 import { newPasswordSchema } from "../register/_components/validation";
 import {
   TeamButton,
@@ -119,25 +118,8 @@ export default function AcceptInvite() {
   };
   const terminal = ["ready", "expired", "unavailable", "used"].includes(state);
   return (
-    <main
-      className={`${teamSurface} p-6 md:p-12 lg:px-8 xl:px-12 min-h-[100vh] bg-[#f8f7fa] md:bg-raiz-gray-50`}
-    >
-      <div className="flex flex-col md:flex-row items-stretch min-h-[calc(100vh-6rem)] gap-8 md:gap-12">
-        <div className="relative hidden md:block w-[50%] xl:w-[54%] self-stretch min-h-[calc(100vh-6rem)]">
-          <div className="absolute inset-0">
-            <Slider className="md:!flex md:!w-full md:!h-full" />
-          </div>
-        </div>
-        <div className="w-full max-w-[560px] mx-auto lg:w-[50%] xl:w-[46%] py-4">
-        <Link href="/login" aria-label="Raiz sign in">
-          <Image
-            src="/icons/Logo.svg"
-            alt="Raiz"
-            width={104}
-            height={40}
-            className="mb-10"
-          />
-        </Link>
+    <AuthLayout>
+      <div className={`${teamSurface} auth-secondary auth-invitation w-full max-w-[440px]`}>
         {state === "loading" && (
           <p role="status" className="py-16 text-raiz-gray-600">
             Checking your invitation…
@@ -147,7 +129,7 @@ export default function AcceptInvite() {
           <TeamError retry={() => setRetry((n) => n + 1)}>{failure}</TeamError>
         )}
         {details && !terminal && state !== "loading" && state !== "error" && (
-          <div className="max-md:bg-white max-md:border max-md:border-raiz-gray-200 max-md:p-[18px] max-md:rounded-2xl">
+          <div className="w-full">
             <span className="hidden md:block mb-5">
               <TeamIcon name="name" />
             </span>
@@ -158,7 +140,7 @@ export default function AcceptInvite() {
               Create your Raiz sign-in to accept this invitation.
             </p>
             <form
-              className="grid mt-6 gap-[18px] md:mt-9 md:gap-5"
+              className="grid mt-6 gap-4"
               onSubmit={submit}
               noValidate
             >
@@ -253,6 +235,7 @@ export default function AcceptInvite() {
                 <TeamButton
                   type="submit"
                   tone="brand"
+                  className="auth-submit"
                   loading={state === "submitting"}
                 >
                   Create account
@@ -295,8 +278,7 @@ export default function AcceptInvite() {
             )}
           </>
         )}
-        </div>
       </div>
-    </main>
+    </AuthLayout>
   );
 }
