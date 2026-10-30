@@ -12,7 +12,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useUser } from "@/lib/hooks/useUser";
 import { usePermissions } from "@/lib/hooks/usePermissions";
-import { GetItemFromCookie } from "@/utils/CookiesFunc";
+import { hasSession } from "@/utils/CookiesFunc";
 import { useUsdKyb, type KybEditor } from "@/lib/hooks/useUsdKyb";
 import { kybApi } from "@/services/usdKyb";
 import {
@@ -45,7 +45,7 @@ export default function UsdKybFlow() {
   const access = usePermissions();
   const router = useRouter();
   useEffect(() => {
-    if (!GetItemFromCookie("access_token")) router.replace("/login");
+    if (!hasSession()) router.replace("/login");
     else if (user.user && !basicDetailsComplete(user.user))
       router.replace("/onboarding/business");
   }, [router, user.user]);
