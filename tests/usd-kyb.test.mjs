@@ -219,6 +219,7 @@ test("lookup root fields populate canonical sections without losing other saved 
     business_type: "PRIVATE COMPANY LIMITED BY SHARES",
     registered_address: { street_line_1: "Example street", country: "NG" },
     industry_purpose: { source_of_funds: "owners_capital" },
+    acting_as_intermediary: false,
     provider_extra: { retained: true },
   };
   const output = normalizeDraft(input);
@@ -230,6 +231,8 @@ test("lookup root fields populate canonical sections without losing other saved 
   assert.equal(output.business_profile.is_dao, false);
   assert.deepEqual(output.registered_address, input.registered_address);
   assert.deepEqual(output.industry_purpose, input.industry_purpose);
+  assert.equal(output.risk_profile.acting_as_intermediary, false);
+  assert.equal(Object.hasOwn(output, "acting_as_intermediary"), false);
   assert.deepEqual(output.provider_extra, input.provider_extra);
   assert.equal(Object.hasOwn(output, "business_legal_name"), false);
   assert.equal(input.business_legal_name, "Example Limited");

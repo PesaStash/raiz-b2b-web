@@ -125,6 +125,7 @@ export function normalizeDraft(
       "conducts_money_services_using_bridge",
       "compliance_screening_explanation",
       "conducts_money_services_description",
+      "acting_as_intermediary",
     ],
   };
   for (const [section, keys] of Object.entries(sections)) {
@@ -155,7 +156,7 @@ export function requirementStage(key: string): number {
   if (/associated_person|ownership/.test(key)) return 2;
   if (/document|proof_of_nature/.test(key)) return 4;
   if (
-    /industry|purpose|funds|revenue|payments|risk|money_services|prohibited|endorsement|screening/.test(
+    /industry|purpose|funds|revenue|payments|risk|money_services|prohibited|endorsement|screening|intermediary/.test(
       key,
     )
   )

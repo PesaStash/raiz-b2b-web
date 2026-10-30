@@ -273,6 +273,9 @@ export default function KybReview({
               .map((v) => optionLabel(v, HIGH_RISK_ACTIVITIES))
               .join(", ")
           : "Not provided",
+        "Acting as intermediary": readable(
+          record(editor.draft.risk_profile).acting_as_intermediary,
+        ),
       },
     },
     {
