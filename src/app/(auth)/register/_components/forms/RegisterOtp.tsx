@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { ResendSignupOtpApi } from "@/services/auth";
 import AnimatedSection from "@/components/ui/AnimatedSection";
 
-import { sanitizeOtpInput } from "../validation";
+import { sanitizeOtpInput, stripSpaces } from "../validation";
 
 const RegisterOtp = ({ goBack, formik }: RegisterFormProps) => {
   const handleOtpChange = (val: string) => {
@@ -72,7 +72,9 @@ const RegisterOtp = ({ goBack, formik }: RegisterFormProps) => {
           error={formik.errors.otp}
           touched={formik.touched.otp}
           onResend={() =>
-            resendOtpMutation.mutate({ email: formik.values.email })
+            resendOtpMutation.mutate({
+              email: stripSpaces(formik.values.email),
+            })
           }
           length={6}
         />

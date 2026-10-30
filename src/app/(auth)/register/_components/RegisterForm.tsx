@@ -10,7 +10,11 @@ import RegisterOtp from "./forms/RegisterOtp";
 // import UseCases from "./forms/UseCases";
 import Congrats from "./forms/Congrats";
 import { useFormik } from "formik";
-import { registerFormSchemas, sanitizeOtpInput } from "./validation";
+import {
+  registerFormSchemas,
+  sanitizeOtpInput,
+  stripSpaces,
+} from "./validation";
 import { IRegisterFormValues } from "@/types/misc";
 import { toFormikValidate } from "zod-formik-adapter";
 import { useRouter } from "next/navigation";
@@ -158,10 +162,10 @@ const RegisterForm = () => {
         handleNavigate("next");
       } else if (currentStep === 2) {
         const payload: IRegisterPayload = {
-          email: formik.values.email,
+          email: stripSpaces(formik.values.email),
           password: formik.values.password,
-          first_name: formik.values.firstName,
-          last_name: formik.values.lastName,
+          first_name: stripSpaces(formik.values.firstName),
+          last_name: stripSpaces(formik.values.lastName),
           country_id: formik.values.country_id,
           referral_code: formik.values.referral_code || null,
         };
@@ -169,7 +173,7 @@ const RegisterForm = () => {
       } else if (currentStep === 3) {
         verifyOtpMutation.mutate({
           otp: formik.values.otp,
-          email: formik.values.email,
+          email: stripSpaces(formik.values.email),
         });
       } else if (currentStep === steps.length) {
         router.push("/login");
