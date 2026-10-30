@@ -24,19 +24,32 @@ export function sanitizeOtpInput(value: string, length = 6) {
   return value.replace(/[^A-Za-z0-9]/g, "").slice(0, length);
 }
 
+export function stripSpaces(value: string) {
+  return value.replace(/\s/g, "");
+}
+
 export const registerFormSchemas = {
   1: z.object({
-    firstName: z
-      .string()
-      .nonempty("First name is required")
-      .min(3, "First name must be at least 3 characters")
-      .regex(nameRegex, "First name can only contain letters and hyphens"),
-    lastName: z
-      .string()
-      .nonempty("Last name is required")
-      .min(3, "Last name must be at least 3 characters")
-      .regex(nameRegex, "Last name can only contain letters and hyphens"),
-    email: z.string().email("Invalid email address"),
+    firstName: z.preprocess(
+      (val) => (typeof val === "string" ? stripSpaces(val) : val),
+      z
+        .string()
+        .nonempty("First name is required")
+        .min(3, "First name must be at least 3 characters")
+        .regex(nameRegex, "First name can only contain letters and hyphens"),
+    ),
+    lastName: z.preprocess(
+      (val) => (typeof val === "string" ? stripSpaces(val) : val),
+      z
+        .string()
+        .nonempty("Last name is required")
+        .min(3, "Last name must be at least 3 characters")
+        .regex(nameRegex, "Last name can only contain letters and hyphens"),
+    ),
+    email: z.preprocess(
+      (val) => (typeof val === "string" ? stripSpaces(val) : val),
+      z.string().email("Invalid email address"),
+    ),
     country_id: z.string().min(1, "Country is required"),
     referral_code: z.string().optional(),
   }),
