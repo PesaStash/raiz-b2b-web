@@ -874,6 +874,16 @@ export function ActivityStage({
       )}
       <Check
         checked={
+          getPath(editor.draft, "risk_profile.acting_as_intermediary") === true
+        }
+        onChange={(v) =>
+          editor.change("risk_profile.acting_as_intermediary", v)
+        }
+      >
+        This business is acting as an intermediary
+      </Check>
+      <Check
+        checked={
           getPath(
             editor.draft,
             "industry_purpose.operates_in_prohibited_countries",
