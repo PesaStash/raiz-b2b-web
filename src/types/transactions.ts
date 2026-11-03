@@ -80,6 +80,9 @@ export interface ITransactionReportSwiftDetails {
 }
 
 export interface ITransaction {
+  display_money?: import("./globalBalance").Money | null;
+  account_balance_currency?: string | null;
+  settlement?: import("./globalBalance").Settlement | null;
   wallet_id: string;
   transaction_type_id: number;
   transaction_class_id: number;

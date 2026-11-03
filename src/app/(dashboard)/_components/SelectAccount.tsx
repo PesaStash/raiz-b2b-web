@@ -1,3 +1,4 @@
+import { isGlobalBalance } from "@/lib/globalBalance";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import Overlay from "@/components/ui/Overlay";
 import React from "react";
@@ -237,6 +238,7 @@ const SelectAccount = ({
               )}
             </button>
           )}
+        {!isGlobalBalance(user?.business_account) && <>
         {/* GBP */}
           <button
             style={{ display: !canWriteBusiness && !GBPAcct ? "none" : undefined }}
@@ -358,6 +360,7 @@ const SelectAccount = ({
               />
             )}
           </button>
+        </>}
         </div>
       </div>
     </Overlay>

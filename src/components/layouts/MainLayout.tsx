@@ -60,6 +60,7 @@ const MainLayoutContent = ({
   const pathname = usePathname();
   const isTeam = pathname.startsWith("/team");
   const isKyb = pathname.startsWith("/onboarding");
+  const isDashboardHome = pathname === "/";
   const mainMarginClass = effectiveCollapsed
     ? "md:ml-[88px]"
     : "md:ml-[88px] lg:ml-[280px]";
@@ -70,7 +71,7 @@ const MainLayoutContent = ({
       <main
         className={`flex-1 min-w-0 transition-[margin] duration-200 ease-in-out ${
           shouldShowSideNav
-            ? `${mainMarginClass} min-h-screen px-4 md:px-4 ${isKyb ? "xl:px-5" : "xl:px-8"} pt-0 md:pt-[30px] pb-[88px] md:pb-8`
+            ? `${mainMarginClass} min-h-screen px-4 md:px-4 ${isKyb || isDashboardHome ? "xl:px-5" : "xl:px-8"} pt-0 md:pt-[30px] pb-[88px] md:pb-8`
             : "w-full p-0"
         }`}
       >
