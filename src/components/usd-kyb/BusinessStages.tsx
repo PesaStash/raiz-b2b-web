@@ -6,7 +6,8 @@ import {
   groupFieldErrors,
 } from "@/lib/usd-kyb/corrections";
 import SelectField from "@/components/ui/SelectField";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useOutsideClick } from "@/lib/hooks/useOutsideClick";
 import { useQuery } from "@tanstack/react-query";
 import { kybApi } from "@/services/usdKyb";
 import AddressAutocomplete from "@/components/ui/AddressAutocomplete";
@@ -575,6 +576,10 @@ export function BusinessDetails({
 function IndustryField({ editor }: { editor: KybEditor }) {
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
+  const detailsRef = useRef<HTMLDetailsElement>(null);
+  const panelRef = useOutsideClick(() => {
+    if (detailsRef.current) detailsRef.current.open = false;
+  });
   useEffect(() => {
     const t = setTimeout(() => setDebounced(search), 400);
     return () => clearTimeout(t);
@@ -597,64 +602,66 @@ function IndustryField({ editor }: { editor: KybEditor }) {
   return (
     <section className="space-y-2">
       <h3 className="text-sm font-semibold">Industry</h3>
-      <details className="rounded-xl bg-kyb-field">
-        <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm">
-          <span>
-            {selected.length
-              ? selected
-                  .map(
-                    (v) =>
-                      options(industries.data).find((o) => o.value === v)
-                        ?.label ?? label(v),
-                  )
-                  .join(", ")
-              : "Choose your industry"}
-          </span>
-          <KybIcon name="chevron" />
-        </summary>
-        <div className="space-y-3 border-t border-kyb-border p-3">
-          <input
-            aria-label="Search industries"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search industries…"
-            className="w-full rounded-lg bg-white p-3 text-sm"
-          />
-          {industries.isError ? (
-            <Notice error>
-              Unable to load industries.{" "}
-              <button
-                className="underline"
-                onClick={() => void industries.refetch()}
-              >
-                Try again
-              </button>
-            </Notice>
-          ) : (
-            <div className="max-h-48 space-y-2 overflow-y-auto rounded-xl border border-kyb-border p-4">
-              {industries.isPending && (
-                <p className="text-sm">Loading industries…</p>
-              )}
-              {options(industries.data).map((o) => (
-                <Check
-                  key={o.value}
-                  checked={selected.includes(o.value)}
-                  onChange={(v) =>
-                    editor.change(
-                      "industry_purpose.business_industry",
-                      v
-                        ? [...selected, o.value]
-                        : selected.filter((x) => x !== o.value),
+      <div ref={panelRef}>
+        <details ref={detailsRef} className="rounded-xl bg-kyb-field">
+          <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm">
+            <span>
+              {selected.length
+                ? selected
+                    .map(
+                      (v) =>
+                        options(industries.data).find((o) => o.value === v)
+                          ?.label ?? label(v),
                     )
-                  }
+                    .join(", ")
+                : "Choose your industry"}
+            </span>
+            <KybIcon name="chevron" />
+          </summary>
+          <div className="space-y-3 border-t border-kyb-border p-3">
+            <input
+              aria-label="Search industries"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search industries…"
+              className="w-full rounded-lg bg-white p-3 text-sm"
+            />
+            {industries.isError ? (
+              <Notice error>
+                Unable to load industries.{" "}
+                <button
+                  className="underline"
+                  onClick={() => void industries.refetch()}
                 >
-                  {o.label}
-                </Check>
-              ))}
-            </div>
-          )}
-        </div>
-      </details>
+                  Try again
+                </button>
+              </Notice>
+            ) : (
+              <div className="max-h-48 space-y-2 overflow-y-auto rounded-xl border border-kyb-border p-4">
+                {industries.isPending && (
+                  <p className="text-sm">Loading industries…</p>
+                )}
+                {options(industries.data).map((o) => (
+                  <Check
+                    key={o.value}
+                    checked={selected.includes(o.value)}
+                    onChange={(v) =>
+                      editor.change(
+                        "industry_purpose.business_industry",
+                        v
+                          ? [...selected, o.value]
+                          : selected.filter((x) => x !== o.value),
+                      )
+                    }
+                  >
+                    {o.label}
+                  </Check>
+                ))}
+              </div>
+            )}
+          </div>
+        </details>
+      </div>
       {editor.missing.some((k) => k.includes("business_industry")) && (
         <p className="text-xs text-red-700">Choose a business industry.</p>
       )}

@@ -2,6 +2,8 @@
 import { usePermissions } from "@/lib/hooks/usePermissions";
 
 import React, { useEffect, useState } from "react";
+import GlobalDashboard from "./global/GlobalDashboard";
+import { isGlobalBalance } from "@/lib/globalBalance";
 import { AnimatePresence } from "motion/react";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import NgnSend from "./send/naira/NgnSend";
@@ -154,7 +156,7 @@ const DashboardSummary = () => {
     }
   };
 
-  const handleSwapClick = () => {
+  const handleSwapClick = (amount?: string, sourceCurrency?: "USD" | "NGN") => {
     if (
       branchState.isNgnBranch &&
       !branchState.isVerificationComplete
@@ -171,7 +173,7 @@ const DashboardSummary = () => {
 
     // Determine the appropriate swap pair based on current currency
     const swapPair = determineSwapPair(
-      selectedCurrency.name as CurrencyTypeKey,
+      (sourceCurrency ?? selectedCurrency.name) as CurrencyTypeKey,
       walletData,
     );
 
@@ -187,6 +189,7 @@ const DashboardSummary = () => {
     );
 
     if (success) {
+      if (amount !== undefined) actions.setAmount(amount);
       setOpenModal("swap");
     } else {
       toast.error("This swap pair is not allowed. Please swap through USD.");
@@ -331,8 +334,14 @@ const DashboardSummary = () => {
     refetch();
   }, [pathName, refetch]);
 
+  const redesigned = branchState.showDashboard && (isGlobalBalance(user?.business_account) || selectedCurrency.name === "USD" || selectedCurrency.name === "NGN");
+
   return (
     <div className="w-full">
+      {redesigned ? <>
+        <GlobalDashboard onAction={handleActionButton} onConvert={handleSwapClick} onCreateNgn={openNGNModal} />
+        <Infos isNgnBranch={branchState.isNgnBranch} hideAccountPrompts={isGlobalBalance(user?.business_account)} />
+      </> : <>
       {/* Accts */}
       {/* Mobile: wallets + quick actions */}
       {branchState.showDashboard && (
@@ -350,7 +359,7 @@ const DashboardSummary = () => {
               }
               handleActionButton("topUp");
             }}
-            onSwap={handleSwapClick}
+            onSwap={() => handleSwapClick()}
           />
         </div>
       )}
@@ -414,6 +423,7 @@ const DashboardSummary = () => {
       )}
 
 
+      </>}
       <AnimatePresence>
         {openModal !== null &&
         openModal !== "selectAcct" &&

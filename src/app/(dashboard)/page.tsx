@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect } from "react";
+import { isGlobalBalance, spendableBalances } from "@/lib/globalBalance";
 import { useRouter } from "next/navigation";
 import {
   basicDetailsComplete,
@@ -22,7 +23,7 @@ export default function Home() {
   const { selectedCurrency } = useCurrencyStore();
   const { user, isLoading } = useUser();
   const router = useRouter();
-  const needsSetup = !!user && !user.business_account?.wallets?.length;
+  const needsSetup = !!user && !user.business_account?.wallets?.length && !spendableBalances(user.business_account).length;
   useEffect(() => {
     if (!needsSetup || !user) return;
     const choice = readAccountChoice(user.business_account.entity_id);
@@ -37,6 +38,8 @@ export default function Home() {
   const verificationStatus =
     user?.business_account?.business_verifications?.[0]?.verification_status;
   const branchState = getOnboardingBranchState(user, verificationStatus);
+
+  const redesigned = branchState.showDashboard && (isGlobalBalance(user?.business_account) || selectedCurrency.name === "USD" || selectedCurrency.name === "NGN");
 
   if (isLoading || needsSetup) return <DashboardSkeleton />;
   return (
@@ -57,11 +60,11 @@ export default function Home() {
           <span aria-hidden="true">→</span>
         </Link>
       )}
-      <section className="md:p-6 md:xl:p-8 md:bg-raiz-gray-50 md:w-full md:items-center md:rounded-[20px] md:inline-flex md:flex-col md:justify-start md:gap-8 min-w-0">
+      <section className={redesigned ? "min-w-0" : "md:p-6 md:xl:p-8 md:bg-raiz-gray-50 md:w-full md:items-center md:rounded-[20px] md:inline-flex md:flex-col md:justify-start md:gap-8 min-w-0"}>
         <DashboardSummary />
       </section>
       {selectedCurrency?.name === "SBC" && <CryptoDeposit />}
-      {branchState.showDashboard && (
+      {branchState.showDashboard && !redesigned && (
         <section className="min-w-0">
           <div className="flex items-center justify-between mb-3 md:hidden px-0.5">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-raiz-gray-500">

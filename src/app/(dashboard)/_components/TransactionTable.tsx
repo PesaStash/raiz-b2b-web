@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { formatMoney, isGlobalBalance } from "@/lib/globalBalance";
 import {
   useReactTable,
   getCoreRowModel,
@@ -21,7 +22,6 @@ import { useCurrencyStore } from "@/store/useCurrencyStore";
 import {
   convertTime,
   findWalletByCurrency,
-  getCurrencySymbol,
   truncateString,
 } from "@/utils/helpers";
 import { useUser } from "@/lib/hooks/useUser";
@@ -70,6 +70,12 @@ const columnHelper = createColumnHelper<ITransaction>();
 
 const TransactionTable = ({ pagination, topRightOpts }: Props) => {
   const { user } = useUser();
+  const global = isGlobalBalance(user?.business_account);
+  const [originalCurrency, setOriginalCurrency] = useState("");
+  useEffect(() => {
+    const currency = new URLSearchParams(window.location.search).get("currency")?.toUpperCase();
+    if (currency && ["NGN", "USD", "EUR", "GBP", "USDT", "USDC"].includes(currency)) setOriginalCurrency(currency);
+  }, []);
   const { selectedCurrency } = useCurrencyStore();
   const NGNAcct = findWalletByCurrency(user, "NGN");
   const USDAcct = findWalletByCurrency(user, "USD");
@@ -153,12 +159,8 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
               isDebit ? " text-raiz-gray-700" : "text-[#079455]"
             }`}
           >
-            {`${isDebit ? "-" : "+"} ${getCurrencySymbol(
-              info.row.original?.currency,
-            )}${Math.abs(info?.getValue())?.toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}`}
+            {`${isDebit ? "−" : "+"} ${formatMoney(info.row.original.display_money?.amount ?? String(Math.abs(info.getValue())), info.row.original.display_money?.currency ?? info.row.original.currency)}`}
+            {info.row.original.settlement?.wallet_impact.direction !== "none" && info.row.original.transaction_status?.transaction_status === "completed" && info.row.original.settlement && <span className="block text-xs text-raiz-gray-600">{formatMoney(info.row.original.settlement.wallet_impact.net.amount, info.row.original.settlement.wallet_impact.net.currency)} {info.row.original.settlement.wallet_impact.direction === "credit" ? "credited" : "debited"}</span>}
           </span>
         );
       },
@@ -241,7 +243,8 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
   const queryKey = [
     "transactions-report",
     {
-      wallet_id: currentWallet?.wallet_id,
+      ...(global && originalCurrency ? { currency: originalCurrency } : { wallet_id: currentWallet?.wallet_id }),
+      entity_id: user?.business_account.entity_id,
       ...(pagination && { page: currentPage, limit: pageSize }),
       ...(start_date && { start_date }),
       ...(end_date && { end_date }),
@@ -260,18 +263,19 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
     queryKey,
     queryFn: ({ queryKey }) => {
       const [, params] = queryKey as [string, ITransactionParams];
-      return FetchTransactionReportApi(params);
+      const { entity_id: _entityId, ...filters } = params as ITransactionParams & { entity_id?: string };
+      return FetchTransactionReportApi(filters);
     },
-    enabled: !!currentWallet?.wallet_id,
+    enabled: !!user && (!!currentWallet?.wallet_id || (global && !!originalCurrency)),
   });
   // Reset page when wallet or currency changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [currentWallet?.wallet_id, selectedCurrency.name]);
+  }, [currentWallet?.wallet_id, selectedCurrency.name, originalCurrency]);
   const pathName = usePathname();
   useEffect(() => {
-    refetch();
-  }, [pathName, refetch]);
+    if (currentWallet?.wallet_id || (global && originalCurrency)) refetch();
+  }, [pathName, refetch, currentWallet?.wallet_id, global, originalCurrency]);
   const transactions = data?.transaction_reports || [];
   const totalPages =
     pagination && data?.pagination_details?.total_pages
@@ -314,6 +318,7 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
     <section
       className={`w-full min-w-0 ${topRightOpts === "opts" ? "lg:mt-8 lg:p-6 lg:bg-raiz-gray-50 lg:rounded-[20px]" : ""}`}
     >
+      {global && <label className="mb-4 flex items-center gap-3 text-sm text-raiz-gray-700">Original currency<select aria-label="Original transaction currency" value={originalCurrency} onChange={event => setOriginalCurrency(event.target.value)} className="rounded-xl border border-raiz-gray-200 bg-white px-3 py-2"><option value="">Current balance activity</option>{["USD", "NGN", "EUR", "GBP", "USDT", "USDC"].map(currency => <option key={currency}>{currency}</option>)}</select></label>}
       {topRightOpts === "opts" && (
         <div className="lg:hidden mb-3 space-y-2">
           <div className="relative h-10 w-full">

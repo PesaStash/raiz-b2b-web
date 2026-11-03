@@ -106,7 +106,8 @@ export interface ITxnReportCategoryResponse {
 }
 
 export interface ITransactionParams {
-  wallet_id: string;
+  wallet_id?: string;
+  currency?: string;
   transaction_status_id?: number | null;
   transaction_type_id?: number | null;
   transaction_class_id?: number | null;

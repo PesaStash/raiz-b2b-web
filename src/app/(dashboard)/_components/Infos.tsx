@@ -45,6 +45,7 @@ interface ActionItem {
 
 interface InfosProps {
   isNgnBranch?: boolean;
+  hideAccountPrompts?: boolean;
 }
 
 interface ActionSectionProps {
@@ -220,7 +221,7 @@ const ActionSection = ({
   );
 };
 
-const Infos = ({ isNgnBranch = false }: InfosProps) => {
+const Infos = ({ isNgnBranch = false, hideAccountPrompts = false }: InfosProps) => {
   const [showModal, setShowModal] = useState<ModalKey | null>(null);
   const [selectedAccountKey, setSelectedAccountKey] = useState<string | null>(
     null
@@ -373,7 +374,7 @@ const Infos = ({ isNgnBranch = false }: InfosProps) => {
   ];
 
   const visibleAccountItems = accountItems.filter((item) => item.condition);
-  const hasAccountPrompt = visibleAccountItems.length > 0 || showUsdPendingBanner;
+  const hasAccountPrompt = !hideAccountPrompts && (visibleAccountItems.length > 0 || showUsdPendingBanner);
   const showAccountSection = hasAccountPrompt && !isAccountsDismissed;
   const showAccountRestore = hasAccountPrompt && isAccountsDismissed;
 
