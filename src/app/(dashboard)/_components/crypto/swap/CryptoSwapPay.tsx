@@ -2,7 +2,11 @@
 import EnterPin from "@/components/transactions/EnterPin";
 import { BuyStableCoinApi, SellStableCoinApi } from "@/services/transactions";
 import { useCryptoSwapStore } from "@/store/CryptoSwap";
-import { passwordHash } from "@/utils/helpers";
+import {
+  getTransactionId,
+  trackMoneyMovementSuccess,
+  trackTransactionFailed,
+} from "@/utils/analytics/dataLayer";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 
@@ -13,7 +17,8 @@ interface Props {
 }
 
 const CryptoSwapPay = ({ goNext, setPaymentError, close }: Props) => {
-  const { swapFromCurrency, amount, actions } = useCryptoSwapStore();
+  const { swapFromCurrency, swapToCurrency, amount, actions } =
+    useCryptoSwapStore();
   const [pin, setPin] = useState<string>("");
   const qc = useQueryClient();
   const swapMutation =
@@ -23,7 +28,7 @@ const CryptoSwapPay = ({ goNext, setPaymentError, close }: Props) => {
       swapMutation({
         amount: parseFloat(amount),
         currency: "USD",
-        transaction_pin: passwordHash(pin),
+        transaction_pin: pin,
       }),
     onMutate: () => {
       actions.setStatus("loading");
@@ -33,8 +38,22 @@ const CryptoSwapPay = ({ goNext, setPaymentError, close }: Props) => {
       qc.refetchQueries({ queryKey: ["user"] });
       qc.invalidateQueries({ queryKey: ["user"] });
       qc.invalidateQueries({ queryKey: ["transactions-report"] });
+      qc.invalidateQueries({ queryKey: ["income-expense-chart"] });
       if (response?.transaction_status?.transaction_status === "completed") {
         actions.setStatus("success");
+        const transactionId = getTransactionId(response);
+        if (transactionId) {
+          trackMoneyMovementSuccess({
+            event: "swap_completed",
+            transactionId,
+            value: parseFloat(amount) || 0,
+            currency: swapFromCurrency,
+            extra: {
+              from_currency: swapFromCurrency,
+              to_currency: swapToCurrency || "SBC",
+            },
+          });
+        }
       } else if (
         response?.transaction_status?.transaction_status === "pending"
       ) {
@@ -45,6 +64,12 @@ const CryptoSwapPay = ({ goNext, setPaymentError, close }: Props) => {
     onError: (response: any) => {
       actions.setStatus("failed");
       setPaymentError(response?.data?.message);
+      trackTransactionFailed({
+        transactionType: "swap",
+        error: response,
+        value: parseFloat(amount) || undefined,
+        currency: swapFromCurrency,
+      });
     },
     onSettled: () => {
       goNext();

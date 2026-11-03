@@ -2,23 +2,40 @@
 import React from "react";
 import Overlay from "../ui/Overlay";
 import Button from "../ui/Button";
+import { clearLocalSession } from "@/lib/session";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { LogoutApi } from "@/services/auth";
 import { useRouter } from "next/navigation";
-import { GetItemFromCookie, RemoveItemFromCookie } from "@/utils/CookiesFunc";
 import { useUser } from "@/lib/hooks/useUser";
+import {
+  clearUsdOnboardingCase,
+  clearUsdOnboardingSessionState,
+  USD_ONBOARDING_QUERY_KEY,
+} from "@/lib/hooks/useUsdOnboarding";
+import { clearUserDataSessionFlag, pushDataLayerEvent } from "@/utils/analytics/dataLayer";
+import { getAnalyticsUserId } from "@/utils/analytics/userProps";
 
 const LogoutModal = ({ close }: { close: () => void }) => {
   const router = useRouter();
-  const { clearUser } = useUser();
+  const { clearUser, user } = useUser();
   const qc = useQueryClient();
-  const token = GetItemFromCookie("access_token") ?? "";
   const logoutMutation = useMutation({
-    mutationFn: () => LogoutApi(token),
+    mutationFn: () => LogoutApi(),
+    onError: () => { clearLocalSession(); router.replace("/login"); close(); },
     onSuccess: () => {
-      RemoveItemFromCookie("accessToken");
+      pushDataLayerEvent("logout", {
+        user_id: getAnalyticsUserId(user) || undefined,
+      });
+      clearUserDataSessionFlag();
+      clearUsdOnboardingSessionState();
+      const entityId = user?.business_account?.entity_id;
+      if (entityId) {
+        clearUsdOnboardingCase(entityId);
+        qc.removeQueries({ queryKey: [...USD_ONBOARDING_QUERY_KEY, entityId] });
+      }
       qc.clear();
       clearUser();
+      clearLocalSession();
       router.push("/login");
       close();
     },

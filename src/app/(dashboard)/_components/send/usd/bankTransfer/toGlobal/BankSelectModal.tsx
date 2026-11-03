@@ -42,7 +42,8 @@ const BankSelectModal = ({
   }, [data, search]);
 
   const handleClick = (val: IBeneficiaryBank) => {
-    formik.setFieldValue("bank_code", val.id.toString());
+    const bankCode = val.code || val.id.toString();
+    formik.setFieldValue("bank_code", bankCode);
     formik.setFieldTouched("bank_code", true);
     setSelectedBank(val);
     close();

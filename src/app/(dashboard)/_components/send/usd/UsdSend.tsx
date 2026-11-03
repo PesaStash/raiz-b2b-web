@@ -1,3 +1,4 @@
+import { withBusinessWrite } from "@/components/team/BusinessWrite";
 import React from "react";
 import SendOptions from "./SendOptions";
 import ToRaizers from "./toRaizers/ToRaizers";
@@ -5,7 +6,7 @@ import { useSendStore } from "@/store/Send";
 
 import ToUsdBanks from "./bankTransfer/toBanks/ToUsdBanks";
 import ToGlobal from "./bankTransfer/toGlobal/ToGlobal";
-// import ToZelle from "./zelle/ToZelle";
+import SwiftSend from "./swift/SwiftSend";
 
 interface Props {
   close: () => void;
@@ -20,8 +21,6 @@ const UsdSend = ({ close }: Props) => {
         return <SendOptions close={close} />;
       case "to Raizer":
         return <ToRaizers close={close} />;
-      // case "bank transfer":
-      //   return <BankTransfer close={() => actions.selectUSDSendOption(null)} />;
       case "usBank":
         return (
           <ToUsdBanks
@@ -36,14 +35,8 @@ const UsdSend = ({ close }: Props) => {
             bankType="global"
           />
         );
-      // case "to debit card":
-      //   return <ToDebitCard close={() => actions.selectUSDSendOption(null)} />;
-      // case "to paypal":
-      //   return <ToPaypal close={() => actions.selectUSDSendOption(null)} />;
-      // case "to canada":
-      //   return <ToCanada close={() => actions.selectUSDSendOption(null)} />;
-      // case "to zelle":
-      //   return <ToZelle close={() => actions.selectUSDSendOption(null)} />;
+      case "swift":
+        return <SwiftSend close={() => actions.selectUSDSendOption(null)} />;
       default:
         break;
     }
@@ -51,4 +44,4 @@ const UsdSend = ({ close }: Props) => {
   return <>{displayStep()}</>;
 };
 
-export default UsdSend;
+export default withBusinessWrite(UsdSend);

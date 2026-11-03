@@ -4,6 +4,7 @@ import ListDetailItem from "@/components/ui/ListDetailItem";
 import Overlay from "@/components/ui/Overlay";
 import { useSwapStore } from "@/store/Swap";
 import { getCurrencySymbol } from "@/utils/helpers";
+import { getSwapRateDisplayString } from "./swapRateDisplay";
 import Image from "next/image";
 import React from "react";
 
@@ -11,6 +12,7 @@ interface Props {
   goBack: () => void;
   goNext: () => void;
   exchangeRate: number | undefined;
+  inverseRate?: number;
   recipientAmount: string;
   timeLeft: number;
   loading: boolean;
@@ -23,6 +25,7 @@ const SwapConfirmation = ({
   recipientAmount,
   loading,
   exchangeRate,
+  inverseRate,
   goNext,
   cryptoFee,
 }: Props) => {
@@ -32,6 +35,19 @@ const SwapConfirmation = ({
     const minutes = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${minutes}:${secs < 10 ? "0" + secs : secs}`;
+  };
+
+  const getExchangeRateDisplay = () => {
+    if (loading) return "Loading...";
+
+    return (
+      getSwapRateDisplayString(
+        swapFromCurrency,
+        swapToCurrency,
+        exchangeRate,
+        inverseRate,
+      ) ?? "—"
+    );
   };
 
   return (
@@ -67,11 +83,7 @@ const SwapConfirmation = ({
           />
           <ListDetailItem
             title="Exchange rate"
-            value={
-              loading
-                ? "Loading..."
-                : `$1(USD) = ${swapToCurrency}${exchangeRate?.toFixed(2) || 1}`
-            }
+            value={getExchangeRateDisplay()}
             border
           />
           {swapFromCurrency === "SBC" ||

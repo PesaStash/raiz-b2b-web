@@ -2,23 +2,27 @@ import { ACCOUNT_CURRENCIES } from "@/constants/misc";
 import { CurrencyTypeKey } from "@/store/Swap/swapSlice.types";
 import { ReactNode } from "react";
 
+export type SidebarSection = "overview" | "manage";
+
 export interface ISidebarMenuItem {
   name: string;
   link: string;
+  section: SidebarSection;
   icon: (isActive: boolean) => React.ReactNode;
   locked?: boolean;
+  badge?: "bill-requests";
+  action?: "feedback";
+  /** Shorter label for collapsed rail (e.g. "Feedback") */
+  collapsedLabel?: string;
 }
 
 export interface IRegisterFormValues {
   email: string;
   password: string;
-  // username: string;
-  // phone_number: string;
   country_id: string;
   country_name?: string;
   referral_code?: string;
   otp: string;
-  // useCases?: number[];
   firstName: string;
   lastName: string;
   confirmPassword: string;
@@ -49,6 +53,7 @@ export type IUSDSendOptions =
   | "to Raizer"
   | "usBank"
   | "internationalRemittance"
+  | "swift"
   | "to debit card"
   | "to paypal"
   | "to canada"
@@ -56,6 +61,8 @@ export type IUSDSendOptions =
   | "to cashapp";
 
 export type INGNSendOptions = "to Raizer" | "to other bank" | "alipay-wechat";
+
+export type IForeignSendOptions = "to Raizer" | "to bank";
 
 export interface ICountry {
   country_name: string;
@@ -119,3 +126,5 @@ export interface SwapPairResult {
   isValid: boolean;
   message?: string;
 }
+
+export type ICrossCurrencies = "NGN" | "USD" | "GBP" | "EUR";

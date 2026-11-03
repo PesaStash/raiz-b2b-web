@@ -13,8 +13,7 @@ import {
   TooltipItem,
   ChartOptions,
 } from "chart.js";
-import { IoIosArrowDown } from "react-icons/io";
-import { DateOption } from "@/app/(dashboard)/_components/analytics/page";
+import type { DateOption } from "@/types/analytics";
 import dayjs from "dayjs";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import Skeleton from "react-loading-skeleton";
@@ -22,12 +21,14 @@ import Image from "next/image";
 import SelectAccount from "@/app/(dashboard)/_components/SelectAccount";
 import { useState } from "react";
 import CreateNgnAcct from "@/app/(dashboard)/_components/createNgnAcct/CreateNgnAcct";
+import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 import CreateCryptoWallet from "@/app/(dashboard)/_components/crypto/dashboard/CreateCryptoWallet";
 import { useQuery } from "@tanstack/react-query";
 import { FetchTransactionReportChartApi } from "@/services/business";
 import { ITxnReportPayload } from "@/types/services";
-import { findWalletByCurrency, formatAmount } from "@/utils/helpers";
+import { findWalletByCurrency } from "@/utils/helpers";
 import { useUser } from "@/lib/hooks/useUser";
+import type { ScriptableContext } from "chart.js";
 
 ChartJS.register(
   LineElement,
@@ -118,7 +119,7 @@ const AnalyticsChart = ({ open, close, opened, selectedRange }: Props) => {
         label: "Income",
         data: incomeData,
         borderColor: "#0496FF",
-        backgroundColor: (context: any) => {
+        backgroundColor: (context: ScriptableContext<"line">) => {
           const ctx = context.chart.ctx;
           const gradient = ctx.createLinearGradient(0, 0, 0, 300);
           gradient.addColorStop(0, "rgba(4, 150, 255, 0.15)");
@@ -138,7 +139,7 @@ const AnalyticsChart = ({ open, close, opened, selectedRange }: Props) => {
         label: "Expenses",
         data: expensesData,
         borderColor: "#5215B6",
-        backgroundColor: (context: any) => {
+        backgroundColor: (context: ScriptableContext<"line">) => {
           const ctx = context.chart.ctx;
           const gradient = ctx.createLinearGradient(0, 0, 0, 300);
           gradient.addColorStop(0, "rgba(82, 21, 182, 0.15)");
@@ -439,7 +440,9 @@ const AnalyticsChart = ({ open, close, opened, selectedRange }: Props) => {
           />
         )}
         {openModal === "createNGN" && (
-          <CreateNgnAcct close={() => setOpenModal(null)} />
+          <CenterModalWrapper close={() => setOpenModal(null)}>
+            <CreateNgnAcct close={() => setOpenModal(null)} />
+          </CenterModalWrapper>
         )}
         {openModal === "createCrypto" && (
           <CreateCryptoWallet close={() => setOpenModal(null)} />

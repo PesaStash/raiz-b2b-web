@@ -1,4 +1,5 @@
 "use client";
+import { BusinessWrite } from "@/components/team/BusinessWrite";
 import Button from "@/components/ui/Button";
 import React from "react";
 import Image from "next/image";
@@ -54,7 +55,7 @@ const EmptyInvoiceTable = () => {
           You haven&apos;t created any invoices yet. Start by sending your first
           one to a client.
         </p>
-        <Link href={"/invoice/create-new"} className="w-full max-w-[214px]">
+        <BusinessWrite><Link href={"/invoice/create-new"} className="w-full max-w-[214px]">
           <Button
             className="w-full mt-6"
             icon={
@@ -69,7 +70,7 @@ const EmptyInvoiceTable = () => {
           >
             <span className="ml-2">Create First Invoice</span>
           </Button>
-        </Link>
+        </Link></BusinessWrite>
       </div>
       <div className="mt-8 sm:mt-0 px-4 sm:px-8 lg:px-16 py-8 sm:py-[56px] bg-gray-100 flex flex-col w-full rounded-2xl lg:rounded-none">
         <h4 className="text-center text-zinc-900 mb-8 sm:mb-16 text-base font-bold leading-tight">

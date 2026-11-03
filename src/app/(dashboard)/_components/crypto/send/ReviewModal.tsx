@@ -12,7 +12,7 @@ interface Props {
 const ReviewModal = ({ close, goNext }: Props) => {
   const { cryptoAddress, cryptoNetwork } = useSendStore();
   return (
-    <Overlay close={close} width="375px">
+    <Overlay close={close} width="375px" className="!z-[110]">
       <div className="flex flex-col  h-full py-8 px-5 w-full">
         <p className="text-center   text-xl  font-bold mb-4  leading-tight">
           Review Recipient

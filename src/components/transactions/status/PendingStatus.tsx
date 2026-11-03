@@ -80,8 +80,8 @@ const PendingStatus = ({ close }: Props) => {
             Processing Payment
           </h4>
           <p className="text-gray-100 mt-3 text-xs font-normal leading-tight">
-            Your transaction is currently pending. Please wait while we process
-            it. This may take a few moments.
+            Your transaction is pending and is not complete yet. You can track
+            it in transaction history. This may take a few moments.
           </p>
         </div>
         <div className="flex justify-between w-full gap-[15px]">

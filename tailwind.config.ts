@@ -7,6 +7,8 @@ export default {
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/context/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/constants/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
@@ -19,6 +21,7 @@ export default {
         brSonoma: ["var(--font-br-sonoma)", ...fontFamily.sans],
       },
       colors: {
+        kyb: { ink: "#14141E", muted: "#6B6B80", border: "#EAECF0", field: "#F4F4F8", soft: "#F9F9FC", selected: "#F3F1FD", outline: "#C8BCF6", tip: "#FBF1FD", canvas: "#F5F6FA" },
         primary: "#4B0082",
         primary2: "#3C2875",
         secondary: {

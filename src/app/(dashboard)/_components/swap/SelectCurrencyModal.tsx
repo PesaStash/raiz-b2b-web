@@ -45,14 +45,19 @@ const SelectCurrencyModal = ({ close }: Props) => {
         );
 
       case "NGN":
-        // NGN can swap to USD or itself (to trigger reverse swap)
-        return availableCurrencies.filter((c) => c === "USD" || c === "NGN");
+        return availableCurrencies.filter(
+          (c) => c === "USD" || c === "GBP" || c === "EUR" || c === "NGN",
+        );
 
       case "GBP":
-        return availableCurrencies.filter((c) => c === "USD" || c === "GBP");
+        return availableCurrencies.filter(
+          (c) => c === "USD" || c === "NGN" || c === "GBP",
+        );
 
       case "EUR":
-        return availableCurrencies.filter((c) => c === "USD" || c === "EUR");
+        return availableCurrencies.filter(
+          (c) => c === "USD" || c === "NGN" || c === "EUR",
+        );
 
       case "SBC":
         // SBC can swap to USD or itself (to trigger reverse swap)
@@ -139,7 +144,7 @@ const SelectCurrencyModal = ({ close }: Props) => {
       return {
         show: true,
         message:
-          "NGN can only be swapped to USD. To get SBC, swap to USD first, then USD → SBC.",
+          "NGN can be swapped to USD, GBP, or EUR. To get SBC, swap to USD first, then USD → SBC.",
         type: "info",
       };
     }
@@ -147,7 +152,7 @@ const SelectCurrencyModal = ({ close }: Props) => {
       return {
         show: true,
         message:
-          "GBP can only be swapped to USD. Direct GBP to EUR, NGN, or SBC swaps are not allowed.",
+          "GBP can be swapped to USD or NGN. Direct GBP to EUR or SBC swaps are not allowed.",
         type: "info",
       };
     }
@@ -155,7 +160,7 @@ const SelectCurrencyModal = ({ close }: Props) => {
       return {
         show: true,
         message:
-          "EUR can only be swapped to USD. Direct EUR to GBP, NGN, or SBC swaps are not allowed.",
+          "EUR can be swapped to USD or NGN. Direct EUR to GBP or SBC swaps are not allowed.",
         type: "info",
       };
     }

@@ -1,8 +1,9 @@
 import { create } from "zustand";
-import { AccountCurrencyType } from "@/types/misc";
+import { AccountCurrencyType, ICurrencyName } from "@/types/misc";
 import { ACCOUNT_CURRENCIES } from "@/constants/misc";
 import { IUser, IWallet } from "@/types/user";
 import { findWalletByCurrency } from "@/utils/helpers";
+import { resolveActiveAccountCurrency } from "@/utils/onboardingBranch";
 import { persist } from "zustand/middleware";
 
 interface AccountCurrencyState {
@@ -11,13 +12,14 @@ interface AccountCurrencyState {
     currency: keyof typeof ACCOUNT_CURRENCIES,
     user: IUser | undefined
   ) => void;
+  syncWithUser: (user: IUser | undefined) => void;
   selectedWallet: IWallet | undefined;
 }
 
 export const useCurrencyStore = create<AccountCurrencyState>()(
   persist(
-    (set) => ({
-      selectedCurrency: ACCOUNT_CURRENCIES.USD, // Default currency
+    (set, get) => ({
+      selectedCurrency: ACCOUNT_CURRENCIES.USD,
       selectedWallet: undefined,
       setSelectedCurrency: (currency, user) =>
         set(() => {
@@ -28,6 +30,22 @@ export const useCurrencyStore = create<AccountCurrencyState>()(
           );
           return { selectedCurrency, selectedWallet };
         }),
+      syncWithUser: (user) => {
+        if (!user) return;
+
+        const resolved = resolveActiveAccountCurrency(
+          user,
+          get().selectedCurrency.name as ICurrencyName
+        );
+
+        if (resolved === get().selectedCurrency.name && get().selectedWallet) {
+          return;
+        }
+
+        const selectedCurrency = ACCOUNT_CURRENCIES[resolved];
+        const selectedWallet = findWalletByCurrency(user, selectedCurrency.name);
+        set({ selectedCurrency, selectedWallet });
+      },
     }),
     {
       name: "currency-store",

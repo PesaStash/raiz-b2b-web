@@ -7,7 +7,7 @@ import { SidebarMenus } from "@/constants/SidebarMenuData";
 const tabs = [
   { name: "Home", link: "/", menuName: "Dashboard" },
   { name: "Transactions", link: "/transactions", menuName: "Transactions" },
-  { name: "Analytics", link: "/analytics", menuName: "Report & Analytics" },
+  { name: "Analytics", link: "/analytics", menuName: "Analytics" },
   { name: "Invoices", link: "/invoice", menuName: "Invoices" },
   { name: "Settings", link: "/settings", menuName: "Settings" },
 ] as const;

@@ -3,6 +3,7 @@
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import * as motion from "motion/react-client";
 import React, { ReactNode, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 const Overlay = ({
   children,
@@ -21,14 +22,21 @@ const Overlay = ({
 }) => {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const [hydrated, setHydrated] = useState(false);
+  const [allowBackdropClose, setAllowBackdropClose] = useState(false);
 
   useEffect(() => {
     setHydrated(true);
   }, []);
 
+  useEffect(() => {
+    if (!hydrated) return;
+    const id = window.setTimeout(() => setAllowBackdropClose(true), 0);
+    return () => window.clearTimeout(id);
+  }, [hydrated]);
+
   if (!hydrated) return null;
 
-  return (
+  const overlay = (
     <motion.section
       {...(!disableAnimation && {
         initial: { opacity: 0 },
@@ -36,8 +44,8 @@ const Overlay = ({
         exit: { opacity: 0 },
         transition: { duration: 0.2, ease: "linear" },
       })}
-      onClick={close}
-      className={`fixed inset-0 flex items-center justify-center bg-[rgba(0,0,0,0.4)] z-50 ${
+      onClick={allowBackdropClose ? close : undefined}
+      className={`fixed inset-0 flex items-center justify-center bg-[rgba(0,0,0,0.4)] z-[110] ${
         className || ""
       }`}
     >
@@ -55,6 +63,8 @@ const Overlay = ({
       </motion.section>
     </motion.section>
   );
+
+  return createPortal(overlay, document.body);
 };
 
 export default Overlay;

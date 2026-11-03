@@ -12,13 +12,13 @@ interface Props {
 
 const EnterPin = ({ pin, setPin, close }: Props) => {
   return (
-    <Overlay width="385px" close={close}>
+    <Overlay width="385px" close={close} className="!z-[110]">
       <div
         className={`flex flex-col lg:h-[90%] xl:h-full
         }  py-8 px-5  text-raiz-gray-950 overflow-y-scroll`}
       >
         <div className="flex justify-between px-6">
-          <h2 className=" text-xl font-bold  leading-normal">Enter Pin</h2>
+          <h2 className=" text-lg md:text-xl font-bold  leading-normal">Enter Pin</h2>
           <button onClick={close}>
             <Image
               src={"/icons/close.svg"}

@@ -1,4 +1,5 @@
 "use client";
+import { BusinessWrite } from "@/components/team/BusinessWrite";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -6,8 +7,11 @@ import { SettingsMenus } from "@/constants/SettingsMenuData";
 import { useUser } from "@/lib/hooks/useUser";
 import ProfileAvatarUpload from "@/app/(dashboard)/settings/_components/ProfileAvatarUpload";
 import FreezeAcctModal from "@/app/(dashboard)/settings/_components/FreezeAcctModal";
+import WalletTierModal from "@/app/(dashboard)/settings/_components/WalletTierModal";
 import LogoutModal from "@/components/modals/LogoutModal";
 import { toast } from "sonner";
+import Image from "next/image";
+import NotificationRecipientsNewBadge from "@/app/(dashboard)/settings/_components/NotificationRecipientsNewBadge";
 
 const LogoutMenuIcon = () => (
   <svg width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden>
@@ -133,15 +137,17 @@ const MobileSettingsMenu = () => {
   const { user } = useUser();
   const [navModal, setNavModal] = useState<string | null>(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showWalletTier, setShowWalletTier] = useState(false);
   const [freezeType, setFreezeType] = useState<"enable" | "disable">("disable");
 
   const profileMenu = SettingsMenus[0];
   const loginMenu = SettingsMenus[1];
-  const helpMenu = SettingsMenus[2];
-  const aboutMenu = SettingsMenus[3];
-  const legalMenu = SettingsMenus[4];
-  const freezeMenu = SettingsMenus[5];
-  const deleteMenu = SettingsMenus[6];
+  const notificationMenu = SettingsMenus[2];
+  const helpMenu = SettingsMenus[3];
+  const aboutMenu = SettingsMenus[4];
+  const legalMenu = SettingsMenus[5];
+  const freezeMenu = SettingsMenus[6];
+  const deleteMenu = SettingsMenus[7];
 
   useEffect(() => {
     const isFrozen = user?.business_account?.entity?.is_entity_frozen ?? false;
@@ -188,6 +194,17 @@ const MobileSettingsMenu = () => {
           <p className="text-xs text-raiz-gray-400 truncate mt-0.5">
             {user?.email}
           </p>
+          {user?.business_account?.entity?.wallet_tier && (
+            <button
+              onClick={() => setShowWalletTier(true)}
+              className="h-[22px] px-2 mt-1.5 bg-[#EAECFF] rounded-3xl justify-center items-center gap-0.5 inline-flex"
+            >
+              <Image src="/icons/layers.svg" alt="wallet tier icon" width={14} height={14} />
+              <span className="text-raiz-gray-950 text-[13px] font-normal leading-[18.20px]">
+                Tier {user.business_account.entity.wallet_tier.wallet_tier_code}
+              </span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -208,6 +225,14 @@ const MobileSettingsMenu = () => {
           subtitle="Change password and transaction PIN"
         />
         <MenuRow
+          href={notificationMenu.link}
+          icon={notificationMenu.icon()}
+          title="Notification Recipients"
+          subtitle="Manage transaction notification emails"
+          badge={<NotificationRecipientsNewBadge className="shrink-0 px-2 py-0.5 w-auto" />}
+          showDivider
+        />
+        <BusinessWrite><MenuRow
           icon={freezeMenu.icon()}
           title={
             freezeType === "disable" ? "Freeze Account" : "Unfreeze Account"
@@ -215,7 +240,7 @@ const MobileSettingsMenu = () => {
           subtitle="Temporarily block all debits"
           onClick={handleFreezeClick}
           showDivider
-        />
+        /></BusinessWrite>
       </Section>
 
       <Section label="Help & Support">
@@ -244,12 +269,12 @@ const MobileSettingsMenu = () => {
       </Section>
 
       <Section label="Account actions">
-        <MenuRow
+        <BusinessWrite><MenuRow
           icon={deleteMenu.icon()}
           title="Delete Account"
           subtitle="Contact support to remove your account"
           onClick={handleDeleteClick}
-        />
+        /></BusinessWrite>
       </Section>
 
       <Section label="Session">
@@ -266,6 +291,17 @@ const MobileSettingsMenu = () => {
       )}
       {showLogoutModal && (
         <LogoutModal close={() => setShowLogoutModal(false)} />
+      )}
+      {showWalletTier && (
+        <WalletTierModal
+          close={() => setShowWalletTier(false)}
+          tierName={
+            user?.business_account?.entity?.wallet_tier?.wallet_tier_name
+          }
+          tierCode={
+            user?.business_account?.entity?.wallet_tier?.wallet_tier_code
+          }
+        />
       )}
     </div>
   );

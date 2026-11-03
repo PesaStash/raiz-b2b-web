@@ -1,62 +1,43 @@
-import { ICanadianBank } from "@/app/(dashboard)/_components/send/usd/canada/eft/CanadianBanksModal";
 import { AuthAxios, CustomAxiosRequestConfig } from "@/lib/authAxios";
 import { PublicAxios } from "@/lib/publicAxios";
-import {
-  IAcceptRequestPayload,
-  IAlipayWechatAmountQuoteResponse,
-  IAlipayWechatBeneficiariesResponse,
-  IAlipayWechatBeneficiary,
-  IAlipayWechatRateResponse,
-  IAlipayWechatSendPayload,
-  IAlipayWechatSendResponse,
-  IBeneficiariestResponse,
-  IBillRequestMetricsResponse,
-  IBillRequestParams,
-  IBillRequestResponse,
-  IBusinessPaymentData,
-  IExternalBeneficiariesResponse,
-  IExternalBeneficiaryPayload,
-  IExternalTransferPayload,
-  ForeignCurrency,
-  IForeignBeneficiariesParams,
-  IForeignBeneficiariesResponse,
-  IForeignBeneficiaryPayload,
-  IForeignWithdrawalPayload,
-  IInitialPayoutResponse,
-  IIntBeneficiariesParams,
-  IIntBeneficiariesResponse,
-  IIntBeneficiaryPayload,
-  IIntSendPayload,
-  IntCurrencyCode,
-  IP2pBeneficiariesParams,
-  IP2PTransferPayload,
-  IP2pTransferResponse,
-  IRequestFundsPayload,
-  ISendCryptoPayload,
-  ISendMoneyUsBankPayload,
-  ISwapPayload,
-  ITransactionCategory,
-  ITransactionParams,
-  ITxnReportResponse,
-  IUsBeneficiariesParams,
-  IUsBeneficiariesResponse,
-  IUsBeneficiaryPayload,
-  NormalizedIntBeneficiaryFormFields,
-  VolumeAndActivityData,
-} from "@/types/services";
+import { IAcceptRequestPayload, IAlipayWechatAmountQuoteResponse, IAlipayWechatBeneficiariesResponse, IAlipayWechatBeneficiary, IAlipayWechatRateResponse, IAlipayWechatSendPayload, IAlipayWechatSendResponse, IBeneficiariestResponse, IBillRequestMetricsResponse, IBillRequestParams, IBillRequestResponse, IExternalBeneficiariesResponse, IExternalBeneficiaryPayload, IExternalTransferPayload, ForeignCurrency, FinalizeAfricaPayinResponse, FinalizeFirstPartyAfricaPayinPayload, IForeignBeneficiariesParams, IForeignBeneficiariesResponse, IForeignBeneficiaryPayload, IForeignWithdrawalPayload, IInitialPayoutResponse, IIntBeneficiariesParams, IIntBeneficiariesResponse, IIntBeneficiaryPayload, IIntSendPayload, IntCurrencyCode, AfricaPayinQuoteParams, AfricaPayinQuoteResponse, InitiateAfricaPayinResponse, InitiateFirstPartyAfricaPayinPayload, IP2pBeneficiariesParams, IP2PTransferPayload, IP2pTransferResponse, IPaymentChannel, IPaymentNetwork, IRequestFundsPayload, ISendCryptoPayload, ISendMoneyUsBankPayload, ISwiftBeneficiariesResponse, ISwiftBeneficiary, ISwiftCreateBeneficiaryPayload, ISwapPayload, ITransactionCategory, ITransactionParams, ITxnReportResponse, IThirdPartyUsdBeneficiariesResponse, IUsBeneficiariesParams, IUsBeneficiariesResponse, IUsBeneficiaryPayload, UsdBeneficiaryFormFieldsResponse, NormalizedIntBeneficiaryFormFields, VolumeAndActivityData, ICrossCurrencySwapRateResponse, IUsdBaseExchangeRateResponse, ICrossCurrencySwapPayload, ISwiftSendResponse, AfricaPayinStatusResponse } from "@/types/services";
 import { normalizeRemittanceFormFields } from "@/utils/remittanceFormFields";
 import {
+  GuestPayStatusType,
   INgnTempPaymentLinkPayload,
   IRate,
   ITransactionClass,
 } from "@/types/transactions";
+import { ICrossCurrencies } from "@/types/misc";
+import {
+  PaystackCardCollectionInitializeRequest,
+  PaystackCardCollectionInitializeResponse,
+  PaystackCardCollectionStatusResponse,
+} from "@/types/paystackCardCollection";
+
+const AUTH_AFRICA_PAYIN_BASE = "business/transactions/payins/africa";
+const PAYSTACK_CARD_COLLECTION_BASE =
+  "business/transactions/collections/paystack/card";
+
+const extractAfricaPayinStatus = (
+  payload: GuestPayStatusType | AfricaPayinStatusResponse | string | null,
+): GuestPayStatusType => {
+  if (!payload) return null;
+  if (typeof payload === "string") return payload as GuestPayStatusType;
+  return (
+    (payload.transaction_status as GuestPayStatusType) ||
+    (payload.status as GuestPayStatusType) ||
+    (payload.onramp_status as GuestPayStatusType) ||
+    null
+  );
+};
 
 export const FetchTransactionReportApi = async (
   params: ITransactionParams,
 ): Promise<ITxnReportResponse> => {
   const queryParams = Object.fromEntries(
     Object.entries(params).filter(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       ([_, value]) => value !== undefined && value !== null,
     ),
   );
@@ -72,7 +53,7 @@ export const FetchBillRequestApi = async (
 ): Promise<IBillRequestResponse> => {
   const queryParams = Object.fromEntries(
     Object.entries(params).filter(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       ([_, value]) => value !== undefined && value !== null,
     ),
   );
@@ -89,7 +70,7 @@ export const FetchBillRequestMetricsApi = async (params: {
 }): Promise<IBillRequestMetricsResponse> => {
   const queryParams = Object.fromEntries(
     Object.entries(params).filter(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       ([_, value]) => value !== undefined && value !== null,
     ),
   );
@@ -125,7 +106,7 @@ export const AcceptRequestApi = async ({
 
 export const RejectRequestApi = async (request_id: string, reason?: string) => {
   const response = await AuthAxios.patch(
-    `/business/transactions/requests/funds/${request_id}/decline/?reason_for_decline=${reason}`,
+    `/business/transactions/requests/funds/${request_id}/decline/?reason_for_decline=${encodeURIComponent(reason ?? "")}`,
     null,
     {
       params: {
@@ -157,7 +138,7 @@ export const FetchSentRequestApi = async (
 ): Promise<IBillRequestResponse> => {
   const queryParams = Object.fromEntries(
     Object.entries(params).filter(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       ([_, value]) => value !== undefined && value !== null,
     ),
   );
@@ -179,15 +160,48 @@ export async function P2PDebitApi({
   return response.data;
 }
 
+function extractQuotedFee(data: unknown): number {
+  if (typeof data === "number" && Number.isFinite(data)) return data;
+  if (typeof data === "string") {
+    const parsed = Number(data);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  if (!data || typeof data !== "object") return 0;
+
+  const record = data as {
+    fee?: number | string;
+    fee_in_original_currency?: number | string;
+    data?: unknown;
+  };
+  const raw = record.fee_in_original_currency ?? record.fee;
+  if (raw !== undefined) {
+    const parsed = typeof raw === "string" ? Number(raw) : raw;
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  if (record.data) return extractQuotedFee(record.data);
+  return 0;
+}
+
 export const GetTransactionFeeApi = async (
   amount: number,
   transfer_type: "NGN" | "USD" | "WIRE",
   usd_beneficiary_id?: string,
+  payment_rail?: string,
 ): Promise<number> => {
+  const params = new URLSearchParams({
+    amount: String(amount),
+    transfer_type,
+  });
+  if (usd_beneficiary_id) {
+    params.set("usd_beneficiary_id", usd_beneficiary_id);
+  }
+  if (payment_rail) {
+    params.set("payment_rail", payment_rail);
+  }
   const response = await AuthAxios.get(
-    `/business/transactions/charges/get/usd/?amount=${amount}&transfer_type=${transfer_type}&usd_beneficiary_id=${usd_beneficiary_id}`,
+    `/business/transactions/charges/get/usd/?${params.toString()}`,
   );
-  return response?.data;
+  return payment_rail ? extractQuotedFee(response?.data) : response?.data;
 };
 
 export const GetIntTransactionFeeApi = async (
@@ -199,22 +213,12 @@ export const GetIntTransactionFeeApi = async (
   );
   return response?.data;
 };
-
-export const GetCadTransactionFeeApi = async (
-  cad_amount: number,
-): Promise<number> => {
-  const response = await AuthAxios.get(
-    `/business/transactions/withdrawal/usd/interac-exchange-rate/?cad_amount=${cad_amount}`,
-  );
-  return response?.data;
-};
-
 export const FetchP2PBeneficiariesApi = async (
   params: IP2pBeneficiariesParams,
 ): Promise<IBeneficiariestResponse> => {
   const queryParams = Object.fromEntries(
     Object.entries(params).filter(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       ([_, value]) => value !== undefined && value !== null,
     ),
   );
@@ -263,7 +267,7 @@ export const FetchExternalBeneficiariesApi = async (
 ): Promise<IExternalBeneficiariesResponse> => {
   const queryParams = Object.fromEntries(
     Object.entries(params).filter(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       ([_, value]) => value !== undefined && value !== null,
     ),
   );
@@ -286,28 +290,14 @@ export async function ExternalNGNDebitApi({
   return response.data;
 }
 
-export async function GetExchangeRate(currencyCode: string): Promise<{
-  buy_rate: number;
-  currency: string;
-  sell_rate: number;
-}> {
+export async function GetExchangeRate(
+  currencyCode: string,
+): Promise<IUsdBaseExchangeRateResponse> {
   const response = await AuthAxios.get(
     `/business/transactions/swap/exchange-rates/?currency=${currencyCode}`,
   );
   return response.data;
 }
-
-export async function GetSwapRate(currencyCode: string): Promise<{
-  buy_rate: number;
-  currency: string;
-  sell_rate: number;
-}> {
-  const response = await AuthAxios.get(
-    `/business/transactions/swap/exchange-rates/?currency=${currencyCode}`,
-  );
-  return response.data;
-}
-
 export async function SellDollarApi(payload: ISwapPayload) {
   const response = await AuthAxios.post(
     "/business/transactions/swap/sell-dollar/",
@@ -347,17 +337,25 @@ export const GethInternationalBeneficiaryFormFields = async () => {
   return response?.data;
 };
 
-export const GetUSBeneficiaryFormFields = async () => {
-  const response = await AuthAxios.get(
-    `/business/transactions/withdrawal/usd/beneficiaries/form-fields/`,
-  );
-  return response?.data;
-};
+export const GetUSBeneficiaryFormFields =
+  async (): Promise<UsdBeneficiaryFormFieldsResponse> => {
+    const response = await AuthAxios.get(
+      `/business/transactions/withdrawal/usd/beneficiaries/form-fields/`,
+    );
+    return response?.data;
+  };
 
 export const CreateUsBeneficiary = async (payload: IUsBeneficiaryPayload) => {
   const response = await AuthAxios.post(
-    `/business/transactions/withdrawal/usd/beneficiaries/?label=${payload.label}&option_type=${payload.optionType}`,
+    `/business/transactions/withdrawal/usd/beneficiaries/`,
     payload.data,
+    {
+      params: {
+        option_type: payload.optionType,
+        ...(payload.label ? { label: payload.label } : {}),
+      },
+      silent: true,
+    } as CustomAxiosRequestConfig,
   );
   return response?.data;
 };
@@ -367,7 +365,7 @@ export const FetchUsBeneficiariesApi = async (
 ): Promise<IUsBeneficiariesResponse> => {
   const queryParams = Object.fromEntries(
     Object.entries(params).filter(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       ([_, value]) => value !== undefined && value !== null,
     ),
   );
@@ -377,6 +375,14 @@ export const FetchUsBeneficiariesApi = async (
   );
   return response?.data;
 };
+
+export const FetchThirdPartyUsdBeneficiariesApi =
+  async (): Promise<IThirdPartyUsdBeneficiariesResponse> => {
+    const response = await AuthAxios.get(
+      `/business/transactions/third-party-usd-beneficiaries/`,
+    );
+    return response?.data;
+  };
 
 export const CreateForeignBeneficiaryApi = async ({
   currency,
@@ -400,7 +406,7 @@ export const FetchForeignBeneficiariesApi = async (
 ): Promise<IForeignBeneficiariesResponse> => {
   const queryParams = Object.fromEntries(
     Object.entries(params).filter(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       ([_, value]) => value !== undefined && value !== null,
     ),
   );
@@ -410,14 +416,6 @@ export const FetchForeignBeneficiariesApi = async (
   );
   return response?.data;
 };
-
-export const GetCanadianBanks = async (): Promise<ICanadianBank[]> => {
-  const response = await AuthAxios.get(
-    `/business/transactions/withdrawal/usd/beneficiaries/canada/banks/`,
-  );
-  return response?.data;
-};
-
 export const SendMoneyUSBankApi = async (
   data: ISendMoneyUsBankPayload,
 ): Promise<IP2pTransferResponse> => {
@@ -463,7 +461,7 @@ export const FetchIntBeneficiariesApi = async (
 ): Promise<IIntBeneficiariesResponse> => {
   const queryParams = Object.fromEntries(
     Object.entries(params).filter(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       ([_, value]) => value !== undefined && value !== null,
     ),
   );
@@ -476,7 +474,7 @@ export const FetchIntBeneficiariesApi = async (
 
 export const CreateIntBeneficiary = async (payload: IIntBeneficiaryPayload) => {
   const response = await AuthAxios.post(
-    `/business/transactions/remittance/beneficiary/?country=${payload.country}&customer_email=${payload.customer_email}`,
+    `/business/transactions/remittance/beneficiary/?country=${encodeURIComponent(payload.country)}&customer_email=${encodeURIComponent(payload.customer_email ?? "")}`,
     payload.data,
   );
   return response?.data;
@@ -488,7 +486,7 @@ export async function SendInternationalInitialPayout(data: {
 }): Promise<IInitialPayoutResponse> {
   const response = await AuthAxios.post(
     "/business/transactions/remittance/payout/initiate/",
-    data,
+    data, 
   );
   return response?.data;
 }
@@ -499,7 +497,7 @@ export const SendIntBeneficiariesApi = async ({
 }: IIntSendPayload): Promise<IP2pTransferResponse> => {
   const queryParams = Object.fromEntries(
     Object.entries(params).filter(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       ([_, value]) => value !== undefined && value !== null,
     ),
   );
@@ -532,59 +530,7 @@ export const GetMinAmountApi = async (currency: IntCurrencyCode) => {
     `/business/transactions/remittance/account-types/minimum-amount/?currency=${currency}`,
   );
   return response?.data;
-};
-
-export const createStripePaymentIntent = async (
-  amountInCents: number,
-  payment_method_id: string,
-  data: IBusinessPaymentData,
-) => {
-  const res = await PublicAxios.post(
-    `/admin/transaction/topup/usd/create-intent/?name=${data?.account_user?.username}&email=${data?.email}&entity_id=${data?.account_user?.entity_id}`,
-    {
-      transaction_amount: amountInCents,
-      curreny: "USD",
-      payment_method_id,
-    },
-  );
-
-  return {
-    ...res.data,
-    payment_method_id,
-  };
-};
-
-export const confirmStripePaymentIntent = async (
-  payment_intent_id: string,
-  data: IBusinessPaymentData,
-  payer: {
-    firstName: string;
-    lastName: string;
-    email: string;
-  },
-  purpose: string,
-) => {
-  const params = {
-    entity_id: data?.account_user?.entity_id,
-    payer_first_name: payer.firstName,
-    payer_last_name: payer.lastName,
-    payer_email: payer.email,
-    payment_description: purpose,
-  };
-
-  const res = await PublicAxios.post(
-    "/admin/transaction/topup/usd/confirm-intent/",
-    {
-      payment_intent: payment_intent_id,
-      currency: "USD",
-    },
-    { params },
-  );
-
-  return res.data;
-};
-
-export const GetTransactionsAnalyticsStatusApi = async (
+};export const GetTransactionsAnalyticsStatusApi = async (
   wallet_id: string | null,
 ): Promise<{
   pending: number;
@@ -659,10 +605,9 @@ export const createGuestStripePaymentIntent = async ({
   entity_id: string;
   sender_name: string;
   sender_email: string;
-  // currency: IntCurrencyCode;
 }) => {
   const res = await PublicAxios.post(
-    `/admin/transaction/payins/africa/card/create-intent/?sender_name=${sender_name}&sender_email=${sender_email}&entity_id=${entity_id}`,
+    `/admin/transaction/payins/africa/card/create-intent/?sender_name=${encodeURIComponent(sender_name)}&sender_email=${encodeURIComponent(sender_email)}&entity_id=${encodeURIComponent(entity_id)}`,
     {
       transaction_amount: amountInCents,
       currency: "USD",
@@ -725,7 +670,7 @@ export const CreateNgnTempPaymentLink = async (
 ) => {
   const queryParams = Object.fromEntries(
     Object.entries(params).filter(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       ([_, value]) => value !== undefined && value !== null,
     ),
   );
@@ -746,7 +691,6 @@ export const GetUsdAmountTempPaymentLink = async (amount: string) => {
   );
   return response.data;
 };
-
 
 export const GetAlipayWechatRateApi = async (channel: "alipay" | "wechat"): Promise<IAlipayWechatRateResponse> => {
   const response = await AuthAxios.get(`/business/transactions/alipay-wechat/rate/?channel=${channel}`);
@@ -769,8 +713,180 @@ export const GetAlipayWechatBeneficiariesApi = async (params: { page?: number; l
   return response.data;
 }
 
-
 export const AlipayWechatSendApi = async (payload: IAlipayWechatSendPayload): Promise<IAlipayWechatSendResponse> => {
   const response = await AuthAxios.post(`/business/transactions/alipay-wechat/send/`, payload);
   return response.data;
 }
+
+export const CreateSwiftBeneficiaryApi = async (
+  payload: ISwiftCreateBeneficiaryPayload,
+): Promise<ISwiftBeneficiary> => {
+  const response = await AuthAxios.post(
+    `/business/transactions/swift/beneficiaries/`,
+    payload,
+  );
+  return response.data;
+};
+
+export const GetSwiftBeneficiariesApi = async (params: {
+  page?: number;
+  limit?: number;
+}): Promise<ISwiftBeneficiariesResponse> => {
+  const queryParams = Object.fromEntries(
+    Object.entries(params).filter(([, value]) => value != null),
+  );
+  const response = await AuthAxios.get(
+    `/business/transactions/swift/beneficiaries/`,
+    { params: queryParams, silent: true } as CustomAxiosRequestConfig,
+  );
+  return response.data;
+};
+
+export const SwiftSendApi = async (
+  formData: FormData,
+): Promise<ISwiftSendResponse> => {
+  const response = await AuthAxios.post(
+    `/business/transactions/swift/send/`,
+    formData,
+  );
+  return response.data;
+};
+
+export const GetCrossCurrencySwapRateApi = async (params: { from_currency: ICrossCurrencies, to_currency: ICrossCurrencies, amount: number }): Promise<ICrossCurrencySwapRateResponse> => {
+  const queryParams = Object.fromEntries(Object.entries(params).filter(([, v]) => v != null));
+  const response = await AuthAxios.get(`/business/transactions/swap/cross-currency/exchange-rates/`, { params: queryParams });
+  return response.data;
+} 
+
+export const CrossCurrencySwapApi = async (payload: ICrossCurrencySwapPayload) => {
+  const response = await AuthAxios.post(`/business/transactions/swap/cross-currency/`, payload);
+  return response.data;
+}
+
+export const GetAuthAfricaPayinCountriesApi = async (): Promise<
+  {
+    country_code: string;
+    country_name: string;
+    currency: string;
+  }[]
+> => {
+  const response = await AuthAxios.get(`${AUTH_AFRICA_PAYIN_BASE}/countries/`);
+  return response?.data;
+};
+
+export const GetAuthAfricaPayinChannelsApi = async (
+  country_code: string | null,
+): Promise<IPaymentChannel[]> => {
+  const response = await AuthAxios.get(
+    `${AUTH_AFRICA_PAYIN_BASE}/channels/?country_code=${encodeURIComponent(
+      country_code || "",
+    )}`,
+  );
+  return response?.data;
+};
+
+export const GetAuthAfricaPayinNetworksApi = async (
+  country_code: string | null,
+  channel_id: string | null,
+): Promise<IPaymentNetwork[]> => {
+  const response = await AuthAxios.get(
+    `${AUTH_AFRICA_PAYIN_BASE}/networks/?country_code=${encodeURIComponent(
+      country_code || "",
+    )}&channel_id=${encodeURIComponent(channel_id || "")}`,
+  );
+  return response?.data;
+};
+
+export const QuoteAuthAfricaPayinRateApi = async (
+  params: AfricaPayinQuoteParams,
+): Promise<AfricaPayinQuoteResponse> => {
+  const response = await AuthAxios.get(`${AUTH_AFRICA_PAYIN_BASE}/rates/quote/`, {
+    params: {
+      currency: params.currency,
+      amount: params.amount,
+      direction: params.direction,
+    },
+    silent: true,
+  } as CustomAxiosRequestConfig);
+  return response?.data;
+};
+
+export const InitiateAuthAfricaPayinApi = async ({
+  data,
+  wallet_id,
+  idempotencyKey,
+}: InitiateFirstPartyAfricaPayinPayload): Promise<InitiateAfricaPayinResponse> => {
+  const response = await AuthAxios.post(
+    `${AUTH_AFRICA_PAYIN_BASE}/initiate/?wallet_id=${encodeURIComponent(wallet_id)}`,
+    data,
+    {
+      silent: true,
+      headers: idempotencyKey
+        ? { "idempotency-key": idempotencyKey }
+        : undefined,
+    } as CustomAxiosRequestConfig,
+  );
+  return response.data;
+};
+
+export const FinalizeAuthAfricaPayinApi = async ({
+  payin_id,
+}: FinalizeFirstPartyAfricaPayinPayload): Promise<FinalizeAfricaPayinResponse> => {
+  const response = await AuthAxios.post(
+    `${AUTH_AFRICA_PAYIN_BASE}/finalize/?payin_id=${encodeURIComponent(payin_id)}`,
+    undefined,
+    { silent: true } as CustomAxiosRequestConfig,
+  );
+  return response.data;
+};
+
+export const GetAuthAfricaPayinStatusApi = async (
+  payin_id: string,
+): Promise<GuestPayStatusType> => {
+  const response = await AuthAxios.get(
+    `${AUTH_AFRICA_PAYIN_BASE}/status/${encodeURIComponent(payin_id)}/`,
+    { silent: true } as CustomAxiosRequestConfig,
+  );
+  return extractAfricaPayinStatus(
+    response?.data as GuestPayStatusType | AfricaPayinStatusResponse | string | null,
+  );
+};
+
+export const DenyAuthAfricaPayinApi = async (
+  payin_id: string,
+): Promise<{ message: string }> => {
+  const response = await AuthAxios.post(
+    `${AUTH_AFRICA_PAYIN_BASE}/deny/?payin_id=${encodeURIComponent(payin_id)}`,
+    undefined,
+    { silent: true } as CustomAxiosRequestConfig,
+  );
+  return response.data;
+};
+
+export const InitializePaystackCardCollectionApi = async ({
+  data,
+  idempotencyKey,
+}: {
+  data: PaystackCardCollectionInitializeRequest;
+  idempotencyKey: string;
+}): Promise<PaystackCardCollectionInitializeResponse> => {
+  const response = await AuthAxios.post(
+    `${PAYSTACK_CARD_COLLECTION_BASE}/initialize/`,
+    data,
+    {
+      silent: true,
+      headers: { "idempotency-key": idempotencyKey },
+    } as CustomAxiosRequestConfig,
+  );
+  return response.data;
+};
+
+export const GetPaystackCardCollectionStatusApi = async (
+  reference: string,
+): Promise<PaystackCardCollectionStatusResponse> => {
+  const response = await AuthAxios.get(
+    `${PAYSTACK_CARD_COLLECTION_BASE}/${encodeURIComponent(reference)}/status/`,
+    { silent: true } as CustomAxiosRequestConfig,
+  );
+  return response.data;
+};

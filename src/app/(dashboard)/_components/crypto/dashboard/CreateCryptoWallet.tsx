@@ -1,5 +1,5 @@
 "use client";
-import SideWrapperHeader from "@/components/SideWrapperHeader";
+import { withBusinessWrite } from "@/components/team/BusinessWrite";
 import Button from "@/components/ui/Button";
 import Image from "next/image";
 import React, { useState } from "react";
@@ -113,4 +113,4 @@ const CreateCryptoWallet = ({ close }: { close: () => void }) => {
   );
 };
 
-export default CreateCryptoWallet;
+export default withBusinessWrite(CreateCryptoWallet);

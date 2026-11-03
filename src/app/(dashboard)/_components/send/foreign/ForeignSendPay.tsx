@@ -5,7 +5,11 @@ import { InitiateForeignWithdrawalApi } from "@/services/transactions";
 import { useSendStore } from "@/store/Send";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { ForeignCurrency, IForeignWithdrawalPayload } from "@/types/services";
-import { getApiErrorMessage, passwordHash } from "@/utils/helpers";
+import { getApiErrorMessage } from "@/utils/helpers";
+import {
+  trackSendCompleted,
+  trackTransactionFailed,
+} from "@/utils/analytics/dataLayer";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 
@@ -38,6 +42,12 @@ const ForeignSendPay = ({ close, goNext, setPaymentError }: Props) => {
 
       if (response?.transaction_status?.transaction_status === "completed") {
         actions.setStatus("success");
+        trackSendCompleted({
+          response,
+          value: Number(amount),
+          currency,
+          recipientType: "external",
+        });
       } else if (
         response?.transaction_status?.transaction_status === "pending"
       ) {
@@ -51,6 +61,12 @@ const ForeignSendPay = ({ close, goNext, setPaymentError }: Props) => {
       setPaymentError(
         getApiErrorMessage(error, "Withdrawal failed. Please try again."),
       );
+      trackTransactionFailed({
+        transactionType: "send",
+        error,
+        value: Number(amount) || undefined,
+        currency,
+      });
     },
     onSettled: () => {
       goNext();
@@ -60,7 +76,7 @@ const ForeignSendPay = ({ close, goNext, setPaymentError }: Props) => {
   const handleSend = () => {
     const payload: IForeignWithdrawalPayload = {
       transaction_reason: purpose,
-      transaction_pin: passwordHash(pin),
+      transaction_pin: pin,
       transaction_category_id: category?.transaction_category_id || 0,
       amount: Number(amount),
       foreign_currency_beneficiary_id:

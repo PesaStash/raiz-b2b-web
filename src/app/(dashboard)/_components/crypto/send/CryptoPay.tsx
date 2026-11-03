@@ -3,7 +3,11 @@ import { SendCryptoApi } from "@/services/transactions";
 import { useSendStore } from "@/store/Send";
 import { IChain } from "@/types/misc";
 import { ISendCryptoPayload } from "@/types/services";
-import { findWalletByCurrency, passwordHash } from "@/utils/helpers";
+import { findWalletByCurrency } from "@/utils/helpers";
+import {
+  trackSendCompleted,
+  trackTransactionFailed,
+} from "@/utils/analytics/dataLayer";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { sbcType } from "./CryptoSend";
@@ -44,6 +48,12 @@ const CryptoPay = ({ close, goNext, setPaymentError }: Props) => {
       qc.invalidateQueries({ queryKey: ["transactions-report"] });
       if (response?.transaction_status?.transaction_status === "completed") {
         actions.setStatus("success");
+        trackSendCompleted({
+          response,
+          value: Number(amount),
+          currency: "SBC",
+          recipientType: "external",
+        });
       } else if (
         response?.transaction_status?.transaction_status === "pending"
       ) {
@@ -55,6 +65,12 @@ const CryptoPay = ({ close, goNext, setPaymentError }: Props) => {
     onError: (response: any) => {
       actions.setStatus("failed");
       setPaymentError(response?.data?.message);
+      trackTransactionFailed({
+        transactionType: "send",
+        error: response,
+        value: Number(amount) || undefined,
+        currency: "SBC",
+      });
     },
     onSettled: () => {
       goNext();
@@ -64,7 +80,7 @@ const CryptoPay = ({ close, goNext, setPaymentError }: Props) => {
   const handleSend = () => {
     const payload: ISendCryptoPayload = {
       transaction_description: purpose,
-      transaction_pin: passwordHash(pin),
+      transaction_pin: pin,
       transaction_category_id: category?.transaction_category_id || 0,
       transaction_amount: Number(amount),
       crypto_address: cryptoAddress,

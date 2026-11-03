@@ -1,4 +1,5 @@
 "use client";
+import { withBusinessWrite } from "@/components/team/BusinessWrite";
 import Image from "next/image";
 import { copyToClipboard, findWalletByCurrency } from "@/utils/helpers";
 import { useUser } from "@/lib/hooks/useUser";
@@ -268,13 +269,8 @@ const TopUp = ({ close }: Props) => {
           </p>
         </div>
       </div>
-      {/* <Button
-            onClick={() => copyToClipboard(currentWallet?.account_number || "")}
-          >
-            Copy Account Details
-          </Button> */}
     </div>
   );
 };
 
-export default TopUp;
+export default withBusinessWrite(TopUp);

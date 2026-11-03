@@ -104,7 +104,7 @@ const NumberKeypad: React.FC<NumberKeypadProps> = ({
                 e.preventDefault(); // Prevent default backspace/delete behavior
               }
             }}
-            className="!w-[56px] !h-[56px] p-2 focus:bg-[#fcfcfc] bg-[#f3f1f6] rounded-full border focus:border-gray-800 outline-none flex-col justify-center items-center gap-2 inline-flex text-gray-950 text-xl font-normal"
+            className="!w-[56px] !h-[56px] p-2 focus:bg-[#fcfcfc] bg-[#f3f1f6] rounded-full border focus:border-gray-800 outline-none flex-col justify-center items-center gap-2 inline-flex text-gray-950 md:text-xl text-base font-normal"
           />
         )}
       />
@@ -115,7 +115,7 @@ const NumberKeypad: React.FC<NumberKeypadProps> = ({
           <button
             key={number}
             onClick={() => handleNumberClick(number.toString())}
-            className="w-14 h-14 rounded-full bg-[#f3f1f6] hover:bg-gray-300 transition-colors flex items-center justify-center text-xl font-semibold"
+            className="w-14 h-14 rounded-full bg-[#f3f1f6] hover:bg-gray-300 transition-colors flex items-center justify-center text-lg md:text-xl font-semibold"
           >
             {number}
           </button>

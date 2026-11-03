@@ -10,17 +10,26 @@ const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 interface Props {
   channel: "alipay" | "wechat";
   onCreated: (beneficiary: IAlipayWechatBeneficiary) => void;
-  onCancel: () => void;
+  showChooseLink?: boolean;
+  onChooseBeneficiary?: () => void;
+  submitLabel?: string;
 }
 
-const CreateBeneficiary = ({ channel, onCreated, onCancel }: Props) => {
+const CreateBeneficiary = ({
+  channel,
+  onCreated,
+  showChooseLink = false,
+  onChooseBeneficiary,
+  submitLabel = "Save Recipient",
+}: Props) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [qrFile, setQrFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string>("");
-  const [fileError, setFileError] = useState<string>("");
+  const [preview, setPreview] = useState("");
+  const [fileError, setFileError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [submitError, setSubmitError] = useState<string>("");
+  const [submitError, setSubmitError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,6 +62,7 @@ const CreateBeneficiary = ({ channel, onCreated, onCancel }: Props) => {
       form.append("name", name.trim());
       form.append("email", email.trim());
       form.append("qr_code", qrFile);
+      // phone is UI-only for design parity; API does not accept it yet
 
       const beneficiary = await CreateAlipayWechatBeneficiaryApi(form);
       onCreated(beneficiary);
@@ -72,87 +82,100 @@ const CreateBeneficiary = ({ channel, onCreated, onCancel }: Props) => {
     !!qrFile &&
     !fileError;
 
+  const inputClassName =
+    "w-full bg-[#f4f2f7] rounded-2xl px-4 py-3.5 text-raiz-gray-950 text-sm outline-none placeholder:text-raiz-gray-400 focus:ring-2 focus:ring-primary2/15";
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <h4 className="text-raiz-gray-950 text-sm font-bold leading-tight">
+          Add Beneficiary
+        </h4>
+        {showChooseLink && onChooseBeneficiary && (
+          <button
+            type="button"
+            onClick={onChooseBeneficiary}
+            className="text-primary2 text-sm font-medium"
+          >
+            Choose Beneficiary
+          </button>
+        )}
+      </div>
+
       <div>
-        <label className="text-raiz-gray-500 text-xs mb-1.5 block">
-          Recipient name
+        <label className="text-raiz-gray-950 text-xs font-medium mb-1.5 block">
+          Recipient Name
         </label>
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Li Wei"
-          className="w-full border border-raiz-gray-200 rounded-2xl px-4 py-3 text-raiz-gray-950 text-sm outline-none focus:border-raiz-purple-500 transition-colors bg-white placeholder:text-raiz-gray-300"
+          placeholder="Enter full name"
+          className={inputClassName}
         />
       </div>
 
       <div>
-        <label className="text-raiz-gray-500 text-xs mb-1.5 block">
-          Recipient email
+        <label className="text-raiz-gray-950 text-xs font-medium mb-1.5 block">
+          Email Address
         </label>
         <input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="e.g. li.wei@example.com"
-          className="w-full border border-raiz-gray-200 rounded-2xl px-4 py-3 text-raiz-gray-950 text-sm outline-none focus:border-raiz-purple-500 transition-colors bg-white placeholder:text-raiz-gray-300"
+          placeholder="Enter email address"
+          className={inputClassName}
         />
       </div>
 
       <div>
-        <label className="text-raiz-gray-500 text-xs mb-1.5 block">
-          QR code image
+        <label className="text-raiz-gray-950 text-xs font-medium mb-1.5 block">
+          Phone Number (Optional)
         </label>
+        <input
+          type="tel"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="Enter a china number"
+          className={inputClassName}
+        />
+      </div>
+
+      <div>
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="w-full border-2 border-dashed border-raiz-gray-200 rounded-2xl p-4 flex flex-col items-center gap-2 hover:border-raiz-purple-400 transition-colors bg-white"
+          className="w-full border border-dashed border-[#0f8c8c] bg-[rgba(230,235,255,0.3)] rounded-lg p-5 flex flex-col items-center gap-2.5 hover:bg-[rgba(230,235,255,0.5)] transition-colors"
         >
           {preview ? (
-            <Image
-              src={preview}
-              alt="QR code preview"
-              width={80}
-              height={80}
-              className="rounded-lg object-cover"
-            />
+            <>
+              <Image
+                src={preview}
+                alt="QR code preview"
+                width={80}
+                height={80}
+                className="rounded-lg object-cover"
+              />
+              <span className="text-[#0f8c8c] text-[13px] underline">Change</span>
+            </>
           ) : (
             <>
-              <div className="w-10 h-10 rounded-full bg-raiz-gray-100 flex items-center justify-center">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 20 20"
-                  fill="none"
-                  className="text-raiz-gray-400"
-                >
-                  <path
-                    d="M10 4v12M4 10h12"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                  />
-                </svg>
+              <div className="relative size-10 overflow-hidden">
+                <Image
+                  src="/icons/document-upload.svg"
+                  alt=""
+                  width={40}
+                  height={40}
+                  className="size-full object-contain"
+                />
               </div>
-              <span className="text-raiz-gray-500 text-xs">
-                Tap to upload QR code
-              </span>
-              <span className="text-raiz-gray-300 text-[10px]">
-                JPEG, PNG, GIF, or WebP
-              </span>
+              <p className="text-raiz-gray-700 text-sm text-center">
+                Upload a QR Code Image
+              </p>
+              <span className="text-[#0f8c8c] text-[13px] underline">Browse</span>
             </>
           )}
         </button>
-        {preview && (
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="mt-1 text-raiz-purple-600 text-xs"
-          >
-            Change image
-          </button>
-        )}
         <input
           ref={fileInputRef}
           type="file"
@@ -160,9 +183,7 @@ const CreateBeneficiary = ({ channel, onCreated, onCancel }: Props) => {
           className="hidden"
           onChange={handleFileChange}
         />
-        {fileError && (
-          <p className="text-red-500 text-xs mt-1">{fileError}</p>
-        )}
+        {fileError && <p className="text-red-500 text-xs mt-1">{fileError}</p>}
       </div>
 
       {submitError && (
@@ -171,24 +192,14 @@ const CreateBeneficiary = ({ channel, onCreated, onCancel }: Props) => {
         </div>
       )}
 
-      <div className="flex gap-3 pt-2">
-        <Button
-          type="button"
-          onClick={onCancel}
-          variant="secondary"
-          width="full"
-        >
-          Cancel
-        </Button>
+      <div className="pt-2">
         <Button
           type="submit"
           disabled={!isValid || loading}
           width="full"
-          
           loading={loading}
         >
-        
-          {loading ? "Saving…" : "Save beneficiary"}
+          {loading ? "Saving…" : submitLabel}
         </Button>
       </div>
     </form>

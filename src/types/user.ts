@@ -55,7 +55,21 @@ export interface IBusinessVerification {
   is_phone_verified: boolean;
   is_address_verified: boolean;
   is_document_verified: boolean;
-  verification_status: "not_started" | "pending" | "completed" | "failed";
+  verification_status:
+    | "not_started"
+    | "pending"
+    | "kyc_tier_1"
+    | "completed"
+    | "failed";
+  case_stage:
+    | "not_started"
+    | "basic_verification"
+    | "bridge_verification"
+    | "awaiting_ubo"
+    | "bridge_rejected"
+    | "completed"
+    | string
+    | null;
   business_account_id: string;
   business_verification_id: string;
 }
@@ -95,6 +109,7 @@ export interface IWallet {
   account_balance: number;
   account_number: string;
   account_name?: string | null;
+  is_pnd?: boolean;
   bank_name: string;
   bank_address?: string | null;
   bic?: string | null;
@@ -103,6 +118,7 @@ export interface IWallet {
   routing: IRoutingInfo[];
   sort_code?: string | null;
   status?: string | null;
+  wallet_status?: string | null;
   virtual_account_id?: string | null;
   wallet_account_type: string;
   wallet_id: string;
@@ -112,7 +128,13 @@ export interface IWallet {
   secondary_crypto_details?: ICryptoWallet[];
 }
 
+export type GatewayCreditCurrency = "USD" | "NGN";
+
 export interface IBusinessAccount {
+  balance_model?: string;
+  balances?: import("./globalBalance").SpendableBalance[];
+  legacy_balances?: import("./globalBalance").LegacyBalance[];
+  receiving_accounts?: import("./globalBalance").ReceivingAccount[];
   business_name: string;
   business_email: string;
   business_phone_number: string;
@@ -127,9 +149,13 @@ export interface IBusinessAccount {
   business_verifications: IBusinessVerification[];
   wallets: IWallet[];
   virtual_cards: [];
+  gateway_default_credit_currency?: GatewayCreditCurrency | null;
 }
 
 export interface IUser {
+  role?: import("@/lib/permissions").AccountRole;
+  active?: import("@/lib/permissions").ActiveFlag;
+  effective_permissions?: string[] | Record<string, boolean>;
   first_name: string;
   last_name: string;
   business_account_id: string;
@@ -172,6 +198,50 @@ export interface ISearchedUser {
   account_name: string;
   username: string;
   selfie_image: string | null;
+}
+
+export type UsdKybCaseStatus =
+  | "awaiting_admin_review"
+  | "requires_correction"
+  | "awaiting_ubo"
+  | "not_started"
+  | "collecting"
+  | "ready_for_review"
+  | "submitted_to_bridge"
+  | "under_review"
+  | "requires_additional_info"
+  | "approved"
+  | "completed"
+  | "rejected"
+  | string;
+
+export interface IUsdOnboardingCase {
+  requested_onboarding: boolean;
+  requested_onboarding_at: string | null;
+  status: UsdKybCaseStatus;
+  case_id: string | null;
+}
+
+export interface IUsdOnboardingResponse {
+  success: boolean;
+  message: string;
+  data: IUsdOnboardingCase;
+}
+
+export interface IUsdOnboardingStatusResponse {
+  success: boolean;
+  message: string;
+  data: IUsdOnboardingCase | null;
+}
+
+export interface IBridgeTosAcceptMessage {
+  signed_agreement_id: string;
+}
+
+export interface IBridgeTosSaveResponse {
+  success: boolean;
+  message: string;
+  data: null;
 }
 
 export interface IKYBLinksStatus {

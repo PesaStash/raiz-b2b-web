@@ -11,28 +11,15 @@ import { useMutation } from "@tanstack/react-query";
 import { IChangePasswordPayload } from "@/types/services";
 import { ChangePasswordApi } from "@/services/auth";
 import { toast } from "sonner";
-import { passwordHash } from "@/utils/helpers";
+import { newPasswordSchema } from "@/app/(auth)/register/_components/validation";
 
 const validationSchema = z
   .object({
     oldPassword: z
       .string()
-      .min(8, "Current password must be at least 8 characters"),
-    password: z
-      .string({
-        required_error: "Password is required",
-      })
-      .min(8, "Password must be at least 8 characters")
-      .refine(
-        (password) =>
-          [/[A-Z]/, /[a-z]/, /\d/, /[!@#$%^&*(),.?":{}|<>]/].filter((regex) =>
-            regex.test(password)
-          ).length >= 2,
-        {
-          message:
-            "Password must contain at least 2 of these rules: one uppercase letter, one lowercase letter, one numeric character, one special character",
-        }
-      ),
+      .min(1, "Current password is required")
+      .max(200, "Password must be at most 200 characters"),
+    password: newPasswordSchema,
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -62,8 +49,8 @@ const ResetPassword = ({ setPart }: PartChildProps) => {
     validationSchema: toFormikValidationSchema(validationSchema),
     onSubmit: (values) => {
       const payload: IChangePasswordPayload = {
-        old_password: passwordHash(values.oldPassword),
-        new_password: passwordHash(values.password),
+        old_password: values.oldPassword,
+        new_password: values.password,
       };
       ChangePasswordMutation.mutate(payload);
     },

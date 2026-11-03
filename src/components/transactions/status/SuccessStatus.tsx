@@ -13,6 +13,7 @@ import { useCurrentWallet } from "@/lib/hooks/useCurrentWallet";
 import { toast } from "sonner";
 import { IExternalBeneficiaryPayload } from "@/types/services";
 import { BeneficiaryType } from "@/components/modals/PaymentStatusModal";
+import { usePathname } from "next/navigation";
 
 interface Props {
   text: string;
@@ -29,7 +30,9 @@ const SuccessStatus = ({
   viewReceipt,
   beneficiary,
 }: Props) => {
-  const { user } = useUser();
+  // Guest payment-link pages must not fetch the authenticated user profile.
+  const pathname = usePathname();
+  const { user } = useUser({ enabled: !pathname?.startsWith("/pay") });
   const currentWallet = useCurrentWallet(user);
   const [isBeneficiarySaved, setIsBeneficiarySaved] = useState(false);
   const qc = useQueryClient();

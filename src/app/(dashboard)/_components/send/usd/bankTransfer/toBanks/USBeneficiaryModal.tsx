@@ -5,6 +5,7 @@ import Image from "next/image";
 import { EntityBeneficiary } from "@/types/services";
 import Avatar from "@/components/ui/Avatar";
 import { useSendStore } from "@/store/Send";
+import { formatUsdPaymentRailLabel } from "@/utils/thirdPartyUsdBeneficiary";
 
 interface Props {
   close: () => void;
@@ -49,6 +50,7 @@ const USBeneficiaryModal = ({ close, users }: Props) => {
             className="pl-10 h-full bg-[#fcfcfc] rounded-[20px] border border-raiz-gray-200 justify-start items-center gap-2 inline-flex w-full outline-none text-sm"
           />
         </div>
+        <div className="flex flex-col md:gap-5 gap-3 font-brSonoma md:h-[350px] h-[300px] overflow-y-scroll ">
         {filteredUsers.length > 0 ? (
           filteredUsers.map((user, index) => (
             <button
@@ -63,8 +65,15 @@ const USBeneficiaryModal = ({ close, users }: Props) => {
                     {user?.usd_beneficiary?.account_name}
                   </span>
                   <span className="text-raiz-gray-400 text-sm font-semibold text-left">
-                    {user?.usd_beneficiary?.label}
+                    {user?.usd_beneficiary?.label || user?.label}
                   </span>
+                  {user?.usd_beneficiary?.payment_rail ? (
+                    <span className="text-raiz-gray-400 text-xs text-left">
+                      {formatUsdPaymentRailLabel(
+                        user.usd_beneficiary.payment_rail,
+                      )}
+                    </span>
+                  ) : null}
                 </div>
               </div>
             </button>
@@ -74,6 +83,7 @@ const USBeneficiaryModal = ({ close, users }: Props) => {
             No beneficiary found
           </p>
         )}
+        </div>
       </div>
     </Overlay>
   );

@@ -1,4 +1,6 @@
 "use client";
+import { usePermissions } from "@/lib/hooks/usePermissions";
+
 
 import React, { useState } from "react";
 import InputField from "@/components/ui/InputField";
@@ -27,6 +29,7 @@ const validationSchema = z.object({
 });
 
 const ProfileForm = () => {
+  const { canWriteBusiness } = usePermissions();
   const { user } = useUser();
   const [showCountry, setShowCountry] = useState(false);
   const searchParams = useSearchParams();
@@ -70,7 +73,7 @@ const ProfileForm = () => {
   const formik = useFormik({
     initialValues,
     validationSchema: toFormikValidationSchema(validationSchema),
-    onSubmit: (values) => UpdateRaizTagMutation.mutate(values.raiz_tag),
+    onSubmit: (values) => { if (canWriteBusiness) UpdateRaizTagMutation.mutate(values.raiz_tag); },
     enableReinitialize: true,
   });
 
@@ -91,7 +94,8 @@ const ProfileForm = () => {
           key={focus}
           label="Raiz Tag"
           placeholder="@username"
-          icon="/icons/pen.svg"
+          readOnly={!canWriteBusiness}
+          icon={canWriteBusiness ? "/icons/pen.svg" : "/icons/lock.svg"}
           autoFocus={focus === "raiz-tag"}
           {...formik.getFieldProps("raiz_tag")}
           className="!text-raiz-gray-950 placeholder:!text-raiz-gray-950"
@@ -143,11 +147,10 @@ const ProfileForm = () => {
         </div>
         <div className="px-[18px] py-5 bg-[#fff1ce]/60 rounded-[20px]">
           <p className="text-raiz-gray-950 text-[13px] font-normal leading-tight">
-            You are unable to edit some of your profile information. If you need
-            to make changes, please contact customer support.
+            {canWriteBusiness ? "You are unable to edit some of your profile information. If you need to make changes, please contact customer support." : "Your Developer role has read-only access to business profile information. Ask your owner or an admin to make changes."}
           </p>
         </div>
-        <Button
+        {canWriteBusiness && <Button
           loading={UpdateRaizTagMutation.isPending}
           disabled={
             UpdateRaizTagMutation.isPending || !formik.dirty || !formik.isValid
@@ -156,7 +159,7 @@ const ProfileForm = () => {
           className="mt-2 lg:mt-5"
         >
           Save
-        </Button>
+        </Button>}
       </form>
       {showCountry && (
         <CountryCodeModal close={() => setShowCountry(false)} formik={formik} />

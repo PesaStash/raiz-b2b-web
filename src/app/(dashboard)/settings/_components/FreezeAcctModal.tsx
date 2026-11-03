@@ -1,10 +1,10 @@
 "use client";
+import { withBusinessWrite } from "@/components/team/BusinessWrite";
 import Button from "@/components/ui/Button";
 import NumberKeypad from "@/components/ui/NumberKeyPad";
 import Overlay from "@/components/ui/Overlay";
 import { FreezeDebitApi, UnFreezeDebitApi } from "@/services/business";
 import { ITransactionPinPayload } from "@/types/services";
-import { passwordHash } from "@/utils/helpers";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import React, { useState } from "react";
@@ -44,9 +44,9 @@ const FreezeAcctModal = ({ close, type }: Props) => {
       setFreezeStatus(2);
     } else {
       if (type === "disable") {
-        FreezeMutation.mutate({ transaction_pin: passwordHash(otpValue) });
+        FreezeMutation.mutate({ transaction_pin: otpValue });
       } else {
-        UnFreezeMutation.mutate({ transaction_pin: passwordHash(otpValue) });
+        UnFreezeMutation.mutate({ transaction_pin: otpValue });
       }
     }
   };
@@ -109,4 +109,4 @@ const FreezeAcctModal = ({ close, type }: Props) => {
   );
 };
 
-export default FreezeAcctModal;
+export default withBusinessWrite(FreezeAcctModal);

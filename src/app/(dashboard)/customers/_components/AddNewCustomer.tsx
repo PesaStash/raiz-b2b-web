@@ -1,4 +1,5 @@
 "use client";
+import { withBusinessWrite } from "@/components/team/BusinessWrite";
 import Button from "@/components/ui/Button";
 import InputField from "@/components/ui/InputField";
 import { useFormik } from "formik";
@@ -14,6 +15,9 @@ import { AddCustomerApi } from "@/services/invoice";
 import SelectField from "@/components/ui/SelectField";
 import { sanitizeAddressField } from "@/utils/helpers";
 import CenterModalHeader from "@/components/layouts/CenterModalHeader";
+import { pushDataLayerEvent } from "@/utils/analytics/dataLayer";
+import { getAnalyticsUserId } from "@/utils/analytics/userProps";
+import { useUser } from "@/lib/hooks/useUser";
 
 interface Props {
   close: () => void;
@@ -62,10 +66,17 @@ const AddCustomerSchema = z
 
 const AddNewCustomer = ({ close }: Props) => {
   const qc = useQueryClient();
+  const { user } = useUser();
   const AddMutation = useMutation({
     mutationFn: (payload: IAddCustomerPayload) => AddCustomerApi(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["customers"] });
+      const userId = getAnalyticsUserId(user);
+      if (userId) {
+        pushDataLayerEvent("customer_added", {
+          user_id: userId,
+        });
+      }
       close();
     },
   });
@@ -227,4 +238,4 @@ const AddNewCustomer = ({ close }: Props) => {
   );
 };
 
-export default AddNewCustomer;
+export default withBusinessWrite(AddNewCustomer);

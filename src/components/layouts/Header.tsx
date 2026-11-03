@@ -1,7 +1,10 @@
 "use client";
+import { BusinessWrite } from "@/components/team/BusinessWrite";
+import { usePermissions } from "@/lib/hooks/usePermissions";
+
 import Image from "next/image";
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Notifications from "../../app/(dashboard)/_components/notification/Notifications";
 import { AnimatePresence } from "motion/react";
 import Rewards from "../../app/(dashboard)/_components/rewards/Rewards";
@@ -33,6 +36,7 @@ import { useSwapStore } from "@/store/Swap";
 import { useTopupStore } from "@/store/TopUp";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import UsdTopUp from "@/app/(dashboard)/_components/topUp/UsdTopup/UsdTopUp";
+import NgnTopUp from "@/app/(dashboard)/_components/topUp/NgnTopup/NgnTopUp";
 import { useUser } from "@/lib/hooks/useUser";
 import { toast } from "sonner";
 import { CurrencyTypeKey } from "@/store/Swap/swapSlice.types";
@@ -51,8 +55,6 @@ type ModalKeys =
 
 const searchItems = [
   { name: "Dashboard", type: "route", path: "/" },
-  // { name: "Top Up", type: "modal" },
-  // { name: "Send", type: "modal" },
   { name: "Create NGN Account", type: "modal" },
   { name: "Rewards", type: "modal" },
   { name: "Notifications", type: "modal" },
@@ -73,15 +75,6 @@ const Header = () => {
     queryKey: ["reward-points"],
     queryFn: FetchUserRewardsApi,
   });
-  // const [userPfp, setUserPfp] = useState(
-  //   user?.business_account?.business_image || "/images/default-pfp.svg"
-  // );
-
-  // useEffect(() => {
-  //   if (user?.business_account?.business_image) {
-  //     setUserPfp(user.business_account.business_image);
-  //   }
-  // }, [user]);
   const { user } = useUser();
   const walletData = user?.business_account?.wallets;
   const [showModal, setShowModal] = useState<ModalKeys | null>(null);
@@ -93,6 +86,8 @@ const Header = () => {
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const [selectedAction, setSelectedAction] = useState<ModalKeys | null>(null);
   const [showActionOpts, setShowActionOpts] = useState(false);
+  const { canWriteBusiness } = usePermissions();
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const params = useParams();
   const NGNAcct = findWalletByCurrency(user, "NGN");
@@ -105,14 +100,6 @@ const Header = () => {
   const { actions } = useSwapStore();
   const { actions: topupActions } = useTopupStore();
   const { selectedCurrency } = useCurrencyStore();
-  // const { selectedCurrency } = useCurrencyStore();
-  // const currentWallet = useMemo(() => {
-  //   if (!user || !user?.business_account?.wallets || !selectedCurrency?.name)
-  //     return null;
-  //   return user?.business_account?.wallets.find(
-  //     (wallet) => wallet.wallet_type.currency === selectedCurrency.name
-  //   );
-  // }, [user, selectedCurrency]);
   const { currentTier } = getTierInfo(pointsData?.point || 0);
   const getCurrentWallet = () => {
     if (selectedCurrency.name === "NGN") {
@@ -132,15 +119,30 @@ const Header = () => {
 
   useEffect(() => {
     if (!searchTerm) {
-      setSearchResults([]);
+      setSearchResults(searchItems.filter(item=>canWriteBusiness || item.name !== "Create NGN Account"));
       return;
     }
 
     const results = searchItems.filter((item) =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()),
+      (canWriteBusiness || item.name !== "Create NGN Account") && item.name.toLowerCase().includes(searchTerm.toLowerCase()),
     );
     setSearchResults(results);
-  }, [searchTerm]);
+  }, [searchTerm, canWriteBusiness]);
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "k") return;
+      if (pathName.includes("invoice")) return;
+      if (typeof window !== "undefined" && window.innerWidth < 768) return;
+
+      e.preventDefault();
+      setIsFocused(true);
+      searchInputRef.current?.focus();
+    };
+
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+  }, [pathName]);
 
   const handleSearchAction = (item: (typeof searchItems)[number]) => {
     if (item.type === "route" && item.path) {
@@ -165,8 +167,10 @@ const Header = () => {
       }
     }
     setSearchTerm("");
-    setSearchResults([]);
+    setSearchResults(searchItems.filter(item=>canWriteBusiness || item.name !== "Create NGN Account"));
     setFocusedIndex(-1);
+    setIsFocused(false);
+    searchInputRef.current?.blur();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -184,14 +188,18 @@ const Header = () => {
     } else if (e.key === "Escape") {
       setFocusedIndex(-1);
       setIsFocused(false);
+      searchInputRef.current?.blur();
     }
   };
+
+  const hasDedicatedTopUp =
+    selectedCurrency?.name === "USD" || selectedCurrency?.name === "NGN";
 
   const handleCloseModal = () => {
     setShowModal(null);
     sendActions.reset(selectedCurrency.name);
     topupActions.reset();
-    actions.reset();
+    actions.reset(user);
   };
   const openNGNModal = () => {
     setShowModal("createNGN");
@@ -242,7 +250,7 @@ const Header = () => {
           <Swap close={handleCloseModal} />
         );
       case "topUp":
-        return selectedCurrency?.name !== "USD" ? (
+        return !hasDedicatedTopUp ? (
           <TopUp close={handleCloseModal} />
         ) : null;
       default:
@@ -316,14 +324,19 @@ const Header = () => {
             height={22}
           />
           <input
+            ref={searchInputRef}
             placeholder="Search..."
-            className="pl-10 h-full bg-raiz-gray-50 rounded-[20px] text-sm placeholder:text-raiz-gray-500  justify-start items-center gap-2 inline-flex w-full outline outline-1 outline-offset-[-1px] outline-white"
+            className="pl-10 pr-14 h-full bg-raiz-gray-50 rounded-[20px] text-sm placeholder:text-raiz-gray-500 justify-start items-center gap-2 inline-flex w-full outline outline-1 outline-offset-[-1px] outline-white"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setTimeout(() => setIsFocused(false), 200)}
             onKeyDown={handleKeyDown}
           />
+          <span className="pointer-events-none absolute right-4 top-1/2 flex -translate-y-1/2 items-center gap-2 text-sm text-raiz-gray-500">
+            <span>⌘</span>
+            <span>K</span>
+          </span>
           <AnimatePresence>
             {isFocused && searchResults.length > 0 && (
               <motion.ul
@@ -398,7 +411,7 @@ const Header = () => {
              Details
             </Link>
           ) : (
-            <Link
+            <BusinessWrite><Link
               className={`px-2 py-1 ${
                 pathName.endsWith("create-new")
                   ? "text-raiz-gray-900 font-semibold"
@@ -407,11 +420,11 @@ const Header = () => {
               href={"/invoice/create-new"}
             >
               New Invoice
-            </Link>
+            </Link></BusinessWrite>
           )}
         </div>
       )}
-      <div ref={actionDropdownRef} className="relative hidden sm:block">
+      {canWriteBusiness && <div ref={actionDropdownRef} className="relative hidden lg:block">
         <button
           onClick={() => setShowActionOpts((prev) => !prev)}
           className="flex justify-between items-center gap-2 min-w-0 w-auto px-3 lg:min-w-[175px] lg:px-4 xl:min-w-[220px] h-12 bg-raiz-gray-50 rounded-[20px] transition-all duration-200 outline outline-1 outline-offset-[-1px] outline-white"
@@ -463,9 +476,9 @@ const Header = () => {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </div>}
 
-      <div className="flex gap-2 md:gap-4 items-center ml-auto shrink-0">
+      <div className="flex gap-2 md:gap-4 items-center  shrink-0">
         <button
           onClick={() => setShowModal("rewards")}
           className="py-2 px-5 bg-raiz-gray-50 hover:bg-raiz-gray-200 transition-colors duration-300 group h-12  rounded-[20px] justify-center items-center gap-2 inline-flex"
@@ -535,19 +548,11 @@ const Header = () => {
       <AnimatePresence>
         {showModal !== null &&
         showModal !== "selectAcct" &&
-        (showModal !== "topUp" || selectedCurrency?.name !== "USD") && (
+        (showModal !== "topUp" || !hasDedicatedTopUp) && (
           <CenterModalWrapper
             close={handleCloseModal}
             wrapperStyle={
-              showModal === "createNGN"
-                ? "!bg-primary2"
-                : showModal === "createCrypto"
-                  ? "!bg-raiz-crypto-primary"
-                  // : selectedCurrency?.name === "GBP"
-                  //   ? "!bg-raiz-gbp-primary"
-                  //   : selectedCurrency?.name === "EUR"
-                  //     ? "!bg-raiz-eur-primary"
-                      : ""
+              showModal === "createCrypto" ? "!bg-raiz-crypto-primary" : ""
             }
           >
             {displayModal()}
@@ -571,6 +576,9 @@ const Header = () => {
       )}
       {showModal === "topUp" && selectedCurrency?.name === "USD" && (
         <UsdTopUp close={handleCloseModal} />
+      )}
+      {showModal === "topUp" && selectedCurrency?.name === "NGN" && (
+        <NgnTopUp close={handleCloseModal} />
       )}
       {successful && <NgnSuccessModal close={() => setSuccessful(false)} />}
     </div>

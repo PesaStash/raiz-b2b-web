@@ -15,6 +15,8 @@ interface Props {
   fee: number;
   paymentData?: IInitialPayoutResponse;
   timeLeft: number;
+  isRequoting?: boolean;
+  isExpired?: boolean;
 }
 const InternationalSendSummary = ({
   goBack,
@@ -22,17 +24,20 @@ const InternationalSendSummary = ({
   fee,
   paymentData,
   timeLeft,
+  isRequoting = false,
+  isExpired = false,
 }: Props) => {
-  const {
-    category,
-    amount,
-    purpose,
-    intBeneficiary,
-    currency: senderCurrency,
-  } = useSendStore();
+  const { category, amount, purpose, intBeneficiary } = useSendStore();
 
-  const currency =
-    intBeneficiary?.foreign_payout_beneficiary?.beneficiary_currency || "";
+  const payoutCurrency =
+    paymentData?.payout_currency ||
+    intBeneficiary?.foreign_payout_beneficiary?.beneficiary_currency ||
+    "";
+  const payoutAmount = paymentData?.payout_amount ?? Number(amount);
+  const usdDebit = paymentData?.amount ?? 0;
+  const totalUsdDebit = usdDebit + (paymentData?.fees ?? fee ?? 0);
+  const quoteExpired = isExpired || timeLeft <= 0;
+
   return (
     <div className="flex flex-col h-full  overflow-auto no-scrollbar pb-5">
       <CenterModalHeader close={goBack} />
@@ -52,11 +57,11 @@ const InternationalSendSummary = ({
               />
             </div>
             <p className="text-center text-xl font-bold leading-normal">
-              {getCurrencySymbol(currency)}
-              {Number(amount).toLocaleString()}
+              {getCurrencySymbol(payoutCurrency)}
+              {Number(payoutAmount).toLocaleString()}
             </p>
-            <p className="text-center   text-xs font-normal  leading-tight">
-              Send Summary
+            <p className="text-center text-xs font-normal leading-tight">
+              Recipient receives
             </p>
           </div>
           <div className="w-full flex flex-col gap-[15px] ">
@@ -67,21 +72,38 @@ const InternationalSendSummary = ({
               }
             />
             <ListDetailItem
-              title="You send"
-              value={`${getCurrencySymbol(senderCurrency || "")}
-              ${paymentData?.amount.toLocaleString()}`}
+              title="Recipient account"
+              value={
+                paymentData?.foreign_payout_beneficiary
+                  ?.beneficiary_account_number || ""
+              }
+            />
+            <ListDetailItem
+              title="Recipient receives"
+              value={`${getCurrencySymbol(payoutCurrency)}${Number(
+                payoutAmount,
+              ).toLocaleString()}`}
+            />
+            <ListDetailItem
+              title="USD wallet debit"
+              value={`${getCurrencySymbol("USD")}${usdDebit.toLocaleString()}`}
             />
             <ListDetailItem
               title="Transaction fee"
-              value={`${getCurrencySymbol(senderCurrency || "")}
-              ${fee.toLocaleString()}`}
+              value={`${getCurrencySymbol("USD")}${(
+                paymentData?.fees ?? fee
+              ).toLocaleString()}`}
+            />
+            <ListDetailItem
+              title="Total USD debit"
+              value={`${getCurrencySymbol("USD")}${totalUsdDebit.toLocaleString()}`}
+              border
             />
             <ListDetailItem
               title="Exchange rate"
-              value={`  ${getCurrencySymbol(currency)}${
+              value={`${getCurrencySymbol(payoutCurrency)}${
                 paymentData?.exchange_rate?.toFixed(2) || 1
-              } = $1(USD)`}
-              border
+              } = $1 USD`}
             />
             <ListDetailItem
               title="Category"
@@ -95,7 +117,7 @@ const InternationalSendSummary = ({
               )}
             />
             <div
-              className={`flex text-zinc-900 justify-between gap-4 items-start pb-3    `}
+              className={`flex text-zinc-900 justify-between gap-4 items-start pb-3`}
             >
               <span className="text-xs font-normal leading-tight">Timer</span>
               <div className="flex gap-1.5 items-center">
@@ -106,14 +128,24 @@ const InternationalSendSummary = ({
                   alt="timer"
                 />
                 <span className="text-sm text-right font-semibold font-brSonoma leading-tight">
-                  {formatTime(timeLeft)}
+                  {quoteExpired
+                    ? "Expired"
+                    : isRequoting
+                      ? "Refreshing..."
+                      : formatTime(timeLeft)}
                 </span>
               </div>
             </div>
           </div>
         </div>
         <div className="w-full flex flex-col gap-3">
-          <Button onClick={goNext}>Send</Button>
+          <Button
+            onClick={goNext}
+            disabled={quoteExpired || isRequoting}
+            loading={isRequoting}
+          >
+            {quoteExpired ? "Quote expired" : "Send"}
+          </Button>
           <Button onClick={goBack} variant="secondary">
             Cancel
           </Button>

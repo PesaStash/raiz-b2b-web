@@ -1,52 +1,64 @@
 "use client";
-import React, { ReactNode, useEffect, useState } from "react";
+
+import { usePermissions } from "@/lib/hooks/usePermissions";
+import React, { ReactNode, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ISidebarMenuItem } from "@/types/misc";
+import { ISidebarMenuItem, SidebarSection } from "@/types/misc";
 import { SidebarMenus } from "@/constants/SidebarMenuData";
 import SideModalWrapper from "@/app/(dashboard)/_components/SideModalWrapper";
-// import AccountSetup from "@/app/(dashboard)/_components/account-setup/AccountSetup";
 import { AnimatePresence } from "motion/react";
 import CreateNgnAcct from "@/app/(dashboard)/_components/createNgnAcct/CreateNgnAcct";
 import AddBvnModal from "@/app/(dashboard)/_components/createNgnAcct/AddBvnModal";
 import NgnSuccessModal from "@/app/(dashboard)/_components/createNgnAcct/NgnSuccessModal";
 import LogoutModal from "../modals/LogoutModal";
 import { useUser } from "@/lib/hooks/useUser";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  FetchUserRewardsApi,
-
-  // PersonaVerificationApi
-} from "@/services/user";
-import { toast } from "sonner";
-// import dynamic from "next/dynamic";
+import { useQuery } from "@tanstack/react-query";
+import { FetchUserRewardsApi } from "@/services/user";
+import { FetchBillRequestMetricsApi } from "@/services/transactions";
 import SetTransactionPin from "@/app/(dashboard)/_components/transaction-pin/SetTransactionPin";
 import {
-  convertToTitle,
   findWalletByCurrency,
-  getTierInfo,
-  truncateString,
+  normalizeS3ObjectUrl,
 } from "@/utils/helpers";
-import PaymentLinkModal from "../modals/PaymentLinkModal";
 import {
-  CheckBrigdeVerificationStatusApi,
-  CreateUSDWalletApi,
-  GetKYBLinksApi,
-} from "@/services/business";
+  canSetTransactionPin,
+  canRequestUsdAccount,
+  isNigerianBusiness,
+} from "@/utils/onboardingBranch";
+import { useUsdOnboardingStatus } from "@/lib/hooks/useUsdOnboarding";
+import { useUsdOnboardingFlow } from "@/lib/hooks/useUsdOnboardingFlow";
+import BridgeToSWebview from "@/app/(dashboard)/_components/BridgeToSWebview";
+import PaymentLinkModal from "../modals/PaymentLinkModal";
 import Spinner from "../ui/Spinner";
-import { useCurrencyStore } from "@/store/useCurrencyStore";
-import Avatar from "../ui/Avatar";
-import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import Rewards from "@/app/(dashboard)/_components/rewards/Rewards";
 import FeedbacksModal from "../modals/FeedbacksModal";
 import BusinessVerificationModal from "@/app/(dashboard)/_components/BusinessVerificationModal";
-import Button from "../ui/Button";
+import { useSidebar } from "@/context/SidebarContext";
+import { SidebarNavItem } from "./sidebar/SidebarNavItem";
+import { AccountFooter } from "./sidebar/AccountFooter";
+import { useCurrencyStore } from "@/store/useCurrencyStore";
+
+type StatusConfig = {
+  condition: boolean;
+  icon: ReactNode;
+  title: string;
+  description: string;
+  action?: ReactNode;
+  bg: string;
+  onAction?: () => void;
+};
 
 const Sidebar = () => {
   const { user, refetch } = useUser();
+  const { canManageTeam, canWriteBusiness } = usePermissions();
   const pathName = usePathname();
-  const { setSelectedCurrency } = useCurrencyStore();
+  const onboardingRouter = useRouter();
+  const isKyb = pathName.startsWith("/onboarding");
+  const { selectedCurrency } = useCurrencyStore();
+  const { effectiveCollapsed, isLargeDesktop, toggleCollapsed } = useSidebar();
+
   const [showModal, setShowModal] = useState<
     "acctSetup" | "getNgn" | "set-pin" | "rewards" | null
   >(null);
@@ -56,148 +68,73 @@ const Sidebar = () => {
   const [showPaymentLinkModal, setShowPaymentLinkModal] = useState(false);
   const [showFeedbacks, setShowFeedbacks] = useState(false);
   const [userPfp, setUserPfp] = useState(
-    user?.business_account?.business_image || "/images/default-pfp.svg",
+    normalizeS3ObjectUrl(user?.business_account?.business_image) ||
+      "/images/default-pfp.svg",
   );
-  const isXLarge = useMediaQuery("(min-width: 1280px)");
 
   useEffect(() => {
-    if (user?.business_account?.business_image) {
-      setUserPfp(user.business_account.business_image);
-    }
+    const image = normalizeS3ObjectUrl(user?.business_account?.business_image);
+    if (image) setUserPfp(image);
   }, [user]);
 
-  const handleCloseModal = () => {
-    setShowModal(null);
-  };
-
-  const qc = useQueryClient();
-
-  const displayModal = () => {
-    switch (showModal) {
-      case "acctSetup":
-        return <BusinessVerificationModal close={handleCloseModal} />;
-
-      case "getNgn":
-        return (
-          <CreateNgnAcct
-            close={handleCloseModal}
-            // openBvnModal={() => setShowBvnModal(true)}
-          />
-        );
-      case "set-pin":
-        return <SetTransactionPin close={handleCloseModal} />;
-      case "rewards":
-        return <Rewards close={handleCloseModal} data={pointsData} />;
-      default:
-        break;
-    }
-  };
-
-  const renderMenuItem = (item: ISidebarMenuItem, index: number) => {
-    const isActive =
-      item.link === "/" ? pathName === item.link : pathName.includes(item.link);
-    const isLocked = item?.locked;
-    return (
-      <Link
-        key={index}
-        href={isLocked ? "#" : item.link}
-        tabIndex={isLocked ? -1 : 0}
-        className={`flex items-center justify-center lg:justify-between gap-3 py-2 px-2 xl:px-3 text-sm leading-tight outline-none
-        ${
-          isLocked
-            ? "cursor-not-allowed pointer-events-none opacity-60"
-            : "hover:bg-[#eaecff]/40 hover:rounded-md"
-        }
-        ${
-          isActive && !isLocked
-            ? "bg-[#eaecff]/40 rounded-[6px] text-primary2 font-bold"
-            : "text-raiz-gray-600 font-medium"
-        }`}
-        title={item.name}
-      >
-        <div className="flex gap-3 items-center justify-center lg:justify-start">
-          {item.icon(isActive)}
-          <span className="hidden lg:inline">{item.name}</span>
-        </div>
-        {isLocked && (
-          <svg className="hidden lg:block" width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path
-              opacity="0.35"
-              d="M15 17.5002H5C3.61917 17.5002 2.5 16.381 2.5 15.0002V8.3335C2.5 6.95266 3.61917 5.8335 5 5.8335H15C16.3808 5.8335 17.5 6.95266 17.5 8.3335V15.0002C17.5 16.381 16.3808 17.5002 15 17.5002Z"
-              fill="black"
-            />
-            <path
-              d="M6.66667 5.8335C6.66667 3.99266 8.15917 2.50016 10 2.50016C11.8408 2.50016 13.3333 3.99266 13.3333 5.8335H15C15 3.07183 12.7617 0.833496 10 0.833496C7.23833 0.833496 5 3.07183 5 5.8335H6.66667Z"
-              fill="black"
-            />
-            <path
-              d="M9.99992 10C9.07909 10 8.33325 10.7458 8.33325 11.6667C8.33325 12.5875 9.07909 13.3333 9.99992 13.3333C10.9208 13.3333 11.6666 12.5875 11.6666 11.6667C11.6666 10.7458 10.9208 10 9.99992 10Z"
-              fill="black"
-            />
-          </svg>
-        )}
-      </Link>
-    );
-  };
-
-  const USDWalletMutation = useMutation({
-    mutationFn: CreateUSDWalletApi,
-    onSuccess: (response) => {
-      toast.success(response?.message);
-      qc.invalidateQueries({ queryKey: ["user"] });
-      refetch();
-      setSelectedCurrency("USD", user);
-      handleCloseModal();
-    },
-  });
+  const handleCloseModal = () => setShowModal(null);
 
   const { data: pointsData } = useQuery({
     queryKey: ["reward-points"],
     queryFn: FetchUserRewardsApi,
   });
 
-  const CheckBridgeVerification = useMutation({
-    mutationFn: CheckBrigdeVerificationStatusApi,
-    onSuccess: (response) => {
-      qc.invalidateQueries({ queryKey: ["KYB-links"] });
-      if (response === "completed") {
-        refetch();
-      }
-      toast.info(`Your verification status is ${convertToTitle(response)}`);
-    },
-  });
-
-  const { data } = useQuery({
-    queryKey: ["KYB-links"],
-    queryFn: GetKYBLinksApi,
+  const { data: billMetrics } = useQuery({
+    queryKey: ["bill-requests-metrics", { currency: selectedCurrency.name }],
+    queryFn: () => FetchBillRequestMetricsApi({}),
+    refetchOnMount: "always",
     refetchOnWindowFocus: true,
   });
 
-  const tosPending = data?.tos_status === "pending";
-  const tosApproved = data?.tos_status === "approved";
-  const kycNotStarted = data?.kyc_status === "not_started";
-  const kycAwaitingUbo = data?.kyc_status === "awaiting_ubo";
+  const pendingBillCount = billMetrics?.pending_approval?.total ?? 0;
 
-  const handleAcceptTOS = () => {
-    window.open(data?.tos_link, "_blank");
-    // optional immediate refetch
-    setTimeout(() => {
-      qc.invalidateQueries({ queryKey: ["KYB-links"] });
-      CheckBridgeVerification.mutate();
-    }, 5000);
-  };
-
-  const { currentTier } = getTierInfo(pointsData?.point || 0);
-  const NGNAcct = findWalletByCurrency(user, "NGN");
-  const USDAcct = findWalletByCurrency(user, "USD");
-  const isNigerian =
-    user?.business_account?.entity?.country?.country_name?.toLowerCase() ===
-    "nigeria";
   const verificationStatus =
     user?.business_account?.business_verifications?.[0]?.verification_status;
-  const hasTransactionPin = user?.has_transaction_pin;
 
-  const statuses = [
+  const { data: usdCase } = useUsdOnboardingStatus(user);
+  const effectiveUsdCase = usdCase ?? null;
+  const usdFlow = useUsdOnboardingFlow({
+    usdCase: effectiveUsdCase,
+    onUsdRequestSuccess: () => refetch(),
+  });
+
+  const NGNAcct = findWalletByCurrency(user, "NGN");
+  const USDAcct = findWalletByCurrency(user, "USD");
+  const isNigerian = isNigerianBusiness(user);
+  const hasTransactionPin = user?.has_transaction_pin;
+  const canRequestUsd = canRequestUsdAccount(
+    user,
+    verificationStatus,
+    effectiveUsdCase,
+  );
+
+  const displayModal = () => {
+    switch (showModal) {
+      case "acctSetup":
+        return <BusinessVerificationModal close={handleCloseModal} />;
+      case "getNgn":
+        return <CreateNgnAcct close={handleCloseModal} />;
+      case "set-pin":
+        return <SetTransactionPin close={handleCloseModal} />;
+      case "rewards":
+        return <Rewards close={handleCloseModal} data={pointsData} />;
+      default:
+        return null;
+    }
+  };
+
+  const isItemActive = (item: ISidebarMenuItem) => {
+    if (item.action === "feedback") return showFeedbacks;
+    if (item.link === "/") return pathName === "/" || isKyb;
+    return pathName === item.link || pathName.startsWith(`${item.link}/`);
+  };
+
+  const statuses: StatusConfig[] = [
     {
       condition: verificationStatus === "not_started",
       icon: (
@@ -221,7 +158,7 @@ const Sidebar = () => {
       action: (
         <div className=" w-full">
           <button
-            onClick={() => setShowModal("acctSetup")}
+            onClick={() => onboardingRouter.push("/onboarding/business")}
             className="group px-6 py-2.5 w-full flex items-center gap-3 justify-center  bg-white border-2 border-[#F8F7FA] text-[#3C2875] font-bold rounded-3xl text-sm hover:bg-gray-50 transition-colors  disabled:opacity-50"
           >
             <span>Get Started</span>
@@ -236,86 +173,10 @@ const Sidebar = () => {
         </div>
       ),
       bg: "bg-[#FFF3E666]",
+      onAction: () => onboardingRouter.push("/onboarding/business"),
     },
     {
-      condition: verificationStatus === "pending",
-      icon: (
-        <svg
-          width="32"
-          height="32"
-          viewBox="0 0 32 32"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            opacity="0.5"
-            d="M16 29.3335C22.6274 29.3335 28 23.9609 28 17.3335C28 10.7061 22.6274 5.3335 16 5.3335C9.37258 5.3335 4 10.7061 4 17.3335C4 23.9609 9.37258 29.3335 16 29.3335Z"
-            fill="#CEBF36"
-          />
-          <path
-            d="M14.1147 19.2186C13.5253 18.6292 11.1907 15.0879 9.27335 12.1226C8.63068 11.1292 9.79601 9.96389 10.7893 10.6052C13.7547 12.5226 17.296 14.8586 17.8853 15.4466C18.9267 16.4879 18.9267 18.1759 17.8853 19.2172C16.844 20.2599 15.156 20.2599 14.1147 19.2186Z"
-            fill="#568C21"
-          />
-          <path
-            d="M18 1.3335C17.4853 1.3335 14.5147 1.3335 14 1.3335C12.896 1.3335 12 2.2295 12 3.3335C12 4.4375 12.896 5.3335 14 5.3335C14.5147 5.3335 17.4853 5.3335 18 5.3335C19.104 5.3335 20 4.4375 20 3.3335C20 2.2295 19.104 1.3335 18 1.3335Z"
-            fill="#568C21"
-          />
-          <path
-            d="M27.4148 6.86119C27.0508 6.49719 26.8361 6.28252 26.4721 5.91852C25.6908 5.13719 24.4241 5.13719 23.6441 5.91852C22.8641 6.69985 22.8628 7.96652 23.6441 8.74652C24.0081 9.11052 24.2228 9.32519 24.5868 9.68919C25.3681 10.4705 26.6348 10.4705 27.4148 9.68919C28.1948 8.90919 28.1948 7.64252 27.4148 6.86119Z"
-            fill="#568C21"
-          />
-        </svg>
-      ),
-      title: "Complete Account Setup",
-      description: "Complete Account Set Up and Get unlimited access ",
-      bg: "bg-[#f2f4e9]/60",
-      action: (
-        <>
-          {verificationStatus === "pending" && tosPending && (
-            <button
-              onClick={handleAcceptTOS}
-              disabled={tosApproved || !data?.tos_status}
-              className="group px-4 xl:px-0 py-2.5 w-full flex items-center gap-3 justify-center  bg-white border-2 border-[#F8F7FA] text-[#3C2875] font-bold rounded-3xl  hover:bg-gray-50 transition-colors  disabled:opacity-50"
-            >
-              <span className="text-xs xl:text-sm">
-                {tosApproved ? "Accepted" : "Review & Accept"}
-              </span>
-              <Image
-                src={"/icons/long-arrow-right.svg"}
-                alt="right"
-                width={20}
-                height={20}
-                className="hidden xl:block group-hover:translate-x-1 transition-transform"
-              />
-            </button>
-          )}
-
-          {verificationStatus === "pending" && tosApproved && kycNotStarted && (
-            <button
-              onClick={() => window.open(data?.kyc_link)}
-              disabled={!tosApproved || !kycNotStarted}
-              className="group px-6 py-2.5 w-full flex items-center gap-3 justify-center  bg-white border-2 border-[#F8F7FA] text-[#3C2875] font-bold rounded-3xl text-sm hover:bg-gray-50 transition-colors  disabled:opacity-50"
-            >
-              {kycAwaitingUbo ? "Awaiting UBOs" : "Start KYB"}
-              <Image
-                src={"/icons/long-arrow-right.svg"}
-                alt="right"
-                width={20}
-                height={20}
-                className="group-hover:translate-x-1 transition-transform"
-              />
-            </button>
-          )}
-          {kycAwaitingUbo && (
-            <span className="text-xs text-raiz-gray-500">
-              Awaiting UBOs verification
-            </span>
-          )}
-        </>
-      ),
-    },
-    {
-      condition: verificationStatus === "completed" && !hasTransactionPin,
+      condition: canSetTransactionPin(verificationStatus) && !hasTransactionPin,
       icon: (
         <svg
           width="30"
@@ -348,7 +209,8 @@ const Sidebar = () => {
         </svg>
       ),
       title: "Secure your Account",
-      description: "Set a 4-digit PIN to your transaction",
+      description:
+        "Set a transaction PIN to approve transfers and other sensitive actions.",
       action: (
         <button
           onClick={() => setShowModal("set-pin")}
@@ -365,10 +227,10 @@ const Sidebar = () => {
         </button>
       ),
       bg: "bg-[#eaecff]/40",
+      onAction: () => setShowModal("set-pin"),
     },
     {
-      condition:
-        verificationStatus === "completed" && !USDAcct && hasTransactionPin,
+      condition: canRequestUsd && !!hasTransactionPin,
       icon: (
         <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
           <g clipPath="url(#clip0_23665_5245)">
@@ -396,49 +258,52 @@ const Sidebar = () => {
           </defs>
         </svg>
       ),
-      title: "Get Your USD Account Now",
-      description: "Enjoy Seamless Transactions and Exclusive Features Today!",
+      title: "Set up a USD Account",
+      description:
+        "Complete your business details and submit for operations review.",
       action: (
         <button
-          onClick={() => USDWalletMutation.mutate()}
+          onClick={() => usdFlow.startUsdRequest()}
           className="text-white bg-primary py-3 px-5 rounded-full text-sm font-semibold flex items-center gap-2"
-          disabled={USDWalletMutation.isPending}
+          disabled={usdFlow.isUsdActionPending}
         >
-          {USDWalletMutation.isPending ? (
+          {usdFlow.isUsdActionPending ? (
             <Spinner className="!w-4 !h-4 !border-t-2 !border-b-2" />
           ) : null}
-          {USDWalletMutation.isPending ? "Processing..." : "Get USD Account"}
+          {usdFlow.getUsdActionLabel()}
         </button>
       ),
       bg: "bg-[#EAECFF66]",
+      onAction: () => usdFlow.startUsdRequest(),
     },
     {
       condition:
         verificationStatus === "completed" &&
-        USDAcct &&
+        !!USDAcct &&
         isNigerian &&
-        (isNigerian ? !NGNAcct : true) &&
-        hasTransactionPin,
+        !NGNAcct &&
+        !!hasTransactionPin,
       icon: <Image src={"/icons/ngn.svg"} width={32} height={32} alt="NGN" />,
       title: "Get a Naira (NGN) Account",
       description:
         "Manage funds and make transactions in Naira, simplifying local payments and daily finances.",
       action: (
         <button
-          onClick={() => setShowModal("getNgn")}
+          onClick={() => onboardingRouter.push("/onboarding/ngn")}
           className="text-white bg-primary py-3 px-5 rounded-full text-sm font-semibold flex items-center gap-2"
         >
           Get Naira Account
         </button>
       ),
       bg: "bg-[#eaecff]/40",
+      onAction: () => onboardingRouter.push("/onboarding/ngn"),
     },
     {
       condition:
         verificationStatus === "completed" &&
-        (isNigerian ? NGNAcct : true) &&
-        hasTransactionPin &&
-        USDAcct,
+        (isNigerian ? !!NGNAcct : true) &&
+        !!hasTransactionPin &&
+        !!USDAcct,
       icon: <Image src={"/icons/paylink.svg"} width={32} height={32} alt="" />,
       title: "Payment Link",
       description: "Allows Guest Users to Securely Send you Money Seamlessly.",
@@ -451,145 +316,190 @@ const Sidebar = () => {
         </button>
       ),
       bg: "bg-[#eaecff]/40",
+      onAction: () => setShowPaymentLinkModal(true),
     },
   ];
 
-  return (
-    <aside className="hidden md:flex flex-col w-16 lg:w-[19.444%] pt-6 lg:pt-8 fixed top-0 bottom-0 left-0 z-20 bg-raiz-gray-50 border-r-2 border-raiz-gray-100 h-[100vh] overflow-x-hidden overflow-y-auto">
-      <div className="px-2 lg:px-6 flex justify-center lg:justify-start">
-        <Image
-          className="w-10 h-10 lg:w-12 lg:h-12"
-          src={"/icons/Logo-2.svg"}
-          width={48}
-          height={48}
-          alt="Raiz logo"
-        />
+  const visibleStatuses = canWriteBusiness
+    ? statuses.filter((status) => status.condition)
+    : [];
+  const activeStatus = visibleStatuses[0] ?? null;
+
+  const triggerActiveStatus = () => {
+    if (!activeStatus) return;
+    if (activeStatus.onAction) activeStatus.onAction();
+  };
+
+  const overviewItems = useMemo(
+    () => SidebarMenus.filter((m) => m.section === "overview"),
+    [],
+  );
+  const manageItems = useMemo(
+    () => SidebarMenus.filter((m) => m.section === "manage" && (m.link !== "/team" || canManageTeam)),
+    [canManageTeam],
+  );
+  const allNavItems = useMemo(
+    () => [...overviewItems, ...manageItems],
+    [overviewItems, manageItems],
+  );
+
+  const renderNavItems = (items: ISidebarMenuItem[]) =>
+    items.map((item, index) => (
+      <SidebarNavItem
+        key={`${item.link}-${item.name}-${index}`}
+        item={item}
+        isActive={isItemActive(item)}
+        collapsed={effectiveCollapsed}
+        badgeCount={pendingBillCount}
+        onFeedbackClick={() => setShowFeedbacks(true)}
+      />
+    ));
+
+  const renderSection = (
+    section: SidebarSection,
+    items: ISidebarMenuItem[],
+    showDividerBefore = false,
+  ) => (
+    <div key={section} className="flex flex-col gap-2">
+      {showDividerBefore && (
+        <div className="mx-auto h-px w-8 bg-[#EBE8F0]" />
+      )}
+      <div className="flex flex-col items-center gap-2">
+        {renderNavItems(items)}
       </div>
-      <section className="flex flex-col justify-between flex-1 mt-6 lg:mt-8 px-1 lg:px-4 gap-4 lg:gap-8 min-h-0">
-        <nav className="flex flex-col gap-2.5">
-          {SidebarMenus.map((item, index) => renderMenuItem(item, index))}
-          <button
-            onClick={() => setShowFeedbacks(true)}
-            title="Feedback & Requests"
-            className={`flex items-center justify-center lg:justify-between gap-2 py-2 px-2 xl:px-3 text-sm leading-tight outline-none hover:bg-[#eaecff]/40 hover:rounded-md
-        ${
-          showFeedbacks
-            ? "bg-[#eaecff]/40 rounded-[6px] text-primary2 font-bold"
-            : "text-raiz-gray-600 font-medium"
+    </div>
+  );
+
+  return (
+    <aside
+      className={`hidden md:flex fixed top-0 bottom-0 left-0 z-20 h-screen flex-col overflow-x-hidden border-r transition-[width] duration-300 ease-in-out ${
+        effectiveCollapsed
+          ? "w-[88px] items-center border-raiz-gray-200 bg-white pb-6 pt-8"
+          : isKyb
+            ? "w-[88px] lg:w-[280px] border-kyb-border bg-white px-4 pb-4 pt-8"
+            : "w-[88px] lg:w-[280px] border-raiz-gray-100 bg-white px-4 pb-4 pt-8"
+      }`}
+    >
+      {/* Brand header */}
+      <div
+        className={`shrink-0 ${
+          effectiveCollapsed
+            ? "mb-8 flex items-center"
+            : "mb-6 flex w-full items-center justify-between px-2"
         }`}
+      >
+        {effectiveCollapsed ? (
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            className="flex items-center outline-none"
+            aria-label="Expand sidebar"
+            title="Expand sidebar"
           >
-            <div className="flex gap-3 items-center justify-center lg:justify-start">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M17 18.43H13L8.54999 21.39C7.88999 21.83 7 21.36 7 20.56V18.43C4 18.43 2 16.43 2 13.43V7.42993C2 4.42993 4 2.42993 7 2.42993H17C20 2.42993 22 4.42993 22 7.42993V13.43C22 16.43 20 18.43 17 18.43Z"
-                  stroke="#A89AB9"
-                  strokeWidth="1.5"
-                  strokeMiterlimit="10"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M11.9998 11.3599V11.1499C11.9998 10.4699 12.4198 10.1099 12.8398 9.81989C13.2498 9.53989 13.6598 9.1799 13.6598 8.5199C13.6598 7.5999 12.9198 6.85986 11.9998 6.85986C11.0798 6.85986 10.3398 7.5999 10.3398 8.5199"
-                  stroke="#A89AB9"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M11.9955 13.75H12.0045"
-                  stroke="#A89AB9"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              <span className="hidden lg:inline text-left">
-                {" "}
-                Feedback & Requests
-              </span>
-            </div>
+            <Image
+              src="/icons/Logo-2.svg"
+              width={40}
+              height={40}
+              alt="Raiz"
+              className="size-10"
+            />
           </button>
+        ) : (
+          <Link href="/" className="flex items-center gap-2.5" title="Raiz">
+            <Image
+              src="/icons/Logo-2.svg"
+              width={40}
+              height={40}
+              alt="Raiz"
+              className="size-10 shrink-0 rounded-[25px]"
+            />
+            <Image
+              src="/icons/sidebar/raiz-wordmark.svg"
+              alt="Raiz"
+              width={54}
+              height={22}
+              className="h-[22px] w-auto"
+            />
+          </Link>
+        )}
+        {!effectiveCollapsed && isLargeDesktop && (
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            aria-label="Collapse sidebar"
+            className="flex size-[18px] items-center justify-center outline-none hover:opacity-70"
+          >
+            <Image
+              src="/icons/sidebar/sidebar-left.svg"
+              alt=""
+              width={18}
+              height={18}
+              className="size-[18px]"
+            />
+          </button>
+        )}
+      </div>
+
+      <section
+        className={`flex min-h-0 flex-1 flex-col ${
+          effectiveCollapsed ? "w-full items-center gap-4" : "gap-4"
+        }`}
+      >
+        <nav
+          className={`flex w-full min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden ${
+            effectiveCollapsed ? "items-center gap-8" : "gap-1"
+          }`}
+        >
+          {effectiveCollapsed ? (
+            <>
+              {renderSection("overview", overviewItems)}
+              {renderSection("manage", manageItems, true)}
+            </>
+          ) : (
+            renderNavItems(allNavItems)
+          )}
+
+          {!isKyb && !effectiveCollapsed && verificationStatus && visibleStatuses.length > 0 && (
+            <div className="mt-auto flex w-full flex-col gap-3 pt-4">
+              {visibleStatuses.map((status) => (
+                <StatusCard key={status.title} {...status} />
+              ))}
+            </div>
+          )}
         </nav>
 
-        {/* User status Info — desktop only (hidden on tablet icon bar) */}
-        <div className="hidden lg:block">
-          {!verificationStatus
-            ? null
-            : statuses.map((status, index) =>
-                status.condition ? (
-                  <StatusCard key={index} {...status} />
-                ) : null,
-              )}
-          {/* <div className="flex gap-2 items-center mt-6">
+        <div
+          className={`relative w-full shrink-0 ${
+            effectiveCollapsed
+              ? "flex flex-col items-center gap-2"
+              : "flex flex-col"
+          }`}
+        >
+          {activeStatus && effectiveCollapsed && (
+            // <SetupLockShortcut onClick={triggerActiveStatus} />
             <button
-              onClick={() => setShowModal("rewards")}
-              className="pl-2 pr-2.5 py-1.5 bg-amber-100 rounded-3xl inline-flex justify-center items-center gap-0.5 overflow-hidden"
+              type="button"
+              onClick={triggerActiveStatus}
+              className="flex size-12 items-center justify-center rounded-xl hover:bg-raiz-gray-50 outline-none"
             >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path
-                  d="M7.99967 1.33333C4.31767 1.33333 1.33301 4.31799 1.33301 7.99999C1.33301 11.682 4.31767 14.6667 7.99967 14.6667C11.6817 14.6667 14.6663 11.682 14.6663 7.99999C14.6663 4.31799 11.6817 1.33333 7.99967 1.33333ZM11.441 7.52466L10.3977 8.53866C10.2403 8.69133 10.1683 8.91199 10.205 9.12866L10.4483 10.5633C10.541 11.108 9.96834 11.5227 9.47967 11.2647L8.19301 10.5853C7.99901 10.4827 7.76701 10.4827 7.57234 10.584L6.28367 11.2587C5.79434 11.5147 5.22301 11.0987 5.31767 10.554L5.56634 9.12066C5.60367 8.90466 5.53234 8.68333 5.37567 8.52999L4.33567 7.51266C3.93967 7.12599 4.15967 6.45399 4.70634 6.37599L6.14634 6.16933C6.36367 6.13799 6.55167 6.00199 6.64901 5.80533L7.29501 4.50199C7.54034 4.00666 8.24701 4.00799 8.49101 4.50399L9.13234 5.80999C9.22901 6.00666 9.41634 6.14333 9.63367 6.17533L11.073 6.38666C11.6197 6.46733 11.837 7.13933 11.441 7.52466Z"
-                  fill="#FBB756"
-                />
-                <path
-                  d="M9.6338 6.17534L11.0731 6.38667C11.6198 6.46734 11.8371 7.13934 11.4405 7.52467L10.3971 8.53867C10.2398 8.69134 10.1678 8.91201 10.2045 9.12867L10.4478 10.5633C10.5405 11.108 9.9678 11.5227 9.47913 11.2647L8.19246 10.5853C7.99846 10.4827 7.76646 10.4827 7.5718 10.584L6.28313 11.2587C5.7938 11.5147 5.22246 11.0987 5.31713 10.554L5.5658 9.12067C5.60313 8.90467 5.5318 8.68401 5.37513 8.53001L4.33513 7.51267C3.9398 7.12601 4.1598 6.45401 4.70646 6.37601L6.14646 6.16934C6.3638 6.13801 6.5518 6.00201 6.64913 5.80534L7.29513 4.50201C7.54046 4.00667 8.24713 4.00801 8.49046 4.50401L9.1318 5.81001C9.22913 6.00667 9.41713 6.14334 9.6338 6.17534Z"
-                  fill="#FCF2E3"
-                />
-              </svg>
-              <span className="justify-start text-zinc-900 text-xs font-normal  leading-tight">
-                {pointsData?.point || 0}
-              </span>
+             <Image src={"/icons/paylink.svg"} width={24} height={24} alt="" />
             </button>
-            <button
-              onClick={() => setShowModal("rewards")}
-              className="pl-2 pr-2.5 py-1.5 bg-amber-100 rounded-3xl inline-flex justify-center items-center gap-0.5 overflow-hidden"
-            >
-              <div className="justify-start text-zinc-900 text-xs font-normal leading-tight">
-                {currentTier?.level || ""}
-              </div>
-            </button>
-          </div> */}
-          <div className="hidden lg:flex justify-between items-center gap-2 mt-6 w-full pb-5 pt-4 border-t border-[#eaecf0]">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <Avatar src={userPfp} name="pfp" size={isXLarge ? 40 : 30} />
-              <div className="flex flex-col gap-0.5 min-w-0">
-                <span className="text-raiz-gray-700 font-semibold lg:text-xs xl:text-sm truncate">
-                  {user?.business_account?.business_name}
-                </span>
-                <span className="text-raiz-gray-600 lg:text-xs xl:text-sm truncate">
-                  {truncateString(user?.email || "", isXLarge ? 20 : 15)}
-                </span>
-              </div>
-            </div>
-            <button
-              className="flex gap-[15px] items-center w-9 h-9 shrink-0"
-              onClick={() => setShowLogoutModal(true)}
-            >
-              <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-                <rect width="36" height="36" rx="18" fill="#F3F1F6" />
-                <path
-                  opacity="0.35"
-                  d="M25.1998 11.7001V24.3001C25.1998 25.7914 23.9911 27.0001 22.4998 27.0001H13.4998C12.0085 27.0001 10.7998 25.7914 10.7998 24.3001V11.7001C10.7998 10.2088 12.0085 9.00006 13.4998 9.00006H22.4998C23.9911 9.00006 25.1998 10.2088 25.1998 11.7001Z"
-                  fill="#B3261E"
-                />
-                <path
-                  d="M23.3998 16.2001H17.0998C16.1053 16.2001 15.2998 17.0056 15.2998 18.0001C15.2998 18.9946 16.1053 19.8001 17.0998 19.8001H23.3998V16.2001Z"
-                  fill="#951F38"
-                />
-                <path
-                  d="M22.1211 21.7179C22.1211 22.4118 22.9581 22.761 23.4513 22.2723L26.955 18.8019C27.4005 18.36 27.4005 17.64 26.955 17.1981L23.4513 13.7277C22.9581 13.2399 22.1211 13.5891 22.1211 14.2821V21.7179Z"
-                  fill="#951F38"
-                />
-              </svg>
-            </button>
-          </div>
+          )}
+
+          {isKyb && !effectiveCollapsed && <section className="mb-6 hidden rounded-lg bg-[#FFFAF5] px-4 py-5 lg:block"><span className="mb-4 flex size-12 items-center justify-center rounded-full bg-white"><Image src="/images/kyb/support.svg" width={24} height={24} alt="" /></span><h2 className="text-sm font-bold">Need a hand getting verified?</h2><p className="mt-2 text-sm leading-5 text-kyb-muted">Our team can help you through your business verification.</p><a href="mailto:support@raiz.app" className="mt-8 flex items-center justify-center gap-3 rounded-full border border-kyb-border bg-white px-6 py-4 text-sm font-bold text-primary2">Contact support <span aria-hidden>→</span></a></section>}
+          <AccountFooter
+            collapsed={effectiveCollapsed}
+            userPfp={userPfp}
+            businessName={user?.business_account?.business_name}
+            email={user?.email}
+            onLogout={() => setShowLogoutModal(true)}
+          />
         </div>
       </section>
+
       <AnimatePresence>
         {showModal ? (
-          <SideModalWrapper
-            close={handleCloseModal}
-            wrapperStyle={showModal === "getNgn" ? "!bg-primary2" : ""}
-          >
+          <SideModalWrapper close={handleCloseModal}>
             {displayModal()}
           </SideModalWrapper>
         ) : null}
@@ -612,6 +522,13 @@ const Sidebar = () => {
       {showFeedbacks && (
         <FeedbacksModal close={() => setShowFeedbacks(false)} />
       )}
+      {usdFlow.bridgeUrl ? (
+        <BridgeToSWebview
+          bridgeUrl={usdFlow.bridgeUrl}
+          close={usdFlow.closeBridgeWebview}
+          onAccepted={usdFlow.handleBridgeTosAccepted}
+        />
+      ) : null}
     </aside>
   );
 };

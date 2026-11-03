@@ -1,113 +1,245 @@
 "use client";
-import CenterModalHeader from "@/components/layouts/CenterModalHeader";
-import SideWrapperHeader from "@/components/SideWrapperHeader";
-import Button from "@/components/ui/Button";
-import { CreateNGNVirtualWalletApi } from "@/services/business";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import Image from "next/image";
-import React from "react";
-import { toast } from "sonner";
+import { withBusinessWrite } from "@/components/team/BusinessWrite";
 
-const list = [
-  {
-    icon: "/icons/send.svg",
-    title: "Send Money",
-    text: "Quickly send Naira to other NGN accounts within Nigeria for seamless transactions.",
-  },
-  {
-    icon: "/icons/receive.svg",
-    title: "Recieve Funds",
-    text: "Accept payments directly in Naira, making it easy to manage local income.",
-  },
-  {
-    icon: "/icons/bank-cards.svg",
-    title: "NGN Virtual Account",
-    text: "Access a secure virtual Naira account for online and in-app transactions.",
-  },
-];
+import DiditVerificationWebview from "@/app/(dashboard)/_components/createNgnAcct/DiditVerificationWebview";
+import Button from "@/components/ui/Button";
+import Spinner from "@/components/ui/Spinner";
+import { useNgnOnboarding } from "@/lib/hooks/useNgnOnboarding";
+import type { NgnKybRequirementStatus } from "@/types/services";
+import { getApiErrorMessage } from "@/utils/helpers";
+import {
+  canResumeNgnKybSession,
+  getCombinedNgnKybActionLabel,
+  getCombinedNgnKybUiState,
+  getNgnKybStepUiState,
+  isNgnRequirementApproved,
+  type NgnKybStepUiState,
+} from "@/utils/ngnKyb";
+import Image from "next/image";
+import React, { useCallback, useEffect, useState } from "react";
 
 const CreateNgnAcct = ({ close }: { close: () => void }) => {
-  const qc = useQueryClient();
-  const NGNWalletMutation = useMutation({
-    mutationFn: CreateNGNVirtualWalletApi,
-    onSuccess: (response) => {
-      toast.success(response?.message);
-      qc.invalidateQueries({ queryKey: ["user"] });
-      close();
-    },
-  });
-  const handleCreate = () => {
-    NGNWalletMutation.mutate();
+  const [hostedUrl, setHostedUrl] = useState<string | null>(null);
+  const [showHostedFlow, setShowHostedFlow] = useState(false);
+  const {
+    requirements,
+    cacStatus,
+    uboStatus,
+    canCreateAccount,
+    isPolling,
+    isLoading,
+    error,
+    refetch,
+    startKybSession,
+    createNgnAccount,
+    isStartingSession,
+    isCreatingAccount,
+  } = useNgnOnboarding({ enabled: true });
+
+  const combinedState = getCombinedNgnKybUiState(requirements);
+  const cacStep = getNgnKybStepUiState(cacStatus);
+  const uboStep = getNgnKybStepUiState(uboStatus);
+  const bothApproved =
+    isNgnRequirementApproved(cacStatus) && isNgnRequirementApproved(uboStatus);
+  const isSavingEvidence = bothApproved && !canCreateAccount;
+  const canStartVerification = canResumeNgnKybSession(combinedState);
+
+  const handleCloseHostedFlow = useCallback(() => {
+    setShowHostedFlow(false);
+    setHostedUrl(null);
+    void refetch();
+  }, [refetch]);
+
+  // Close the Didit webview only when Raiz confirms eligibility.
+  useEffect(() => {
+    if (!showHostedFlow || !canCreateAccount) return;
+    setShowHostedFlow(false);
+    setHostedUrl(null);
+  }, [canCreateAccount, showHostedFlow]);
+
+  const handleStartVerification = async () => {
+    if (isStartingSession || !canStartVerification) return;
+
+    setShowHostedFlow(true);
+    setHostedUrl(null);
+
+    try {
+      const session = await startKybSession();
+      setHostedUrl(session.url);
+      if (!session.url) {
+        // Idempotent resume: URL may be null after cache expiry — show status.
+        setShowHostedFlow(false);
+      }
+    } catch {
+      setShowHostedFlow(false);
+      setHostedUrl(null);
+    }
   };
+
+  const handleCreate = async () => {
+    try {
+      const created = await createNgnAccount();
+      if (created) close();
+    } catch {
+      // Wallet creation errors are already surfaced by the API client.
+    }
+  };
+
   return (
     <>
-      <div className="w-full  xl:max-h-[85vh] lg:max-h-[80vh] flex flex-col font-brSonoma">
-        <CenterModalHeader close={close} />
-        <h2 className="text-xl font-bold text-white mb-4">
-          Create NGN Account
-        </h2>
-        <div className="flex flex-col justify-between gap-8 h-full pb-[30px]">
-          <div className="">
-            <div className="bg-raiz-gray-50 p-6 rounded-[20px] flex flex-col justify-center text-raiz-gray-950  gap-3">
-              <svg
-                width="80"
-                height="80"
-                viewBox="0 0 80 80"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <rect width="80" height="80" rx="40" fill="#FDFFF8" />
-                <path
-                  opacity="0.35"
-                  d="M39.5001 63.8334C52.3867 63.8334 62.8334 53.3867 62.8334 40.5001C62.8334 27.6134 52.3867 17.1667 39.5001 17.1667C26.6134 17.1667 16.1667 27.6134 16.1667 40.5001C16.1667 53.3867 26.6134 63.8334 39.5001 63.8334Z"
-                  fill="#7EB7B7"
+      <div className="flex w-full flex-col font-brSonoma">
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold leading-[1.2] text-raiz-gray-950">
+              Set Up Your NGN Account
+            </h2>
+            <p className="mt-1.5 text-[13px] leading-normal text-raiz-gray-600">
+              Verify UBO identity and CAC document in one step to activate your
+              NGN account
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={close}
+            aria-label="Close NGN account setup"
+            className="rounded-full bg-raiz-gray-100 p-2"
+          >
+            <Image src="/icons/close.svg" width={16} height={16} alt="" />
+          </button>
+        </div>
+
+        {error ? (
+          <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {getApiErrorMessage(
+              error,
+              "Unable to load NGN verification requirements.",
+            )}
+          </p>
+        ) : null}
+
+        {isLoading ? (
+          <div className="flex min-h-[240px] items-center justify-center">
+            <Spinner className="!h-6 !w-6 !border-t-2 !border-b-2" />
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            <div className="flex w-full flex-col gap-4 rounded-[20px] border border-[#EAECF0] bg-white p-5">
+              <div className="flex flex-col gap-2">
+                <p className="text-sm font-bold leading-[1.2] text-raiz-gray-950">
+                  Business verification
+                </p>
+                <p className="text-[13px] leading-normal text-raiz-gray-600">
+                  Government ID, liveness check, and CAC document collection
+                  happen in a single secure flow.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <RequirementDetail
+                  label="CAC document"
+                  status={cacStatus}
+                  state={cacStep}
                 />
-                <path
-                  d="M44.0243 52.1666C42.6406 52.1666 41.3992 51.3126 40.9069 50.0176L36.3172 37.9636H36.2216L36.3313 49.8799C36.3453 51.1399 35.3256 52.1666 34.0656 52.1666H33.9046C32.6539 52.1666 31.6389 51.1516 31.6389 49.9009V32.1699C31.6389 30.3266 33.1322 28.8333 34.9756 28.8333H35.1273C36.5203 28.8333 37.7662 29.6989 38.2539 31.0033L42.8156 43.2346H42.9113L42.8296 31.1129C42.8203 29.8576 43.8376 28.8333 45.0952 28.8333C46.3459 28.8333 47.3609 29.8483 47.3609 31.0989V48.8299C47.3609 50.6733 45.8676 52.1666 44.0243 52.1666Z"
-                  fill="#5E6CE9"
+                <RequirementDetail
+                  label="UBO identity & liveness"
+                  status={uboStatus}
+                  state={uboStep}
                 />
-              </svg>
-              <h3 className=" xl:text-xl text-lg font-bold leading-normal mt-2">
-                What you get with your Naira account
-              </h3>
-              <p className="xl:text-sm text-xs font-normal  leading-tight">
-                An NGN account lets you hold, send, and receive Naira, making
-                local payments and transfers simple for daily finances in
-                Nigeria.
-              </p>
-            </div>
-            <div className="bg-raiz-gray-50 p-6 rounded-[20px] flex flex-col gap-[22px] mt-[30px]">
-              {list.map((each, index) => (
-                <div key={index} className="flex gap-4 items-start ">
-                  <Image
-                    src={each.icon}
-                    alt={each.title}
-                    width={30}
-                    height={30}
-                  />
-                  <div className=" flex flex-col gap-1">
-                    <h6 className="text-[13px] xl:text-sm font-bold  leading-[16.80px]">
-                      {each.title}
-                    </h6>
-                    <p className=" text-xs xl:text-[13px] font-normal leading-tight">
-                      {each.text}
-                    </p>
-                  </div>
-                </div>
-              ))}
+              </div>
+
+              {!canCreateAccount ? (
+                <Button
+                  onClick={handleStartVerification}
+                  loading={isStartingSession}
+                  disabled={!canStartVerification || isStartingSession}
+                  className={
+                    !canStartVerification
+                      ? "!bg-raiz-gray-100 !text-raiz-gray-500"
+                      : ""
+                  }
+                >
+                  {getCombinedNgnKybActionLabel(combinedState)}
+                </Button>
+              ) : null}
             </div>
           </div>
+        )}
+
+        {isSavingEvidence ? (
+          <p className="mt-4 text-center text-[13px] text-raiz-gray-600">
+            Saving verification evidence. This page will update automatically.
+          </p>
+        ) : combinedState === "review" && isPolling ? (
+          <p className="mt-4 text-center text-[13px] text-raiz-gray-600">
+            Verification is under review. This page will update automatically.
+          </p>
+        ) : combinedState === "continue" ? (
+          <p className="mt-4 text-center text-[13px] text-raiz-gray-600">
+            You can continue your verification session, or wait while we update
+            status automatically.
+          </p>
+        ) : null}
+
+        {canCreateAccount ? (
           <Button
             onClick={handleCreate}
-            loading={NGNWalletMutation.isPending}
-            className="bg-primary disabled:!bg-slate-500  "
+            loading={isCreatingAccount}
+            className="mt-6"
           >
             Create NGN Account
           </Button>
-        </div>
+        ) : null}
       </div>
+
+      {showHostedFlow ? (
+        <DiditVerificationWebview
+          url={hostedUrl}
+          isLoading={isStartingSession && !hostedUrl}
+          close={handleCloseHostedFlow}
+        />
+      ) : null}
     </>
   );
 };
 
-export default CreateNgnAcct;
+function RequirementDetail({
+  label,
+  status,
+  state,
+}: {
+  label: string;
+  status?: NgnKybRequirementStatus;
+  state: NgnKybStepUiState;
+}) {
+  const isComplete = state === "completed";
+
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-[#EAECF0] bg-raiz-gray-50 px-3 py-2.5">
+      <div className="flex items-center gap-2">
+        <span
+          className={`flex size-5 items-center justify-center rounded-full text-[10px] font-bold ${
+            isComplete
+              ? "bg-[#9BCF53] text-white"
+              : "bg-raiz-gray-200 text-raiz-gray-600"
+          }`}
+        >
+          {isComplete ? "✓" : "·"}
+        </span>
+        <p className="text-xs font-semibold text-raiz-gray-950 sm:text-[13px]">
+          {label}
+        </p>
+      </div>
+      {status && state !== "start" ? (
+        <span className="text-[11px] capitalize text-raiz-gray-500 sm:text-xs">
+          {status.replace(/_/g, " ")}
+        </span>
+      ) : (
+        <span className="text-[11px] text-raiz-gray-500 sm:text-xs">
+          Not started
+        </span>
+      )}
+    </div>
+  );
+}
+
+export default withBusinessWrite(CreateNgnAcct);

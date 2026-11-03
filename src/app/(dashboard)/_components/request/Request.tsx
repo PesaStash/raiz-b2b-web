@@ -1,4 +1,5 @@
 "use client";
+import { withBusinessWrite } from "@/components/team/BusinessWrite";
 import React, { useState } from "react";
 import RequestHome from "./RequestHome";
 import AllRequests from "./AllRequests";
@@ -49,4 +50,4 @@ const Request = ({ close }: Props) => {
   return <>{displayScreen()}</>;
 };
 
-export default Request;
+export default withBusinessWrite(Request);

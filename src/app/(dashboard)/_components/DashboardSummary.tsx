@@ -1,5 +1,9 @@
 "use client";
+import { usePermissions } from "@/lib/hooks/usePermissions";
+
 import React, { useEffect, useState } from "react";
+import GlobalDashboard from "./global/GlobalDashboard";
+import { isGlobalBalance } from "@/lib/globalBalance";
 import { AnimatePresence } from "motion/react";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import NgnSend from "./send/naira/NgnSend";
@@ -9,7 +13,6 @@ import { determineSwapPair, findWalletByCurrency } from "@/utils/helpers";
 import { useUser } from "@/lib/hooks/useUser";
 import Request from "./request/Request";
 import { useSendStore } from "@/store/Send";
-import { useUserStore } from "@/store/useUserStore";
 import { toast } from "sonner";
 import Swap from "./swap/Swap";
 import { useSwapStore } from "@/store/Swap";
@@ -23,29 +26,42 @@ import NGNAcctInfo from "./acctInfo/NGNAcctInfo";
 import USDAcctInfo from "./acctInfo/USDAcctInfo";
 import DashboardAnalytics from "./charts/DashboardAnalytics";
 import UsdTopUp from "./topUp/UsdTopup/UsdTopUp";
+import NgnTopUp from "./topUp/NgnTopup/NgnTopUp";
 import { useTopupStore } from "@/store/TopUp";
 import { CurrencyTypeKey } from "@/store/Swap/swapSlice.types";
 import AccountUpgrade from "./AccountUpgrade";
+import { useUsdOnboardingStatus } from "@/lib/hooks/useUsdOnboarding";
 import Loading from "@/app/loading";
+import { getOnboardingBranchState } from "@/utils/onboardingBranch";
 import ExchangeRateCard from "./exchangeRate/ExchangeRateCard";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 import CryptoSwap from "./crypto/swap/CryptoSwap";
-import { ACCOUNT_CURRENCIES } from "@/constants/misc";
 import CryptoSend from "./crypto/send/CryptoSend";
 import ForeignSend from "./send/foreign/ForeignSend";
 import ForeignAcctInfo from "./acctInfo/ForeignAcctInfo";
 import MobileWalletCarousel from "@/components/mobile/MobileWalletCarousel";
 import MobileQuickActions from "@/components/mobile/MobileQuickActions";
+import { pushDataLayerEvent } from "@/utils/analytics/dataLayer";
+import {
+  getAnalyticsUserId,
+  getAnalyticsUserType,
+} from "@/utils/analytics/userProps";
+import {
+  GetItemFromLocalStorage,
+  SetItemToLocalStorage,
+} from "@/utils/localStorageFunc";
 
 type actionBtnKeytype = "send" | "request" | "topUp" | "details";
 
+const PROFILE_COMPLETED_KEY = "raiz_profile_completed_fired";
+
 const DashboardSummary = () => {
   const { user, refetch, isLoading } = useUser();
+  const { canWriteBusiness } = usePermissions();
   const walletData = user?.business_account?.wallets;
-  const { currency, actions: sendActions } = useSendStore();
-  const { actions, swapFromCurrency, swapToCurrency } = useSwapStore();
+  const { actions: sendActions } = useSendStore();
+  const { actions } = useSwapStore();
   const { actions: topupActions } = useTopupStore();
-  const { setShowBalance, showBalance } = useUserStore();
   const { selectedCurrency } = useCurrencyStore();
   const [openModal, setOpenModal] = useState<
     | actionBtnKeytype
@@ -64,14 +80,26 @@ const DashboardSummary = () => {
   const SBCAcct = findWalletByCurrency(user, "SBC");
   const verificationStatus =
     user?.business_account?.business_verifications?.[0]?.verification_status;
+  const { data: usdCase } = useUsdOnboardingStatus(user);
+  const branchState = getOnboardingBranchState(user, verificationStatus, usdCase);
 
-  // const currentWallet = useMemo(() => {
-  //   if (!user || !user?.business_account?.wallets || !selectedCurrency?.name)
-  //     return null;
-  //   return user?.business_account?.wallets.find(
-  //     (wallet) => wallet.wallet_type.currency === selectedCurrency.name
-  //   );
-  // }, [user, selectedCurrency]);
+  useEffect(() => {
+    if (!branchState.showDashboard || !user) return;
+    const userId = getAnalyticsUserId(user);
+    if (!userId) return;
+    const firedKey = `${PROFILE_COMPLETED_KEY}:${userId}`;
+    if (GetItemFromLocalStorage(firedKey)) return;
+    pushDataLayerEvent(
+      "profile_completed",
+      {
+        completion_percent: 100,
+        user_type: getAnalyticsUserType(),
+      },
+      { dedupId: `profile_completed:${userId}` },
+    );
+    SetItemToLocalStorage(firedKey, true);
+  }, [branchState.showDashboard, user]);
+
 
   const getCurrentWallet = () => {
     if (selectedCurrency.name === "NGN") {
@@ -88,6 +116,8 @@ const DashboardSummary = () => {
   };
 
   const currentWallet = getCurrentWallet();
+  const hasDedicatedTopUp =
+    selectedCurrency?.name === "USD" || selectedCurrency?.name === "NGN";
 
   const closeModal = () => {
     setOpenModal(null);
@@ -97,12 +127,20 @@ const DashboardSummary = () => {
 
   const closeSwapModal = () => {
     setOpenModal(null);
-    actions.reset();
+    actions.reset(user);
   };
 
-  const canSwap = NGNAcct && USDAcct;
-
   const handleActionButton = (action: actionBtnKeytype) => {
+    if (
+      branchState.isNgnBranch &&
+      !branchState.isVerificationComplete &&
+      selectedCurrency.name !== "NGN"
+    ) {
+      toast.warning(
+        "Complete account verification to access other currency accounts.",
+      );
+      return;
+    }
     if (!currentWallet) {
       toast.warning(
         "You do not have an account for this currency. Create one first!",
@@ -118,7 +156,16 @@ const DashboardSummary = () => {
     }
   };
 
-  const handleSwapClick = () => {
+  const handleSwapClick = (amount?: string, sourceCurrency?: "USD" | "NGN") => {
+    if (
+      branchState.isNgnBranch &&
+      !branchState.isVerificationComplete
+    ) {
+      toast.warning(
+        "Complete account verification to access swap and other currency features.",
+      );
+      return;
+    }
     if (!walletData || walletData.length < 2) {
       toast.warning("You need at least two wallets to use swap");
       return;
@@ -126,7 +173,7 @@ const DashboardSummary = () => {
 
     // Determine the appropriate swap pair based on current currency
     const swapPair = determineSwapPair(
-      selectedCurrency.name as CurrencyTypeKey,
+      (sourceCurrency ?? selectedCurrency.name) as CurrencyTypeKey,
       walletData,
     );
 
@@ -142,6 +189,7 @@ const DashboardSummary = () => {
     );
 
     if (success) {
+      if (amount !== undefined) actions.setAmount(amount);
       setOpenModal("swap");
     } else {
       toast.error("This swap pair is not allowed. Please swap through USD.");
@@ -177,7 +225,7 @@ const DashboardSummary = () => {
           <Swap close={closeSwapModal} />
         );
       case "topUp":
-        return selectedCurrency?.name !== "USD" ? <TopUp close={closeModal} /> : null;
+        return !hasDedicatedTopUp ? <TopUp close={closeModal} /> : null;
       case "createNGN":
         return (
           <CreateNgnAcct
@@ -286,40 +334,32 @@ const DashboardSummary = () => {
     refetch();
   }, [pathName, refetch]);
 
+  const redesigned = branchState.showDashboard && (isGlobalBalance(user?.business_account) || selectedCurrency.name === "USD" || selectedCurrency.name === "NGN");
+
   return (
     <div className="w-full">
+      {redesigned ? <>
+        <GlobalDashboard onAction={handleActionButton} onConvert={handleSwapClick} onCreateNgn={openNGNModal} />
+        <Infos isNgnBranch={branchState.isNgnBranch} hideAccountPrompts={isGlobalBalance(user?.business_account)} />
+      </> : <>
       {/* Accts */}
-      {/* <div className="flex items-center justify-between mb-6">
-        <h2 className="text-raiz-gray-950 text-2xl  font-bold leading-7">
-          {currentWallet
-            ? `${currentWallet?.wallet_type.currency} Account`
-            : "Account"}
-        </h2>
-        <button
-          onClick={() => setOpenModal("selectAcct")}
-          className="px-3 py-1 bg-violet-100/60 rounded-3xl inline-flex justify-center items-center gap-2"
-        >
-          <span className=" text-zinc-700 text-sm font-semibold font-brSonoma leading-tight">
-            Switch Account
-          </span>
-          <Image
-            src={"/icons/arrow-down.svg"}
-            width={18}
-            height={18}
-            alt="arrow down"
-          />
-        </button>
-      </div> */}
       {/* Mobile: wallets + quick actions */}
-      {verificationStatus === "completed" && (
+      {branchState.showDashboard && (
         <div className="lg:hidden">
           <MobileWalletCarousel />
           <MobileQuickActions
             onSend={() => handleActionButton("send")}
             onReceive={() => handleActionButton("request")}
-            onAddFunds={() => handleActionButton("topUp")}
-            onSwap={handleSwapClick}
-            hideSwap={!canSwap || selectedCurrency.name === "SBC"}
+            onAddFunds={() => {
+              if (selectedCurrency.name === "SBC") {
+                toast.warning(
+                  "Add funds is not available for your crypto wallet.",
+                );
+                return;
+              }
+              handleActionButton("topUp");
+            }}
+            onSwap={() => handleSwapClick()}
           />
         </div>
       )}
@@ -331,7 +371,7 @@ const DashboardSummary = () => {
           Hi, {user?.first_name} 👋🏾{" "}
         </h1>
         <div className="flex flex-wrap gap-2 md:gap-4 items-center">
-          {actionBtnsOpts.map(({ name, key, icon }) => {
+          {(canWriteBusiness ? actionBtnsOpts : []).map(({ name, key, icon }) => {
             const isSwap = key === "swap";
             if (
               key !== "swap" &&
@@ -363,17 +403,16 @@ const DashboardSummary = () => {
         </div>
       </div>
 
-      {/* <CustomersInfo /> */}
 
       {isLoading ? (
         <div className="flex justify-center items-center h-[50vh]">
           <Loading />
         </div>
-      ) : verificationStatus !== "completed" ? (
+      ) : branchState.showAccountUpgrade ? (
         <AccountUpgrade />
       ) : (
         <>
-          <Infos />
+          <Infos isNgnBranch={branchState.isNgnBranch} />
           <div className="flex flex-col lg:flex-row justify-between gap-6 lg:gap-8 mt-6 md:mt-8 min-w-0">
             <div className="hidden lg:block w-full lg:w-1/2  min-w-0">
               <DashboardAnalytics />
@@ -383,24 +422,16 @@ const DashboardSummary = () => {
         </>
       )}
 
-      {/* <SalesReport /> */}
 
+      </>}
       <AnimatePresence>
         {openModal !== null &&
         openModal !== "selectAcct" &&
-        (openModal !== "topUp" || selectedCurrency?.name !== "USD") ? (
+        (openModal !== "topUp" || !hasDedicatedTopUp) ? (
           <CenterModalWrapper
             close={closeModal}
             wrapperStyle={
-              openModal === "createNGN"
-                ? "!bg-primary2"
-                : openModal === "createCrypto"
-                  ? "!bg-raiz-crypto-primary"
-                  // : selectedCurrency?.name === "GBP"
-                  //   ? "!bg-raiz-gbp-primary"
-                  //   : selectedCurrency?.name === "EUR"
-                  //     ? "!bg-raiz-eur-primary"
-                      : ""
+              openModal === "createCrypto" ? "!bg-raiz-crypto-primary" : ""
             }
           >
             {displayScreen()}
@@ -412,10 +443,16 @@ const DashboardSummary = () => {
           close={() => setOpenModal(null)}
           openNgnModal={openNGNModal}
           openCryptoModal={openCryptoModal}
+          isNgnBranch={
+            branchState.isNgnBranch && !branchState.isVerificationComplete
+          }
         />
       )}
       {openModal === "topUp" && selectedCurrency?.name === "USD" && (
         <UsdTopUp close={closeModal} />
+      )}
+      {openModal === "topUp" && selectedCurrency?.name === "NGN" && (
+        <NgnTopUp close={closeModal} />
       )}
       {showAcctInfo && selectedCurrency ? (
         selectedCurrency.name === "NGN" ? (
@@ -432,7 +469,6 @@ const DashboardSummary = () => {
           <></>
         )
       ) : null}
-      {/* {successful && <NgnSuccessModal close={() => setSuccessful(false)} />} */}
     </div>
   );
 };

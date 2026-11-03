@@ -1,5 +1,5 @@
 import { IBeneficiaryBank } from "@/app/(dashboard)/_components/send/usd/bankTransfer/toGlobal/BankSelectModal";
-import { IChain, IPagination } from "./misc";
+import { IChain, ICrossCurrencies, IPagination } from "./misc";
 import {
   IBillRequest,
   IPaymentMethod,
@@ -106,7 +106,8 @@ export interface ITxnReportCategoryResponse {
 }
 
 export interface ITransactionParams {
-  wallet_id: string;
+  wallet_id?: string;
+  currency?: string;
   transaction_status_id?: number | null;
   transaction_type_id?: number | null;
   transaction_class_id?: number | null;
@@ -344,6 +345,13 @@ export type NormalizedIntBeneficiaryFormFields = Record<
   NormalizedIntBeneficiaryCountryFields
 >;
 
+export type UsdBeneficiaryAccountType = "checking" | "savings";
+export type UsdBeneficiaryPaymentRail = "ach" | "wire" | "ach_same_day" | "rtp";
+
+export type UsdBeneficiaryFormFieldsResponse = Partial<
+  Record<IUsBeneficiaryOptionType, FormField[]>
+>;
+
 export interface IUsBeneficiaryPayload {
   optionType: IUsBeneficiaryOptionType;
   label: string;
@@ -351,14 +359,14 @@ export interface IUsBeneficiaryPayload {
     bank_name: string;
     account_number: string;
     routing_number: string;
-    account_type: "checking" | "savings";
+    account_type: UsdBeneficiaryAccountType;
     account_owner_name: string;
     street_line_1: string;
     street_line_2: string | null;
     city: string;
     state: string;
     postal_code: string;
-    payment_rail: "ach" | "wire" | "ach-same-day";
+    payment_rail: UsdBeneficiaryPaymentRail;
   };
 }
 
@@ -386,7 +394,9 @@ export interface UsdBeneficiary {
   created_at: string;
   updated_at: string;
   account_number: string;
-  payment_rail: "ach" | "wire" | "ach-same-day";
+  routing_number?: string | null;
+  bank_name?: string | null;
+  payment_rail: UsdBeneficiaryPaymentRail;
 }
 
 export interface EntityBeneficiary {
@@ -403,6 +413,25 @@ export interface EntityBeneficiary {
 export interface IUsBeneficiariesResponse {
   pagination_details: IPagination;
   beneficiaries: EntityBeneficiary[];
+}
+
+export interface IThirdPartyUsdBeneficiary {
+  third_party_usd_beneficiary_id: string;
+  third_party_name: string;
+  account_name: string;
+  account_number: string;
+  routing_number: string;
+  address: string;
+  city: string;
+  state: string;
+  zip_code: string;
+  bank_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface IThirdPartyUsdBeneficiariesResponse {
+  data: IThirdPartyUsdBeneficiary[];
 }
 
 export type ForeignCurrency = "GBP" | "EUR";
@@ -518,7 +547,7 @@ export interface IIntBeneficiariesParams {
 
 export interface ForeignPayoutBeneficiary {
   beneficiary_name: string;
-  beneficiary_id: string;
+  beneficiary_id: string | null;
   beneficiary_currency: string;
   beneficiary_country: string;
   beneficiary_creation_status: string;
@@ -546,8 +575,42 @@ export interface IIntBeneficiariesResponse {
   beneficiaries: EntityForeignPayoutBeneficiary[];
 }
 
-export type IntCountryType =
+export type AfricanRemittanceCountryCode =
+  | "AO" // Angola
+  | "BF" // Burkina Faso
+  | "BJ" // Benin
+  | "BW" // Botswana
+  | "CD" // Democratic Republic of Congo
+  | "CG" // Congo
+  | "CI" // Ivory Coast
+  | "CM" // Cameroon
+  | "DZ" // Algeria
+  | "EG" // Egypt
+  | "ET" // Ethiopia
+  | "GA" // Gabon
   | "GH" // Ghana
+  | "GM" // Gambia
+  | "GN" // Guinea
+  | "KE" // Kenya
+  | "LR" // Liberia
+  | "MA" // Morocco
+  | "ML" // Mali
+  | "MR" // Mauritania
+  | "MU" // Mauritius
+  | "MW" // Malawi
+  | "NE" // Niger
+  | "NG" // Nigeria
+  | "RW" // Rwanda
+  | "SL" // Sierra Leone
+  | "SN" // Senegal
+  | "TG" // Togo
+  | "TZ" // Tanzania
+  | "UG" // Uganda
+  | "ZA" // South Africa
+  | "ZM"; // Zambia
+
+export type IntCountryType =
+  | AfricanRemittanceCountryCode
   | "AU" // Australia
   | "AT" // Austria
   | "AD" // Andorra
@@ -583,25 +646,9 @@ export type IntCountryType =
   | "SM" // San Marino
   | "VA" // Vatican City
   | "CN" // China
-  | "KE" // Kenya
-  | "UG" // Uganda
-  | "NG" // Nigeria
-  | "TZ" // Tanzania
-  | "ZM" // Zambia
-  | "MW" // Malawi
   | "GB" // United Kingdom
-  | "BF" // Burkina Faso
-  | "CM" // Cameroon
-  | "SN" // Senegal
-  | "RW" // Rwanda
-  | "GN" // Guinea
-  | "ML" // Mali
-  | "TG" // Togo
   | "AE" // United Arab Emirates
-  | "FR" // France
-  | "CI" // Ivory Coast
-  | "BJ" // Benin
-  | "CD"; // Democratic Republic of Congo
+  | "FR"; // France
 
 export type IntCurrencyCode =
   | "USD" // United States
@@ -623,7 +670,19 @@ export type IntCurrencyCode =
   | "AED" // United Arab Emirates
   | "XOF" // West African CFA Franc (Benin, Burkina Faso, Ivory Coast, Mali, Niger, Senegal, Togo)
   | "XAF" // Central African CFA Franc (Cameroon, Central African Republic, Chad, Congo, Equatorial Guinea, Gabon)
-  | "CDF"; // Democratic Republic of Congo
+  | "CDF" // Democratic Republic of Congo
+  | "EGP" // Egypt
+  | "ETB" // Ethiopia
+  | "ZAR" // South Africa
+  | "SLE" // Sierra Leone
+  | "LRD" // Liberia
+  | "GMD" // Gambia
+  | "MAD" // Morocco
+  | "AOA" // Angola
+  | "BWP" // Botswana
+  | "DZD" // Algeria
+  | "MRU" // Mauritania
+  | "MUR"; // Mauritius
 
 export interface IIntBeneficiaryPayload {
   customer_email: string | null;
@@ -700,16 +759,56 @@ export interface IPaymentNetwork {
   account_type: string;
 }
 
+export type AfricaPayinQuoteDirection = "usd_to_local" | "local_to_usd";
+
+export interface AfricaPayinQuoteParams {
+  currency: string;
+  amount: number;
+  direction: AfricaPayinQuoteDirection;
+}
+
+export interface AfricaPayinQuoteResponse {
+  currency: string;
+  rate: number;
+  usd_amount: number;
+  local_amount: number;
+  direction: AfricaPayinQuoteDirection;
+  generated_at: string;
+}
+
+export type AfricaCollectionMethodInput = "bank" | "momo";
+
+export type AfricaCollectionMethod = "bank" | "momo" | string;
+
+export type AfricaPayinTransactionStatus =
+  | "created"
+  | "pending_approval"
+  | "process"
+  | "processing"
+  | "pending"
+  | "complete"
+  | "completed"
+  | "failed"
+  | "expired"
+  | "cancelled"
+  | "canceled"
+  | string;
+
+export interface AfricaCollectionRequest {
+  channel_id: string;
+  account_type: AfricaCollectionMethodInput;
+  amount: number;
+  transaction_description: string;
+  network_id?: string | null;
+  account_number?: string | null;
+  sender_name?: string | null;
+  payer_email?: string | null;
+  payer_id?: string | null;
+  metadata?: Record<string, unknown> | null;
+}
+
 export interface InitiateAfricaPayinPayload {
-  data: {
-    channel_id: string;
-    network_id?: string | null;
-    account_type: string;
-    account_number?: string | null;
-    amount: number;
-    sender_name: string;
-    transaction_description: string;
-  };
+  data: AfricaCollectionRequest;
   username: string;
 }
 
@@ -719,13 +818,72 @@ export interface InitiateAfricaPayinResponse {
   payout_amount: number;
   rate: number;
   payout_currency: string;
-  expires_at: Date;
+  expires_at: string;
+  provider?: string | null;
+  collection_method?: AfricaCollectionMethod | null;
+  transaction_status?: AfricaPayinTransactionStatus | null;
+  onramp_status?: string | null;
 }
 
 export interface FinalizeAfricaPayinResponse extends InitiateAfricaPayinResponse {
-  collection_account_number: string;
-  collection_bank_name: string;
-  collection_account_name: string;
+  collection_account_number?: string | null;
+  collection_bank_name?: string | null;
+  collection_account_name?: string | null;
+  payment_instruction?: string | null;
+}
+
+export interface AfricaPayinStatusResponse {
+  transaction_status?: AfricaPayinTransactionStatus | null;
+  onramp_status?: string | null;
+  status?: AfricaPayinTransactionStatus | null;
+}
+
+export interface AfricaPayinCountry {
+  country_code: string;
+  country_name: string;
+  currency: string;
+}
+
+export interface RaizPaymentsPayerReadiness {
+  exists: boolean;
+  email_verified: boolean;
+  payer_id?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  country_code?: string | null;
+}
+
+export interface RaizPaymentsPayerProfile {
+  payer_id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  country_code: string;
+  email_verified: boolean;
+  email_verified_at?: string | null;
+}
+
+export interface RaizPaymentsPayerRegisterPayload {
+  email: string;
+  first_name: string;
+  last_name: string;
+  phone_number: string;
+  country_code: string;
+  address: string;
+  dob: string;
+  id_type: string;
+  id_number: string;
+}
+
+export interface InitiateFirstPartyAfricaPayinPayload {
+  data: AfricaCollectionRequest;
+  wallet_id: string;
+  /** Retain across retries of the same logical initiate. */
+  idempotencyKey?: string;
+}
+
+export interface FinalizeFirstPartyAfricaPayinPayload {
+  payin_id: string;
 }
 
 export interface FeedbackPayload {
@@ -762,6 +920,39 @@ export interface IBusinessVerificationPayload {
   building_number: string | null;
   city: string | null;
   length_of_stay_months: number | null;
+}
+
+export type NgnKybRequirementStatus =
+  | "not_started"
+  | "pending"
+  | "review"
+  | "approved"
+  | "completed"
+  | "declined"
+  | "expired"
+  | "abandoned";
+
+export interface INgnVerificationRequirements {
+  cac_document_status: NgnKybRequirementStatus;
+  cac_document_session_id: string | null;
+  cac_document_url: string | null;
+  cac_document_verified_at: string | null;
+  ubo_status: NgnKybRequirementStatus;
+  ubo_session_id: string | null;
+  ubo_verified_at: string | null;
+  ubo_business_account_user_id: string | null;
+  has_ubo_government_id: boolean;
+  has_ubo_liveness: boolean;
+  can_create_ngn_account: boolean;
+}
+
+export interface INgnKybSessionResponse {
+  session_id: string;
+  session_token: string | null;
+  url: string | null;
+  status: string;
+  session_kind: string;
+  workflow_id: string;
 }
 
 export interface IInvoiceSettingsPayload {
@@ -851,10 +1042,10 @@ export interface IDeveloperApiKey {
   environment: string;
   permissions: string[];
   is_active: boolean;
-  last_used_at: string;
-  expires_at: string;
+  last_used_at: string | null;
+  expires_at: string | null;
   created_at: string;
-  raw_key: string;
+  raw_key?: string;
 }
 
 export interface IGenerateDeveloperKeysAPI {
@@ -883,6 +1074,94 @@ export interface IAPIKeyLogs {
 export interface IAPIKeyLogsResponse {
   logs: IAPIKeyLogs[];
   total: number;
+}
+
+export type NgnPayoutBlocker =
+  | "missing_completed_ngn_wallet"
+  | "source_wallet_not_completed_or_usable"
+  | "kyb_incomplete"
+  | "missing_per_transaction_limit"
+  | "missing_daily_limit"
+  | "per_transaction_limit_exceeds_daily_limit"
+  | "missing_manual_approval_threshold";
+
+export type NgnPayoutKybStatus =
+  | "not_started"
+  | "pending"
+  | "completed"
+  | "failed"
+  | string;
+
+export type NgnPayoutDestinationType = "nigerian_bank_account";
+
+export interface INgnPayoutSettings {
+  business_gateway_ngn_payout_settings_id: string;
+  business_account_id: string;
+  enabled: boolean;
+  source_wallet_id: string | null;
+  per_transaction_limit_ngn: string | number | null;
+  daily_limit_ngn: string | number | null;
+  manual_approval_enabled: boolean;
+  manual_approval_threshold_ngn: string | number | null;
+  allowed_destination_type: NgnPayoutDestinationType;
+  source_wallet_status: string | null;
+  kyb_status: NgnPayoutKybStatus;
+  can_enable: boolean;
+  blockers: NgnPayoutBlocker[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface IUpdateNgnPayoutSettingsPayload {
+  enabled?: boolean;
+  source_wallet_id?: string | null;
+  per_transaction_limit_ngn?: string | number | null;
+  daily_limit_ngn?: string | number | null;
+  manual_approval_enabled?: boolean;
+  manual_approval_threshold_ngn?: string | number | null;
+  allowed_destination_type?: NgnPayoutDestinationType;
+}
+
+export interface IDeveloperPermission {
+  key: string;
+  label: string;
+  description: string;
+  group: string;
+}
+
+export interface IGatewayWebhook {
+  id: string;
+  business_id: string;
+  webhook_url: string;
+  events: string[];
+  is_active: boolean;
+  failure_count: number;
+  last_success_at: string | null;
+  last_failure_at: string | null;
+  created_at: string;
+  raw_secret?: string | null;
+}
+
+export interface ICreateGatewayWebhookPayload {
+  webhook_url: string;
+  events: string[];
+  secret?: string | null;
+}
+
+export interface IUpdateGatewayWebhookPayload {
+  webhook_url?: string;
+  events?: string[];
+  is_active?: boolean;
+}
+
+export interface ITestGatewayWebhookPayload {
+  event_type: string;
+  payload: Record<string, unknown>;
+}
+
+export interface ITestGatewayWebhookResponse {
+  success: boolean;
+  message: string;
 }
 
 export interface IAlipayWechatRateResponse {
@@ -950,6 +1229,120 @@ export interface IAlipayWechatSendPayload {
   transaction_pin: string;
 }
 
+export type SwiftBeneficiaryType = "individual" | "business";
+export type SwiftRequestStatus = "pending" | "completed" | "failed";
+
+export interface ISwiftPagination {
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+
+export interface ISwiftBeneficiary {
+  swift_beneficiary_id: string;
+  entity_id: string;
+  country: string;
+  label: string;
+  account_name: string;
+  account_number_or_iban: string;
+  swift_code: string;
+  beneficiary_type: SwiftBeneficiaryType;
+  bank_name: string;
+  beneficiary_address: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  ranking: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ISwiftCreateBeneficiaryPayload {
+  country: string;
+  label: string;
+  account_name: string;
+  account_number_or_iban: string;
+  swift_code: string;
+  beneficiary_type: SwiftBeneficiaryType;
+  bank_name: string;
+  beneficiary_address: string;
+  city: string;
+  state: string;
+  postal_code: string;
+}
+
+export interface ISwiftBeneficiariesResponse {
+  beneficiaries: ISwiftBeneficiary[];
+  pagination: ISwiftPagination;
+}
+
+export interface ISwiftTransactionReportDetails {
+  swift_transaction_request_id: string;
+  beneficiary_id: string;
+  recipient_name: string;
+  country: string;
+  account_number_or_iban: string;
+  swift_code: string;
+  bank_name: string;
+  status: SwiftRequestStatus;
+  payment_proof_url: string | null;
+  invoice_url: string | null;
+}
+
+export interface ISwiftSendResponse {
+  swift_transaction_request_id: string;
+  entity_id: string;
+  wallet_id: string;
+  beneficiary_id: string;
+  amount: string;
+  fee_amount: string;
+  status: SwiftRequestStatus;
+  narration: string;
+  invoice_url: string | null;
+  initiated_at: string;
+  liquidated_at: string | null;
+  transaction_report_id: string | null;
+  original_ledger_transaction_id: string | null;
+  reversal_ledger_transaction_id: string | null;
+  payment_proof_url: string | null;
+  created_at: string;
+  updated_at: string;
+  transaction_report?: {
+    transaction_id: string;
+    transaction_status: string;
+    transaction_amount: string;
+    fee_amount: string;
+    currency: string;
+    swift: ISwiftTransactionReportDetails | null;
+  };
+}
+
+export interface ISwiftRequest {
+  swift_transaction_request_id: string;
+  sender_name?: string;
+  recipient_name: string;
+  country: string;
+  account_number_or_iban: string;
+  swift_code: string;
+  bank_name: string;
+  amount: string;
+  fee_amount: string;
+  status: SwiftRequestStatus;
+  narration: string;
+  invoice_url: string | null;
+  payment_proof_url: string | null;
+  initiated_at: string;
+  liquidated_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ISwiftRequestsResponse {
+  transactions: ISwiftRequest[];
+  pagination: ISwiftPagination;
+}
+
 export interface ICreateForeignAccountResponse {
   wallet_id: string;
   currency: ForeignCurrency;
@@ -963,4 +1356,220 @@ export interface ICreateForeignAccountResponse {
   bank_name: string;
   bank_address: string | null;
   routing: IForeignAccountRouting[];
+}
+
+export interface IUsdBaseExchangeRateResponse {
+  currency: string;
+  buy_rate: number;
+  sell_rate: number;
+  inverse_buy_rate?: number;
+  inverse_sell_rate?: number;
+  country_name?: string | null;
+}
+
+export interface ICrossCurrencySwapRateResponse {
+  from_currency: ICrossCurrencies;
+  to_currency: ICrossCurrencies;
+  source_amount: number;
+  usd_amount: number;
+  destination_amount: number;
+  derived_rate: number;
+  inverse_derived_rate?: number;
+}
+
+export interface ICrossCurrencySwapPayload {
+  amount: number;
+  transaction_pin: string;
+  from_currency: ICrossCurrencies;
+  to_currency: ICrossCurrencies;
+  reward_quote_id: string | null;
+}
+
+export interface INotificationEmail {
+  business_transaction_notification_email_id: string;
+  business_account_id: string;
+  email: string;
+  label: string;
+  active: 0 | 1;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface INotificationEmailsResponse {
+  data: INotificationEmail[];
+}
+
+export interface IAddNotificationEmailsPayload {
+  emails: string[];
+  label: string;
+}
+
+export interface IUpdateNotificationEmailPayload {
+  label?: string;
+  email?: string;
+  active?: boolean;
+}
+
+export interface IUpdateGatewayDefaultWalletPayload {
+  currency: "USD" | "NGN";
+}
+
+export interface IUpdateGatewayDefaultWalletResponse {
+  message: string;
+  success: boolean;
+  data: {
+    currency: "USD" | "NGN";
+    wallet_id: string;
+  };
+}
+
+// ─── Gateway Bridge Subaccounts ───────────────────────────────────────────────
+
+export type GatewaySubaccountStatus =
+  | "created"
+  | "under_review"
+  | "requires_kyc"
+  | "active"
+  | "rejected"
+  | "failed";
+
+export type GatewayRemittanceSettlementType =
+  | "raiz_usd_wallet"
+  | "external_stablecoin_wallet";
+
+export type GatewayExternalWalletCurrency = "USDC" | "USDT";
+
+export type GatewayExternalWalletRail =
+  | "arbitrum"
+  | "avalanche_c_chain"
+  | "base"
+  | "ethereum"
+  | "optimism"
+  | "polygon"
+  | "solana"
+  | "stellar"
+  | "tempo"
+  | "tron";
+
+export interface IGatewaySubaccountSummary {
+  total_requested: number;
+  active: number;
+  under_review: number;
+  requires_kyc: number;
+  rejected: number;
+  failed: number;
+}
+
+export interface IGatewayCustomerSnapshot {
+  first_name?: string | null;
+  last_name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  requested_currencies?: string[] | null;
+}
+
+export interface IGatewaySourceDepositInstructions {
+  payment_rails?: string[] | null;
+}
+
+export interface IGatewaySubaccountAccount {
+  subaccount_account_id: string;
+  currency: string;
+  status?: string | null;
+  bridge_virtual_account_id?: string | null;
+  account_name?: string | null;
+  account_number?: string | null;
+  routing_number?: string | null;
+  sort_code?: string | null;
+  iban?: string | null;
+  bic?: string | null;
+  bank_name?: string | null;
+  bank_address?: string | null;
+  source_deposit_instructions?: IGatewaySourceDepositInstructions | null;
+}
+
+export interface IGatewaySubaccount {
+  subaccount_id: string;
+  business_account_id: string;
+  gateway_business_id?: string | null;
+  gateway_subaccount_id: string;
+  external_customer_id?: string | null;
+  bridge_customer_id?: string | null;
+  status: GatewaySubaccountStatus | string;
+  bridge_status?: string | null;
+  customer_snapshot?: IGatewayCustomerSnapshot | null;
+  requested_currencies?: string[] | null;
+  rejection_reasons?: unknown[];
+  retry_eligible?: boolean;
+  kyc_link?: string | null;
+  missing_requirements?: unknown[];
+  accounts?: IGatewaySubaccountAccount[];
+  created_at: string;
+  updated_at: string;
+  projection_version?: number;
+}
+
+export interface IGatewaySubaccountsListParams {
+  status?: GatewaySubaccountStatus | string;
+  page?: number;
+  limit?: number;
+}
+
+export interface IGatewaySubaccountsListResponse {
+  total: number;
+  page: number;
+  limit: number;
+  items: IGatewaySubaccount[];
+}
+
+export type GatewaySubaccountActivityDirection = "incoming" | "outgoing";
+
+export interface IGatewaySubaccountActivity {
+  subaccount_activity_id: string;
+  direction: GatewaySubaccountActivityDirection | string;
+  currency: string;
+  amount: string;
+  fee_amount?: string | null;
+  status: string;
+  rail?: string | null;
+  bridge_event_id?: string | null;
+  bridge_deposit_id?: string | null;
+  bridge_transfer_id?: string | null;
+  created_at: string;
+}
+
+export interface IGatewaySubaccountActivitiesParams {
+  start_date?: string;
+  end_date?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface IGatewaySubaccountActivitiesResponse {
+  total: number;
+  page: number;
+  limit: number;
+  items: IGatewaySubaccountActivity[];
+}
+
+export interface IGatewayRemittanceSettlementValidation {
+  status?: string | null;
+}
+
+export interface IGatewayRemittanceSettlement {
+  settlement_type: GatewayRemittanceSettlementType | string;
+  usd_wallet_id?: string | null;
+  external_wallet_currency?: GatewayExternalWalletCurrency | string | null;
+  external_wallet_rail?: GatewayExternalWalletRail | string | null;
+  external_wallet_address?: string | null;
+  external_wallet_status?: string | null;
+  validation_result?: IGatewayRemittanceSettlementValidation | null;
+}
+
+export interface IUpdateGatewayRemittanceSettlementPayload {
+  settlement_type: GatewayRemittanceSettlementType;
+  usd_wallet_id?: string;
+  external_wallet_currency?: GatewayExternalWalletCurrency;
+  external_wallet_rail?: GatewayExternalWalletRail;
+  external_wallet_address?: string;
 }

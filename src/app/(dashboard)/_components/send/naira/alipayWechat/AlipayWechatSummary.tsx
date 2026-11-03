@@ -70,7 +70,7 @@ const AlipayWechatSummary = ({
   ];
 
   return (
-    <div className="p-6 h-full flex flex-col overflow-y-auto no-scrollbar">
+    <div className="p-0 md:p-6 h-full flex flex-col overflow-y-auto no-scrollbar">
       <button onClick={onBack} className="mb-6 self-start">
         <Image src="/icons/arrow-left.svg" width={18} height={18} alt="back" />
       </button>

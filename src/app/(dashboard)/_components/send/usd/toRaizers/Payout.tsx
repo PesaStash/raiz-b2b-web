@@ -5,7 +5,12 @@ import { P2PDebitApi } from "@/services/transactions";
 import { useSendStore } from "@/store/Send";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { IP2PTransferPayload } from "@/types/services";
-import { findWalletByCurrency, passwordHash } from "@/utils/helpers";
+import { ICurrencyName } from "@/types/misc";
+import { findWalletByCurrency } from "@/utils/helpers";
+import {
+  trackSendCompleted,
+  trackTransactionFailed,
+} from "@/utils/analytics/dataLayer";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 
@@ -28,18 +33,10 @@ const Payout = ({ close, goNext, setPaymentError }: Props) => {
   const qc = useQueryClient();
   const { user } = useUser();
   const { selectedCurrency } = useCurrencyStore();
-  const NGNAcct = findWalletByCurrency(user, "NGN");
-  const USDAcct = findWalletByCurrency(user, "USD");
-
-  const getCurrentWallet = () => {
-    if (selectedCurrency.name === "NGN") {
-      return NGNAcct;
-    } else if (selectedCurrency.name === "USD") {
-      return USDAcct;
-    }
-  };
-
-  const currentWallet = getCurrentWallet();
+  const currentWallet = findWalletByCurrency(
+    user,
+    selectedCurrency.name as ICurrencyName,
+  );
 
   const SendMoneyMutation = useMutation({
     mutationFn: (data: IP2PTransferPayload) =>
@@ -58,6 +55,12 @@ const Payout = ({ close, goNext, setPaymentError }: Props) => {
       qc.invalidateQueries({ queryKey: ["today-outflow"] });
       if (response?.transaction_status?.transaction_status === "completed") {
         actions.setStatus("success");
+        trackSendCompleted({
+          response,
+          value: Number(amount),
+          currency: selectedCurrency.name || "USD",
+          recipientType: "internal",
+        });
       } else if (
         response?.transaction_status?.transaction_status === "pending"
       ) {
@@ -69,13 +72,17 @@ const Payout = ({ close, goNext, setPaymentError }: Props) => {
     onError: (response: any) => {
       actions.setStatus("failed");
       setPaymentError(response?.data?.message);
+      trackTransactionFailed({
+        transactionType: "send",
+        error: response,
+        value: Number(amount) || undefined,
+        currency: selectedCurrency.name || "USD",
+      });
     },
     onSettled: () => {
       goNext();
     },
   });
-
-  // const totalPayable = fee ? parseFloat(amount) + fee : 0;
 
   const handleSend = () => {
     const payload: IP2PTransferPayload = {
@@ -84,7 +91,7 @@ const Payout = ({ close, goNext, setPaymentError }: Props) => {
         receiver_entity_id: selectedUser?.entity_id || null,
         transaction_amount: Number(amount),
         transaction_remarks: purpose,
-        transaction_pin: passwordHash(pin),
+        transaction_pin: pin,
         transaction_category_id: category?.transaction_category_id || 0,
       },
     };

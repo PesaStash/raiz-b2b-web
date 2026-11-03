@@ -2,7 +2,11 @@ import EnterPin from "@/components/transactions/EnterPin";
 import { SendMoneyUSBankApi } from "@/services/transactions";
 import { useSendStore } from "@/store/Send";
 import { ISendMoneyUsBankPayload } from "@/types/services";
-import { passwordHash } from "@/utils/helpers";
+import { getUsdBeneficiaryId } from "@/utils/thirdPartyUsdBeneficiary";
+import {
+  trackSendCompleted,
+  trackTransactionFailed,
+} from "@/utils/analytics/dataLayer";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 
@@ -29,19 +33,29 @@ const UsdBankPay = ({ close, goNext, setPaymentError }: Props) => {
       qc.invalidateQueries({ queryKey: ["income-expense-chart"] });
       qc.invalidateQueries({ queryKey: ["transaction-report-categories"] });
       qc.invalidateQueries({ queryKey: ["today-outflow"] });
+      actions.setTransactionDetail(response);
       if (response?.transaction_status?.transaction_status === "completed") {
         actions.setStatus("success");
-      } else if (
-        response?.transaction_status?.transaction_status === "pending"
-      ) {
+        trackSendCompleted({
+          response,
+          value: Number(amount),
+          currency: "USD",
+          recipientType: "external",
+        });
+      } else {
         actions.setStatus("pending");
       }
-      actions.setTransactionDetail(response);
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (response: any) => {
       actions.setStatus("failed");
       setPaymentError(response?.data?.message);
+      trackTransactionFailed({
+        transactionType: "send",
+        error: response,
+        value: Number(amount) || undefined,
+        currency: "USD",
+      });
     },
     onSettled: () => {
       goNext();
@@ -50,10 +64,10 @@ const UsdBankPay = ({ close, goNext, setPaymentError }: Props) => {
   const handleSend = () => {
     const payload: ISendMoneyUsBankPayload = {
       transaction_reason: purpose,
-      transaction_pin: passwordHash(pin),
+      transaction_pin: pin,
       transaction_category_id: category?.transaction_category_id || 0,
       amount: Number(amount),
-      usd_beneficiary_id: usdBeneficiary?.usd_beneficiary_id || null,
+      usd_beneficiary_id: getUsdBeneficiaryId(usdBeneficiary) || null,
     };
     SendMoneyMutation.mutate(payload);
   };

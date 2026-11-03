@@ -28,7 +28,7 @@ const ErrorMessage: React.FC<ErrorMessageProps> = ({
           fill="#0C160E"
         />
       </svg>
-      <p className="text-raiz-error text-sm ">{message}</p>
+      <p className="text-raiz-error md:text-sm text-xs ">{message}</p>
     </div>
   );
 };

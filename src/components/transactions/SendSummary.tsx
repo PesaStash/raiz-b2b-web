@@ -6,7 +6,8 @@ import { useCurrencyStore } from "@/store/useCurrencyStore";
 import Button from "../ui/Button";
 import ListDetailItem from "../ui/ListDetailItem";
 import CenterModalHeader from "../layouts/CenterModalHeader";
-import { convertField, formatAmount } from "@/utils/helpers";
+import { convertField, formatAmount, maskAccountNumber } from "@/utils/helpers";
+import { formatUsdPaymentRailLabel } from "@/utils/thirdPartyUsdBeneficiary";
 
 interface Props {
   goBack: () => void;
@@ -50,7 +51,6 @@ const SendSummary = ({ goBack, goNext, fee }: Props) => {
 
   const recipientAccountNumber = useMemo(() => {
     if (!recipient) return "";
-    // if ("account_number" in recipient) return recipient.account_number || "";
     if ("usd_beneficiary" in recipient)
       return recipient.usd_beneficiary?.account_number || "";
     if ("foreign_currency_beneficiary" in recipient)
@@ -67,11 +67,11 @@ const SendSummary = ({ goBack, goNext, fee }: Props) => {
   return (
     <div className="h-full flex flex-col overflow-auto no-scrollbar pb-5 lg:mb-12 xl:mb-0   ">
       <CenterModalHeader close={goBack} />
-      <h5 className=" text-raiz-gray-950 text-[22px] font-semibold leading-tight mb-10">
+      <h5 className=" text-raiz-gray-950 md:text-[22px] text-lg font-semibold leading-tight  mb-10">
         Send Summary
       </h5>
       <div className="flex h-full flex-col justify-between pb-5 ">
-        <div className="rounded-[20px] flex flex-col bg-raiz-gray-50 px-6 lg:py-6 xl:py-10 desktop:py-16  mb-6">
+        <div className="rounded-[20px] flex flex-col bg-raiz-gray-50 px-3 md:px-6 lg:py-6 xl:py-10 desktop:py-16  mb-6">
           <div className="flex flex-col items-center justify-center mb-4 text-zinc-900">
             <div className="w-12 h-12 mb-4 flex mx-auto items-center justify-center bg-violet-100 bg-opacity-60 rounded-3xl">
               <Image
@@ -103,16 +103,22 @@ const SendSummary = ({ goBack, goNext, fee }: Props) => {
               ${fee.toLocaleString()}`}
             />
             <ListDetailItem title="Beneficiary" value={recipientName} />
-            {!selectedUser && (
+            {!selectedUser && recipientAccountNumber ? (
               <ListDetailItem
                 title="Account Number"
-                value={recipientAccountNumber}
+                value={maskAccountNumber(recipientAccountNumber)}
               />
-            )}
+            ) : null}
+            {usdBeneficiary?.usd_beneficiary?.bank_name ? (
+              <ListDetailItem
+                title="Bank"
+                value={usdBeneficiary.usd_beneficiary.bank_name}
+              />
+            ) : null}
             {usdBeneficiary && (
               <ListDetailItem
                 title="Payment Rail"
-                value={convertField(
+                value={formatUsdPaymentRailLabel(
                   usdBeneficiary?.usd_beneficiary?.payment_rail,
                 )}
               />
@@ -125,7 +131,10 @@ const SendSummary = ({ goBack, goNext, fee }: Props) => {
                 )}
               />
             )}
-            <ListDetailItem title="Purpose" value={purpose} />
+            <ListDetailItem
+              title={usdBeneficiary ? "Reason" : "Purpose"}
+              value={purpose}
+            />
             <ListDetailItem
               title="Category"
               value={category?.transaction_category || ""}

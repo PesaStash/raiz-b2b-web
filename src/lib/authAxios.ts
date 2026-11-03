@@ -5,11 +5,13 @@ import axios, {
   AxiosResponse,
 } from "axios";
 import { toast } from "sonner";
-import { encryptData, generateNonce } from "./headerEncryption";
-import { GetItemFromCookie } from "@/utils/CookiesFunc";
-import { fetchPublicIP } from "@/utils/helpers";
+import { getApiErrorMessage } from "@/utils/helpers";
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
+import { endSession, refreshSessionProfile } from "@/lib/session";
+import { readApiError } from "@/lib/apiError";
+import { canMakeRequest, isPublicPath } from "@/lib/permissions";
+import { requestPath, routeThroughProxy } from "@/lib/apiClient";
+import { useUserStore } from "@/store/useUserStore";
 
 interface ErrorResponseData {
   message?: string;
@@ -28,62 +30,57 @@ export interface CustomAxiosRequestConfig extends AxiosRequestConfig {
 const handleResponse = (response: AxiosResponse) => response;
 
 const handleError = async (error: CustomAxiosError) => {
-  console.log(JSON.stringify(error, null, 2));
-  const isSilent = (error.config as CustomAxiosRequestConfig)?.silent;
+  try {
+    const isSilent = (error.config as CustomAxiosRequestConfig)?.silent;
 
-  // Check for 401 status and redirect to login
-  if (error.response?.status === 401) {
-    // If we're in the browser environment
-    if (typeof window !== "undefined") {
-      window.location.href = "/login";
+    // The proxy has already cleared the session cookie on a 401.
+    if (error.response?.status === 401) {
+      if (typeof window !== "undefined" && !isPublicPath(window.location.pathname)) {
+        const { code } = readApiError(error);
+        endSession(/deactivat|inactive/.test(code));
+      }
+      return Promise.reject(error.response ?? error);
     }
-    return Promise.reject(error.response);
-  }
-  if (!isSilent) {
-    const errorMessage = error.response?.data?.message || "An Error Occurred";
-    toast.error(errorMessage);
+    if (error.response?.status === 403) {
+      useUserStore.setState({ sessionVerified: false });
+      if (!requestPath(error.config).replace(/\/$/, "").endsWith("/account_user/me")) refreshSessionProfile();
+    }
+    if (!isSilent) {
+      const message = getApiErrorMessage(error, "An error occurred");
+      toast.error(
+        typeof message === "string" ? message : "An error occurred",
+      );
+    }
+  } catch {
+    // Never let error-display logic crash the app.
   }
 
-  return Promise.reject(error.response);
+  return Promise.reject(error.response ?? error);
 };
 
-// Fetch IP and cache it
-let cachedIP: string | null = null;
-
-export const AuthAxios: AxiosInstance = axios.create({
-  baseURL: BASE_URL,
-});
+/** Authenticated RaizServer client. Requests go through the /api/raiz proxy. */
+export const AuthAxios: AxiosInstance = axios.create();
 
 AuthAxios.interceptors.request.use(
-  async (config) => {
-    const token = GetItemFromCookie("access_token");
-    const nonceStr = generateNonce();
-    const signature = encryptData(nonceStr);
-
-    config.headers["nonce-str"] = nonceStr;
-    config.headers["signature"] = signature;
-
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+  (config) => {
+    const method = (config.method ?? "get").toLowerCase();
+    const path = requestPath(config);
+    const state = useUserStore.getState();
+    if (!canMakeRequest(state.sessionVerified ? state.user : null, method, path)) {
+      throw new axios.AxiosError("Your role does not allow this action.", "ERR_FORBIDDEN", config, undefined, {
+        status: 403, statusText: "Forbidden", data: { message: "Your role does not allow this action." }, headers: {}, config,
+      });
     }
 
-    if (!cachedIP) {
-      cachedIP = await fetchPublicIP();
+    if (["post", "patch"].includes(method)) {
+      // Retain a caller-supplied key so retries of the same logical request
+      // share an idempotency key.
+      if (!config.headers["idempotency-key"]) {
+        config.headers["idempotency-key"] = crypto.randomUUID();
+      }
     }
 
-    if (cachedIP) {
-      config.headers["ip-address"] = cachedIP;
-    }
-
-    const mutatingMethods = ["post", "patch"];
-    if (
-      config.method &&
-      mutatingMethods.includes(config.method.toLowerCase())
-    ) {
-      config.headers["idempotency-key"] = crypto.randomUUID();
-    }
-
-    return config;
+    return routeThroughProxy(config);
   },
   (error) => Promise.reject(error),
 );

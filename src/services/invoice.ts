@@ -24,12 +24,6 @@ export const CreateInvoiceSettings = async (
   const response = await AuthAxios.post("/business/invoice/setings/", payload);
   return response?.data;
 };
-
-export const UpdateInvoiceSettings = async () => {
-  const response = await AuthAxios.patch("/business/invoice/setings/");
-  return response?.data;
-};
-
 export const FetchCustomers = async ({
   search,
   page,

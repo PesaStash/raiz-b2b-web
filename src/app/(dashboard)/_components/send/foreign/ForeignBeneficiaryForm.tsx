@@ -3,11 +3,13 @@
 import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 import Button from "@/components/ui/Button";
 import InputField from "@/components/ui/InputField";
+import SelectField from "@/components/ui/SelectField";
 import {
   CreateForeignBeneficiaryApi,
   FetchForeignBeneficiariesApi,
 } from "@/services/transactions";
 import { useSendStore } from "@/store/Send";
+import useCountryStore from "@/store/useCountryStore";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import {
   ForeignCurrency,
@@ -17,6 +19,7 @@ import {
 import { getApiErrorMessage } from "@/utils/helpers";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Form, Formik, FormikHelpers } from "formik";
+import React, { useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { toFormikValidationSchema } from "zod-formik-adapter";
@@ -25,6 +28,7 @@ import ForeignBeneficiaryList from "./ForeignBeneficiaryList";
 interface Props {
   close: () => void;
   goNext: () => void;
+  hideHeader?: boolean;
 }
 
 interface FormValues {
@@ -66,9 +70,7 @@ const getValidationSchema = (currency: ForeignCurrency) =>
     bic: z.string().optional(),
     country:
       currency === "EUR"
-        ? z
-            .string()
-            .regex(/^[A-Za-z]{3}$/, "Country must be a 3-letter code")
+        ? z.string().min(1, "Country is required")
         : z.string().optional(),
     street_line_1:
       currency === "EUR"
@@ -104,12 +106,29 @@ const initialValues: FormValues = {
   last_name: "",
 };
 
-const ForeignBeneficiaryForm = ({ close, goNext }: Props) => {
+const ForeignBeneficiaryForm = ({ close, goNext, hideHeader }: Props) => {
   const qc = useQueryClient();
   const { actions } = useSendStore();
   const { selectedCurrency } = useCurrencyStore();
+  const { countries, fetchCountries, loading: countriesLoading } =
+    useCountryStore();
   const currency = selectedCurrency.name as ForeignCurrency;
   const queryParams: IForeignBeneficiariesParams = { page: 1, limit: 50 };
+
+  useEffect(() => {
+    if (currency === "EUR") {
+      fetchCountries();
+    }
+  }, [currency, fetchCountries]);
+
+  const countryOptions = useMemo(
+    () =>
+      countries.map((country) => ({
+        value: country.country_code,
+        label: country.country_name,
+      })),
+    [countries],
+  );
 
   const { data, isLoading } = useQuery({
     queryKey: ["foreign-beneficiaries", currency, queryParams],
@@ -210,8 +229,8 @@ const ForeignBeneficiaryForm = ({ close, goNext }: Props) => {
 
   return (
     <div>
-      <CenterModalHeader close={close} />
-      <h2 className="text-xl font-bold text-raiz-gray-950 mb-10">
+      {!hideHeader && <CenterModalHeader close={close} />}
+      <h2 className="md:text-xl text-base font-bold text-raiz-gray-950 md:mb-10 mb-6">
         {currency} Beneficiary
       </h2>
 
@@ -227,12 +246,19 @@ const ForeignBeneficiaryForm = ({ close, goNext }: Props) => {
             touched,
             handleChange,
             handleBlur,
+            setFieldValue,
+            setFieldTouched,
             isSubmitting,
             isValid,
             dirty,
-          }) => (
+          }) => {
+            const selectedCountry =
+              countryOptions.find((option) => option.value === values.country) ??
+              null;
+
+            return (
             <Form className="flex flex-col gap-4 h-full">
-              <div className="bg-raiz-gray-50 p-6 overflow-y-auto rounded-[20px] flex-1">
+              <div className="bg-raiz-gray-50 md:p-6 p-0 overflow-y-auto md:rounded-[20px] flex-1">
                 <div className="mb-11">
                   <h5 className="text-raiz-gray-950 text-sm font-bold leading-[16.80px] mb-[15px]">
                     Beneficiary
@@ -327,15 +353,25 @@ const ForeignBeneficiaryForm = ({ close, goNext }: Props) => {
                         errorMessage={touched.bic && errors.bic}
                         status={touched.bic && errors.bic ? "error" : null}
                       />
-                      <InputField
-                        label="Country Code"
+                      <SelectField
+                        label="Country"
                         name="country"
-                        placeholder="IRL"
-                        value={values.country}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        errorMessage={touched.country && errors.country}
+                        placeholder="Select country"
+                        options={countryOptions}
+                        value={selectedCountry}
+                        isLoading={countriesLoading}
+                        onChange={(option) => {
+                          const code =
+                            option?.value != null ? String(option.value) : "";
+                          setFieldValue("country", code, true);
+                          setFieldTouched("country", true, false);
+                        }}
                         status={touched.country && errors.country ? "error" : null}
+                        helper={
+                          touched.country && errors.country
+                            ? String(errors.country)
+                            : null
+                        }
                       />
                       <InputField
                         label="Street Line 1"
@@ -411,7 +447,8 @@ const ForeignBeneficiaryForm = ({ close, goNext }: Props) => {
                 Add Beneficiary
               </Button>
             </Form>
-          )}
+            );
+          }}
         </Formik>
       </div>
     </div>

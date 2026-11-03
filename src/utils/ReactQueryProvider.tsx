@@ -1,7 +1,8 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactNode, useState } from "react";
+import { registerSessionClient } from "@/lib/session";
+import { ReactNode, useEffect, useState } from "react";
 
 export default function Provider({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -11,10 +12,18 @@ export default function Provider({ children }: { children: ReactNode }) {
           queries: {
             refetchOnWindowFocus: false,
             staleTime: 600000,
+            throwOnError: false,
+          },
+          mutations: {
+            throwOnError: false,
+            // Axios interceptors already toast API errors. Keep failed
+            // mutations from bubbling into Next.js as unhandled crashes.
+            onError: () => undefined,
           },
         },
       })
   );
+  useEffect(() => registerSessionClient(queryClient), [queryClient]);
   return (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );

@@ -1,12 +1,11 @@
 "use client";
 import { useUser } from "@/lib/hooks/useUser";
 import { useSendStore } from "@/store/Send";
-import { useCurrencyStore } from "@/store/useCurrencyStore";
 import React, { useRef, useState, useMemo } from "react";
 import { z } from "zod";
 import SideWrapperHeader from "../SideWrapperHeader";
 import Avatar from "../ui/Avatar";
-import { formatAmount, getCurrencySymbol } from "@/utils/helpers";
+import { formatAmount, findWalletByCurrency, getCurrencySymbol } from "@/utils/helpers";
 import Image from "next/image";
 import ErrorMessage from "../ui/ErrorMessage";
 import InputField from "../ui/InputField";
@@ -30,18 +29,14 @@ const InternationalSendMoney = ({
 }: Props) => {
   const { intBeneficiary, amount, purpose, actions } = useSendStore();
   const { user } = useUser();
-  const { selectedCurrency } = useCurrencyStore();
   const [error, setError] = useState<string | null>(null);
   const [isFocused, setIsFocused] = useState(false);
   const [rawAmount, setRawAmount] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-  const currentWallet = useMemo(() => {
-    if (!user || !user?.business_account?.wallets || !selectedCurrency?.name)
-      return null;
-    return user?.business_account?.wallets.find(
-      (wallet) => wallet.wallet_type.currency === selectedCurrency.name,
-    );
-  }, [user, selectedCurrency]);
+  const usdWallet = useMemo(
+    () => findWalletByCurrency(user, "USD"),
+    [user],
+  );
   const currency =
     intBeneficiary?.foreign_payout_beneficiary?.beneficiary_currency || "";
   const selectedUser = intBeneficiary?.foreign_payout_beneficiary;
@@ -98,7 +93,7 @@ const InternationalSendMoney = ({
   const displayValue = () => {
     if (isFocused || !amount)
       return amount ? `${getCurrencySymbol(currency)}${rawAmount}` : "";
-    const num = parseFloat(rawAmount);
+    const num = Number(rawAmount);
     return isNaN(num) ? "" : `${getCurrencySymbol(currency)}${num.toFixed(2)}`;
   };
 
@@ -177,12 +172,10 @@ const InternationalSendMoney = ({
               <p className="text-zinc-900 text-xs font-normal leading-tight">
                 Balance:
                 <span className="text-zinc-900 text-xs font-bold leading-tight">
-                  {getCurrencySymbol(
-                    currentWallet?.wallet_type?.currency || "",
-                  )}
-                  {currentWallet?.account_balance}{" "}
+                  {getCurrencySymbol("USD")}
+                  {usdWallet?.account_balance}{" "}
                 </span>
-                <span>({currentWallet?.wallet_type?.currency})</span>
+                <span>(USD)</span>
               </p>
             </div>
 
@@ -227,18 +220,6 @@ const InternationalSendMoney = ({
                 {formatAmount(minAmount)}
               </span>
             </div>
-            {/* {fee ? (
-              <div className="w-full flex justify-between items-center">
-                <span className="text-cyan-700 text-xs font-normal font-brSonoma leading-normal">
-                  Fee:
-                </span>
-                <div className="h-0.5 w-[75%] px-4 bg-white"></div>
-                <span className="text-zinc-900  text-xs font-semibold leading-none">
-                  {getCurrencySymbol(senderCurrency || "")}
-                  {fee?.toFixed(2) || "0.00"}
-                </span>
-              </div>
-            ) : null} */}
           </div>
 
           <Button

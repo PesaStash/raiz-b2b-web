@@ -10,7 +10,7 @@ import { AnimatePresence } from "motion/react";
 import Image from "next/image";
 import NGNPalmPayAcct from "./NGNPalmPayAcct";
 
-export type TransferCurrencyType = "NGN" | "SBC" | "USD" | "GBP";
+export type TransferCurrencyType = "NGN" | "SBC" | "USD" | "GBP" | "EUR";
 interface Props {
   transferCurrency: TransferCurrencyType;
   data: IBusinessPaymentData;
@@ -30,14 +30,22 @@ const GuestPayWithTransfer = ({ transferCurrency, data }: Props) => {
   const SBCAcct = data?.wallets?.find(
     (acct) => acct.wallet_type.currency === "SBC",
   );
-  const GBPAcct = {
-    account_number: "35486872",
-    sortCode: "60-84-64",
-    bankName: "Monzo Bank",
-    accountName: "Vestafrik Technologies Limited",
-    address:
-      "Worship Square, 65 Clifton Street, London. EC2A 4JE. United Kingdom",
-  };
+  const GBPAcct = data?.wallets?.find(
+    (acct) => acct.wallet_type.currency === "GBP",
+  );
+  const EURAcct = data?.wallets?.find(
+    (acct) => acct.wallet_type.currency === "EUR",
+  );
+  const gbpSortCode =
+    GBPAcct?.sort_code ||
+    GBPAcct?.routing?.find(
+      (route) => route.routing_type_name === "FASTER_PAYMENTS",
+    )?.routing;
+  const eurIban = EURAcct?.iban || EURAcct?.account_number;
+  const eurBic =
+    EURAcct?.bic ||
+    EURAcct?.routing?.find((route) => route.routing_type_name === "SEPA")
+      ?.routing;
   const secondarySBCAccts = SBCAcct?.secondary_crypto_details?.map((acct) => ({
     label: acct?.chain,
     value: acct.crypto_id,
@@ -293,19 +301,27 @@ const GuestPayWithTransfer = ({ transferCurrency, data }: Props) => {
             </div>
           </div>
         )}
-        {transferCurrency === "GBP" && (
+        {transferCurrency === "GBP" && GBPAcct && (
           <div className="p-7 bg-violet-100/60 rounded-[20px] inline-flex flex-col justify-center items-center gap-5 w-full my-[30px]">
+            <div className="w-full flex flex-col justify-center items-center">
+              <span className="text-center justify-start text-gray-500 text-sm md:text-base font-normal leading-normal">
+                Bank Name
+              </span>
+              <p className="text-center justify-start text-zinc-900 text-base md:text-lg font-semibold  leading-normal">
+                {GBPAcct.bank_name}
+              </p>
+            </div>
             <div className="w-full flex flex-col justify-center items-center">
               <span className="text-center justify-start text-gray-500 text-sm md:text-base font-normal leading-normal">
                 Account Holder
               </span>
               <p className="text-center justify-start text-zinc-900 text-base md:text-lg font-semibold  leading-normal">
-                Vestafrik Technologies Limited
+                {GBPAcct.wallet_name}
               </p>
             </div>
             <div className="w-full flex flex-col justify-center items-center">
               <span className="text-center justify-start text-gray-500 text-sm md:text-base font-normal leading-normal">
-                Account number
+                Account Number
               </span>
               <div className="flex items-cen text-basetmd:er gap-2">
                 <p className="text-center justify-start text-zinc-900 text-base md:text-lg font-semibold  leading-normal">
@@ -316,29 +332,102 @@ const GuestPayWithTransfer = ({ transferCurrency, data }: Props) => {
             </div>
             <div className="w-full flex flex-col justify-center items-center">
               <span className="text-center justify-start text-gray-500 text-sm md:text-base font-normal leading-normal">
-                Sort code
+                Sort Code
               </span>
               <div className="flex items-cen text-basetmd:er gap-2">
                 <p className="text-center justify-start text-zinc-900 text-base md:text-lg font-semibold  leading-normal">
-                  {GBPAcct.sortCode}
+                  {gbpSortCode}
                 </p>
-                <CopyButton value={GBPAcct.sortCode} />
+                <CopyButton value={gbpSortCode || ""} />
               </div>
             </div>
             <div className="w-full flex flex-col justify-center items-center">
               <span className="text-center justify-start text-gray-500 text-sm md:text-base font-normal leading-normal">
-                Address
+                Currency
               </span>
-              <div className="flex items-center text-base gap-2">
-                <p className="text-center justify-start text-zinc-900 text-base md:text-lg font-semibold  leading-normal">
-                  {GBPAcct.address}
-                </p>
-                <CopyButton value={GBPAcct.address} />
-              </div>
+              <p className="text-center justify-start text-zinc-900 text-base md:text-lg font-semibold  leading-normal">
+                {GBPAcct.wallet_type.currency}
+              </p>
             </div>
+            {GBPAcct.bank_address && (
+              <div className="w-full flex flex-col justify-center items-center">
+                <span className="text-center justify-start text-gray-500 text-sm md:text-base font-normal leading-normal">
+                  Bank Address
+                </span>
+                <div className="flex items-center text-base gap-2">
+                  <p className="text-center justify-start text-zinc-900 text-base md:text-lg font-semibold  leading-normal">
+                    {GBPAcct.bank_address}
+                  </p>
+                  <CopyButton value={GBPAcct.bank_address} />
+                </div>
+              </div>
+            )}
           </div>
         )}
-        {(GBPAcct || USDAcct || NGNAcct || SBCAcct) &&
+        {transferCurrency === "EUR" && EURAcct && (
+          <div className="p-7 bg-violet-100/60 rounded-[20px] inline-flex flex-col justify-center items-center gap-5 w-full my-[30px]">
+            <div className="w-full flex flex-col justify-center items-center">
+              <span className="text-center justify-start text-gray-500 text-sm md:text-base font-normal leading-normal">
+                Bank Name
+              </span>
+              <p className="text-center justify-start text-zinc-900 text-base md:text-lg font-semibold  leading-normal">
+                {EURAcct.bank_name}
+              </p>
+            </div>
+            <div className="w-full flex flex-col justify-center items-center">
+              <span className="text-center justify-start text-gray-500 text-sm md:text-base font-normal leading-normal">
+                Account Holder
+              </span>
+              <p className="text-center justify-start text-zinc-900 text-base md:text-lg font-semibold  leading-normal">
+                {EURAcct.wallet_name}
+              </p>
+            </div>
+            <div className="w-full flex flex-col justify-center items-center">
+              <span className="text-center justify-start text-gray-500 text-sm md:text-base font-normal leading-normal">
+                IBAN
+              </span>
+              <div className="flex items-cen text-basetmd:er gap-2">
+                <p className="text-center justify-start text-zinc-900 text-base md:text-lg font-semibold  leading-normal">
+                  {eurIban}
+                </p>
+                <CopyButton value={eurIban || ""} />
+              </div>
+            </div>
+            <div className="w-full flex flex-col justify-center items-center">
+              <span className="text-center justify-start text-gray-500 text-sm md:text-base font-normal leading-normal">
+                BIC
+              </span>
+              <div className="flex items-cen text-basetmd:er gap-2">
+                <p className="text-center justify-start text-zinc-900 text-base md:text-lg font-semibold  leading-normal">
+                  {eurBic}
+                </p>
+                <CopyButton value={eurBic || ""} />
+              </div>
+            </div>
+            <div className="w-full flex flex-col justify-center items-center">
+              <span className="text-center justify-start text-gray-500 text-sm md:text-base font-normal leading-normal">
+                Currency
+              </span>
+              <p className="text-center justify-start text-zinc-900 text-base md:text-lg font-semibold  leading-normal">
+                {EURAcct.wallet_type.currency}
+              </p>
+            </div>
+            {EURAcct.bank_address && (
+              <div className="w-full flex flex-col justify-center items-center">
+                <span className="text-center justify-start text-gray-500 text-sm md:text-base font-normal leading-normal">
+                  Bank Address
+                </span>
+                <div className="flex items-center text-base gap-2">
+                  <p className="text-center justify-start text-zinc-900 text-base md:text-lg font-semibold  leading-normal">
+                    {EURAcct.bank_address}
+                  </p>
+                  <CopyButton value={EURAcct.bank_address} />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        {(GBPAcct || EURAcct || USDAcct || NGNAcct || SBCAcct) &&
           hasNgnAcct !== undefined && (
             <Button onClick={handlePaid} className="mt-5 mb-4">
               I&apos;ve made payment

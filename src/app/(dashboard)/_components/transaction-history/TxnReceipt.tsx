@@ -2,8 +2,8 @@ import { ITransaction } from "@/types/transactions";
 
 import React, { useState } from "react";
 import TxnReceiptDetail from "./TxnReceiptDetail";
+import PaymentProofPreview from "./PaymentProofPreview";
 import RaizReceipt from "@/components/transactions/RaizReceipt";
-import SideModalWrapper from "../SideModalWrapper";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 
@@ -14,6 +14,9 @@ interface Props {
 
 const TxnReceipt = ({ close, transaction }: Props) => {
   const [step, setStep] = useState(1);
+  const paymentProofUrl =
+    transaction.swift?.payment_proof_url ||
+    transaction.alipay_wechat?.payment_proof_url;
 
   const displayScreen = () => {
     switch (step) {
@@ -23,6 +26,12 @@ const TxnReceipt = ({ close, transaction }: Props) => {
             close={close}
             transaction={transaction}
             goNext={() => setStep(2)}
+            onViewProof={paymentProofUrl ? () => setStep(3) : undefined}
+            proofLabel={
+              transaction.swift?.payment_proof_url
+                ? "View payment evidence"
+                : "View telex"
+            }
           />
         );
       case 2:
@@ -35,6 +44,15 @@ const TxnReceipt = ({ close, transaction }: Props) => {
               </h2>
               <RaizReceipt close={close} data={transaction} />
             </>
+          )
+        );
+      case 3:
+        return (
+          paymentProofUrl && (
+            <PaymentProofPreview
+              proofUrl={paymentProofUrl}
+              onBack={() => setStep(1)}
+            />
           )
         );
 

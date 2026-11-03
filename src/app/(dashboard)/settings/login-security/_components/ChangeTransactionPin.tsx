@@ -1,4 +1,5 @@
 "use client";
+import { withBusinessWrite } from "@/components/team/BusinessWrite";
 import React, { useState } from "react";
 import { PartChildProps } from "../../help&support/_components/HelpSupportNav";
 import TrxnOtpForm from "./TrxnOtpForm";
@@ -13,8 +14,6 @@ import { useMutation } from "@tanstack/react-query";
 import { IResetPinPayload } from "@/types/services";
 import { ResetTransactionPinApi } from "@/services/auth";
 import { toast } from "sonner";
-import { passwordHash } from "@/utils/helpers";
-import { encryptData } from "@/lib/headerEncryption";
 import { useUser } from "@/lib/hooks/useUser";
 
 const ChangeTransactionPin = ({ setPart }: PartChildProps) => {
@@ -39,8 +38,8 @@ const ChangeTransactionPin = ({ setPart }: PartChildProps) => {
     validationSchema: toFormikValidationSchema(pinSchema),
     onSubmit: (values) => {
       ChangePinMutation.mutate({
-        password: passwordHash(values.pin),
-        otp: encryptData(otpFormik.values.otp),
+        password: values.pin,
+        otp: otpFormik.values.otp,
         email: user?.email || null,
       });
     },
@@ -66,4 +65,4 @@ const ChangeTransactionPin = ({ setPart }: PartChildProps) => {
   return <div className="h-full flex flex-col">{displayStep()}</div>;
 };
 
-export default ChangeTransactionPin;
+export default withBusinessWrite(ChangeTransactionPin);

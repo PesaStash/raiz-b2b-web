@@ -1,5 +1,4 @@
 "use client";
-import SideWrapperHeader from "@/components/SideWrapperHeader";
 import Avatar from "@/components/ui/Avatar";
 import Button from "@/components/ui/Button";
 import EmptyList from "@/components/ui/EmptyList";
@@ -7,41 +6,64 @@ import InputField from "@/components/ui/InputField";
 import Radio from "@/components/ui/Radio";
 import {
   CreateUsBeneficiary,
+  FetchThirdPartyUsdBeneficiariesApi,
   FetchUsBeneficiariesApi,
+  GetUSBeneficiaryFormFields,
 } from "@/services/transactions";
 import {
+  IThirdPartyUsdBeneficiary,
   IUsBeneficiariesParams,
   IUsBeneficiariesResponse,
   IUsBeneficiaryPayload,
+  UsdBeneficiaryAccountType,
+  UsdBeneficiaryPaymentRail,
 } from "@/types/services";
-import { convertField, truncateString } from "@/utils/helpers";
+import { truncateString } from "@/utils/helpers";
+import {
+  buildUsBankBeneficiaryPayload,
+  formatPartnerBannerText,
+  formatUsdPaymentRailLabel,
+  getUsdBankPaymentRails,
+  mapThirdPartyUsdBeneficiaryToPayload,
+  USD_RTP_HELPER_COPY,
+} from "@/utils/thirdPartyUsdBeneficiary";
+import { mapUsdBeneficiaryError } from "@/utils/usdBeneficiaryErrors";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Form, Formik, useFormikContext } from "formik";
+import {
+  Form,
+  Formik,
+  FormikHelpers,
+  FormikProps,
+  useFormikContext,
+} from "formik";
 import React, { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { toFormikValidationSchema } from "zod-formik-adapter";
 import { useSendStore } from "@/store/Send";
 import USBeneficiaryModal from "./USBeneficiaryModal";
+import ThirdPartyPartnerModal from "./ThirdPartyPartnerModal";
+import ThirdPartyPartnerReviewModal from "./ThirdPartyPartnerReviewModal";
 import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 import { GetUsdBankName } from "@/services/utils";
 import SelectField from "@/components/ui/SelectField";
 import { USAstateCodes } from "@/constants/misc";
 import { useDebounce } from "@/lib/hooks/useDebounce";
+import Image from "next/image";
 
 interface FormValues {
   label: string;
   bank_name: string;
   account_number: string;
   routing_number: string;
-  account_type: string;
+  account_type: UsdBeneficiaryAccountType;
   account_owner_name: string;
   street_line_1: string;
   street_line_2: string;
   city: string;
   state: string;
   postal_code: string;
-  payment_rail: string;
+  payment_rail: UsdBeneficiaryPaymentRail;
 }
 
 interface Props {
@@ -55,6 +77,9 @@ interface FormContentProps {
   setShowBeneficiary: (show: boolean) => void;
   setIsFormValid: (valid: boolean) => void;
   setIsSubmitting: (submitting: boolean) => void;
+  routingRailHint?: string | null;
+  onClearRoutingRailError?: () => void;
+  paymentRailOptions: UsdBeneficiaryPaymentRail[];
 }
 
 const FormContent = ({
@@ -63,6 +88,9 @@ const FormContent = ({
   setShowBeneficiary,
   setIsFormValid,
   setIsSubmitting,
+  routingRailHint,
+  onClearRoutingRailError,
+  paymentRailOptions,
 }: FormContentProps) => {
   const {
     errors,
@@ -71,10 +99,19 @@ const FormContent = ({
     handleChange,
     handleBlur,
     setFieldValue,
+    setFieldError,
     isValid,
     dirty,
     isSubmitting: formikSubmitting,
   } = useFormikContext<FormValues>();
+
+  const clearRoutingRailMismatch = () => {
+    if (errors.routing_number || errors.payment_rail || routingRailHint) {
+      setFieldError("routing_number", undefined);
+      setFieldError("payment_rail", undefined);
+      onClearRoutingRailError?.();
+    }
+  };
 
   const debouncedRoutingNumber = useDebounce(values.routing_number, 500);
 
@@ -104,8 +141,9 @@ const FormContent = ({
   }, []);
 
   useEffect(() => {
-    if (error as any) {
-      toast.error((error as any)?.data[0]?.data?.message);
+    if (error) {
+      const apiError = error as { data?: Array<{ data?: { message?: string } }> };
+      toast.error(apiError?.data?.[0]?.data?.message);
       return;
     }
     if (routingInfo?.data?.name) {
@@ -189,7 +227,10 @@ const FormContent = ({
           name="routing_number"
           type="text"
           value={values.routing_number}
-          onChange={handleChange}
+          onChange={(e) => {
+            clearRoutingRailMismatch();
+            handleChange(e);
+          }}
           onBlur={handleBlur}
           errorMessage={
             touched.routing_number && errors.routing_number
@@ -219,22 +260,24 @@ const FormContent = ({
             Account Type
           </label>
           <div className="flex flex-col gap-3">
-            {["checking", "savings"].map((option) => (
-              <div
-                onClick={() => setFieldValue("account_type", option)}
-                role="button"
-                key={option}
-                className="flex items-center gap-2"
-              >
-                <Radio
-                  checked={values.account_type === option}
-                  onChange={() => setFieldValue("account_type", option)}
-                />
-                <span className="text-sm text-gray-700 capitalize">
-                  {option}
-                </span>
-              </div>
-            ))}
+            {(["checking", "savings"] as UsdBeneficiaryAccountType[]).map(
+              (option) => (
+                <div
+                  onClick={() => setFieldValue("account_type", option)}
+                  role="button"
+                  key={option}
+                  className="flex items-center gap-2"
+                >
+                  <Radio
+                    checked={values.account_type === option}
+                    onChange={() => setFieldValue("account_type", option)}
+                  />
+                  <span className="text-sm text-gray-700 capitalize">
+                    {option}
+                  </span>
+                </div>
+              ),
+            )}
           </div>
           {errors.account_type && touched.account_type && (
             <div className="text-red-500 text-sm mt-1">
@@ -247,27 +290,39 @@ const FormContent = ({
             Payment Rail
           </label>
           <div className="flex flex-col gap-3">
-            {["ach_same_day", "ach", "wire"].map((option) => (
+            {paymentRailOptions.map((option) => (
               <div
-                onClick={() => setFieldValue("payment_rail", option)}
+                onClick={() => {
+                  clearRoutingRailMismatch();
+                  setFieldValue("payment_rail", option);
+                }}
                 key={option}
                 className="flex items-center gap-2 cursor-pointer"
               >
                 <Radio
                   checked={values.payment_rail === option}
-                  onChange={() => setFieldValue("payment_rail", option)}
+                  onChange={() => {
+                    clearRoutingRailMismatch();
+                    setFieldValue("payment_rail", option);
+                  }}
                 />
-                <span className="text-sm text-gray-700 capitalize">
-                  {convertField(option).toUpperCase()}
+                <span className="text-sm text-gray-700">
+                  {formatUsdPaymentRailLabel(option)}
                 </span>
               </div>
             ))}
           </div>
+          {values.payment_rail === "rtp" ? (
+            <p className="text-raiz-gray-400 text-xs">{USD_RTP_HELPER_COPY}</p>
+          ) : null}
           {errors.payment_rail && touched.payment_rail && (
             <div className="text-red-500 text-sm mt-1">
               {errors.payment_rail}
             </div>
           )}
+          {routingRailHint ? (
+            <div className="text-amber-700 text-xs mt-1">{routingRailHint}</div>
+          ) : null}
         </div>
         <InputField
           label="Street Line 1"
@@ -354,14 +409,23 @@ const FormContent = ({
 };
 
 const USBankBeneficiary = ({ close, goNext }: Props) => {
-  // const [labelFilter, setLabelFilter] = useState("");
   const { actions } = useSendStore();
   const [showBeneficiary, setShowBeneficiary] = useState(false);
-  // const { data: fieldsData, isLoading: fieldLoading } = useQuery({
-  //   queryKey: ["us-bank-benefiary-fields"],
-  //   queryFn: GetUSBeneficiaryFormFields,
-  // });
+  const [showPartnerModal, setShowPartnerModal] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [selectedPartner, setSelectedPartner] =
+    useState<IThirdPartyUsdBeneficiary | null>(null);
+  const [isAddingPartner, setIsAddingPartner] = useState(false);
+  const [routingRailHint, setRoutingRailHint] = useState<string | null>(null);
+  const [partnerPaymentRail, setPartnerPaymentRail] =
+    useState<UsdBeneficiaryPaymentRail>("ach");
+  const { data: fieldsData } = useQuery({
+    queryKey: ["usd-beneficiary-form-fields"],
+    queryFn: GetUSBeneficiaryFormFields,
+  });
+  const paymentRailOptions = getUsdBankPaymentRails(fieldsData?.bank);
   const submitRef = useRef<HTMLButtonElement>(null);
+  const formikRef = useRef<FormikProps<FormValues>>(null);
   const [isFormValid, setIsFormValid] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -381,28 +445,92 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
     },
   });
 
+  const { data: thirdPartyData } = useQuery({
+    queryKey: ["third-party-usd-beneficiaries"],
+    queryFn: FetchThirdPartyUsdBeneficiariesApi,
+  });
+
   const beneficiaries = data?.beneficiaries || [];
+  const thirdPartyPartners = thirdPartyData?.data || [];
+  const hasThirdPartyPartners = thirdPartyPartners.length > 0;
+  const partnerBannerText = formatPartnerBannerText(thirdPartyPartners);
+
+  const stringField = (label: string, max = 40) =>
+    z
+      .string()
+      .min(1, `${label} is required`)
+      .max(max, `${label} must be at most ${max} characters`);
 
   const validationSchema = z.object({
-    label: z.string().min(1, "Label is required"),
-    bank_name: z.string().min(1, "Bank name is required"),
-    account_number: z.string().min(1, "Account number is required"),
-    routing_number: z.string().min(1, "Routing number is required"),
-    account_type: z.string().min(1, "Account type is required"),
-    account_owner_name: z.string().min(1, "Account owner name is required"),
-    street_line_1: z.string().min(1, "Street line 1 is required"),
-    street_line_2: z.string().optional(),
-    city: z.string().min(1, "City is required"),
-    state: z.string().min(1, "State is required"),
-    postal_code: z.string().min(1, "Postal code is required"),
-    payment_rail: z.string().min(1, "Payment rail is required"),
+    label: stringField("Label", 100),
+    bank_name: stringField("Bank name"),
+    account_number: stringField("Account number"),
+    routing_number: stringField("Routing number"),
+    account_type: z.enum(["checking", "savings"], {
+      required_error: "Account type is required",
+    }),
+    account_owner_name: stringField("Account owner name"),
+    street_line_1: stringField("Street line 1"),
+    street_line_2: z.string().max(40).optional(),
+    city: stringField("City"),
+    state: stringField("State"),
+    postal_code: stringField("Postal code"),
+    payment_rail: z
+      .string()
+      .refine(
+        (value): value is UsdBeneficiaryPaymentRail =>
+          paymentRailOptions.includes(value as UsdBeneficiaryPaymentRail),
+        { message: "Payment rail is required" },
+      ),
   });
+
+  const applyFieldErrors = (fieldErrors: Record<string, string>) => {
+    const formik = formikRef.current;
+    if (!formik) return;
+    Object.entries(fieldErrors).forEach(([field, message]) => {
+      formik.setFieldError(field, message);
+      formik.setFieldTouched(field, true, false);
+    });
+  };
+
+  const handleCreateError = (
+    error: unknown,
+    options?: { partner?: boolean },
+  ) => {
+    const mapped = mapUsdBeneficiaryError(error);
+
+    if (mapped.kind === "routing_rail_mismatch") {
+      if (mapped.fieldErrors) {
+        applyFieldErrors(mapped.fieldErrors);
+      }
+      setRoutingRailHint(mapped.hint ?? null);
+      if (options?.partner) {
+        toast.error(mapped.message);
+      }
+      return;
+    }
+
+    setRoutingRailHint(null);
+
+    if (
+      mapped.kind === "validation" &&
+      mapped.fieldErrors &&
+      Object.keys(mapped.fieldErrors).length > 0
+    ) {
+      applyFieldErrors(mapped.fieldErrors);
+      return;
+    }
+
+    toast.error(mapped.message);
+  };
 
   const qc = useQueryClient();
   const AddBeneficiaryMutation = useMutation({
     mutationFn: (data: IUsBeneficiaryPayload) => CreateUsBeneficiary(data),
-    onSuccess: async (res: any, payload: IUsBeneficiaryPayload) => {
+    retry: false,
+    onSuccess: async () => {
       toast.success("Beneficiary added!");
+      setRoutingRailHint(null);
 
       const queryParams = {
         option_type: "bank",
@@ -412,7 +540,7 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
 
       try {
         // Bypass QueryClient cache entirely to ensure we get the fresh DB list
-        const updatedData = await FetchUsBeneficiariesApi(queryParams as any);
+        const updatedData = await FetchUsBeneficiariesApi(queryParams as Parameters<typeof FetchUsBeneficiariesApi>[0]);
 
         const oldIds = new Set(beneficiaries.map((b) => b.usd_beneficiary_id));
         const newBen = updatedData?.beneficiaries?.find(
@@ -423,13 +551,46 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
           actions.selectUsdBeneficiary(newBen);
           goNext();
         }
-      } catch (err) {
-        console.log("Failed to fetch latest beneficiaries", err);
+      } catch {
       }
 
       qc.invalidateQueries({ queryKey: ["us-bank-beneficiaries"] });
     },
   });
+
+  const handlePartnerSelect = (partner: IThirdPartyUsdBeneficiary) => {
+    setSelectedPartner(partner);
+    setPartnerPaymentRail(
+      paymentRailOptions.includes("ach") ? "ach" : paymentRailOptions[0],
+    );
+    setShowPartnerModal(false);
+    setShowReviewModal(true);
+  };
+
+  const handlePartnerReviewConfirm = async () => {
+    if (!selectedPartner || isAddingPartner) return;
+
+    try {
+      setIsAddingPartner(true);
+      const payload = mapThirdPartyUsdBeneficiaryToPayload(
+        selectedPartner,
+        partnerPaymentRail,
+      );
+      await AddBeneficiaryMutation.mutateAsync(payload);
+      setShowReviewModal(false);
+      setSelectedPartner(null);
+    } catch (error) {
+      handleCreateError(error, { partner: true });
+    } finally {
+      setIsAddingPartner(false);
+    }
+  };
+
+  const handlePartnerReviewClose = () => {
+    if (isAddingPartner) return;
+    setShowReviewModal(false);
+    setSelectedPartner(null);
+  };
 
   const initialValues: FormValues = {
     label: "",
@@ -448,37 +609,15 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
 
   const handleSubmit = async (
     values: FormValues,
-    {
-      resetForm,
-      setSubmitting,
-    }: {
-      resetForm: () => void;
-      setSubmitting: (isSubmitting: boolean) => void;
-    },
+    { resetForm, setSubmitting }: FormikHelpers<FormValues>,
   ) => {
     try {
-      const payload: IUsBeneficiaryPayload = {
-        data: {
-          bank_name: values.bank_name,
-          account_number: values.account_number,
-          routing_number: values.routing_number,
-          account_type: values.account_type as "checking" | "savings",
-          account_owner_name: values.account_owner_name,
-          street_line_1: values.street_line_1,
-          street_line_2: values.street_line_2 || null,
-          city: values.city,
-          state: values.state,
-          postal_code: values.postal_code,
-          payment_rail: values.payment_rail as "ach" | "wire" | "ach-same-day",
-        },
-        label: values.label,
-        optionType: "bank",
-      };
+      setRoutingRailHint(null);
+      const payload = buildUsBankBeneficiaryPayload(values);
       await AddBeneficiaryMutation.mutateAsync(payload);
       resetForm();
     } catch (error) {
-      // Error is handled in onError callback of mutation
-      console.log("Submission error:", error);
+      handleCreateError(error);
     } finally {
       setSubmitting(false);
     }
@@ -487,7 +626,9 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
   return (
     <div>
       <CenterModalHeader close={close} />
-      <h2 className="md:text-xl text-lg font-semibold md:font-bold text-raiz-gray-950 md:mb-10 mb-4">US Bank</h2>
+      <h2 className="md:text-xl text-lg font-semibold md:font-bold text-raiz-gray-950 md:mb-10 mb-4">
+        US Bank
+      </h2>
       <div className="flex-1  flex flex-col justify-between gap-4 h-[65vh] xl:h-[70vh]">
         <div className="bg-raiz-gray-50 md:p-6 p-3 overflow-y-auto rounded-[20px]">
           <div className="md:mb-11 mb-7">
@@ -496,8 +637,36 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
             </h5>
             {isLoading ? (
               <div>Loading beneficiaries...</div>
-            ) : beneficiaries?.length > 0 ? (
+            ) : beneficiaries?.length > 0 || hasThirdPartyPartners ? (
               <div className="flex gap-2 overflow-x-scroll no-scrollbar">
+                {hasThirdPartyPartners && (
+                  <button
+                    type="button"
+                    className="flex flex-col justify-center items-center gap-1 px-2 flex-shrink-0"
+                    onClick={() => setShowPartnerModal(true)}
+                  >
+                    <div className="size-12 rounded-full border-2 border-dashed border-raiz-gray-200 flex items-center justify-center bg-white">
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 20 20"
+                        fill="none"
+                        className="text-indigo-900"
+                        aria-hidden
+                      >
+                        <path
+                          d="M10 4v12M4 10h12"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </div>
+                    <p className="text-center text-indigo-900 md:text-[13px] text-xs font-semibold leading-none">
+                      Quick Partner
+                    </p>
+                  </button>
+                )}
                 {beneficiaries?.map((user) => (
                   <button
                     key={user?.usd_beneficiary_id}
@@ -518,6 +687,13 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
                         20,
                       )}
                     </p>
+                    {user?.usd_beneficiary?.payment_rail ? (
+                      <p className="text-center text-raiz-gray-400 text-[11px] leading-none">
+                        {formatUsdPaymentRailLabel(
+                          user.usd_beneficiary.payment_rail,
+                        )}
+                      </p>
+                    ) : null}
                   </button>
                 ))}
               </div>
@@ -525,7 +701,26 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
               <EmptyList text={"No beneficiary yet"} />
             )}
           </div>
+          {hasThirdPartyPartners && (
+            <button
+              type="button"
+              onClick={() => setShowPartnerModal(true)}
+              className="w-full mb-7 px-4 py-3 rounded-2xl bg-[#e5ebff]/60 hover:bg-[#e5ebff]/80 transition-colors flex items-center justify-between gap-3 text-left"
+            >
+              <span className="text-indigo-900 md:text-sm text-xs font-semibold leading-snug">
+                {partnerBannerText}
+              </span>
+              <Image
+                src="/icons/arrow-right.svg"
+                alt=""
+                width={16}
+                height={16}
+                aria-hidden
+              />
+            </button>
+          )}
           <Formik
+            innerRef={formikRef}
             initialValues={initialValues}
             validationSchema={toFormikValidationSchema(validationSchema)}
             onSubmit={handleSubmit}
@@ -536,6 +731,9 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
               setShowBeneficiary={setShowBeneficiary}
               setIsFormValid={setIsFormValid}
               setIsSubmitting={setIsSubmitting}
+              routingRailHint={routingRailHint}
+              onClearRoutingRailError={() => setRoutingRailHint(null)}
+              paymentRailOptions={paymentRailOptions}
             />
           </Formik>
         </div>
@@ -551,6 +749,24 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
         <USBeneficiaryModal
           close={() => setShowBeneficiary(false)}
           users={beneficiaries}
+        />
+      ) : null}
+      {showPartnerModal ? (
+        <ThirdPartyPartnerModal
+          close={() => setShowPartnerModal(false)}
+          partners={thirdPartyPartners}
+          onSelect={handlePartnerSelect}
+        />
+      ) : null}
+      {showReviewModal && selectedPartner ? (
+        <ThirdPartyPartnerReviewModal
+          close={handlePartnerReviewClose}
+          partner={selectedPartner}
+          onConfirm={handlePartnerReviewConfirm}
+          loading={isAddingPartner}
+          paymentRails={paymentRailOptions}
+          paymentRail={partnerPaymentRail}
+          onPaymentRailChange={setPartnerPaymentRail}
         />
       ) : null}
     </div>

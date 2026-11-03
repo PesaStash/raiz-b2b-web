@@ -1,6 +1,5 @@
 "use client";
 import CenterModalHeader from "@/components/layouts/CenterModalHeader";
-import SideWrapperHeader from "@/components/SideWrapperHeader";
 import Button from "@/components/ui/Button";
 import ErrorMessage from "@/components/ui/ErrorMessage";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
@@ -69,7 +68,7 @@ const RequestDetails = ({
   const displayValue = () => {
     if (isFocused || !amount)
       return amount ? `${selectedCurrency.sign}${rawAmount}` : "";
-    const num = parseFloat(rawAmount);
+    const num = Number(rawAmount);
     return isNaN(num) ? "" : `${selectedCurrency.sign}${num.toFixed(2)}`;
   };
 

@@ -40,3 +40,9 @@ body {
 .StripeElement {
   width: 100%;
 }
+
+/* Places suggestions are moved into an open <dialog>; keep them on the field. */
+dialog .pac-container {
+  position: fixed !important;
+  z-index: 10000;
+}

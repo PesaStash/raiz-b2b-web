@@ -47,7 +47,42 @@ export interface ITransactionCategory {
   updated_at: Date;
 }
 
+export type AlipayWechatChannel = "alipay" | "wechat";
+export type AlipayWechatStatus = "pending" | "completed" | "failed";
+
+export interface ITransactionReportAlipayWechatDetails {
+  alipay_wechat_transaction_request_id: string;
+  beneficiary_id: string;
+  recipient_name: string;
+  channel: AlipayWechatChannel;
+  rmb_amount: string;
+  ngn_amount: string;
+  rate: string;
+  status: AlipayWechatStatus;
+  payment_proof_url: string | null;
+  initiated_at: string;
+  liquidated_at: string | null;
+}
+
+export type SwiftReportStatus = "pending" | "completed" | "failed";
+
+export interface ITransactionReportSwiftDetails {
+  swift_transaction_request_id: string;
+  beneficiary_id: string;
+  recipient_name: string;
+  country: string;
+  account_number_or_iban: string;
+  swift_code: string;
+  bank_name: string;
+  status: SwiftReportStatus;
+  payment_proof_url: string | null;
+  invoice_url: string | null;
+}
+
 export interface ITransaction {
+  display_money?: import("./globalBalance").Money | null;
+  account_balance_currency?: string | null;
+  settlement?: import("./globalBalance").Settlement | null;
   wallet_id: string;
   transaction_type_id: number;
   transaction_class_id: number;
@@ -80,6 +115,8 @@ export interface ITransaction {
   transaction_class: ITransactionClass;
   payment_method: IPaymentMethod;
   transaction_category: ITransactionCategory;
+  alipay_wechat?: ITransactionReportAlipayWechatDetails | null;
+  swift?: ITransactionReportSwiftDetails | null;
 }
 
 export interface IBillRequest {
@@ -112,10 +149,17 @@ export type PaymentStatusType =
   | null;
 
 export type GuestPayStatusType =
-  | "complete"
-  | "processing"
+  | "created"
+  | "pending_approval"
   | "process"
+  | "processing"
+  | "pending"
+  | "complete"
+  | "completed"
   | "failed"
+  | "expired"
+  | "cancelled"
+  | "canceled"
   | null;
 
 

@@ -1,4 +1,5 @@
 "use client";
+import { withBusinessWrite } from "@/components/team/BusinessWrite";
 import React, { useRef, useState, useEffect } from "react";
 import { Formik, FormikProps } from "formik";
 import { z } from "zod";
@@ -24,7 +25,6 @@ import { CustomerSearchBox } from "../../_components/CustomerSearchbox";
 import TaxSelect from "../../_components/TaxSelect";
 import DiscountInput from "../../_components/DiscountInput";
 import AddNewTax from "../../_components/AddNewTax";
-import SideModalWrapper from "@/app/(dashboard)/_components/SideModalWrapper";
 import { ACCOUNT_CURRENCIES } from "@/constants/misc";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 import InvoiceMobileBack from "../../_components/InvoiceMobileBack";
@@ -285,7 +285,6 @@ const EditInvoicePage = () => {
       }),
     };
 
-    console.log("Submitting payload:", payload);
     const isDraft = submitType === "draft";
     UpdateMutation.mutate({ payload, isDraft });
   };
@@ -296,8 +295,6 @@ const EditInvoicePage = () => {
     switch (showSideModal) {
       case "customer":
         return <AddNewCustomer close={closeSideModal} />;
-      //   case "settings":
-      //     return <InvoiceSettings close={closeSideModal} />;
       default:
         break;
     }
@@ -890,4 +887,4 @@ const EditInvoicePage = () => {
   );
 };
 
-export default EditInvoicePage;
+export default withBusinessWrite(EditInvoicePage);

@@ -1,6 +1,5 @@
 import Overlay from "@/components/ui/Overlay";
 import React from "react";
-// import Image from "next/image";
 import Avatar from "@/components/ui/Avatar";
 import { IBillRequest } from "@/types/transactions";
 import { getCurrencySymbol } from "@/utils/helpers";
@@ -26,14 +25,6 @@ const AcceptBill = ({ close, request, openPayModal }: Props) => {
               {user?.account_name} sent a request
             </p>
           </div>
-          {/* <button>
-            <Image
-              src={"/icons/trash.svg"}
-              width={24}
-              height={24}
-              alt="delete"
-            />
-          </button> */}
         </div>
         <div className="flex flex-col justify-center items-center mt-11">
           <Avatar name={user?.account_name} src={user?.selfie_image} />

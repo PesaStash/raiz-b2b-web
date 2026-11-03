@@ -77,11 +77,6 @@ const SendOptions = ({ close }: Props) => {
         </div>
       )}
 
-      {/* {isMobile && (
-        <p className="text-sm text-raiz-gray-600 mb-4">
-          How would you like to send USD?
-        </p>
-      )} */}
 
       <div className="flex flex-col gap-1 pb-6 p-3 md:p-6 bg-raiz-gray-50 rounded-2xl">
         <DailyTransactionLimit limit={dailyLimit} used={data || 0} />

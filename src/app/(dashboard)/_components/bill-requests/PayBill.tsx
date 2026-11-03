@@ -3,10 +3,15 @@ import NumberKeypad from "@/components/ui/NumberKeyPad";
 import Overlay from "@/components/ui/Overlay";
 import { useUser } from "@/lib/hooks/useUser";
 import { AcceptRequestApi } from "@/services/transactions";
-import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { IP2pTransferResponse } from "@/types/services";
+import { ICurrencyName } from "@/types/misc";
 import { IBillRequest, PaymentStatusType } from "@/types/transactions";
-import { findWalletByCurrency, passwordHash } from "@/utils/helpers";
+import { findWalletByCurrency } from "@/utils/helpers";
+import {
+  getTransactionId,
+  trackMoneyMovementSuccess,
+  trackTransactionFailed,
+} from "@/utils/analytics/dataLayer";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 
@@ -29,20 +34,10 @@ const PayBill = ({
   setTransactionDetail,
 }: Props) => {
   const { user } = useUser();
-  const NGNAcct = findWalletByCurrency(user, "NGN");
-  const USDAcct = findWalletByCurrency(user, "USD");
-
-  const getCurrentWallet = () => {
-    if (request?.currency === "NGN") {
-      return NGNAcct;
-    } else if (request?.currency === "USD") {
-      return USDAcct;
-    }
-  };
-
-  console.log("request", request);
-
-  const currentWallet = getCurrentWallet();
+  const currentWallet = findWalletByCurrency(
+    user,
+    request?.currency as ICurrencyName,
+  );
   const [pin, setPin] = useState<string>("");
 
   const qc = useQueryClient();
@@ -50,7 +45,7 @@ const PayBill = ({
   const AcceptBillMutation = useMutation({
     mutationFn: () =>
       AcceptRequestApi({
-        transaction_pin: passwordHash(pin),
+        transaction_pin: pin,
         params: {
           wallet_id: currentWallet?.wallet_id || "",
           request_id: request?.request_transfer_id,
@@ -68,12 +63,27 @@ const PayBill = ({
       qc.invalidateQueries({ queryKey: ["p2p-beneficiaries-recents"] });
       qc.invalidateQueries({ queryKey: ["bill-requests-received"] });
       setStatus("success");
+      const transactionId = getTransactionId(response);
+      if (transactionId) {
+        trackMoneyMovementSuccess({
+          event: "bill_payment_completed",
+          transactionId,
+          value: Number(request?.transaction_amount) || 0,
+          currency: request?.currency || "USD",
+        });
+      }
       goNext();
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (response: any) => {
       setStatus("failed");
       setPaymentError(response?.data?.message);
+      trackTransactionFailed({
+        transactionType: "bill_payment",
+        error: response,
+        value: Number(request?.transaction_amount) || undefined,
+        currency: request?.currency,
+      });
     },
     onSettled: () => {
       goNext();

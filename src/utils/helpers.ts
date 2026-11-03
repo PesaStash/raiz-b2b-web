@@ -1,32 +1,30 @@
-import { months, tiers } from "@/constants/misc";
+import { tiers } from "@/constants/misc";
 import { toast } from "sonner";
-import * as CryptoJS from "crypto-js";
 import { ICurrencyName, SwapPairResult } from "@/types/misc";
 import { IUser, IWallet } from "@/types/user";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
-import axios from "axios";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { CurrencyTypeKey } from "@/store/Swap/swapSlice.types";
 
 dayjs.extend(utc);
-
-export const getLastThreeMonths = () => {
-  const currentMonth = new Date().getMonth();
-  return [
-    months[(currentMonth + 11) % 12], // Previous month
-    months[currentMonth], // Current month
-    months[(currentMonth + 1) % 12], // Next month
-  ];
-};
-
-// Format time to display as "00:59"
+// Format time as "MM:SS", or "HH:MM:SS" when 60+ minutes remain.
 export const formatTime = (seconds: number) => {
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
+  const total = Math.max(0, Math.floor(seconds));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const remainingSeconds = total % 60;
+
+  if (hours > 0) {
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(
+      2,
+      "0",
+    )}:${String(remainingSeconds).padStart(2, "0")}`;
+  }
+
   return `${String(minutes).padStart(2, "0")}:${String(
-    remainingSeconds
+    remainingSeconds,
   ).padStart(2, "0")}`;
 };
 
@@ -45,16 +43,120 @@ export const copyToClipboard = (value: string) => {
     });
 };
 
+type ApiErrorPayload = {
+  detail?: string;
+  message?: string;
+  error?: string;
+  correlation_id?: string;
+  request_id?: string;
+};
+
+const UNSAFE_ERROR_PATTERNS = [
+  /sql/i,
+  /traceback/i,
+  /exception/i,
+  /\bat\s+\S+\./,
+  /Error:/,
+  /stack/i,
+  /undefined is not/i,
+  /<html/i,
+];
+
+function isUserSafeMessage(message: unknown): message is string {
+  if (typeof message !== "string" || !message || message.length > 300) {
+    return false;
+  }
+  return !UNSAFE_ERROR_PATTERNS.some((pattern) => pattern.test(message));
+}
+
+function extractApiErrorContext(error: unknown): {
+  status?: number;
+  data?: ApiErrorPayload;
+} {
+  const axiosResponse = error as {
+    status?: number;
+    data?: ApiErrorPayload;
+    response?: { status?: number; data?: ApiErrorPayload };
+  };
+
+  if (axiosResponse.response) {
+    return {
+      status: axiosResponse.response.status,
+      data: axiosResponse.response.data,
+    };
+  }
+
+  if (axiosResponse.status !== undefined || axiosResponse.data) {
+    return {
+      status: axiosResponse.status,
+      data: axiosResponse.data,
+    };
+  }
+
+  return {};
+}
+
+function unwrapMessageCandidate(value: unknown, depth = 0): unknown {
+  if (value == null || depth > 3) return undefined;
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) {
+    return unwrapMessageCandidate(
+      value.find((item) => item != null),
+      depth + 1,
+    );
+  }
+  if (typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    return unwrapMessageCandidate(
+      obj.detail ?? obj.message ?? obj.error ?? obj.msg,
+      depth + 1,
+    );
+  }
+  return undefined;
+}
+
+function getBackendMessage(data?: ApiErrorPayload): string | undefined {
+  const candidates = [data?.detail, data?.message, data?.error, data];
+  for (const candidate of candidates) {
+    const unwrapped = unwrapMessageCandidate(candidate);
+    if (isUserSafeMessage(unwrapped)) return unwrapped;
+  }
+  return undefined;
+}
+
+function appendCorrelationId(message: string, data?: ApiErrorPayload): string {
+  const correlationId = data?.correlation_id || data?.request_id;
+  if (!correlationId) return message;
+  return `${message} If this continues, contact support with reference ${correlationId}.`;
+}
+
 export const getApiErrorMessage = (
   error: unknown,
   fallback = "Something went wrong",
+  options?: { featureMessage403?: string },
 ) => {
-  const errorData =
-    (error as { data?: { detail?: string; message?: string } })?.data ||
-    (error as { response?: { data?: { detail?: string; message?: string } } })
-      ?.response?.data;
+  const { status, data } = extractApiErrorContext(error);
+  const backendMessage = getBackendMessage(data);
 
-  return errorData?.detail || errorData?.message || fallback;
+  let message = fallback;
+
+  if (status === 429) {
+    message =
+      "Too many attempts. Please wait a moment before trying again.";
+  } else if (status === 400 || status === 422) {
+    message =
+      backendMessage ||
+      "We could not validate that request. Check the fields and try again.";
+  } else if (status === 403) {
+    message =
+      options?.featureMessage403 ||
+      backendMessage ||
+      "You don't have permission to perform this action.";
+  } else if (backendMessage) {
+    message = backendMessage;
+  }
+
+  return appendCorrelationId(message, data);
 };
 
 export const getInitials = (firstName: string, lastName: string): string => {
@@ -62,10 +164,21 @@ export const getInitials = (firstName: string, lastName: string): string => {
   const lastInitial = lastName.charAt(0).toUpperCase();
   return `${firstInitial}${lastInitial}`;
 };
-
-export function extractObjectUrlFromSignedUrl(signedUrl: string): string {
-  const url = new URL(signedUrl);
-  return url.origin + url.pathname;
+/** Strip S3 signing query params so avatars load via Next/Image and don't expire. */
+export function normalizeS3ObjectUrl(url: string | null | undefined): string {
+  if (!url) return "";
+  if (url.startsWith("/") || url.startsWith("blob:") || url.startsWith("data:")) {
+    return url;
+  }
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname.includes("amazonaws.com")) {
+      return parsed.origin + parsed.pathname;
+    }
+  } catch {
+    // fall through
+  }
+  return url;
 }
 
 export const getTierInfo = (value: number) => {
@@ -103,23 +216,6 @@ export const getAppRatingLink = () => {
   return "https://apps.apple.com/us/app/raiz-app/id6502309659?mt=8";
 };
 
-export const iv = CryptoJS.enc.Hex.parse("000102030405060708090a0b0c0d0e0f");
-
-export const passwordHash = (password: string): string => {
-  const fixedSalt = "myFixedSalt";
-  const keySize = 256 / 32; // 256-bit key size
-  const iterations = 1000;
-  const key = CryptoJS.PBKDF2(password, fixedSalt, {
-    keySize,
-    iterations,
-  });
-  // Use the derived key for encryption
-  return CryptoJS.AES.encrypt(password, key, {
-    mode: CryptoJS.mode.CFB,
-    padding: CryptoJS.pad.Pkcs7,
-    iv,
-  }).toString();
-};
 
 export const findWalletByCurrency = (
   user: IUser | undefined,
@@ -130,10 +226,6 @@ export const findWalletByCurrency = (
       acct.wallet_type.currency === currency
   );
 };
-
-export const getDaysBetween = (startDate: dayjs.Dayjs, endDate: dayjs.Dayjs) =>
-  endDate.diff(startDate, "day") + 1;
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const groupByDate = <T extends Record<string, any>>(
   items: T[],
@@ -255,6 +347,15 @@ export const convertTime = (utcTime: Date | string): string => {
   return dayjs.utc(utcTime).local().format("YYYY-MM-DD HH:mm:ss");
 };
 
+export const formatLastUpdated = (date: string) => {
+  const local = dayjs.utc(date).local();
+  if (dayjs().diff(local, "second") < 60) return "just now";
+  return local
+    .fromNow()
+    .replace("a minute ago", "1 min ago")
+    .replace("minutes ago", "mins ago");
+};
+
 export function convertToTitle(input: string): string {
   const words = input?.split("_").map((word) => {
     return word?.charAt(0).toUpperCase() + word?.slice(1).toLowerCase();
@@ -284,15 +385,6 @@ export const getReadablePatternMessage = (
 
   return patternMessages[pattern] || `${fieldLabel} format is invalid`;
 };
-
-export const formatCardNumber = (value: string): string => {
-  // Remove all non-digit characters
-  const digits = value.replace(/\D/g, "");
-  // Split into groups of 4 and join with spaces
-  const groups = digits.match(/.{1,4}/g) || [];
-  return groups.join(" ").slice(0, 19); // Limit to 19 chars (16 digits + 3 spaces)
-};
-
 // Utility function to remove undefined values from an object
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const removeUndefinedValues = <T extends Record<string, any>>(
@@ -326,14 +418,9 @@ export const removeUndefinedValues = <T extends Record<string, any>>(
   return cleaned as T;
 };
 
-export const fetchPublicIP = async (): Promise<string | null> => {
-  try {
-    const response = await axios.get("https://api.ipify.org?format=json");
-    return response.data.ip;
-  } catch (err) {
-    console.log("ip ERRRROR IP", err);
-    return null;
-  }
+export const formatDisplayRate = (rate: number): string => {
+  if (!Number.isFinite(rate)) return "0";
+  return rate.toFixed(6).replace(/\.?0+$/, "");
 };
 
 export const formatAmount = (
@@ -463,23 +550,6 @@ export const generateInvoicePDFBlob = async (
   return blob;
 };
 
-export const uploadPDF = async (file: Blob, fileName: string) => {
-  const formData = new FormData();
-  formData.append("file", file, fileName);
-
-  const response = await fetch("/api/upload", {
-    method: "POST",
-    body: formData,
-  });
-
-  if (!response.ok) {
-    throw new Error(`Upload failed: ${response.statusText}`);
-  }
-
-  const data = await response.json();
-  return data.url as string;
-};
-
 export const blobToBase64 = (blob: Blob): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -528,9 +598,6 @@ export const toMinorUnitByCurrency = (
   const dec = currencyMinorUnits[currency?.toUpperCase()] ?? fallbackDecimals;
   return toMinorUnitWithDecimals(value, dec);
 };
-
-export const toMinorUnit = (value: number) => toMinorUnitWithDecimals(value, 2);
-
 export const determineSwapPair = (
   currentCurrency: CurrencyTypeKey,
   wallets: IWallet[]
@@ -652,44 +719,8 @@ export const determineSwapPair = (
   }
 };
 
-export const getAvailableSwapDestinations = (
-  fromCurrency: CurrencyTypeKey,
-  wallets: IWallet[]
-): CurrencyTypeKey[] => {
-  const availableCurrencies = wallets.map(
-    (w) => w.wallet_type.currency as CurrencyTypeKey
-  );
-
-  switch (fromCurrency) {
-    case "USD":
-      return availableCurrencies.filter(
-        (c): c is CurrencyTypeKey =>
-          c === "NGN" || c === "GBP" || c === "EUR" || c === "SBC"
-      );
-
-    case "NGN":
-      // NGN can only swap to USD
-      return availableCurrencies.filter(
-        (c): c is CurrencyTypeKey => c === "USD"
-      );
-
-    case "GBP":
-      return availableCurrencies.filter(
-        (c): c is CurrencyTypeKey => c === "USD"
-      );
-
-    case "EUR":
-      return availableCurrencies.filter(
-        (c): c is CurrencyTypeKey => c === "USD"
-      );
-
-    case "SBC":
-      // SBC can only swap to USD (not NGN)
-      return availableCurrencies.filter(
-        (c): c is CurrencyTypeKey => c === "USD"
-      );
-
-    default:
-      return [];
-  }
+export const maskAccountNumber = (accountNumber: string) => {
+  const compact = accountNumber.replace(/\s/g, "");
+  if (!compact || compact.length <= 4) return accountNumber;
+  return `••••${compact.slice(-4)}`;
 };

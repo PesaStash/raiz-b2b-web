@@ -71,7 +71,7 @@ const AmountEntry = ({ channel, rate, onConfirm, onBack }: Props) => {
     !!quote && !quoteLoading && !!amount && parseFloat(amount) > 0;
 
   return (
-    <div className="p-6 h-full flex flex-col overflow-y-auto no-scrollbar">
+    <div className="p-0 md:p-6 h-full flex flex-col overflow-y-auto no-scrollbar">
       <button onClick={onBack} className="mb-6 self-start">
         <Image src="/icons/arrow-left.svg" width={18} height={18} alt="back" />
       </button>
@@ -130,7 +130,7 @@ const AmountEntry = ({ channel, rate, onConfirm, onBack }: Props) => {
         {quote && !quoteLoading && (
           <div className="space-y-2">
             <div className="flex justify-between">
-              <span className="text-raiz-gray-500 text-sm">You pay (NGN)</span>
+              <span className="text-raiz-gray-500 md:text-sm text-[13px]">You pay (NGN)</span>
               <span className="text-raiz-gray-950 text-sm font-bold">
                 ₦{parseFloat(quote.naira_amount).toLocaleString("en-NG", {
                   minimumFractionDigits: 2,
@@ -138,8 +138,8 @@ const AmountEntry = ({ channel, rate, onConfirm, onBack }: Props) => {
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-raiz-gray-500 text-sm">Recipient gets</span>
-              <span className="text-raiz-gray-950 text-sm font-medium">
+              <span className="text-raiz-gray-500 md:text-sm text-[13px]">Recipient gets</span>
+              <span className="text-raiz-gray-950 md:text-sm text-[13px] font-medium">
                 ¥{parseFloat(quote.destination_amount).toLocaleString("en-US", {
                   minimumFractionDigits: 2,
                 })}

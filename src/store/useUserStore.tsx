@@ -4,6 +4,7 @@ import { persist, PersistStorage } from "zustand/middleware";
 
 interface UserStore {
   user: IUser | null;
+  sessionVerified: boolean;
   setUser: (user: IUser) => void;
   clearUser: () => void;
   updateUser: (updates: Partial<IUser>) => void;
@@ -31,12 +32,13 @@ export const useUserStore = create<UserStore>()(
   persist(
     (set) => ({
       user: null,
+      sessionVerified: false,
       isLoading: false,
       error: null,
       showBalance: false,
-      setUser: (user) => set({ user, isLoading: false, error: null }),
+      setUser: (user) => set({ user, sessionVerified: true, isLoading: false, error: null }),
       setShowBalance: (show) => set({ showBalance: show }),
-      clearUser: () => set({ user: null, isLoading: false, error: null }),
+      clearUser: () => set({ user: null, sessionVerified: false, showBalance: false, isLoading: false, error: null }),
 
       updateUser: (updates) =>
         set((state) => ({
