@@ -104,9 +104,9 @@ export function groupTasks(editor: KybEditor, group: number) {
   return group === 1
     ? [
         {
-          title: "Find your business",
+          title: "Confirm your business",
           step: 0,
-          // Manual entry and registry lookup both lead to this same task.
+          // Confirmation from basic details leads to this same task.
           // Its completion must follow business details, not the separate identity flag.
           done: complete("business_details"),
         },
@@ -134,8 +134,8 @@ export function groupTasks(editor: KybEditor, group: number) {
 }
 const tips = [
   [
-    "Why we look you up",
-    "The CAC register confirms your business is real and active, and saves you typing most of the next steps.",
+    "Why we confirm",
+    "Your registered details come from your basic business details and the CAC register. Check they’re right before you continue.",
   ],
   [
     "Why we ask",
@@ -239,7 +239,7 @@ export default function SetupGuide({
   return (
     <div className="space-y-7">
       <Greeting editor={editor} />
-      <div className="grid items-start gap-5 lg:grid-cols-[minmax(210px,300px)_minmax(0,1fr)]">
+      <div className="grid items-start gap-5 desktop:grid-cols-[minmax(210px,300px)_minmax(0,1fr)] lg:grid-cols-[minmax(200px,250px)_minmax(0,1fr)]">
         <nav aria-label="Setup sections" className="space-y-2">
           {taskGroups.map((g, index) => (
             <button

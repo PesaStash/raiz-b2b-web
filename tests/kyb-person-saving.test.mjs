@@ -9,6 +9,7 @@ import * as model from "../src/lib/usd-kyb/model.ts";
 import {
   identityStarted,
   personDetailsErrors,
+  persistedPersonDetailsErrors,
   canResendPersonInvitation,
 } from "../src/lib/usd-kyb/personDetails.ts";
 import { SaveQueue } from "../src/lib/usd-kyb/saveQueue.ts";
@@ -16,6 +17,7 @@ function editorHarness({
   status = "collecting",
   canWrite = true,
   existingPerson = {},
+  prefilled = {},
 } = {}) {
   const slots = [];
   let cursor = 0;
@@ -68,6 +70,7 @@ function editorHarness({
       },
     ],
     validation: { missing_requirements: [] },
+    prefilled_draft: prefilled,
   };
   const calls = [];
   const invitations = [];
@@ -214,6 +217,7 @@ function editorHarness({
         return {
           identityStarted,
           personDetailsErrors,
+          persistedPersonDetailsErrors,
           canResendPersonInvitation,
         };
       if (name === "@/lib/usd-kyb/saveQueue") return { SaveQueue };
@@ -270,6 +274,27 @@ const person = (key) => ({
   has_control: false,
   is_signer: false,
   is_director: true,
+});
+test("an unchanged field and lookup prefill do not schedule another save", async () => {
+  const h = editorHarness({
+    prefilled: {
+      business_profile: {
+        business_type: "PRIVATE COMPANY LIMITED BY SHARES",
+        email: "prefill@example.com",
+      },
+    },
+  });
+  let e = h.render();
+  e.change("business_profile.business_type", "");
+  await e.flush();
+  e = h.render();
+  assert.equal(h.calls.length, 1);
+  assert.equal(e.draft.business_profile.business_type, "");
+  assert.equal(e.draft.business_profile.email, "prefill@example.com");
+  e.change("business_profile.business_type", "");
+  await e.flush();
+  e = h.render();
+  assert.equal(h.calls.length, 1);
 });
 test("only changed complete people are written and business-only saves omit all people", async () => {
   const h = editorHarness();
@@ -444,6 +469,82 @@ test("backend response messages toast on every failed submission, including repe
     assert.equal(h.toasts.at(-1).message, message);
   }
   assert.equal(h.toasts.filter((item) => item.message === message).length, 2);
+});
+
+test("saving or continuing repairs a non-boolean has_ownership before validation", async () => {
+  const h = editorHarness({
+    existingPerson: {
+      ownership_percentage: 50,
+      has_ownership: "Invalid has ownership (re-enter a valid has ownership)",
+    },
+  });
+  const e = h.render();
+  await e.flush();
+  assert.equal(h.calls.length, 1);
+  assert.equal(h.calls[0].associated_persons[0].has_ownership, true);
+  assert.equal(typeof h.calls[0].associated_persons[0].has_ownership, "boolean");
+});
+
+test("a positive ownership percentage is saved with boolean has_ownership", async () => {
+  const placeholder = "Invalid has ownership (re-enter a valid has ownership)";
+  const h = editorHarness({
+    existingPerson: {
+      ownership_percentage: 50,
+      has_ownership: placeholder,
+    },
+  });
+  let e = h.render();
+  const saved = e.people[0];
+  assert.equal(saved.has_ownership, true);
+  e.changePeople(
+    e.people.map((person) =>
+      person.person_key === saved.person_key
+        ? { ...e.personInput(person), title: "Shareholder" }
+        : person,
+    ),
+  );
+  await e.flush();
+  const sent = h.calls[0].associated_persons[0];
+  assert.equal(sent.has_ownership, true);
+  assert.equal(typeof sent.has_ownership, "boolean");
+  assert.equal(sent.title, "Shareholder");
+});
+
+test("a refreshed saved person stays ready to invite when birth date and address are omitted", async () => {
+  const saved = {
+    associated_person_id: "627cfe7a-6938-4b4a-a99d-5524b5ed3a3b",
+    email: "janedoe@yopmail.com",
+    first_name: "Jane",
+    last_name: "Doe",
+    title: "CEO",
+    relationship_established_at: "2026-10-09",
+    has_ownership: true,
+    ownership_percentage: 50,
+    has_control: false,
+    is_signer: false,
+    is_director: false,
+    invitation_status: "not_sent",
+  };
+  const ready = editorHarness({ existingPerson: saved });
+  let editor = ready.render();
+  assert.equal(editor.personDetailsSaved(editor.people[0]), true);
+  await editor.invitePerson(editor.people[0], "send");
+  assert.deepEqual(ready.invitations, [
+    { id: saved.associated_person_id, action: "send" },
+  ]);
+
+  const incomplete = editorHarness({
+    existingPerson: {
+      associated_person_id: "b903f205-5fe4-4643-88e3-20a887c0e582",
+      has_ownership: true,
+      ownership_percentage: 50,
+      email: null,
+      first_name: null,
+      last_name: null,
+    },
+  });
+  editor = incomplete.render();
+  assert.equal(editor.personDetailsSaved(editor.people[0]), false);
 });
 
 test("confirming a lookup director has no ownership preserves their roles and does not unlock invitations", async () => {

@@ -1,4 +1,5 @@
 import type { KybFieldError, KybPerson } from "../../types/usdKyb.ts";
+import { ownershipFlag } from "./model.ts";
 export const correctionPath = (field: string) =>
   field.replace(/\[(\d+)\]/g, ".$1").replace(/^\./, "");
 export function valueAt(source: unknown, path: string): unknown {
@@ -83,7 +84,10 @@ export function errorsForPerson(
   );
 }
 export function cleanPerson(person: KybPerson, errors: KybFieldError[]) {
-  return cleanDraft(person, errors) as KybPerson;
+  const cleaned = cleanDraft(person, errors) as KybPerson;
+  if ("has_ownership" in person && typeof person.has_ownership !== "boolean")
+    return { ...cleaned, has_ownership: ownershipFlag(person) };
+  return cleaned;
 }
 /** Only changed write fields are sent. Omitted nested fields remain owned by the server. */
 export function changedFields(

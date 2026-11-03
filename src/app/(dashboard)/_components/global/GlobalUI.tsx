@@ -19,13 +19,29 @@ export function CurrencyFlag({
   small = false,
   compact = false,
   hero = false,
+  badge = false,
+  mini = false,
 }: {
   currency: string;
   large?: boolean;
   small?: boolean;
   compact?: boolean;
   hero?: boolean;
+  badge?: boolean;
+  mini?: boolean;
 }) {
+  if ((badge || mini) && flags[currency])
+    return (
+      <span
+        className={`inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border-[#e4e0ea] bg-[#fcfcfd] ${badge ? "h-11 w-11 border-[0.611px]" : "h-[18px] w-[18px] border-[0.25px]"}`}
+      >
+        <img
+          src={asset(flags[currency])}
+          alt=""
+          className={`max-w-none object-cover ${badge ? "h-[39.111px] w-[39.111px]" : "h-5 w-5"}`}
+        />
+      </span>
+    );
   const dimensions = hero
     ? "h-16 w-16"
     : large

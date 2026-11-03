@@ -27,6 +27,7 @@ import {
   record,
   requirementStage,
 } from "@/lib/usd-kyb/model";
+import Button from "../ui/Button";
 export function Requirements({
   editor,
   navigate,
@@ -583,14 +584,16 @@ export function SubmittedCase({ editor }: { editor: KybEditor }) {
               )}
             </div>
           )}
-          <button
+          <Button
             type="button"
-            className="text-xs font-semibold text-primary2"
+            
+            width="fit"
+            className="rounded-xl"
             disabled={editor.busy}
             onClick={() => void editor.reload(false)}
           >
             {editor.busy ? "Refreshing…" : "Refresh status"}
-          </button>
+          </Button>
         </div>
         <aside className="border-t border-kyb-border bg-[#F9F9FB] p-5 sm:p-8 md:border-l md:border-t-0">
           <h3 className="mb-4 text-[13px] font-semibold leading-[19px] text-kyb-muted">

@@ -18,6 +18,13 @@ import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 import { Action, Notice } from "@/components/usd-kyb/KybUI";
 import { pushDataLayerEvent } from "@/utils/analytics/dataLayer";
 import { getAnalyticsUserType } from "@/utils/analytics/userProps";
+import CompanyLookupStep from "@/components/onboarding/CompanyLookupStep";
+import {
+  clearLookupPrefill,
+  readLookupPrefill,
+  supportsCompanyLookup,
+  type LookupPrefill,
+} from "@/lib/companyLookup";
 
 const nigerianRegNumberRegex = /^(RC|BN)[\s-]*\d{5,8}$/i;
 
@@ -57,18 +64,74 @@ type BasicFormProps = {
   close: () => void;
   onVerificationSuccess?: () => void;
   page?: boolean;
+  prefill?: LookupPrefill | null;
 };
+
 const BusinessVerificationModal = (props: BasicFormProps) => {
   const { user } = useUser();
-  return <BasicBusinessForm {...props} user={user} />;
+  const entityId = user?.business_account?.entity_id ?? "";
+  const countryCode =
+    user?.business_account?.entity?.country?.country_code ?? "";
+  const savedPrefill = readLookupPrefill(entityId);
+  const canLookup = supportsCompanyLookup(countryCode);
+  const [step, setStep] = useState<"lookup" | "form">(() =>
+    canLookup && !savedPrefill ? "lookup" : "form",
+  );
+  const [prefill, setPrefill] = useState<LookupPrefill | null>(
+    () => savedPrefill,
+  );
+
+  if (step === "lookup" && canLookup) {
+    return (
+      <div className="flex flex-col gap-4 min-h-0">
+        <CenterModalHeader close={props.close} />
+        <div className="space-y-2">
+          <h2 className="text-xl font-bold text-raiz-gray-950">
+            Find your business
+          </h2>
+          <p className="text-sm text-kyb-muted">
+            Look your business up on the register. We’ll fill in the details for
+            you.
+          </p>
+        </div>
+        <CompanyLookupStep
+          compact
+          countryCode={countryCode}
+          entityId={entityId}
+          onConfirmed={(next) => {
+            setPrefill(next);
+            setStep("form");
+          }}
+          onManual={() => {
+            clearLookupPrefill(entityId);
+            setPrefill(null);
+            setStep("form");
+          }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <BasicBusinessForm {...props} user={user} prefill={prefill} />
+  );
 };
+
 export const BasicBusinessForm = ({
   close,
   onVerificationSuccess,
   page = false,
   user,
+  prefill: prefillProp,
 }: BasicFormProps & { user?: IUser }) => {
-  const [useManualAddress, setUseManualAddress] = useState(false);
+  const entityId = user?.business_account?.entity_id ?? "";
+  const storedPrefill = useMemo(
+    () => prefillProp ?? readLookupPrefill(entityId),
+    [prefillProp, entityId],
+  );
+  const [useManualAddress, setUseManualAddress] = useState(
+    () => !!storedPrefill?.address && !storedPrefill.resolved,
+  );
   const {
     countries,
     fetchCountries,
@@ -84,15 +147,43 @@ export const BasicBusinessForm = ({
       countries.map((country) => ({
         value: country.country_code,
         label: country.country_name,
+        flag: country.country_flag,
       })),
     [countries],
   );
+
+  const formatCountryOption = (
+    option:
+      | (typeof countryOptions)[number]
+      | { value: string | number; label: string },
+  ) => {
+    const flag =
+      "flag" in option && typeof option.flag === "string"
+        ? option.flag
+        : countries.find((country) => country.country_code === option.value)
+            ?.country_flag;
+    return (
+      <span className="flex items-center gap-2.5">
+        {flag ? (
+          <Image
+            src={flag}
+            width={22}
+            height={15}
+            alt=""
+            className="rounded-[3px] object-cover"
+          />
+        ) : null}
+        {option.label}
+      </span>
+    );
+  };
 
   const qc = useQueryClient();
   const BusinessVerificationMutation = useMutation({
     mutationFn: (payload: IBusinessVerificationPayload) =>
       BusinessVerificationApi(payload),
     onSuccess: async (response) => {
+      clearLookupPrefill(entityId);
       toast.success(
         response?.message ||
           "Basic business information submitted. Choose a starting currency to continue.",
@@ -124,21 +215,32 @@ export const BasicBusinessForm = ({
       },
     );
 
+  const existingEmail =
+    user?.business_account?.business_email || user?.email || "";
+
   const formik = useFormik<BusinessFormValues>({
     initialValues: {
-      business_registration_number: "",
-      business_name: user?.business_account?.business_name || "",
+      business_registration_number:
+        storedPrefill?.registration_number || "",
+      business_name:
+        storedPrefill?.business_name ||
+        user?.business_account?.business_name ||
+        "",
       business_email:
-        user?.business_account?.business_email || user?.email || "",
-      country_code: user?.business_account?.entity?.country?.country_code || "",
-      state: "",
-      zip_code: "",
-      street: "",
-      building_number: "",
-      city: "",
+        existingEmail || storedPrefill?.business_email || "",
+      country_code:
+        storedPrefill?.country_code ||
+        user?.business_account?.entity?.country?.country_code ||
+        "",
+      state: storedPrefill?.state || "",
+      zip_code: storedPrefill?.zip_code || "",
+      street: storedPrefill?.street || "",
+      building_number: storedPrefill?.building_number || "",
+      city: storedPrefill?.city || "",
       length_of_stay_months: undefined as unknown as number,
-      address: "",
+      address: storedPrefill?.address || "",
     },
+    enableReinitialize: true,
     validateOnChange: true,
     validate: (values) => {
       const result = getEffectiveSchema().safeParse(values);
@@ -195,6 +297,13 @@ export const BasicBusinessForm = ({
     return Array.isArray(error) ? error[0] : error;
   };
 
+  const prefillNotice = storedPrefill ? (
+    <Notice>
+      Pre-filled from the business register. Check and edit anything that’s
+      changed.
+    </Notice>
+  ) : null;
+
   if (page) {
     const field = (
       name: keyof BusinessFormValues,
@@ -229,6 +338,7 @@ export const BasicBusinessForm = ({
             )}
           </Notice>
         )}
+        {/* {prefillNotice} */}
         <header>
           <p className="text-xs font-semibold text-primary2">
             VERIFY YOUR BUSINESS · TASK 2 OF 3
@@ -250,20 +360,7 @@ export const BasicBusinessForm = ({
           <div className="grid gap-x-4 gap-y-5 sm:grid-cols-2">
             <div>
               <SelectField
-                formatOptionLabel={(option) => (
-                  <span className="flex items-center gap-2.5">
-                    {option.value === "NG" && (
-                      <Image
-                        src="/images/kyb/registration-ng.png"
-                        width={22}
-                        height={15}
-                        alt=""
-                        className="rounded-[3px]"
-                      />
-                    )}
-                    {option.label}
-                  </span>
-                )}
+                formatOptionLabel={formatCountryOption}
                 label="Country business is registered in"
                 name="country_code"
                 options={countryOptions}
@@ -350,7 +447,12 @@ export const BasicBusinessForm = ({
                 The number on your CAC
               </p>
             </div>
-            {field("business_name", "Business name")}
+            <div>
+              {field("business_name", "Business name")}
+              <p className="mt-2 text-[13px] text-kyb-muted">
+                Fetched from the CAC registry
+              </p>
+            </div>
             <div>
               {field("business_email", "Business email", "email")}
               <p className="mt-2 text-[13px] text-kyb-muted">
@@ -415,7 +517,7 @@ export const BasicBusinessForm = ({
                   }
                 />
               </div>
-              <div className="sm:w-[calc(50%-8px)]">
+              <div className="sm:w-full">
                 {field(
                   "length_of_stay_months",
                   "Time at this address (months)",
@@ -454,17 +556,23 @@ export const BasicBusinessForm = ({
           )}
         </Notice>
       )}
+      {prefillNotice}
       <div className="flex flex-col gap-3">
         <CenterModalHeader close={close} />
         <h2 className="text-xl font-bold text-raiz-gray-950 mb-4">
           Basic Business Verification
         </h2>
-        <InputField
-          label="Business Name"
-          {...formik.getFieldProps("business_name")}
-          status={fieldError("business_name")}
-          errorMessage={fieldErrorMessage("business_name")}
-        />
+        <div>
+          <InputField
+            label="Business Name"
+            {...formik.getFieldProps("business_name")}
+            status={fieldError("business_name")}
+            errorMessage={fieldErrorMessage("business_name")}
+          />
+          <p className="mt-2 text-[13px] text-kyb-muted">
+            Fetched from the CAC registry. You can edit it.
+          </p>
+        </div>
         <InputField
           label="Business Registration Number"
           {...formik.getFieldProps("business_registration_number")}
@@ -479,6 +587,7 @@ export const BasicBusinessForm = ({
           errorMessage={fieldErrorMessage("business_email")}
         />
         <SelectField
+          formatOptionLabel={formatCountryOption}
           label="Country"
           name="country_code"
           placeholder="Select country"

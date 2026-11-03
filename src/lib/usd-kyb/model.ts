@@ -1,9 +1,9 @@
 export const stages = [
   {
     key: "identity",
-    title: "Find your business",
+    title: "Your business",
     group: "About the business",
-    description: "Look up your Nigerian business on the CAC register.",
+    description: "Confirm the business you added in your basic details.",
   },
   {
     key: "business_details",
@@ -16,7 +16,7 @@ export const stages = [
     title: "Owners and directors",
     group: "About the business",
     description:
-      "Everyone who owns 25% or more, every director, and anyone who controls or signs for the business.",
+      "Everyone who owns 25% or more, every director, and anyone who controls or signs for the business. Review each person’s details, then invite them to verify their identity.",
   },
   {
     key: "activity",
@@ -205,6 +205,55 @@ export function fileError(file: { type: string; size: number }): string | null {
   if (file.size > 10 * 1024 * 1024) return "Files must be 10 MiB or smaller.";
   return null;
 }
+/** A positive share owns the business. Anything other than boolean true does not. */
+export function ownershipFlag(person: {
+  has_ownership?: unknown;
+  ownership_percentage?: unknown;
+}): boolean {
+  const percentage = person.ownership_percentage;
+  return (
+    (typeof percentage === "number" &&
+      Number.isFinite(percentage) &&
+      percentage > 0) ||
+    person.has_ownership === true
+  );
+}
+
+/**
+ * The API rejects a positive percentage unless has_ownership is boolean true,
+ * and stores its validation placeholder if another value is sent.
+ */
+export function ensureOwnershipFlag(
+  write: Record<string, unknown>,
+  input: { has_ownership?: unknown; ownership_percentage?: unknown },
+  stored?: { has_ownership?: unknown },
+): Record<string, unknown> {
+  const percentage = Object.hasOwn(write, "ownership_percentage")
+    ? write.ownership_percentage
+    : input.ownership_percentage;
+  const positive =
+    typeof percentage === "number" &&
+    Number.isFinite(percentage) &&
+    percentage > 0;
+  const storedFlag = stored?.has_ownership;
+  const storedIsInvalid =
+    !!stored &&
+    Object.hasOwn(stored, "has_ownership") &&
+    typeof storedFlag !== "boolean";
+  if (
+    positive &&
+    (Object.hasOwn(write, "ownership_percentage") || storedIsInvalid)
+  )
+    return { ...write, has_ownership: true };
+  if (storedIsInvalid) return { ...write, has_ownership: ownershipFlag(input) };
+  if (
+    Object.hasOwn(write, "has_ownership") &&
+    typeof write.has_ownership !== "boolean"
+  )
+    return { ...write, has_ownership: positive };
+  return write;
+}
+
 /** PATCH accepts person-edit fields only, never invitation/provider state. */
 export function personPatch(
   person: Record<string, unknown>,
@@ -227,11 +276,19 @@ export function personPatch(
     "is_signer",
     "is_director",
   ];
-  return Object.fromEntries(
+  const result = Object.fromEntries(
     fields
       .filter((key) => person[key] !== undefined)
       .map((key) => [key, person[key]]),
   );
+  if (typeof result.has_ownership === "string") result.has_ownership = false;
+  if (
+    typeof result.ownership_percentage === "number" &&
+    Number.isFinite(result.ownership_percentage) &&
+    result.ownership_percentage > 0
+  )
+    result.has_ownership = true;
+  return result;
 }
 
 /** Reapply only edited person fields, preserving another tab's unrelated changes. */

@@ -10,6 +10,7 @@ import InputField from "@/components/ui/InputField";
 import { toAlpha3Country } from "@/lib/usd-kyb/countryCode";
 import { Action, Notice } from "./KybUI";
 import { personDetailsErrors } from "@/lib/usd-kyb/personDetails";
+import { ownershipFlag } from "@/lib/usd-kyb/model";
 
 const steps = [
   "Personal details",
@@ -39,10 +40,10 @@ export default function PersonDetailsForm({
 }) {
   const [person, setPerson] = useState<KybPerson>({
     ...initial,
+    has_ownership: ownershipFlag(initial),
     ...(partial
       ? {}
       : {
-          has_ownership: !!initial.has_ownership,
           is_director: !!initial.is_director,
           has_control: !!initial.has_control,
           is_signer: !!initial.is_signer,
@@ -102,6 +103,10 @@ export default function PersonDetailsForm({
         : correction.field.startsWith("identifying_information")
           ? 2
           : 0;
+      const field = correctionPath(correction.field);
+      // Boolean true already answers this correction. Leaving the checkbox
+      // untouched must not block the rest of the form or submission.
+      if (field === "has_ownership" && person.has_ownership === true) continue;
       if (
         (page === undefined || page === pageFor) &&
         (!changed(correction.field) ||
@@ -205,7 +210,7 @@ export default function PersonDetailsForm({
         <p className="mt-2 text-sm leading-relaxed text-kyb-muted">
           {partial
             ? "Update the flagged details. Saved fields that are hidden do not need to be entered again."
-            : "Complete these details before sending their identity verification link. After saving, you’ll be able to send their invite link. Required fields are marked *."}
+            : "Save their details, then send an invite. Required fields are marked *."}
         </p>
       </div>
       <ol
@@ -222,12 +227,6 @@ export default function PersonDetailsForm({
           </li>
         ))}
       </ol>
-      {partial && (
-        <Notice>
-          Correct the flagged details. Hidden saved fields are preserved; you do
-          not need to enter them again.
-        </Notice>
-      )}
       {error && <Notice error>{error}</Notice>}
       {step === 0 && (
         <div className="space-y-4">

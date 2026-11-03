@@ -12,6 +12,7 @@ import { readApiError } from "@/lib/apiError";
 import { sessionGeneration } from "@/lib/session";
 import BridgeToSWebview from "@/app/(dashboard)/_components/BridgeToSWebview";
 import { Action, Badge, Notice } from "./KybUI";
+import Button from "../ui/Button";
 
 export default function KybTerms({
   editor,
@@ -161,6 +162,7 @@ export default function KybTerms({
           ? "Your signed agreement is saved on this verification case."
           : "Review and accept Bridge’s hosted account terms before submitting your business for operations review."}
       </p>
+      <div className="flex gap-2 ">
       {!accepted && writable && (
         <Action
           onClick={() => void open()}
@@ -170,6 +172,20 @@ export default function KybTerms({
           {editor.editable ? "Review and accept terms" : "Accept account terms"}
         </Action>
       )}
+      {!url && (
+        <Button
+          type="button"
+          variant="secondary"
+          width="fit"
+          className="rounded-xl"
+          disabled={pending.current || editor.busy || editor.conflict}
+          onClick={() => void checkStatus()}
+        >
+          Refresh terms status
+        </Button>
+      )}
+      </div>
+      
       {!accepted && !editor.access.canWriteBusiness && (
         <p className="text-[13px] text-kyb-muted">
           An authorised business owner or admin must complete this step.
@@ -183,16 +199,7 @@ export default function KybTerms({
           </a>
         </Notice>
       )}
-      {!url && (
-        <button
-          type="button"
-          disabled={pending.current || editor.busy || editor.conflict}
-          className="text-xs font-semibold text-primary2 disabled:opacity-50"
-          onClick={() => void checkStatus()}
-        >
-          Refresh terms status
-        </button>
-      )}
+     
       {url && (
         <BridgeToSWebview
           bridgeUrl={url}

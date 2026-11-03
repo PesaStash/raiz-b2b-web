@@ -37,6 +37,13 @@ export function focusAttention(root: HTMLElement, key: string) {
     field ??
     root.querySelector<HTMLElement>("h1");
   if (!target) return;
+  // Reveal collapsed form sections before scrolling or focusing their fields.
+  let ancestor = target.parentElement;
+  while (ancestor && ancestor !== root) {
+    if (ancestor.tagName === "DETAILS")
+      (ancestor as HTMLDetailsElement).open = true;
+    ancestor = ancestor.parentElement;
+  }
   target.scrollIntoView({ behavior: "smooth", block: "center" });
   const control = target.matches(
     "input:not([type=hidden]), select, textarea, button, a[href]",

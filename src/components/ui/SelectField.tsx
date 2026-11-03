@@ -14,7 +14,6 @@ export interface Option {
 
 interface SelectFieldProps {
   label?: string;
-  onChange: (selectedOption: Option | null) => void;
   status?: "success" | "error" | "warning" | null;
   helper?: string | null;
   value: any;
@@ -38,8 +37,13 @@ interface SelectFieldProps {
   formatOptionLabel?: (option: Option) => React.ReactNode;
 }
 
-const SelectField: React.FC<SelectFieldProps> = ({
+type SelectFieldSelectionProps =
+  | { isMulti?: false; onChange: (option: Option | null) => void }
+  | { isMulti: true; onChange: (options: readonly Option[]) => void };
+
+const SelectField: React.FC<SelectFieldProps & SelectFieldSelectionProps> = ({
   onChange,
+  isMulti = false,
   value,
   options,
   label,
@@ -63,7 +67,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
   formatOptionLabel,
 }) => {
   const [optionsIsShown, setOptionsIsShown] = useState<boolean>(false);
-  const [selectedOption, setSelectedOption] = useState<Option | null>(value);
+  const [selectedOption, setSelectedOption] = useState<Option | readonly Option[] | null>(value);
 
   const customStyles: StylesConfig<Option, boolean> = {
     control: (provided: any, state: any) => ({
@@ -76,7 +80,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
       borderWidth: "1px",
       backgroundColor: state.isFocused ? "#fff" : bgColor,
       borderRadius: "8px",
-      height: height ? height : "44px",
+      height: isMulti ? "auto" : height ? height : "44px",
       minHeight: minHeight,
       "&:hover": {
         cursor: "pointer",
@@ -132,7 +136,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
 
   const handleInputChange = (selectedOption: any) => {
     setSelectedOption(selectedOption);
-    setOptionsIsShown(false);
+    setOptionsIsShown(!!isMulti);
     onChange(selectedOption);
   };
 
@@ -155,6 +159,9 @@ const SelectField: React.FC<SelectFieldProps> = ({
     >
       {label && <InputLabel content={label} labelClass={labelClass} />}
       <Select
+        isMulti={isMulti}
+        closeMenuOnSelect={!isMulti}
+        onMenuClose={() => setOptionsIsShown(false)}
         formatOptionLabel={formatOptionLabel}
         aria-label={label || name || placeholder}
         instanceId={instanceId}

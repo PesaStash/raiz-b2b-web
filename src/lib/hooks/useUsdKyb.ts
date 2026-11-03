@@ -9,14 +9,18 @@ import { readApiError } from "@/lib/apiError";
 import { sessionGeneration } from "@/lib/session";
 import {
   editableStatus,
+  getPath,
   mergeDraft,
   normalizeDraft,
   setPath,
   personPatch,
+  ensureOwnershipFlag,
+  ownershipFlag,
 } from "@/lib/usd-kyb/model";
 import {
   canResendPersonInvitation,
   personDetailsErrors,
+  persistedPersonDetailsErrors,
 } from "@/lib/usd-kyb/personDetails";
 import {
   cleanDraft,
@@ -36,6 +40,21 @@ import type {
   KybFieldError,
 } from "@/types/usdKyb";
 
+/** Lookup prefill fills gaps only. A saved value, including a blank, stays saved. */
+function composeDraft(
+  saved: KybDraft | undefined,
+  prefilled: KybDraft | undefined,
+  pending: KybDraft,
+  errors: KybFieldError[],
+) {
+  return mergeDraft(
+    mergeDraft(
+      cleanDraft(normalizeDraft(prefilled ?? {}), errors),
+      cleanDraft(normalizeDraft(saved ?? {}), errors),
+    ),
+    pending,
+  );
+}
 export function useUsdKyb() {
   const access = usePermissions();
   const router = useRouter();
@@ -105,18 +124,11 @@ export function useUsdKyb() {
         state.personInputs.clear();
         state.savedPersonInputs.clear();
       }
-      state.draft = mergeDraft(
-        mergeDraft(
-          cleanDraft(
-            normalizeDraft(next.case.draft_payload ?? next.draft_payload ?? {}),
-            next.validation.field_errors ?? [],
-          ),
-          cleanDraft(
-            normalizeDraft(next.prefilled_draft ?? {}),
-            next.validation.field_errors ?? [],
-          ),
-        ),
+      state.draft = composeDraft(
+        next.case.draft_payload ?? next.draft_payload,
+        next.prefilled_draft,
         state.pending,
+        next.validation.field_errors ?? [],
       );
       if (!state.peopleDirty) {
         state.people = next.associated_persons.map((person, index) =>
@@ -237,23 +249,32 @@ export function useUsdKyb() {
     const sentPeople = state.peopleDirty;
     const sentKeys = new Set(state.dirtyPeople);
     const inputs = [...sentKeys].map((key) => state.personInputs.get(key)!);
-    const personWrites = inputs.map((input) => ({
-      ...changedFields(
-        personPatch(input),
-        state.savedPersonInputs.has(input.person_key)
-          ? personPatch(state.savedPersonInputs.get(input.person_key)!)
-          : state.peopleBase.find(
-                (person) => person.person_key === input.person_key,
-              )
-            ? personPatch(
-                state.peopleBase.find(
-                  (person) => person.person_key === input.person_key,
-                )!,
-              )
-            : undefined,
-      ),
-      person_key: input.person_key,
-    }));
+    const personWrites = inputs.map((input) => {
+      const stored = state.bundle?.associated_persons.find(
+        (person) => person.person_key === input.person_key,
+      );
+      return ensureOwnershipFlag(
+        {
+          ...changedFields(
+            personPatch(input),
+            state.savedPersonInputs.has(input.person_key)
+              ? personPatch(state.savedPersonInputs.get(input.person_key)!)
+              : state.peopleBase.find(
+                    (person) => person.person_key === input.person_key,
+                  )
+                ? personPatch(
+                    state.peopleBase.find(
+                      (person) => person.person_key === input.person_key,
+                    )!,
+                  )
+                : undefined,
+          ),
+          person_key: input.person_key,
+        },
+        input,
+        stored,
+      );
+    });
     const revision = state.peopleRevision;
     state.pending = {};
     state.peopleDirty = false;
@@ -304,7 +325,9 @@ export function useUsdKyb() {
       const result = await kybApi.patch({
         expected_version: state.bundle.case.payload_version,
         draft_payload: patch,
-        ...(sentPeople ? { associated_persons: personWrites } : {}),
+        ...(sentPeople
+          ? { associated_persons: personWrites as KybPerson[] }
+          : {}),
       });
       if (!currentSession()) return;
       for (const input of inputs)
@@ -336,18 +359,11 @@ export function useUsdKyb() {
         associated_persons: result.associated_persons,
         validation: result.validation,
       };
-      state.draft = mergeDraft(
-        mergeDraft(
-          cleanDraft(
-            normalizeDraft(result.case.draft_payload ?? {}),
-            result.validation.field_errors ?? [],
-          ),
-          cleanDraft(
-            normalizeDraft(state.bundle.prefilled_draft ?? {}),
-            result.validation.field_errors ?? [],
-          ),
-        ),
-        state.pending,
+      state.draft = composeDraft(
+        result.case.draft_payload,
+        state.bundle.prefilled_draft,
+        mergeDraft(patch, state.pending),
+        result.validation.field_errors ?? [],
       );
       setDraft(state.draft);
       setBundle(state.bundle);
@@ -382,16 +398,58 @@ export function useUsdKyb() {
     );
     return () => clearInterval(timer);
   }, [cooldown > 0]); // eslint-disable-line react-hooks/exhaustive-deps
+  const queueOwnershipRepair = useCallback(() => {
+    const state = ref.current;
+    if (!writable.current || state.blocked || !state.bundle) return;
+    let changed = false;
+    for (const person of state.people) {
+      const stored = state.bundle.associated_persons.find(
+        (saved) => saved.person_key === person.person_key,
+      );
+      if (
+        !person.person_key ||
+        !stored ||
+        !Object.hasOwn(stored, "has_ownership") ||
+        typeof stored.has_ownership === "boolean"
+      )
+        continue;
+      const source = {
+        ...person,
+        ...state.personInputs.get(person.person_key),
+      };
+      state.personInputs.set(person.person_key, {
+        ...source,
+        has_ownership: ownershipFlag(source),
+      });
+      state.dirtyPeople.add(person.person_key);
+      changed = true;
+    }
+    if (!changed) return;
+    state.people = state.people.map((person) =>
+      state.dirtyPeople.has(person.person_key)
+        ? {
+            ...person,
+            ...state.personInputs.get(person.person_key),
+            person_key: person.person_key,
+          }
+        : person,
+    );
+    state.peopleDirty = true;
+    state.peopleRevision += 1;
+    setPeople(state.people);
+    setSaveState("Unsaved changes");
+  }, []);
   const flush = useCallback(
     () =>
       queue.current.run(async () => {
+        queueOwnershipRepair();
         while (
           Object.keys(ref.current.pending).length ||
           ref.current.peopleDirty
         )
           await save();
       }),
-    [save],
+    [queueOwnershipRepair, save],
   );
   useEffect(() => {
     if (!dirtyTick || conflict || busy) return;
@@ -460,6 +518,16 @@ export function useUsdKyb() {
   }, [flush, router]);
   const change = (path: string, value: unknown) => {
     if (!writable.current || ref.current.blocked) return;
+    const current = getPath(ref.current.draft, path);
+    if (
+      current === value ||
+      (current != null &&
+        value != null &&
+        typeof current === "object" &&
+        typeof value === "object" &&
+        JSON.stringify(current) === JSON.stringify(value))
+    )
+      return;
     ref.current.draft = setPath(ref.current.draft, path, value);
     ref.current.pending = setPath(ref.current.pending, path, value);
     setDraft(ref.current.draft);
@@ -494,13 +562,23 @@ export function useUsdKyb() {
       current,
       ref.current.people.findIndex((p) => p.person_key === person.person_key),
     );
+    if (
+      corrections.length > 0 ||
+      ref.current.dirtyPeople.has(person.person_key)
+    )
+      return false;
+    if (saved && input)
+      return (
+        Object.keys(personDetailsErrors(saved)).length === 0 &&
+        JSON.stringify(personPatch(saved)) ===
+          JSON.stringify(personPatch(input))
+      );
+    const persistedId =
+      current.associated_person_id ??
+      current.business_usd_kyb_associated_person_id;
     return (
-      corrections.length === 0 &&
-      !!saved &&
-      !!input &&
-      !ref.current.dirtyPeople.has(person.person_key) &&
-      Object.keys(personDetailsErrors(saved)).length === 0 &&
-      JSON.stringify(personPatch(saved)) === JSON.stringify(personPatch(input))
+      !!persistedId &&
+      Object.keys(persistedPersonDetailsErrors(current)).length === 0
     );
   };
   const changePeople = (next: KybPerson[]) => {
@@ -509,7 +587,16 @@ export function useUsdKyb() {
       const previous = ref.current.people.find(
         (p) => p.person_key === person.person_key,
       );
+      const stored = ref.current.bundle?.associated_persons.find(
+        (saved) => saved.person_key === person.person_key,
+      );
+      const ownershipNeedsWrite =
+        !!stored &&
+        Object.hasOwn(stored, "has_ownership") &&
+        typeof stored.has_ownership !== "boolean" &&
+        ownershipFlag(person) !== (stored.has_ownership === true);
       return (
+        ownershipNeedsWrite ||
         !previous ||
         (!ref.current.savedPersonInputs.has(person.person_key) &&
           Object.keys(personDetailsErrors(person)).length === 0) ||
@@ -554,6 +641,7 @@ export function useUsdKyb() {
     setError("");
     try {
       return await queue.current.run(async () => {
+        queueOwnershipRepair();
         while (
           Object.keys(ref.current.pending).length ||
           ref.current.peopleDirty
