@@ -82,6 +82,7 @@ export const secondaryButton =
 export function GlobalDialog({
   title,
   close,
+  onBack,
   drawer = false,
   compact = false,
   hero = false,
@@ -89,6 +90,7 @@ export function GlobalDialog({
 }: {
   title: string;
   close: () => void;
+  onBack?: () => void;
   drawer?: boolean;
   compact?: boolean;
   hero?: boolean;
@@ -129,7 +131,7 @@ export function GlobalDialog({
       document.removeEventListener("keydown", keydown);
       previous?.focus();
     };
-  }, [close]);
+  }, [close, title]);
   return createPortal(
     <div
       className={`fixed inset-0 z-[110] flex ${hero ? "bg-[rgba(25,21,30,0.45)]" : "bg-black/50"} ${drawer ? "justify-end" : "items-center justify-center p-4"}`}
@@ -143,7 +145,7 @@ export function GlobalDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={`flex w-full flex-col overflow-y-auto font-monzo text-raiz-gray-950 outline-none ${drawer ? "h-dvh max-w-[480px] bg-[#fbfaff] p-5 sm:p-7" : hero ? "max-h-[90dvh] max-w-[480px] overflow-hidden rounded-3xl bg-white drop-shadow-[0px_24px_32px_rgba(13,13,38,0.25)]" : compact ? "max-h-[90dvh] max-w-[440px] rounded-3xl bg-white p-6 shadow-[0px_24px_64px_0px_rgba(13,13,38,0.25)]" : "max-h-[90dvh] max-w-[480px] rounded-3xl bg-white p-6 sm:p-7"}`}
+        className={`flex w-full flex-col overflow-y-auto font-monzo text-raiz-gray-950 outline-none ${drawer ? `h-dvh max-w-[480px] bg-[#fbfaff] p-5 sm:p-7 ${onBack ? "sm:pt-4 sm:pb-6 shadow-[-12px_0_40px_rgba(26,20,51,0.18)]" : ""}` : hero ? "max-h-[90dvh] max-w-[480px] overflow-hidden rounded-3xl bg-white drop-shadow-[0px_24px_32px_rgba(13,13,38,0.25)]" : compact ? "max-h-[90dvh] max-w-[440px] rounded-3xl bg-white p-6 shadow-[0px_24px_64px_0px_rgba(13,13,38,0.25)]" : "max-h-[90dvh] max-w-[480px] rounded-3xl bg-white p-6 sm:p-7"}`}
       >
         {hero ? (
           <h2 id={titleId} className="sr-only">
@@ -151,12 +153,12 @@ export function GlobalDialog({
           </h2>
         ) : (
           <header
-            className={`flex shrink-0 items-center ${compact ? "mb-4" : "mb-8 gap-3"}`}
+            className={`flex shrink-0 items-center ${compact ? "mb-4" : onBack ? "mb-6 gap-3" : "mb-8 gap-3"}`}
           >
             {drawer && (
               <button
-                aria-label="Close account details"
-                onClick={close}
+                aria-label={onBack ? "Back" : "Close account details"}
+                onClick={onBack ?? close}
                 className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-raiz-gray-100"
               >
                 <DesignIcon name="32273-13049-imgVuesaxLinearArrowLeft.svg" />
