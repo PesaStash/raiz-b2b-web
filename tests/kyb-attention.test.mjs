@@ -62,3 +62,25 @@ test("backend field names can locate their sectioned frontend controls", () => {
   );
   assert.deepEqual(calls, ["scroll", "focus"]);
 });
+
+test("attention reveals nested collapsed sections before scrolling and focusing", () => {
+  const calls = [];
+  const outer = { tagName: "DETAILS", open: false, parentElement: null };
+  const inner = { tagName: "DETAILS", open: false, parentElement: outer };
+  const field = {
+    parentElement: inner,
+    getAttribute: (key) => key === "name" ? "business_profile.email" : "text",
+    scrollIntoView: () => {
+      assert.equal(outer.open, true);
+      assert.equal(inner.open, true);
+      calls.push("scroll");
+    },
+    matches: () => true,
+    focus: () => calls.push("focus"),
+  };
+  focusAttention({
+    querySelectorAll: (selector) => selector === "[name]" ? [field] : [],
+    querySelector: () => null,
+  }, "business_profile.email");
+  assert.deepEqual(calls, ["scroll", "focus"]);
+});

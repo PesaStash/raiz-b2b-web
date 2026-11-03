@@ -97,6 +97,20 @@ export function personDetailsErrors(
   return errors;
 }
 
+/**
+ * A reloaded person can omit birth date and address after they were saved.
+ * Name, email, and a role still have to be present. A blank value that was
+ * returned is still incomplete.
+ */
+export function persistedPersonDetailsErrors(person: KybPerson) {
+  const errors = personDetailsErrors(person);
+  if (person.birth_date == null) delete errors.birth_date;
+  if (person.residential_address == null)
+    for (const key of Object.keys(errors))
+      if (key.startsWith("residential_address.")) delete errors[key];
+  return errors;
+}
+
 /** Missing ownership is distinct from pending identity verification. */
 export function ownershipNeedsReview(person: KybPerson) {
   return (

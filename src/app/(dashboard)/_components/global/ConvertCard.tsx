@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import styles from "./ConvertCard.module.css";
 import { useQuery } from "@tanstack/react-query";
 import { GetExchangeRate } from "@/services/transactions";
 import { conversionEstimate, formatMoney } from "@/lib/globalBalance";
@@ -23,6 +24,7 @@ export default function ConvertCard({
   const [currency, setCurrency] = useState<BalanceCurrency>("USD");
   const balance = balances[currency];
   const [amount, setAmount] = useState("");
+  const [switchCount, setSwitchCount] = useState(0);
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["dashboard-conversion-rate", entityId],
     queryFn: () => GetExchangeRate("NGN"),
@@ -110,12 +112,32 @@ export default function ConvertCard({
           <button
             type="button"
             aria-label={`Switch conversion direction to ${destination} to ${currency}`}
-            onClick={() => changeCurrency(destination)}
+            onClick={() => {
+              changeCurrency(destination);
+              setSwitchCount((count) => count + 1);
+            }}
             className="absolute left-1/2 top-1/2 z-10 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-[1.5px] border-[#eaecf0] bg-white shadow-[0_2px_6px_rgba(26,20,51,0.08)] transition hover:bg-kyb-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary2"
           >
-            <span className="-rotate-90">
-              <DesignIcon name="convert-swap.svg" />
-            </span>
+            <svg
+              key={switchCount}
+              aria-hidden="true"
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="#3C2875"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="-rotate-90 overflow-visible"
+            >
+              <g className={switchCount ? styles.forwardArrow : undefined}>
+                <path d="M2.33333 9.99333H13.6667L10.3267 13.34" />
+              </g>
+              <g className={switchCount ? styles.backwardArrow : undefined}>
+                <path d="M13.6667 6.00667H2.33333L5.67333 2.66" />
+              </g>
+            </svg>
           </button>
           <div className="flex flex-col gap-1.5 rounded-[14px] bg-[#f4f4f8] py-4 pl-4 pr-3.5">
             <p className="text-xs text-kyb-muted">You get (estimate)</p>
@@ -150,11 +172,11 @@ export default function ConvertCard({
           </div>
           <div className="px-1">
             <p className="text-[11px] text-kyb-muted">Fee</p>
-            <p className="mt-[3px] text-xs font-semibold">At confirmation</p>
+            <p className="mt-[3px] text-xs text-[#15803D] font-semibold">Free</p>
           </div>
           <div className="px-1">
             <p className="text-[11px] text-kyb-muted">Arrives</p>
-            <p className="mt-[3px] text-xs font-semibold">At confirmation</p>
+            <p className="mt-[3px] text-xs font-semibold">Instantly</p>
           </div>
         </div>
       </div>

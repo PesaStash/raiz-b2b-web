@@ -95,7 +95,7 @@ export const kybApi = {
         await AuthAxios.get(`${base}/formation-documents`, {
           ...silent,
           params: { business_type },
-        })
+        } as CustomAxiosRequestConfig)
       ).data,
     ),
   industries: async (query: string) =>
@@ -104,7 +104,7 @@ export const kybApi = {
         await AuthAxios.get(`${base}/industry-codes`, {
           ...silent,
           params: { query, limit: 50 },
-        })
+        } as CustomAxiosRequestConfig)
       ).data,
     ),
   purposes: async () =>
@@ -116,7 +116,7 @@ export const kybApi = {
       (
         await AuthAxios.delete(
           `${base}/associated-persons/${encodeURIComponent(id)}`,
-          { ...silent, params: { expected_version } },
+          { ...silent, params: { expected_version } } as CustomAxiosRequestConfig,
         )
       ).data,
     ),

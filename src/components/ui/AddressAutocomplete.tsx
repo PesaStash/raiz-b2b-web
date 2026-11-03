@@ -1,8 +1,8 @@
 "use client";
-import React, { useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { Autocomplete, Libraries, useLoadScript } from "@react-google-maps/api";
 
-interface AddressComponents {
+export interface AddressComponents {
   street?: string;
   city?: string;
   state?: string;
@@ -25,6 +25,117 @@ interface AddressAutocompleteProps {
 }
 
 const libraries: Libraries = ["places"];
+
+export function parsePlace(
+  place: google.maps.places.PlaceResult,
+): AddressComponents | null {
+  if (!place.address_components) return null;
+
+  const components: AddressComponents = {};
+  let city = "";
+  let cityRank = 0;
+  const cityRankFor = (types: string[]) => {
+    if (types.includes("locality")) return 3;
+    if (types.includes("postal_town")) return 2;
+    if (types.includes("administrative_area_level_2")) return 1;
+    return 0;
+  };
+
+  for (const component of place.address_components) {
+    const types = component.types;
+    if (types.includes("street_number"))
+      components.building_number = component.long_name;
+    if (types.includes("route")) components.street = component.long_name;
+    const rank = cityRankFor(types);
+    if (rank > cityRank) {
+      city = component.long_name;
+      cityRank = rank;
+    }
+    if (types.includes("administrative_area_level_1"))
+      components.state = component.long_name;
+    if (types.includes("postal_code"))
+      components.zip_code = component.long_name;
+    if (types.includes("country"))
+      components.country_code = component.short_name;
+  }
+
+  if (city) components.city = city;
+
+  const fullAddress = place.formatted_address ?? "";
+  return { ...components, address: fullAddress };
+}
+
+function getPlaceDetails(
+  placeId: string,
+): Promise<google.maps.places.PlaceResult | null> {
+  return new Promise((resolve) => {
+    const service = new google.maps.places.PlacesService(
+      document.createElement("div"),
+    );
+    service.getDetails(
+      {
+        placeId,
+        fields: ["address_components", "formatted_address"],
+      },
+      (place, status) => {
+        if (status !== google.maps.places.PlacesServiceStatus.OK || !place) {
+          resolve(null);
+          return;
+        }
+        resolve(place);
+      },
+    );
+  });
+}
+
+function getPlacePredictions(
+  input: string,
+): Promise<google.maps.places.AutocompletePrediction[]> {
+  return new Promise((resolve) => {
+    const service = new google.maps.places.AutocompleteService();
+    service.getPlacePredictions({ input }, (predictions, status) => {
+      if (
+        status !== google.maps.places.PlacesServiceStatus.OK ||
+        !predictions?.length
+      ) {
+        resolve([]);
+        return;
+      }
+      resolve(predictions);
+    });
+  });
+}
+
+/** Resolve a free-text address into structured parts via Places Autocomplete + Details. */
+export function usePlaceResolver() {
+  const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API || "";
+  const { isLoaded } = useLoadScript({
+    googleMapsApiKey: mapsApiKey,
+    libraries,
+  });
+
+  const resolve = useCallback(
+    async (text: string): Promise<AddressComponents | null> => {
+      const query = text.trim();
+      if (!mapsApiKey || !isLoaded || !query) return null;
+      if (typeof google === "undefined" || !google.maps?.places) return null;
+
+      try {
+        const predictions = await getPlacePredictions(query);
+        const placeId = predictions[0]?.place_id;
+        if (!placeId) return null;
+        const place = await getPlaceDetails(placeId);
+        if (!place) return null;
+        return parsePlace(place);
+      } catch {
+        return null;
+      }
+    },
+    [isLoaded, mapsApiKey],
+  );
+
+  return { resolve, isLoaded: !!mapsApiKey && isLoaded };
+}
 
 /** Places draws `.pac-container` on document.body, which sits under a modal dialog. */
 function keepSuggestionsInDialog(root: HTMLElement) {
@@ -107,44 +218,12 @@ const AddressAutocompleteWithMaps: React.FC<AddressAutocompleteProps> = ({
 
   const handlePlaceChanged = () => {
     const place = autocompleteRef.current?.getPlace();
-    if (!place || !place.address_components) return;
+    if (!place) return;
+    const components = parsePlace(place);
+    if (!components) return;
 
-    const components: AddressComponents = {};
-    let city = "";
-    let cityRank = 0;
-    const cityRankFor = (types: string[]) => {
-      if (types.includes("locality")) return 3;
-      if (types.includes("postal_town")) return 2;
-      if (types.includes("administrative_area_level_2")) return 1;
-      return 0;
-    };
-
-    for (const component of place.address_components) {
-      const types = component.types;
-      if (types.includes("street_number"))
-        components.building_number = component.long_name;
-      if (types.includes("route")) components.street = component.long_name;
-      const rank = cityRankFor(types);
-      if (rank > cityRank) {
-        city = component.long_name;
-        cityRank = rank;
-      }
-      if (types.includes("administrative_area_level_1"))
-        components.state = component.long_name;
-      if (types.includes("postal_code"))
-        components.zip_code = component.long_name;
-      if (types.includes("country"))
-        components.country_code = component.short_name;
-    }
-
-    if (city) components.city = city;
-
-    const fullAddress = place.formatted_address ?? "";
-
-    // Notify parent about full address
-    onChange?.(fullAddress);
-    // Notify parent about structured address parts
-    onAddressSelect?.({ ...components, address: fullAddress });
+    onChange?.(components.address ?? "");
+    onAddressSelect?.(components);
   };
 
   if (!isLoaded) return <div>Loading...</div>;

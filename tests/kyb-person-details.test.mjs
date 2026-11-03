@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   personDetailsErrors,
+  persistedPersonDetailsErrors,
   identityStarted,
 } from "../src/lib/usd-kyb/personDetails.ts";
 import { personPatch } from "../src/lib/usd-kyb/model.ts";
@@ -80,6 +81,28 @@ test("complete supplemental write retains explicit false roles but accepts docum
   });
   assert.equal(patch.verification_status, undefined);
   assert.equal(patch.identifying_information[0].type, "passport");
+});
+test("reloaded people keep omitted birth date and address, but still need a name and email", () => {
+  const saved = {
+    person_key: "youverify:3",
+    first_name: "Jane",
+    last_name: "Doe",
+    email: "janedoe@yopmail.com",
+    has_ownership: true,
+    ownership_percentage: 50,
+  };
+  assert.deepEqual(persistedPersonDetailsErrors(saved), {});
+  assert.ok(personDetailsErrors(saved).birth_date);
+  assert.ok(persistedPersonDetailsErrors({ ...saved, birth_date: "" }).birth_date);
+  assert.ok(
+    persistedPersonDetailsErrors({
+      ...saved,
+      has_ownership: true,
+      email: null,
+      first_name: null,
+      last_name: null,
+    }).email,
+  );
 });
 test("invited and verified people cannot be replaced with incomplete supplemental input", () => {
   assert.equal(identityStarted({ person_key: "new" }), false);

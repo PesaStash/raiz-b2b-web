@@ -74,7 +74,7 @@ export function GuideSection({
   secondary?: boolean;
 }) {
   return (
-    <div className="grid items-start gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
+    <div className="grid items-start gap-5 lg:grid-cols-[260px_minmax(0,1fr)] desktop:grid-cols-[300px_minmax(0,1fr)]">
       <aside className="space-y-2">
         <div className="flex items-center gap-3 rounded-[14px] border border-kyb-border p-3.5 shadow-[0_4px_14px_rgba(61,41,117,0.08)]">
           <KybIcon name={secondary ? "company" : "setup"} circle />
@@ -150,7 +150,8 @@ export function OpenTask({
   children: ReactNode;
 }) {
   return (
-    <section className="relative flex flex-col items-start gap-5 rounded-2xl border border-kyb-outline bg-kyb-selected/40 p-3 xl:flex-row xl:items-center">
+    <section className="rounded-2xl border border-kyb-outline bg-kyb-selected/40 p-3">
+    <section className="relative flex flex-col items-start gap-5  xl:flex-row xl:items-center">
       <div className="min-w-0 flex-1 py-2 pl-3">
         <h3 className="flex items-center gap-2 text-lg font-bold leading-[26px]">
           <span className="rotate-180">
@@ -179,6 +180,12 @@ export function OpenTask({
         alt=""
         className="size-[232px] shrink-0 self-center rounded-xl object-cover"
       />
+    
+    </section>
+    <p className="text-[13px] pl-[30px] leading-[19px] text-kyb-muted mt-2">
+        By continuing you consent to Raiz looking up this company’s registration
+        details.
+      </p>
     </section>
   );
 }

@@ -16,9 +16,15 @@ import {
   saveAccountChoice,
   type AccountChoice,
 } from "@/lib/onboarding";
+import {
+  clearLookupPrefill,
+  readLookupPrefill,
+  supportsCompanyLookup,
+} from "@/lib/companyLookup";
 import { Action, Notice } from "@/components/usd-kyb/KybUI";
 import { KybIcon } from "@/components/usd-kyb/KybGuide";
 import { BasicBusinessForm } from "@/app/(dashboard)/_components/BusinessVerificationModal";
+import CompanyLookupStep from "@/components/onboarding/CompanyLookupStep";
 import {
   Crumbs,
   DoneTask,
@@ -84,11 +90,21 @@ export function StartGuideView({
 }) {
   const router = useRouter();
   const complete = basicDetailsComplete(user);
-  const resume = useSyncExternalStore(
+  const entityId = user?.business_account?.entity_id ?? "";
+  const countryCode =
+    user?.business_account?.entity?.country?.country_code ?? "";
+  const canLookup = supportsCompanyLookup(countryCode);
+  const savedPrefill = useSyncExternalStore(
     subscribeChoice,
-    () => readAccountChoice(user?.business_account?.entity_id),
+    () => readLookupPrefill(entityId),
     () => null,
   );
+  const resume = useSyncExternalStore(
+    subscribeChoice,
+    () => readAccountChoice(entityId),
+    () => null,
+  );
+  const openBusinessForm = () => router.push("/onboarding/business");
   return (
     <OnboardingPanel>
       <Welcome name={user?.first_name} note="Takes about 4 mins">
@@ -104,6 +120,32 @@ export function StartGuideView({
         <DoneTask>Create your Raiz account</DoneTask>
         {complete ? (
           <DoneTask>Basic business details</DoneTask>
+        ) : canLookup ? (
+          <OpenTask
+            title="Find your business"
+            minutes="About 2 mins"
+            tag="Pre-filled from register"
+            image="business"
+          >
+            <CompanyLookupStep
+              countryCode={countryCode}
+              entityId={entityId}
+              onConfirmed={() => openBusinessForm()}
+              onManual={() => {
+                clearLookupPrefill(entityId);
+                openBusinessForm();
+              }}
+            />
+            {savedPrefill?.business_name && (
+              <button
+                type="button"
+                className="text-sm font-semibold text-primary2"
+                onClick={openBusinessForm}
+              >
+                Continue with {savedPrefill.business_name}
+              </button>
+            )}
+          </OpenTask>
         ) : (
           <OpenTask
             title="Add your basic business details"
@@ -127,9 +169,7 @@ export function StartGuideView({
                 ]}
               />
             </div>
-            <Action onClick={() => router.push("/onboarding/business")}>
-              Add business details
-            </Action>
+            <Action onClick={openBusinessForm}>Add business details</Action>
           </OpenTask>
         )}
         <div className="flex flex-wrap items-center gap-3 px-3 py-3.5">

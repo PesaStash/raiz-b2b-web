@@ -117,6 +117,7 @@ export function KybWorkspace({
     });
     return () => cancelAnimationFrame(frame);
   }, [step, attention]);
+  const clearedBusinessType = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (!editor.editable || !guide.data) return;
     const bridgeTypes = options(guide.data.business_types);
@@ -126,6 +127,10 @@ export function KybWorkspace({
     );
     if (!current || bridgeTypes.some((option) => option.value === current))
       return;
+    // One attempt per registry value. Repeating it retriggers autosave forever
+    // when the saved case still echoes that value.
+    if (clearedBusinessType.current === current) return;
+    clearedBusinessType.current = current;
     editor.change("business_profile.business_type", "");
   }, [editor, guide.data]);
   const navigate = async (next: number, requirement?: string) => {
@@ -404,8 +409,7 @@ export function KybWorkspace({
                 </div>
                 <p className="mt-3 text-xs leading-relaxed text-kyb-muted">
                   Submitting locks your details for operations review. Pending
-                  identity verification can follow later. Account terms must be
-                  accepted before submission.
+                  identity verification can follow later.
                 </p>
               </>
             )}
