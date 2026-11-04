@@ -34,6 +34,8 @@ interface SelectFieldProps {
   placeholderStyle?: React.CSSProperties;
   labelClass?: string;
   instanceId?: string;
+  isClearable?: boolean;
+  menuPlacement?: "auto" | "bottom" | "top";
   formatOptionLabel?: (option: Option) => React.ReactNode;
 }
 
@@ -64,6 +66,8 @@ const SelectField: React.FC<SelectFieldProps & SelectFieldSelectionProps> = ({
   placeholderStyle,
   labelClass,
   instanceId,
+  isClearable = false,
+  menuPlacement = "bottom",
   formatOptionLabel,
 }) => {
   const [optionsIsShown, setOptionsIsShown] = useState<boolean>(false);
@@ -199,6 +203,8 @@ const SelectField: React.FC<SelectFieldProps & SelectFieldSelectionProps> = ({
         name={name}
         isDisabled={disabled || isLoading}
         isSearchable={isSearchable}
+        isClearable={isClearable}
+        menuPlacement={menuPlacement}
         isLoading={isLoading}
       />
       <p

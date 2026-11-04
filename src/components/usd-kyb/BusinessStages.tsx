@@ -10,7 +10,9 @@ import { useState, useEffect, useRef, useId, type ReactNode } from "react";
 import { useOutsideClick } from "@/lib/hooks/useOutsideClick";
 import { useQuery } from "@tanstack/react-query";
 import { kybApi } from "@/services/usdKyb";
-import AddressAutocomplete, { usePlaceResolver } from "@/components/ui/AddressAutocomplete";
+import AddressAutocomplete, {
+  usePlaceResolver,
+} from "@/components/ui/AddressAutocomplete";
 import Checkbox from "@/components/ui/Checkbox";
 import ToggleSwitch from "@/components/ui/ToggleSwitch";
 import {
@@ -21,13 +23,7 @@ import {
   HiOutlineTag,
 } from "react-icons/hi2";
 import type { IconType } from "react-icons";
-import {
-  Action,
-  Check,
-  Field,
-  Notice,
-  SegmentedField,
-} from "./KybUI";
+import { Action, Check, Field, Notice } from "./KybUI";
 import { options, getPath, record, display, label } from "@/lib/usd-kyb/model";
 import {
   ACCOUNT_PURPOSE_OPTIONS,
@@ -84,9 +80,7 @@ export function IdentityStage({
       </p>
       <section className="rounded-xl bg-kyb-soft">
         <div className="mb-4 flex items-center gap-2 text-xs font-semibold text-kyb-muted">
-          {hasRegistry
-            ? "Your details"
-            : "From your basic business details"}
+          {hasRegistry ? "Your details" : "From your basic business details"}
         </div>
         {rows.length > 0 ? (
           <div className="flex flex-wrap gap-2 text-xs font-semibold">
@@ -96,10 +90,7 @@ export function IdentityStage({
                 title={title}
                 className="flex max-w-full items-center gap-1.5 rounded-full bg-white px-2.5 py-1 capitalize"
               >
-                <Icon
-                  aria-hidden
-                  className="size-3.5 shrink-0 text-primary2"
-                />
+                <Icon aria-hidden className="size-3.5 shrink-0 text-primary2" />
                 <span className="min-w-0 truncate">
                   {display(value).toLowerCase()}
                 </span>
@@ -129,10 +120,7 @@ export function IdentityStage({
           ))}
         </section>
       )}
-      <Action
-        disabled={editor.busy}
-        onClick={() => (onFound ?? onManual)()}
-      >
+      <Action disabled={editor.busy} onClick={() => (onFound ?? onManual)()}>
         Continue to business details
       </Action>
     </div>
@@ -149,54 +137,109 @@ function AddressFields({
 }) {
   const current = record(getPath(editor.draft, path));
   const draftAddress = getPath(editor.draft, path);
-  const savedAddress = (typeof draftAddress === "string" || current.street_line_1
-    ? formatLookupAddress(draftAddress) : "") ||
+  const savedAddress =
+    (typeof draftAddress === "string" || current.street_line_1
+      ? formatLookupAddress(draftAddress)
+      : "") ||
     (path === "registered_address"
-      ? formatLookupAddress(record(editor.bundle?.case.youverify_lookup_snapshot).registered_address)
+      ? formatLookupAddress(
+          record(editor.bundle?.case.youverify_lookup_snapshot)
+            .registered_address,
+        )
       : "");
   const savedQuery = lookupAddressForForm(savedAddress);
-  const complete = ["street_line_1", "city", "subdivision", "postal_code", "country"]
-    .every((key) => !!String(current[key] ?? "").trim());
+  const complete = [
+    "street_line_1",
+    "city",
+    "subdivision",
+    "postal_code",
+    "country",
+  ].every((key) => !!String(current[key] ?? "").trim());
   const [manualAddress, setManualAddress] = useState(
-    () => (editor.fieldErrors ?? []).some((error) =>
-      error.field.startsWith(path + "."),
-    ) || complete,
+    () =>
+      (editor.fieldErrors ?? []).some((error) =>
+        error.field.startsWith(path + "."),
+      ) || complete,
   );
   const [addressQuery, setAddressQuery] = useState(savedQuery);
   const { resolve, isLoaded } = usePlaceResolver();
   const latestEditor = useRef(editor);
   const userEdited = useRef(false);
   const addressSignature = JSON.stringify(getPath(editor.draft, path));
-  useEffect(() => { latestEditor.current = editor; }, [editor]);
   useEffect(() => {
-    if (!isLoaded || !editor.editable || editor.busy || complete || !savedQuery || userEdited.current)
+    latestEditor.current = editor;
+  }, [editor]);
+  useEffect(() => {
+    if (
+      !isLoaded ||
+      !editor.editable ||
+      editor.busy ||
+      complete ||
+      !savedQuery ||
+      userEdited.current
+    )
       return;
     let cancelled = false;
     void resolve(savedQuery).then((components) => {
       const latest = latestEditor.current;
-      if (cancelled || userEdited.current || !components || !latest.editable || latest.busy ||
-          JSON.stringify(getPath(latest.draft, path)) !== addressSignature) return;
+      if (
+        cancelled ||
+        userEdited.current ||
+        !components ||
+        !latest.editable ||
+        latest.busy ||
+        JSON.stringify(getPath(latest.draft, path)) !== addressSignature
+      )
+        return;
       const previous = record(getPath(latest.draft, path));
-      const street = [components.building_number, components.street].filter(Boolean).join(" ").trim();
+      const street = [components.building_number, components.street]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
       const resolvedAddress = {
         ...previous,
-        street_line_1: street || previous.street_line_1 || components.address?.split(",")[0]?.trim() || "",
+        street_line_1:
+          street ||
+          previous.street_line_1 ||
+          components.address?.split(",")[0]?.trim() ||
+          "",
         city: previous.city || components.city || "",
         subdivision: previous.subdivision || components.state || "",
         postal_code: previous.postal_code || components.zip_code || "",
-        country: previous.country || (components.country_code ?? "").trim().toUpperCase(),
+        country:
+          previous.country ||
+          (components.country_code ?? "").trim().toUpperCase(),
       };
-      const mirrorsRegistered = path === "registered_address" &&
-        JSON.stringify(latest.draft.physical_address) === JSON.stringify(latest.draft.registered_address);
+      const mirrorsRegistered =
+        path === "registered_address" &&
+        JSON.stringify(latest.draft.physical_address) ===
+          JSON.stringify(latest.draft.registered_address);
       latest.change(path, resolvedAddress);
-      if (mirrorsRegistered) latest.change("physical_address", { ...resolvedAddress });
+      if (mirrorsRegistered)
+        latest.change("physical_address", { ...resolvedAddress });
       setAddressQuery(components.address || savedQuery);
       setManualAddress(true);
     });
-    return () => { cancelled = true; };
-  }, [isLoaded, editor.editable, editor.busy, complete, savedQuery, addressSignature, path, resolve]);
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    isLoaded,
+    editor.editable,
+    editor.busy,
+    complete,
+    savedQuery,
+    addressSignature,
+    path,
+    resolve,
+  ]);
   return (
-    <section className="space-y-4" onChangeCapture={() => { userEdited.current = true; }}>
+    <section
+      className="space-y-4"
+      onChangeCapture={() => {
+        userEdited.current = true;
+      }}
+    >
       <div className="flex items-center justify-between gap-3">
         <h3 className="font-semibold">{title}</h3>
         <button
@@ -219,7 +262,10 @@ function AddressFields({
             value={addressQuery}
             disabled={!editor.editable || editor.busy}
             placeholder="Start typing an address…"
-            onChange={(value) => { userEdited.current = true; setAddressQuery(value); }}
+            onChange={(value) => {
+              userEdited.current = true;
+              setAddressQuery(value);
+            }}
             onAddressSelect={(components) => {
               userEdited.current = true;
               const street = [components.building_number, components.street]
@@ -316,9 +362,14 @@ function BusinessSection({
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-semibold">{title}</span>
-          <span className="mt-1 block text-xs font-normal text-kyb-muted">{description}</span>
+          <span className="mt-1 block text-xs font-normal text-kyb-muted">
+            {description}
+          </span>
         </span>
-        <span className="text-primary2 group-open:rotate-180" aria-hidden="true">
+        <span
+          className="text-primary2 group-open:rotate-180"
+          aria-hidden="true"
+        >
           <KybIcon name="chevron" />
         </span>
       </summary>
@@ -402,7 +453,8 @@ export function BusinessDetails({
   return (
     <div className="space-y-4">
       <p className="text-sm text-kyb-muted">
-        Review these four short sections. You can reopen any section to make changes.
+        Review these four short sections. You can reopen any section to make
+        changes.
       </p>
       <BusinessSection
         groupName={sectionGroup}
@@ -482,7 +534,7 @@ export function BusinessDetails({
         <Field
           editor={editor}
           path="business_profile.primary_website"
-          title="Business website (or provide proof in Documents)"
+          title="Business website"
         />
       </BusinessSection>
       <BusinessSection
@@ -538,57 +590,53 @@ export function BusinessDetails({
         description="How to reach you and where your business is registered"
         nextTitle="Tax information"
       >
-          <div className="mt-5 space-y-5">
-            {" "}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field
-                editor={editor}
-                path="business_profile.email"
-                title="Business email"
-                type="email"
-              />
-              <Field
-                editor={editor}
-                path="business_profile.phone"
-                title="Business phone (optional)"
-                type="tel"
-              />
-            </div>
-            <div className="space-y-3" data-kyb-requirement="business_profile.is_dao">
-              <div className="flex items-start justify-between gap-4">
-                <label
-                  htmlFor={`${sectionGroup}-dao`}
-                  className="text-sm font-semibold text-kyb-ink"
-                >
-                  Decentralised autonomous organisation (DAO)
-                  <span className="mt-1 block text-xs font-normal text-kyb-muted">
-                    Is this business a DAO?
-                  </span>
-                </label>
-                <ToggleSwitch
-                  id={`${sectionGroup}-dao`}
-                  checked={getPath(editor.draft, "business_profile.is_dao") === true}
-                  onChange={(value) => editor.change("business_profile.is_dao", value)}
-                  disabled={!editor.editable || editor.busy}
-                  checkedColor="#443287"
-                />
-              </div>
-              {getPath(editor.draft, "business_profile.is_dao") == null && (
-                <Action
-                  variant="tertiary"
-                  onClick={() => editor.change("business_profile.is_dao", false)}
-                  disabled={!editor.editable || editor.busy}
-                >
-                  Confirm this business is not a DAO
-                </Action>
-              )}
-            </div>
-            <AddressFields
+        <div className="mt-5 space-y-5">
+          {" "}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field
               editor={editor}
-              path="registered_address"
-              title="Registered address"
+              path="business_profile.email"
+              title="Business email"
+              type="email"
+            />
+            <Field
+              editor={editor}
+              path="business_profile.phone"
+              title="Business phone (optional)"
+              type="tel"
             />
           </div>
+          <div
+            className="flex items-start justify-between gap-4"
+            data-kyb-requirement="business_profile.is_dao"
+          >
+            <label
+              htmlFor={`${sectionGroup}-dao`}
+              className="text-sm font-semibold text-kyb-ink"
+            >
+              Is this business a DAO?
+              <span className="mt-1 block text-xs font-normal text-kyb-muted">
+                A Decentralised Autonomous Organisation (DAO)
+              </span>
+            </label>
+            <ToggleSwitch
+              id={`${sectionGroup}-dao`}
+              checked={
+                getPath(editor.draft, "business_profile.is_dao") === true
+              }
+              onChange={(value) =>
+                editor.change("business_profile.is_dao", value)
+              }
+              disabled={!editor.editable || editor.busy}
+              checkedColor="#443287"
+            />
+          </div>
+          <AddressFields
+            editor={editor}
+            path="registered_address"
+            title="Registered address"
+          />
+        </div>
       </BusinessSection>
       <BusinessSection
         groupName={sectionGroup}
@@ -629,7 +677,9 @@ export function BusinessDetails({
                     onChange={(option) =>
                       change(option ? String(option.value) : "")
                     }
-                    disabled={!editor.editable || editor.busy || !choices.length}
+                    disabled={
+                      !editor.editable || editor.busy || !choices.length
+                    }
                     status="error"
                     helper={error.message}
                   />
@@ -706,7 +756,10 @@ function IndustryField({ editor }: { editor: KybEditor }) {
       | string[]
       | undefined) ?? [];
   return (
-    <section className="space-y-2" data-kyb-requirement="industry_purpose.business_industry">
+    <section
+      className="space-y-2"
+      data-kyb-requirement="industry_purpose.business_industry"
+    >
       <h3 className="text-sm font-semibold">Industry</h3>
       <div ref={panelRef}>
         <details ref={detailsRef} className="rounded-xl bg-kyb-field">
@@ -779,29 +832,68 @@ function isUsdRangeKey(value: unknown) {
   return typeof value === "string" && /^\d+_(?:\d+|plus)$/.test(value);
 }
 
-function BusinessYesNo({ editor, path, title }: {
+const yesNoPaths = [
+  "risk_profile.conducts_money_services",
+  "risk_profile.conducts_money_services_using_bridge",
+  "risk_profile.acting_as_intermediary",
+  "industry_purpose.operates_in_prohibited_countries",
+];
+function yesNoRequirement(missing: string[], path: string) {
+  const leaf = path.split(".").at(-1);
+  return missing.some((key) => key === path || key === leaf);
+}
+
+function BusinessYesNo({
+  editor,
+  path,
+  title,
+}: {
   editor: KybEditor;
   path: string;
   title: string;
 }) {
   const id = useId();
   const value = getPath(editor.draft, path);
+  const answered = value === true || value === false;
   const correction = groupFieldErrors(editor.fieldErrors ?? []).find(
     (error) => error.field === path || error.field === path.split(".").at(-1),
   );
-  const missing = editor.missing.some((key) => key === path || key === path.split(".").at(-1));
+  const groupNeedsAnswer = yesNoPaths.some((field) =>
+    yesNoRequirement(editor.missing, field),
+  );
+  const showError =
+    !!correction ||
+    (!answered && (yesNoRequirement(editor.missing, path) || groupNeedsAnswer));
   return (
     <div data-kyb-requirement={path} className="py-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p id={`${id}-label`} className="text-sm font-semibold">{title}</p>
-        <div role="radiogroup" aria-labelledby={`${id}-label`} aria-invalid={!!correction || missing}
-          aria-describedby={correction || missing ? `${id}-error` : undefined}
-          className="flex w-fit shrink-0 gap-1 rounded-xl bg-kyb-field p-1">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p id={`${id}-label`} className="text-sm font-semibold">
+            {title}
+          </p>
+          {showError && (
+            <p id={`${id}-error`} className="mt-1 text-xs text-red-700">
+              {correction?.message ?? "Select Yes or No."}
+            </p>
+          )}
+        </div>
+        <div
+          role="radiogroup"
+          aria-labelledby={`${id}-label`}
+          aria-invalid={showError}
+          aria-describedby={showError ? `${id}-error` : undefined}
+          className="flex w-fit shrink-0 gap-1 rounded-xl bg-kyb-field p-1"
+        >
           {[false, true].map((answer) => (
             <label key={String(answer)} className="relative cursor-pointer">
-              <input type="radio" name={path} checked={value === answer}
+              <input
+                type="radio"
+                name={path}
+                checked={value === answer}
                 disabled={!editor.editable || editor.busy}
-                onChange={() => editor.change(path, answer)} className="peer sr-only" />
+                onChange={() => editor.change(path, answer)}
+                className="peer sr-only"
+              />
               <span className="flex min-h-9 min-w-14 items-center justify-center rounded-lg px-3 text-sm text-kyb-muted peer-checked:bg-white peer-checked:font-semibold peer-checked:text-primary2 peer-checked:shadow-sm peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-primary2 peer-disabled:opacity-50">
                 {answer ? "Yes" : "No"}
               </span>
@@ -809,7 +901,6 @@ function BusinessYesNo({ editor, path, title }: {
           ))}
         </div>
       </div>
-      {(correction || missing) && <p id={`${id}-error`} className="mt-2 text-xs text-red-700">{correction?.message ?? "Select Yes or No."}</p>}
     </div>
   );
 }
@@ -829,11 +920,29 @@ export function ActivityStage({
     ? (editor.draft.endorsements as string[])
     : [];
   const referenceRiskChoices = options(guide?.high_risk_activities);
-  const riskChoices = referenceRiskChoices.length ? referenceRiskChoices : HIGH_RISK_ACTIVITIES;
-  const selectedRisk = risk.map((value) => riskChoices.find((option) => option.value === value) ?? { value, label: label(value) });
-  const riskError = groupFieldErrors(editor.fieldErrors ?? []).find((error) =>
-    error.field === "risk_profile.high_risk_activities" || error.field === "high_risk_activities",
-  )?.message ?? (editor.missing.some((key) => key === "risk_profile.high_risk_activities" || key === "high_risk_activities") ? "Choose all that apply, or None of the above." : undefined);
+  const riskChoices = referenceRiskChoices.length
+    ? referenceRiskChoices
+    : HIGH_RISK_ACTIVITIES;
+  const selectedRisk = risk.map(
+    (value) =>
+      riskChoices.find((option) => option.value === value) ?? {
+        value,
+        label: label(value),
+      },
+  );
+  const riskError =
+    groupFieldErrors(editor.fieldErrors ?? []).find(
+      (error) =>
+        error.field === "risk_profile.high_risk_activities" ||
+        error.field === "high_risk_activities",
+    )?.message ??
+    (editor.missing.some(
+      (key) =>
+        key === "risk_profile.high_risk_activities" ||
+        key === "high_risk_activities",
+    )
+      ? "Choose all that apply, or None of the above."
+      : undefined);
   const riskId = useId();
   const money =
     getPath(editor.draft, "risk_profile.conducts_money_services") === true;
@@ -852,90 +961,143 @@ export function ActivityStage({
   return (
     <div className="space-y-6">
       <section className="space-y-5">
-        <h3 className="text-sm font-semibold text-primary2">Account purpose and funding</h3>
-        <Field editor={editor} path="industry_purpose.account_purpose"
-          title="What will you use this account for?" choices={ACCOUNT_PURPOSE_OPTIONS} />
-        {getPath(editor.draft, "industry_purpose.account_purpose") === "other" && (
-          <Field editor={editor} path="industry_purpose.account_purpose_other"
-            title="Describe your account purpose" multiline />
-        )}
-        <Field editor={editor} path="industry_purpose.source_of_funds"
-          title="Where does most of your money come from?" choices={SOURCE_OF_FUNDS_OPTIONS} />
-        <Field editor={editor} path="industry_purpose.source_of_funds_description"
-          title="Tell us a little about this income" multiline
-          helper="For example, payments from customers for the products or services you sell." />
-      </section>
-      <section className="space-y-5 border-t border-kyb-border pt-6">
-        <h3 className="text-sm font-semibold text-primary2">Expected account activity</h3>
-      <Field
-        editor={editor}
-        path="industry_purpose.expected_monthly_payments_usd"
-        title="Expected monthly payments (USD)"
-        type="number"
-        min={0}
-        step={1}
-        helper="An estimate is fine. Include your total expected monthly payments, sent or received."
-      />
-      <SegmentedField
-        editor={editor}
-        path="industry_purpose.estimated_annual_revenue_usd"
-        title="Estimated annual revenue (USD)"
-        helper="Roughly how much your business earns in a year, in US dollars."
-        choices={REVENUE_OPTIONS}
-      />
-      </section>
-      <section className="space-y-5 border-t border-kyb-border pt-6">
-        <h3 className="text-sm font-semibold text-primary2">Business activities</h3>
-        <div data-kyb-requirement="risk_profile.high_risk_activities">
-          <SelectField isMulti instanceId={riskId} name="risk_profile.high_risk_activities"
-            label="Does your business do any of these?" placeholder="Select all that apply"
-            options={riskChoices} value={selectedRisk}
-            minHeight="48px" bgColor="#F4F4F8" className="!shadow-none"
-            labelClass="!font-monzo !text-sm !font-semibold !text-kyb-ink"
-            disabled={!editor.editable || editor.busy} status={riskError ? "error" : undefined}
-            helper={riskError ?? "Choose all that apply, or select None of the above."}
-            onChange={(selected) => {
-              const values = selected.map((option) => String(option.value));
-              const addedNone = values.includes("none_of_the_above") && !risk.includes("none_of_the_above");
-              editor.change("risk_profile.high_risk_activities", addedNone
-                ? ["none_of_the_above"]
-                : values.length > 1 ? values.filter((value) => value !== "none_of_the_above") : values);
-            }} />
-        </div>
-      {risk.some((x) => x !== "none_of_the_above") && (
+        <h3 className="text-sm font-semibold text-primary2">
+          Account purpose and funding
+        </h3>
         <Field
           editor={editor}
-          path="risk_profile.high_risk_activities_explanation"
-          title="Explain the selected activities"
-          multiline
+          path="industry_purpose.account_purpose"
+          title="What will you use this account for?"
+          choices={ACCOUNT_PURPOSE_OPTIONS}
         />
-      )}
-      <div className="divide-y divide-kyb-border rounded-xl border border-kyb-border px-4">
-      <BusinessYesNo editor={editor} path="risk_profile.conducts_money_services"
-        title="Does your business provide money services?" />
-      {money && (
-        <div className="space-y-4 py-4">
+        {getPath(editor.draft, "industry_purpose.account_purpose") ===
+          "other" && (
           <Field
             editor={editor}
-            path="risk_profile.conducts_money_services_description"
-            title="Describe the money services"
+            path="industry_purpose.account_purpose_other"
+            title="Describe your account purpose"
             multiline
           />
-          <Field
-            editor={editor}
-            path="risk_profile.compliance_screening_explanation"
-            title="Describe compliance screening"
-            multiline
+        )}
+        <Field
+          editor={editor}
+          path="industry_purpose.source_of_funds"
+          title="Where does most of your money come from?"
+          choices={SOURCE_OF_FUNDS_OPTIONS}
+        />
+        <Field
+          editor={editor}
+          path="industry_purpose.source_of_funds_description"
+          title="Tell us a little about this income"
+          multiline
+          helper="For example, payments from customers for the products or services you sell."
+        />
+      </section>
+      <section className="space-y-5 border-t border-kyb-border pt-6">
+        <h3 className="text-sm font-semibold text-primary2">
+          Expected account activity
+        </h3>
+        <Field
+          editor={editor}
+          path="industry_purpose.expected_monthly_payments_usd"
+          title="Expected monthly payments (USD)"
+          type="number"
+          min={0}
+          step={1}
+          helper="An estimate is fine. Include your total expected monthly payments, sent or received."
+        />
+        <Field
+          editor={editor}
+          path="industry_purpose.estimated_annual_revenue_usd"
+          title="Estimated annual revenue (USD)"
+          helper="Roughly how much your business earns in a year, in US dollars."
+          choices={REVENUE_OPTIONS}
+        />
+      </section>
+      <section className="space-y-5 border-t border-kyb-border pt-6">
+        <h3 className="text-sm font-semibold text-primary2">
+          Business activities
+        </h3>
+        <div data-kyb-requirement="risk_profile.high_risk_activities">
+          <SelectField
+            isMulti
+            instanceId={riskId}
+            name="risk_profile.high_risk_activities"
+            label="Does your business do any of these?"
+            placeholder="Select all that apply"
+            options={riskChoices}
+            value={selectedRisk}
+            minHeight="48px"
+            bgColor="#F4F4F8"
+            className="!shadow-none"
+            labelClass="!font-monzo !text-sm !font-semibold !text-kyb-ink"
+            disabled={!editor.editable || editor.busy}
+            status={riskError ? "error" : undefined}
+            helper={
+              riskError ?? "Choose all that apply, or select None of the above."
+            }
+            onChange={(selected) => {
+              const values = selected.map((option) => String(option.value));
+              const addedNone =
+                values.includes("none_of_the_above") &&
+                !risk.includes("none_of_the_above");
+              editor.change(
+                "risk_profile.high_risk_activities",
+                addedNone
+                  ? ["none_of_the_above"]
+                  : values.length > 1
+                    ? values.filter((value) => value !== "none_of_the_above")
+                    : values,
+              );
+            }}
           />
-          <BusinessYesNo editor={editor} path="risk_profile.conducts_money_services_using_bridge"
-            title="Will you use this account for money services?" />
         </div>
-      )}
-      <BusinessYesNo editor={editor} path="risk_profile.acting_as_intermediary"
-        title="Does your business act as an intermediary?" />
-      <BusinessYesNo editor={editor} path="industry_purpose.operates_in_prohibited_countries"
-        title="Does your business operate in prohibited or sanctioned countries?" />
-      </div>
+        {risk.some((x) => x !== "none_of_the_above") && (
+          <Field
+            editor={editor}
+            path="risk_profile.high_risk_activities_explanation"
+            title="Explain the selected activities"
+            multiline
+          />
+        )}
+        <div className="divide-y divide-kyb-border rounded-xl border border-kyb-border px-4">
+          <BusinessYesNo
+            editor={editor}
+            path="risk_profile.conducts_money_services"
+            title="Does your business provide money services?"
+          />
+          {money && (
+            <div className="space-y-4 py-4">
+              <Field
+                editor={editor}
+                path="risk_profile.conducts_money_services_description"
+                title="Describe the money services"
+                multiline
+              />
+              <Field
+                editor={editor}
+                path="risk_profile.compliance_screening_explanation"
+                title="Describe compliance screening"
+                multiline
+              />
+              <BusinessYesNo
+                editor={editor}
+                path="risk_profile.conducts_money_services_using_bridge"
+                title="Will you use this account for money services?"
+              />
+            </div>
+          )}
+          <BusinessYesNo
+            editor={editor}
+            path="risk_profile.acting_as_intermediary"
+            title="Does your business act as an intermediary?"
+          />
+          <BusinessYesNo
+            editor={editor}
+            path="industry_purpose.operates_in_prohibited_countries"
+            title="Does your business operate in prohibited or sanctioned countries?"
+          />
+        </div>
       </section>
       <section className="space-y-3">
         <h3 className="text-sm font-semibold">

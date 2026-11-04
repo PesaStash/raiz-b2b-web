@@ -164,6 +164,7 @@ const SetTransactionPin = ({ close }: Props) => {
             onChange={(val) => formik.setFieldValue("pin", val)}
             error={formik.errors.pin}
             touched={formik.touched.pin}
+            masked
           />
         ) : (
           <OtpInput
@@ -171,6 +172,7 @@ const SetTransactionPin = ({ close }: Props) => {
             onChange={(val) => formik.setFieldValue("confirmPin", val)}
             error={formik.errors.confirmPin}
             touched={formik.touched.confirmPin}
+            masked
           />
         )}
         </div>

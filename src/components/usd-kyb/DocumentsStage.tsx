@@ -8,6 +8,7 @@ import type { KybEditor } from "@/lib/hooks/useUsdKyb";
 import type { KybDocument } from "@/types/usdKyb";
 import { Notice, Guidance } from "./KybUI";
 import { KybIcon } from "./KybGuide";
+import { truncateString } from "@/utils/helpers";
 
 const slots = [
   {
@@ -38,7 +39,7 @@ const slots = [
   {
     title: "Proof of nature of business",
     helper:
-      "Evidence of what your business does. Required if you don’t provide a business website.",
+      "Evidence of what your business does e.g business invoice. Required if you don’t provide a business website.",
     purpose: "proof_of_nature_of_business",
   },
 ];
@@ -216,7 +217,7 @@ export default function DocumentsStage({ editor }: { editor: KybEditor }) {
                   className="min-w-0 flex-1 truncate font-semibold"
                   title={doc.file_name ?? ""}
                 >
-                  {doc.file_name}
+                  {truncateString(doc?.file_name ?? "", 30)}
                 </span>
                 <span className="text-kyb-muted">
                   {doc.file_size

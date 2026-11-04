@@ -8,6 +8,7 @@ import {
   deferredRequirements,
   mergeDraft,
   normalizeDraft,
+  withDaoDefault,
   registryPeople,
   setPath,
   getPath,
@@ -289,6 +290,24 @@ test("lookup root fields populate canonical sections without losing other saved 
   assert.equal(input.business_legal_name, "Example Limited");
   assert.equal(
     Object.hasOwn(input.business_profile, "business_legal_name"),
+    false,
+  );
+});
+test("an unset DAO answer defaults to false and an explicit answer stays", () => {
+  const missing = withDaoDefault({ business_profile: { email: "a@b.co" } });
+  assert.equal(getPath(missing, "business_profile.is_dao"), false);
+  assert.equal(getPath(missing, "business_profile.email"), "a@b.co");
+  assert.equal(
+    getPath(withDaoDefault({ business_profile: { is_dao: null } }), "business_profile.is_dao"),
+    false,
+  );
+  const explicit = { business_profile: { is_dao: true } };
+  assert.equal(withDaoDefault(explicit), explicit);
+  assert.equal(
+    getPath(
+      withDaoDefault({ business_profile: { is_dao: false } }),
+      "business_profile.is_dao",
+    ),
     false,
   );
 });

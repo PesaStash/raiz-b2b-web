@@ -8,7 +8,11 @@ import Congrats from "./forms/Congrats";
 import AuthLayout from "../../_components/AuthLayout";
 import EmailVerificationLayout from "../../_components/EmailVerificationLayout";
 import { useFormik } from "formik";
-import { registerFormSchemas, createAccountSchema, sanitizeOtpInput } from "./validation";
+import {
+  registerFormSchemas,
+  createAccountSchema,
+  sanitizeOtpInput,
+} from "./validation";
 import { IRegisterFormValues } from "@/types/misc";
 import { toFormikValidate } from "zod-formik-adapter";
 import { useRouter } from "next/navigation";
@@ -25,11 +29,7 @@ import { getAnalyticsUserType } from "@/utils/analytics/userProps";
 const RegisterForm = () => {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
-  const steps = [
-    "createAccount",
-    "otp",
-    "congrats",
-  ];
+  const steps = ["createAccount", "otp", "congrats"];
 
   const initialValues: IRegisterFormValues = {
     firstName: "",
@@ -43,7 +43,12 @@ const RegisterForm = () => {
   };
 
   const validateCurrentStep = useMemo(
-    () => toFormikValidate(currentStep === 1 ? createAccountSchema : registerFormSchemas[currentStep === 2 ? 3 : 4]),
+    () =>
+      toFormikValidate(
+        currentStep === 1
+          ? createAccountSchema
+          : registerFormSchemas[currentStep === 2 ? 3 : 4],
+      ),
     [currentStep],
   );
 
@@ -90,7 +95,9 @@ const RegisterForm = () => {
       formik.setTouched({});
     },
     onError: () => {
-      formik.setErrors({ otp: "We couldn’t verify your code. Check it and try again." });
+      formik.setErrors({
+        otp: "We couldn’t verify your code. Check it and try again.",
+      });
     },
   });
 
@@ -153,14 +160,17 @@ const RegisterForm = () => {
       case 1:
         return <CreateAccount formik={formik} />;
       case 2:
-        return <RegisterOtp
-          goBack={() => handleNavigate("back")}
-          formik={formik}
-          loading={verifyOtpMutation.isPending}
-          onComplete={otp => {
-            if (!verifyOtpMutation.isPending) verifyOtpMutation.mutate({ otp, email: formik.values.email });
-          }}
-        />;
+        return (
+          <RegisterOtp
+            goBack={() => handleNavigate("back")}
+            formik={formik}
+            loading={verifyOtpMutation.isPending}
+            onComplete={(otp) => {
+              if (!verifyOtpMutation.isPending)
+                verifyOtpMutation.mutate({ otp, email: formik.values.email });
+            }}
+          />
+        );
       case 3:
         return <Congrats />;
       default:
@@ -170,35 +180,54 @@ const RegisterForm = () => {
   const isLoading = signupMutation.isPending || verifyOtpMutation.isPending;
 
   const content = (
-    <form onSubmit={formik.handleSubmit} className={`w-full ${currentStep === 2 ? "max-w-[488px]" : "auth-register-form max-w-[440px]"}`}>
+    <form
+      onSubmit={formik.handleSubmit}
+      className={`w-full ${currentStep === 2 ? "max-w-[488px]" : "auth-register-form max-w-[440px]"}`}
+    >
       <AnimatePresence mode="wait">{displayStep(currentStep)}</AnimatePresence>
-      {currentStep !== 2 && <div className="auth-register-actions mt-6 flex flex-col gap-3">
-        <Button
-          className="auth-submit"
-          type="submit"
-          loading={isLoading}
-          disabled={!!disableProgress() || isLoading}
-        >
-          {currentStep === 1 ? "Create account" : "Continue to login"}
-        </Button>
-        {currentStep === 1 && <p className="text-[13px] leading-5 text-[#6b6b80]">By creating an account you agree to our <Link
-          className="font-semibold text-[#14141e] hover:underline"
-          href="https://www.raiz.app/terms"
-          target="_blank"
-          rel="noopener noreferrer"
-        >Terms</Link> and <Link
-          className="font-semibold text-[#14141e] hover:underline"
-          href="https://www.raiz.app/privacy-policy"
-          target="_blank"
-          rel="noopener noreferrer"
-        >Privacy Policy</Link>.</p>}
-      </div>}
+      {currentStep !== 2 && (
+        <div className="auth-register-actions mt-6 flex flex-col gap-3">
+          <Button
+            className="auth-submit"
+            type="submit"
+            loading={isLoading}
+            disabled={!!disableProgress() || isLoading}
+          >
+            {currentStep === 1 ? "Create account" : "Continue to login"}
+          </Button>
+          {currentStep === 1 && (
+            <p className="text-[13px] leading-5 text-[#6b6b80]">
+              By creating an account you agree to our{" "}
+              <Link
+                className="font-semibold text-[#14141e] hover:underline"
+                href="https://www.raiz.app/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Terms
+              </Link>{" "}
+              and{" "}
+              <Link
+                className="font-semibold text-[#14141e] hover:underline"
+                href="https://www.raiz.app/privacy-policy"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Privacy Policy
+              </Link>
+              .
+            </p>
+          )}
+        </div>
+      )}
     </form>
   );
 
-  return currentStep === 2
-    ? <EmailVerificationLayout>{content}</EmailVerificationLayout>
-    : <AuthLayout>{content}</AuthLayout>;
+  return currentStep === 2 ? (
+    <EmailVerificationLayout>{content}</EmailVerificationLayout>
+  ) : (
+    <AuthLayout>{content}</AuthLayout>
+  );
 };
 
 export default RegisterForm;

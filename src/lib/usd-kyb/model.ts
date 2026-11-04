@@ -63,6 +63,14 @@ export function getPath(value: unknown, path: string): unknown {
     .split(".")
     .reduce<unknown>((current, key) => record(current)[key], value);
 }
+/** Missing or null means this business is not a DAO. Explicit true and false stay as saved. */
+export function withDaoDefault(
+  draft: Record<string, unknown>,
+): Record<string, unknown> {
+  if (typeof getPath(draft, "business_profile.is_dao") === "boolean")
+    return draft;
+  return setPath(draft, "business_profile.is_dao", false);
+}
 export function setPath(
   value: Record<string, unknown>,
   path: string,

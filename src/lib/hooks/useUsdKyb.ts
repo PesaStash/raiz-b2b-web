@@ -13,6 +13,7 @@ import {
   mergeDraft,
   normalizeDraft,
   setPath,
+  withDaoDefault,
   personPatch,
   ensureOwnershipFlag,
   ownershipFlag,
@@ -55,6 +56,31 @@ function composeDraft(
     pending,
   );
 }
+/** Persist false once when the saved case has no DAO answer, without repeating a rejected write. */
+function applyDaoDefault(
+  state: {
+    draft: KybDraft;
+    pending: KybDraft;
+    blocked: boolean;
+    daoSeeded: boolean;
+  },
+  composed: KybDraft,
+  canPersist: boolean,
+) {
+  const current = getPath(composed, "business_profile.is_dao");
+  state.draft = withDaoDefault(composed);
+  if (
+    typeof current === "boolean" ||
+    !canPersist ||
+    state.blocked ||
+    state.daoSeeded ||
+    typeof getPath(state.pending, "business_profile.is_dao") === "boolean"
+  )
+    return false;
+  state.pending = setPath(state.pending, "business_profile.is_dao", false);
+  state.daoSeeded = true;
+  return true;
+}
 export function useUsdKyb() {
   const access = usePermissions();
   const router = useRouter();
@@ -86,6 +112,7 @@ export function useUsdKyb() {
     people: [] as KybPerson[],
     peopleBase: [] as KybPerson[],
     pending: {} as KybDraft,
+    daoSeeded: false,
     peopleDirty: false,
     personInputs: new Map<string, KybPerson>(),
     savedPersonInputs: new Map<string, KybPerson>(),
@@ -100,8 +127,10 @@ export function useUsdKyb() {
   const alive = useRef(true);
   const generation = useRef(sessionGeneration());
   const writable = useRef(false);
+  const canWriteBusiness = useRef(false);
   writable.current =
     access.canWriteBusiness && !!bundle && editableStatus(bundle.case.status);
+  canWriteBusiness.current = access.canWriteBusiness;
   useEffect(() => {
     alive.current = true;
     return () => {
@@ -119,16 +148,21 @@ export function useUsdKyb() {
       state.bundle = next;
       if (reset) {
         state.pending = {};
+        state.daoSeeded = false;
         state.peopleDirty = false;
         state.dirtyPeople.clear();
         state.personInputs.clear();
         state.savedPersonInputs.clear();
       }
-      state.draft = composeDraft(
-        next.case.draft_payload ?? next.draft_payload,
-        next.prefilled_draft,
-        state.pending,
-        next.validation.field_errors ?? [],
+      const seedDao = applyDaoDefault(
+        state,
+        composeDraft(
+          next.case.draft_payload ?? next.draft_payload,
+          next.prefilled_draft,
+          state.pending,
+          next.validation.field_errors ?? [],
+        ),
+        canWriteBusiness.current && editableStatus(next.case.status),
       );
       if (!state.peopleDirty) {
         state.people = next.associated_persons.map((person, index) =>
@@ -142,6 +176,7 @@ export function useUsdKyb() {
       setBundle(next);
       setDraft(state.draft);
       setPeople(state.people);
+      if (seedDao) setDirtyTick((n) => n + 1);
       setMissing(next.validation.missing_requirements);
       state.fieldErrors = currentFieldErrors(
         next.validation.field_errors ?? [],
@@ -359,13 +394,18 @@ export function useUsdKyb() {
         associated_persons: result.associated_persons,
         validation: result.validation,
       };
-      state.draft = composeDraft(
-        result.case.draft_payload,
-        state.bundle.prefilled_draft,
-        mergeDraft(patch, state.pending),
-        result.validation.field_errors ?? [],
+      const seedDao = applyDaoDefault(
+        state,
+        composeDraft(
+          result.case.draft_payload,
+          state.bundle.prefilled_draft,
+          mergeDraft(patch, state.pending),
+          result.validation.field_errors ?? [],
+        ),
+        writable.current,
       );
       setDraft(state.draft);
+      if (seedDao) setDirtyTick((n) => n + 1);
       setBundle(state.bundle);
       setPeople(mergedPeople);
       setMissing(result.validation.missing_requirements);

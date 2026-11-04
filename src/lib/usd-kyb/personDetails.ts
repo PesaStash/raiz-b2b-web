@@ -46,14 +46,12 @@ export function personDetailsErrors(
       errors.email = "Enter a valid email address.";
     date("birth_date", person.birth_date, "date of birth", true);
     if (person.nationalities?.some((code) => !/^[A-Z]{3}$/.test(code)))
-      errors.nationalities =
-        "Use three-letter country codes separated by commas, for example NGA, USA.";
+      errors.nationalities = "Choose a valid country for each nationality.";
     if (
       person.place_of_birth?.country &&
       !/^[A-Z]{3}$/.test(person.place_of_birth.country)
     )
-      errors.place_of_birth =
-        "Use a three-letter country code, for example NGA.";
+      errors.place_of_birth = "Choose a valid country of birth.";
   }
   if (step === undefined || step === 1) {
     const address = person.residential_address ?? {};
