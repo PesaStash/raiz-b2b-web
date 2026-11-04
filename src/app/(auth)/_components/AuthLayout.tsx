@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ReactNode } from "react";
 import "@/styles/auth.css";
 
-const AuthLayout = ({ children, login = false }: { children: ReactNode; login?: boolean }) => (
+const AuthLayout = ({ children, login = false, showAccountLink = true }: { children: ReactNode; login?: boolean; showAccountLink?: boolean }) => (
   <section className="auth-page min-h-screen bg-white p-6 font-monzo text-[#14141e] lg:grid lg:grid-cols-[1.035714fr_1fr] lg:gap-6">
     <div className="flex min-w-0 flex-col lg:min-h-0">
       <header className="flex flex-wrap items-center justify-between gap-4 lg:px-8">
@@ -16,8 +16,10 @@ const AuthLayout = ({ children, login = false }: { children: ReactNode; login?: 
             priority
           />
         </Link>
-        <p className="text-sm text-[#6b6b80]">{login ? "Don’t have an account?" : "Have an account?"}{"  "}<Link className="font-semibold text-raiz-usd-primary hover:underline" href={login ? "/register" : "/login"}>{login ? "Sign up" : "Log in"}</Link>
-        </p>
+        {showAccountLink && (
+          <p className="text-sm text-[#6b6b80]">{login ? "Don’t have an account?" : "Have an account?"}{"  "}<Link className="font-semibold text-raiz-usd-primary hover:underline" href={login ? "/register" : "/login"}>{login ? "Sign up" : "Log in"}</Link>
+          </p>
+        )}
       </header>
       <div className="flex flex-1 items-center justify-center px-0 py-8 lg:px-8 lg:py-4">{children}</div>
     </div>

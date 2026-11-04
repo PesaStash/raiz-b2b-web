@@ -3,13 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { RAIZ_APP_RETURN_URL, isMobileUserAgent } from "@/lib/paystackCardCollection";
+import { RAIZ_APP_RETURN_URL, isMobileUserAgent } from "@/lib/cardCollection";
 
 /**
- * Shown when Paystack returns to the web callback without a web session,
+ * Shown when a card provider returns to the web callback without a web session,
  * which is the mobile checkout path. It only hands control back to the app.
  */
-const PaystackAppReturn = () => {
+const CardAppReturn = () => {
   const [isMobile, setIsMobile] = useState(false);
   const attemptedRef = useRef(false);
 
@@ -56,4 +56,4 @@ const PaystackAppReturn = () => {
   );
 };
 
-export default PaystackAppReturn;
+export default CardAppReturn;

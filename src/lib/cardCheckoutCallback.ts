@@ -1,26 +1,27 @@
 "use client";
 
-import { GetPaystackCardCollectionStatusApi } from "@/services/transactions";
+import { GetCardCollectionStatusApi } from "@/services/transactions";
 import {
-  extractPaystackCallbackReference,
-  stripPaystackCallbackParams,
-} from "@/lib/paystackCardCollection";
+  extractCardCallbackReference,
+  providerFromReference,
+  stripCardCallbackParams,
+} from "@/lib/cardCollection";
 import {
-  loadPendingPaystackCheckout,
+  loadPendingCardCheckout,
   pendingCheckoutFromStatus,
-} from "@/lib/paystackCheckoutSession";
-import type { PendingPaystackCheckout } from "@/types/paystackCardCollection";
+} from "@/lib/cardCheckoutSession";
+import type { PendingCardCheckout } from "@/types/cardCollection";
 
 /**
- * Reads Paystack's redirect reference from the current URL and removes the
+ * Reads the provider redirect reference from the current URL and removes the
  * provider parameters so they are not kept in history or page analytics.
  */
-export function consumePaystackCallbackReference(): string | null {
+export function consumeCardCallbackReference(): string | null {
   if (typeof window === "undefined") return null;
   const { pathname, search, hash } = window.location;
   if (!search) return null;
-  const reference = extractPaystackCallbackReference(search);
-  const cleaned = stripPaystackCallbackParams(search);
+  const reference = extractCardCallbackReference(search);
+  const cleaned = stripCardCallbackParams(search);
   if (cleaned !== search) {
     window.history.replaceState(window.history.state, "", `${pathname}${cleaned}${hash}`);
   }
@@ -32,14 +33,16 @@ export function consumePaystackCallbackReference(): string | null {
  * another browser or on another host), fall back to the entity-scoped status
  * endpoint, which returns 404 for references the business does not own.
  */
-export async function resolvePaystackCheckout(
+export async function resolveCardCheckout(
   entityId: string,
   callbackReference: string | null,
-): Promise<PendingPaystackCheckout | null> {
-  const local = loadPendingPaystackCheckout(entityId);
+): Promise<PendingCardCheckout | null> {
+  const local = loadPendingCardCheckout(entityId);
   if (local || !callbackReference) return local;
+  const provider = providerFromReference(callbackReference);
+  if (!provider) return null;
   try {
-    const status = await GetPaystackCardCollectionStatusApi(callbackReference);
+    const status = await GetCardCollectionStatusApi(callbackReference, provider);
     return pendingCheckoutFromStatus(status);
   } catch {
     return null;

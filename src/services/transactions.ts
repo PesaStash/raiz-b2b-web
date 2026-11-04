@@ -10,14 +10,14 @@ import {
 } from "@/types/transactions";
 import { ICrossCurrencies } from "@/types/misc";
 import {
-  PaystackCardCollectionInitializeRequest,
-  PaystackCardCollectionInitializeResponse,
-  PaystackCardCollectionStatusResponse,
-} from "@/types/paystackCardCollection";
+  CardCollectionInitializeRequest,
+  CardCollectionInitializeResponse,
+  CardCollectionStatusResponse,
+  CardPaymentProvider,
+} from "@/types/cardCollection";
 
 const AUTH_AFRICA_PAYIN_BASE = "business/transactions/payins/africa";
-const PAYSTACK_CARD_COLLECTION_BASE =
-  "business/transactions/collections/paystack/card";
+const CARD_COLLECTION_BASE = "business/transactions/collections/card";
 
 const extractAfricaPayinStatus = (
   payload: GuestPayStatusType | AfricaPayinStatusResponse | string | null,
@@ -863,15 +863,15 @@ export const DenyAuthAfricaPayinApi = async (
   return response.data;
 };
 
-export const InitializePaystackCardCollectionApi = async ({
+export const InitializeCardCollectionApi = async ({
   data,
   idempotencyKey,
 }: {
-  data: PaystackCardCollectionInitializeRequest;
+  data: CardCollectionInitializeRequest;
   idempotencyKey: string;
-}): Promise<PaystackCardCollectionInitializeResponse> => {
+}): Promise<CardCollectionInitializeResponse> => {
   const response = await AuthAxios.post(
-    `${PAYSTACK_CARD_COLLECTION_BASE}/initialize/`,
+    `${CARD_COLLECTION_BASE}/initialize/`,
     data,
     {
       silent: true,
@@ -881,11 +881,12 @@ export const InitializePaystackCardCollectionApi = async ({
   return response.data;
 };
 
-export const GetPaystackCardCollectionStatusApi = async (
+export const GetCardCollectionStatusApi = async (
   reference: string,
-): Promise<PaystackCardCollectionStatusResponse> => {
+  provider: CardPaymentProvider,
+): Promise<CardCollectionStatusResponse> => {
   const response = await AuthAxios.get(
-    `${PAYSTACK_CARD_COLLECTION_BASE}/${encodeURIComponent(reference)}/status/`,
+    `${CARD_COLLECTION_BASE}/${encodeURIComponent(reference)}/status/?provider=${encodeURIComponent(provider)}`,
     { silent: true } as CustomAxiosRequestConfig,
   );
   return response.data;

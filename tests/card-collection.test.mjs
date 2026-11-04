@@ -1,32 +1,35 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  PAYSTACK_POLL_INTERVAL_MS,
-  PAYSTACK_POLL_MAX_BACKOFF_MS,
+  CARD_POLL_INTERVAL_MS,
+  CARD_POLL_MAX_BACKOFF_MS,
   RAIZ_APP_RETURN_URL,
   isMobileUserAgent,
   caretAfterSignificantChars,
   createIdempotencyKeyTracker,
-  extractPaystackCallbackReference,
+  extractCardCallbackReference,
   formatAmountInput,
   formatDecimalMoney,
-  stripPaystackCallbackParams,
+  stripCardCallbackParams,
   isRetryableStatusError,
   isTerminalViewState,
   isUnexpectedStatusCombination,
-  mapPaystackCollectionError,
+  mapCardCollectionError,
   nextPollDelay,
-  normalizePaystackAmount,
+  normalizeCardAmount,
   paymentViewState,
-} from "../src/lib/paystackCardCollection.ts";
+  providerFromReference,
+  providerLabel,
+} from "../src/lib/cardCollection.ts";
 import {
-  buildPendingPaystackCheckout,
-  clearPendingPaystackCheckout,
-  getPaystackCheckoutKey,
-  loadPendingPaystackCheckout,
+  buildPendingCardCheckout,
+  clearPendingCardCheckout,
+  getCardCheckoutKey,
+  getLegacyCardCheckoutKey,
+  loadPendingCardCheckout,
   pendingCheckoutFromStatus,
-  savePendingPaystackCheckout,
-} from "../src/lib/paystackCheckoutSession.ts";
+  savePendingCardCheckout,
+} from "../src/lib/cardCheckoutSession.ts";
 import { canMakeRequest } from "../src/lib/permissions.ts";
 
 const memoryStorage = () => {
@@ -40,23 +43,24 @@ const memoryStorage = () => {
 };
 
 const initializeResponse = {
+  provider: "flutterwave",
   collection_id: "b8aff692-e67b-4f17-82f1-5be687764630",
-  reference: "ps_ngn_9c13c2f03ce44cc6a2a535584ba4a67f",
-  authorization_url: "https://checkout.paystack.com/example",
+  reference: "fw_ngn_9c13c2f03ce44cc6a2a535584ba4a67f",
+  authorization_url: "https://checkout.flutterwave.com/example",
   principal_amount: "50000.00",
-  fee_amount: "862.96",
-  total_amount: "50862.96",
+  fee_amount: "700.00",
+  total_amount: "50700.00",
   currency: "NGN",
   status: "pending",
 };
 
 test("amounts normalize to two-decimal strings and reject invalid input", () => {
-  assert.equal(normalizePaystackAmount("50000"), "50000.00");
-  assert.equal(normalizePaystackAmount("50,000.5"), "50000.50");
-  assert.equal(normalizePaystackAmount(" 0012.34 "), "12.34");
-  assert.equal(normalizePaystackAmount("0.01"), "0.01");
+  assert.equal(normalizeCardAmount("50000"), "50000.00");
+  assert.equal(normalizeCardAmount("50,000.5"), "50000.50");
+  assert.equal(normalizeCardAmount(" 0012.34 "), "12.34");
+  assert.equal(normalizeCardAmount("0.01"), "0.01");
   for (const bad of ["", "0", "0.00", "-5", "1.234", "abc", ".5", "1e3"]) {
-    assert.equal(normalizePaystackAmount(bad), null, bad);
+    assert.equal(normalizeCardAmount(bad), null, bad);
   }
 });
 
@@ -68,7 +72,7 @@ test("typed amounts are grouped for display and keep the caret position", () => 
   assert.equal(formatAmountInput("50000."), "50,000.");
   assert.equal(formatAmountInput(".5"), ".5");
   assert.equal(formatAmountInput("0.25"), "0.25");
-  assert.equal(normalizePaystackAmount(formatAmountInput("1234567.5")), "1234567.50");
+  assert.equal(normalizeCardAmount(formatAmountInput("1234567.5")), "1234567.50");
   assert.equal(caretAfterSignificantChars("1,234", 2), 3);
   assert.equal(caretAfterSignificantChars("1,234", 1), 1);
   assert.equal(caretAfterSignificantChars("1,234", 0), 0);
@@ -100,9 +104,9 @@ test("only completed + credited is success; unknown combinations stay processing
 });
 
 test("polling backs off only for temporary failures and stays bounded", () => {
-  assert.equal(nextPollDelay(0), PAYSTACK_POLL_INTERVAL_MS);
-  assert.equal(nextPollDelay(1), PAYSTACK_POLL_INTERVAL_MS * 2);
-  assert.equal(nextPollDelay(10), PAYSTACK_POLL_MAX_BACKOFF_MS);
+  assert.equal(nextPollDelay(0), CARD_POLL_INTERVAL_MS);
+  assert.equal(nextPollDelay(1), CARD_POLL_INTERVAL_MS * 2);
+  assert.equal(nextPollDelay(10), CARD_POLL_MAX_BACKOFF_MS);
   assert.equal(isRetryableStatusError(undefined), true);
   assert.equal(isRetryableStatusError(502), true);
   assert.equal(isRetryableStatusError(404), false);
@@ -112,11 +116,13 @@ test("polling backs off only for temporary failures and stays bounded", () => {
 test("idempotency key is stable per payload and renewed for a new attempt", () => {
   let n = 0;
   const tracker = createIdempotencyKeyTracker(() => `key-${++n}`);
-  const payload = { wallet_id: "w1", amount: "100.00" };
+  const payload = { provider: "flutterwave", wallet_id: "w1", amount: "100.00" };
   const first = tracker.keyFor(payload);
   assert.equal(tracker.keyFor({ ...payload }), first);
   const changed = tracker.keyFor({ ...payload, amount: "200.00" });
   assert.notEqual(changed, first);
+  const providerChange = tracker.keyFor({ ...payload, amount: "200.00", provider: "paystack" });
+  assert.notEqual(providerChange, changed);
   tracker.reset();
   assert.notEqual(tracker.keyFor({ ...payload, amount: "200.00" }), changed);
 });
@@ -145,22 +151,22 @@ test("documented backend errors map to intentional UI states", () => {
     [new Error("Network Error"), "network"],
   ];
   for (const [input, kind] of cases) {
-    assert.equal(mapPaystackCollectionError(input).kind, kind, JSON.stringify(input));
+    assert.equal(mapCardCollectionError(input).kind, kind, JSON.stringify(input));
   }
   assert.equal(
-    mapPaystackCollectionError(err(400, "Card collection amount exceeds the limit")).message,
+    mapCardCollectionError(err(400, "Card collection amount exceeds the limit")).message,
     "Card collection amount exceeds the limit",
   );
-  assert.equal(mapPaystackCollectionError(err(502, "x")).canRetry, true);
-  assert.equal(mapPaystackCollectionError(err(429, "x")).canRetry, false);
+  assert.equal(mapCardCollectionError(err(502, "x")).canRetry, true);
+  assert.equal(mapCardCollectionError(err(429, "x")).canRetry, false);
   assert.equal(
-    mapPaystackCollectionError({ response: { status: 503, data: { detail: "x" } } }).kind,
+    mapCardCollectionError({ response: { status: 503, data: { detail: "x" } } }).kind,
     "not_configured",
   );
 });
 
 test("422 validation details become field errors", () => {
-  const mapped = mapPaystackCollectionError(
+  const mapped = mapCardCollectionError(
     err(422, [
       { loc: ["body", "amount"], msg: "Decimal input should have no more than 2 decimal places", type: "decimal" },
       { loc: ["body", "description"], msg: "String should have at most 255 characters", type: "string" },
@@ -171,43 +177,115 @@ test("422 validation details become field errors", () => {
   assert.match(mapped.fieldErrors.description, /255/);
 });
 
+test("new error shape with message, errors, and correlation_id is mapped", () => {
+  const mapped = mapCardCollectionError({
+    status: 422,
+    data: {
+      success: false,
+      message: "Validation Error",
+      errors: ["Input should be 'paystack' or 'flutterwave' in provider", "amount must be greater than zero"],
+      correlation_id: "9f16c6cc-b339-48d4-b7e8-64a2f25f6077",
+    },
+  });
+  assert.equal(mapped.kind, "validation");
+  assert.equal(mapped.correlationId, "9f16c6cc-b339-48d4-b7e8-64a2f25f6077");
+  assert.match(mapped.fieldErrors.provider, /paystack|flutterwave/);
+  assert.match(mapped.fieldErrors.amount, /greater than zero/);
+
+  const messageOnly = mapCardCollectionError({
+    status: 400,
+    data: {
+      success: false,
+      message: "Please select an NGN wallet",
+      correlation_id: "abc-123",
+    },
+  });
+  assert.equal(messageOnly.kind, "wallet_reselect");
+  assert.equal(messageOnly.correlationId, "abc-123");
+});
+
 test("recovery record stores only safe fields and is isolated per business entity", () => {
   const storage = memoryStorage();
-  const record = buildPendingPaystackCheckout(initializeResponse, "wallet-1", new Date("2026-10-07T10:00:00Z"));
+  const record = buildPendingCardCheckout(initializeResponse, "wallet-1", new Date("2026-10-07T10:00:00Z"));
   assert.equal(record.actor, "business");
+  assert.equal(record.provider, "flutterwave");
   assert.equal(record.started_at, "2026-10-07T10:00:00.000Z");
   assert.equal("authorization_url" in record, false);
 
-  assert.equal(savePendingPaystackCheckout("entity-a", record, storage), true);
-  assert.equal(storage.map.get(getPaystackCheckoutKey("entity-a")).includes("checkout.paystack.com"), false);
-  assert.deepEqual(loadPendingPaystackCheckout("entity-a", storage), record);
-  assert.equal(loadPendingPaystackCheckout("entity-b", storage), null);
+  assert.equal(savePendingCardCheckout("entity-a", record, storage), true);
+  assert.equal(storage.map.get(getCardCheckoutKey("entity-a")).includes("checkout.flutterwave.com"), false);
+  assert.deepEqual(loadPendingCardCheckout("entity-a", storage), record);
+  assert.equal(loadPendingCardCheckout("entity-b", storage), null);
 
-  clearPendingPaystackCheckout("entity-a", storage);
-  assert.equal(loadPendingPaystackCheckout("entity-a", storage), null);
+  clearPendingCardCheckout("entity-a", storage);
+  assert.equal(loadPendingCardCheckout("entity-a", storage), null);
+});
+
+test("legacy recovery records without provider migrate to the new key as paystack", () => {
+  const storage = memoryStorage();
+  const legacy = {
+    actor: "business",
+    collection_id: "b8aff692-e67b-4f17-82f1-5be687764630",
+    reference: "ps_ngn_9c13c2f03ce44cc6a2a535584ba4a67f",
+    wallet_id: "wallet-1",
+    principal_amount: "50000.00",
+    fee_amount: "862.96",
+    total_amount: "50862.96",
+    started_at: "2026-10-07T10:00:00.000Z",
+  };
+  storage.setItem(getLegacyCardCheckoutKey("entity-a"), JSON.stringify(legacy));
+  const loaded = loadPendingCardCheckout("entity-a", storage);
+  assert.equal(loaded.provider, "paystack");
+  assert.equal(loaded.reference, legacy.reference);
+  assert.equal(storage.map.has(getLegacyCardCheckoutKey("entity-a")), false);
+  assert.equal(storage.map.has(getCardCheckoutKey("entity-a")), true);
 });
 
 test("malformed or personal recovery records are discarded", () => {
   const storage = memoryStorage();
-  storage.setItem(getPaystackCheckoutKey("entity-a"), "{not json");
-  assert.equal(loadPendingPaystackCheckout("entity-a", storage), null);
+  storage.setItem(getCardCheckoutKey("entity-a"), "{not json");
+  assert.equal(loadPendingCardCheckout("entity-a", storage), null);
   assert.equal(storage.map.size, 0);
 
-  const personal = { ...buildPendingPaystackCheckout(initializeResponse, "w"), actor: "personal" };
-  storage.setItem(getPaystackCheckoutKey("entity-a"), JSON.stringify(personal));
-  assert.equal(loadPendingPaystackCheckout("entity-a", storage), null);
-  assert.equal(loadPendingPaystackCheckout(undefined, storage), null);
+  const personal = { ...buildPendingCardCheckout(initializeResponse, "w"), actor: "personal" };
+  storage.setItem(getCardCheckoutKey("entity-a"), JSON.stringify(personal));
+  assert.equal(loadPendingCardCheckout("entity-a", storage), null);
+  assert.equal(loadPendingCardCheckout(undefined, storage), null);
 });
 
-test("Paystack redirect parameters are recognised on any route and stripped", () => {
-  const search = "?trxref=ps_ngn_829cbac572ca4d7894692f24910cbb1e&reference=ps_ngn_829cbac572ca4d7894692f24910cbb1e";
-  assert.equal(extractPaystackCallbackReference(search), "ps_ngn_829cbac572ca4d7894692f24910cbb1e");
-  assert.equal(extractPaystackCallbackReference("?trxref=ps_ngn_abcdef123456"), "ps_ngn_abcdef123456");
-  assert.equal(extractPaystackCallbackReference("?reference=../../admin"), null);
-  assert.equal(extractPaystackCallbackReference("?reference=T123456789"), null);
-  assert.equal(extractPaystackCallbackReference(""), null);
-  assert.equal(stripPaystackCallbackParams(search), "");
-  assert.equal(stripPaystackCallbackParams("?tab=wallets&reference=ps_ngn_abcdef123456"), "?tab=wallets");
+test("Paystack and Flutterwave redirect parameters are recognised and stripped", () => {
+  const paystackSearch =
+    "?trxref=ps_ngn_829cbac572ca4d7894692f24910cbb1e&reference=ps_ngn_829cbac572ca4d7894692f24910cbb1e";
+  assert.equal(
+    extractCardCallbackReference(paystackSearch),
+    "ps_ngn_829cbac572ca4d7894692f24910cbb1e",
+  );
+  assert.equal(extractCardCallbackReference("?trxref=ps_ngn_abcdef123456"), "ps_ngn_abcdef123456");
+  assert.equal(extractCardCallbackReference("?reference=../../admin"), null);
+  assert.equal(extractCardCallbackReference("?reference=T123456789"), null);
+  assert.equal(extractCardCallbackReference(""), null);
+  assert.equal(stripCardCallbackParams(paystackSearch), "");
+  assert.equal(stripCardCallbackParams("?tab=wallets&reference=ps_ngn_abcdef123456"), "?tab=wallets");
+
+  const flutterwaveSearch =
+    "?tx_ref=fw_ngn_9c13c2f03ce44cc6a2a535584ba4a67f&transaction_id=12345&status=successful";
+  assert.equal(
+    extractCardCallbackReference(flutterwaveSearch),
+    "fw_ngn_9c13c2f03ce44cc6a2a535584ba4a67f",
+  );
+  assert.equal(stripCardCallbackParams(flutterwaveSearch), "");
+  assert.equal(
+    stripCardCallbackParams("?tab=wallets&tx_ref=fw_ngn_abcdef123456&status=successful"),
+    "?tab=wallets",
+  );
+});
+
+test("provider is inferred from the Raiz reference prefix", () => {
+  assert.equal(providerFromReference("ps_ngn_abcdef123456"), "paystack");
+  assert.equal(providerFromReference("fw_ngn_9c13c2f03ce44cc6a2a535584ba4a67f"), "flutterwave");
+  assert.equal(providerFromReference("unknown_ref"), null);
+  assert.equal(providerLabel("paystack"), "Paystack");
+  assert.equal(providerLabel("flutterwave"), "Flutterwave");
 });
 
 test("mobile return link is the generic app link with no parameters", () => {
@@ -240,16 +318,17 @@ test("callback without local state builds a display-only record from backend sta
     credited_at: null,
   });
   assert.equal(record.reference, initializeResponse.reference);
+  assert.equal(record.provider, "flutterwave");
   assert.equal(record.principal_amount, "50000.00");
   assert.equal(record.wallet_id, "");
   const storage = memoryStorage();
-  savePendingPaystackCheckout("entity-a", record, storage);
-  assert.equal(loadPendingPaystackCheckout("entity-a", storage), null);
+  savePendingCardCheckout("entity-a", record, storage);
+  assert.equal(loadPendingCardCheckout("entity-a", storage), null);
 });
 
 test("initialize requires business write access; status reads are open to active roles", () => {
-  const initialize = "/business/transactions/collections/paystack/card/initialize/";
-  const status = "/business/transactions/collections/paystack/card/ps_ngn_1/status/";
+  const initialize = "/business/transactions/collections/card/initialize/";
+  const status = "/business/transactions/collections/card/fw_ngn_1/status/?provider=flutterwave";
   for (const role of ["owner", "admin", "developer"]) {
     const profile = { role, active: true };
     assert.equal(canMakeRequest(profile, "POST", initialize), role !== "developer");

@@ -3,15 +3,15 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Overlay from "@/components/ui/Overlay";
-import { usePaystackCollectionPolling } from "@/lib/hooks/usePaystackCollectionPolling";
-import { formatDecimalMoney } from "@/lib/paystackCardCollection";
-import { clearPendingPaystackCheckout } from "@/lib/paystackCheckoutSession";
-import type { PendingPaystackCheckout } from "@/types/paystackCardCollection";
-import { trackPaystackFunding } from "@/utils/analytics/paystackFunding";
-import PaystackStatusPanel from "./PaystackStatusPanel";
+import { useCardCollectionPolling } from "@/lib/hooks/useCardCollectionPolling";
+import { formatDecimalMoney, providerLabel } from "@/lib/cardCollection";
+import { clearPendingCardCheckout } from "@/lib/cardCheckoutSession";
+import type { PendingCardCheckout } from "@/types/cardCollection";
+import { trackCardFunding } from "@/utils/analytics/cardFunding";
+import CardStatusPanel from "./CardStatusPanel";
 
 interface Props {
-  checkout: PendingPaystackCheckout;
+  checkout: PendingCardCheckout;
   entityId: string;
   /** `acknowledged` is true once a terminal result was shown and dismissed. */
   onClose: (acknowledged: boolean) => void;
@@ -27,21 +27,30 @@ const openSupportEmail = (reference: string) => {
   window.open(`mailto:support@raiz.app?subject=${subject}&body=${body}`, "_blank");
 };
 
-const PaystackFundingStatus = ({ checkout, entityId, onClose, onStartNew, variant = "overlay" }: Props) => {
+const CardFundingStatus = ({ checkout, entityId, onClose, onStartNew, variant = "overlay" }: Props) => {
   const router = useRouter();
-  const { payment, viewState, phase, error, refresh } = usePaystackCollectionPolling(checkout.reference);
+  const { payment, viewState, phase, error, refresh } = useCardCollectionPolling(
+    checkout.reference,
+    checkout.provider,
+  );
+  const label = providerLabel(checkout.provider);
 
   useEffect(() => {
-    trackPaystackFunding(
-      "paystack_card_funding_checkout_closed",
-      { collection_id: checkout.collection_id, reference: checkout.reference, wallet_id: checkout.wallet_id },
-      `paystack_card_funding_checkout_closed:${checkout.reference}`,
+    trackCardFunding(
+      "card_funding_checkout_closed",
+      {
+        provider: checkout.provider,
+        collection_id: checkout.collection_id,
+        reference: checkout.reference,
+        wallet_id: checkout.wallet_id,
+      },
+      `card_funding_checkout_closed:${checkout.reference}`,
     );
-  }, [checkout.collection_id, checkout.reference, checkout.wallet_id]);
+  }, [checkout.collection_id, checkout.provider, checkout.reference, checkout.wallet_id]);
 
   const isNotFound = phase === "error" && error?.kind === "collection_not_found";
   useEffect(() => {
-    if (isNotFound) clearPendingPaystackCheckout(entityId);
+    if (isNotFound) clearPendingCardCheckout(entityId);
   }, [isNotFound, entityId]);
 
   const principal = formatDecimalMoney(payment?.principal_amount ?? checkout.principal_amount);
@@ -53,7 +62,7 @@ const PaystackFundingStatus = ({ checkout, entityId, onClose, onStartNew, varian
   ];
 
   const acknowledge = () => {
-    clearPendingPaystackCheckout(entityId);
+    clearPendingCardCheckout(entityId);
     onClose(true);
   };
   const checkLater = () => onClose(false);
@@ -64,7 +73,7 @@ const PaystackFundingStatus = ({ checkout, entityId, onClose, onStartNew, varian
       switch (viewState) {
         case "success":
           return (
-            <PaystackStatusPanel
+            <CardStatusPanel
               icon="success"
               title="Payment complete"
               message={`${principal} has been added to your NGN wallet.`}
@@ -81,7 +90,7 @@ const PaystackFundingStatus = ({ checkout, entityId, onClose, onStartNew, varian
           );
         case "failed":
           return (
-            <PaystackStatusPanel
+            <CardStatusPanel
               icon="failed"
               title="Payment unsuccessful"
               message="This card payment was not completed. Your wallet was not credited."
@@ -91,7 +100,7 @@ const PaystackFundingStatus = ({ checkout, entityId, onClose, onStartNew, varian
                   ? {
                       label: "Start new payment",
                       onClick: () => {
-                        clearPendingPaystackCheckout(entityId);
+                        clearPendingCardCheckout(entityId);
                         onStartNew();
                       },
                     }
@@ -102,7 +111,7 @@ const PaystackFundingStatus = ({ checkout, entityId, onClose, onStartNew, varian
           );
         case "review":
           return (
-            <PaystackStatusPanel
+            <CardStatusPanel
               icon="pending"
               title="Payment under review"
               message="Your payment is being reviewed. Your wallet has not been credited yet. Please contact support if this status does not change."
@@ -113,7 +122,7 @@ const PaystackFundingStatus = ({ checkout, entityId, onClose, onStartNew, varian
           );
         case "disputed":
           return (
-            <PaystackStatusPanel
+            <CardStatusPanel
               icon="failed"
               title="Payment under dispute"
               message="This payment is under dispute and account access may be restricted. Please contact support for assistance."
@@ -129,7 +138,7 @@ const PaystackFundingStatus = ({ checkout, entityId, onClose, onStartNew, varian
 
     if (isNotFound) {
       return (
-        <PaystackStatusPanel
+        <CardStatusPanel
           icon="failed"
           title="Payment not found"
           message="We couldn't find this card payment on your business account. Check your wallet activity for recent payments."
@@ -140,7 +149,7 @@ const PaystackFundingStatus = ({ checkout, entityId, onClose, onStartNew, varian
 
     if (phase === "error") {
       return (
-        <PaystackStatusPanel
+        <CardStatusPanel
           icon="pending"
           title="Unable to check payment"
           message={error?.message || "We couldn't check this payment right now."}
@@ -153,10 +162,10 @@ const PaystackFundingStatus = ({ checkout, entityId, onClose, onStartNew, varian
 
     if (phase === "timed_out") {
       return (
-        <PaystackStatusPanel
+        <CardStatusPanel
           icon="pending"
           title="Still processing"
-          message="Paystack is still confirming this payment. You can refresh this status here or check your wallet activity later."
+          message={`${label} is still confirming this payment. You can refresh this status here or check your wallet activity later.`}
           details={details}
           secondary={{ label: "Refresh status", onClick: refresh }}
           primary={{ label: "Check later", onClick: checkLater }}
@@ -165,7 +174,7 @@ const PaystackFundingStatus = ({ checkout, entityId, onClose, onStartNew, varian
     }
 
     return (
-      <PaystackStatusPanel
+      <CardStatusPanel
         icon="pending"
         title="Confirming your payment"
         message="We're confirming your card payment. Keep this screen open, or check your wallet activity in a few minutes."
@@ -189,4 +198,4 @@ const PaystackFundingStatus = ({ checkout, entityId, onClose, onStartNew, varian
   );
 };
 
-export default PaystackFundingStatus;
+export default CardFundingStatus;

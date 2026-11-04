@@ -186,15 +186,7 @@ const RegisterForm = () => {
     >
       <AnimatePresence mode="wait">{displayStep(currentStep)}</AnimatePresence>
       {currentStep !== 2 && (
-        <div className="auth-register-actions mt-6 flex flex-col gap-3">
-          <Button
-            className="auth-submit"
-            type="submit"
-            loading={isLoading}
-            disabled={!!disableProgress() || isLoading}
-          >
-            {currentStep === 1 ? "Create account" : "Continue to login"}
-          </Button>
+        <div className="auth-register-actions mt-6 flex flex-col gap-4">
           {currentStep === 1 && (
             <p className="text-[13px] leading-5 text-[#6b6b80]">
               By creating an account you agree to our{" "}
@@ -218,7 +210,23 @@ const RegisterForm = () => {
               .
             </p>
           )}
+          <Button
+            className="auth-submit"
+            type="submit"
+            loading={isLoading}
+            disabled={!!disableProgress() || isLoading}
+          >
+            {currentStep === 1 ? "Create account" : "Continue to login"}
+          </Button>
         </div>
+      )}
+      {currentStep === 1 && (
+        <p className="mt-7 text-center text-sm leading-[21px] text-[#6b6b80]">
+          Have an account?{"  "}
+          <Link className="font-semibold text-raiz-usd-primary hover:underline" href="/login">
+            Log in
+          </Link>
+        </p>
       )}
     </form>
   );
@@ -226,7 +234,7 @@ const RegisterForm = () => {
   return currentStep === 2 ? (
     <EmailVerificationLayout>{content}</EmailVerificationLayout>
   ) : (
-    <AuthLayout>{content}</AuthLayout>
+    <AuthLayout showAccountLink={currentStep !== 1}>{content}</AuthLayout>
   );
 };
 
