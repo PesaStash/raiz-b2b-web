@@ -3,38 +3,40 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import Overlay from "@/components/ui/Overlay";
 import Button from "@/components/ui/Button";
+import SideModalWrapper from "@/app/(dashboard)/_components/SideModalWrapper";
 import InputField from "@/components/ui/InputField";
 import ErrorMessage from "@/components/ui/ErrorMessage";
 import { withBusinessWrite } from "@/components/team/BusinessWrite";
 import { useUser } from "@/lib/hooks/useUser";
 import { useEligibleNgnPayoutWallets } from "@/lib/hooks/useEligibleNgnPayoutWallets";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
-import { InitializePaystackCardCollectionApi } from "@/services/transactions";
+import { InitializeCardCollectionApi } from "@/services/transactions";
 import {
-  PAYSTACK_DESCRIPTION_MAX_LENGTH,
+  CARD_DESCRIPTION_MAX_LENGTH,
+  CARD_PAYMENT_PROVIDER,
   caretAfterSignificantChars,
   createIdempotencyKeyTracker,
   formatAmountInput,
   formatDecimalMoney,
-  mapPaystackCollectionError,
-  normalizePaystackAmount,
+  mapCardCollectionError,
+  normalizeCardAmount,
+  providerLabel,
   sanitizedErrorCode,
-} from "@/lib/paystackCardCollection";
+} from "@/lib/cardCollection";
 import {
-  buildPendingPaystackCheckout,
-  loadPendingPaystackCheckout,
-  savePendingPaystackCheckout,
-} from "@/lib/paystackCheckoutSession";
+  buildPendingCardCheckout,
+  loadPendingCardCheckout,
+  savePendingCardCheckout,
+} from "@/lib/cardCheckoutSession";
 import type {
-  PaystackCardCollectionInitializeRequest,
-  PaystackCardCollectionInitializeResponse,
-  PaystackCollectionError,
-  PendingPaystackCheckout,
-} from "@/types/paystackCardCollection";
-import { trackPaystackFunding } from "@/utils/analytics/paystackFunding";
-import PaystackFundingStatus from "./PaystackFundingStatus";
+  CardCollectionInitializeRequest,
+  CardCollectionInitializeResponse,
+  CardCollectionError,
+  PendingCardCheckout,
+} from "@/types/cardCollection";
+import { trackCardFunding } from "@/utils/analytics/cardFunding";
+import CardFundingStatus from "./CardFundingStatus";
 import { safeHttpsUrl } from "@/lib/safeUrl";
 import { toast } from "sonner";
 
@@ -47,25 +49,26 @@ interface Props {
 
 const AMOUNT_INPUT_PATTERN = /^\d*\.?\d{0,2}$/;
 
-const PaystackCardTopUp = ({ close, goBack }: Props) => {
+const NgnCardTopUp = ({ close, goBack }: Props) => {
   const qc = useQueryClient();
   const { user } = useUser();
   const { selectedWallet } = useCurrencyStore();
   const entityId = user?.business_account?.entity_id ?? "";
   const eligibleWallets = useEligibleNgnPayoutWallets(user);
+  const label = providerLabel(CARD_PAYMENT_PROVIDER);
 
   const [step, setStep] = useState<Step>("setup");
   const [walletId, setWalletId] = useState("");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
-  const [formError, setFormError] = useState<PaystackCollectionError | null>(null);
+  const [formError, setFormError] = useState<CardCollectionError | null>(null);
   const [amountError, setAmountError] = useState("");
   const [restrictedWalletIds, setRestrictedWalletIds] = useState<string[]>([]);
   const [blockedMessage, setBlockedMessage] = useState("");
-  const [checkout, setCheckout] = useState<PaystackCardCollectionInitializeResponse | null>(null);
+  const [checkout, setCheckout] = useState<CardCollectionInitializeResponse | null>(null);
   const [checkoutWalletId, setCheckoutWalletId] = useState("");
   const [redirecting, setRedirecting] = useState(false);
-  const [pendingCheckout, setPendingCheckout] = useState<PendingPaystackCheckout | null>(null);
+  const [pendingCheckout, setPendingCheckout] = useState<PendingCardCheckout | null>(null);
   const keyTrackerRef = useRef(createIdempotencyKeyTracker());
   const submittingRef = useRef(false);
 
@@ -75,14 +78,14 @@ const PaystackCardTopUp = ({ close, goBack }: Props) => {
   );
 
   useEffect(() => {
-    trackPaystackFunding("paystack_card_funding_opened");
+    trackCardFunding("card_funding_opened", { provider: CARD_PAYMENT_PROVIDER });
   }, []);
 
   useEffect(() => {
-    setPendingCheckout(loadPendingPaystackCheckout(entityId));
+    setPendingCheckout(loadPendingCardCheckout(entityId));
   }, [entityId]);
 
-  // Back navigation from Paystack can restore this page from the bfcache with
+  // Back navigation from the provider can restore this page from the bfcache with
   // the redirect spinner still showing; hand over to the dashboard resume flow.
   useEffect(() => {
     if (!redirecting) return;
@@ -101,18 +104,14 @@ const PaystackCardTopUp = ({ close, goBack }: Props) => {
     setWalletId(preferred?.wallet_id ?? "");
   }, [availableWallets, selectedWallet?.wallet_id, walletId]);
 
-  const walletOptions = availableWallets.map((wallet) => ({
-    value: wallet.wallet_id,
-    label: `${wallet.wallet_name || wallet.account_name || "NGN wallet"} · ${wallet.account_number}`,
-  }));
-
   const initializeMutation = useMutation({
-    mutationFn: InitializePaystackCardCollectionApi,
+    mutationFn: InitializeCardCollectionApi,
     onSuccess: (res, variables) => {
       setCheckout(res);
       setCheckoutWalletId(variables.data.wallet_id);
       setStep("review");
-      trackPaystackFunding("paystack_card_funding_initialized", {
+      trackCardFunding("card_funding_initialized", {
+        provider: res.provider,
         collection_id: res.collection_id,
         reference: res.reference,
         wallet_id: variables.data.wallet_id,
@@ -123,8 +122,11 @@ const PaystackCardTopUp = ({ close, goBack }: Props) => {
       });
     },
     onError: (error, variables) => {
-      const mapped = mapPaystackCollectionError(error);
-      console.warn("[paystack-card-funding]", { error_code: sanitizedErrorCode(mapped) });
+      const mapped = mapCardCollectionError(error);
+      console.warn("[card-funding]", {
+        error_code: sanitizedErrorCode(mapped),
+        correlation_id: mapped.correlationId,
+      });
       setFormError(mapped);
       switch (mapped.kind) {
         case "wallet_reselect":
@@ -156,7 +158,7 @@ const PaystackCardTopUp = ({ close, goBack }: Props) => {
     setFormError(null);
     setAmountError("");
 
-    const normalized = normalizePaystackAmount(amount);
+    const normalized = normalizeCardAmount(amount);
     if (!normalized) {
       setAmountError("Enter an amount greater than zero with at most two decimal places.");
       return;
@@ -167,13 +169,15 @@ const PaystackCardTopUp = ({ close, goBack }: Props) => {
     }
 
     const trimmed = description.trim();
-    const data: PaystackCardCollectionInitializeRequest = {
+    const data: CardCollectionInitializeRequest = {
+      provider: CARD_PAYMENT_PROVIDER,
       wallet_id: walletId,
       amount: normalized,
       ...(trimmed ? { description: trimmed } : {}),
     };
     submittingRef.current = true;
-    trackPaystackFunding("paystack_card_funding_initialize_started", {
+    trackCardFunding("card_funding_initialize_started", {
+      provider: CARD_PAYMENT_PROVIDER,
       wallet_id: walletId,
       principal_amount: normalized,
     });
@@ -199,8 +203,9 @@ const PaystackCardTopUp = ({ close, goBack }: Props) => {
       return;
     }
     setRedirecting(true);
-    savePendingPaystackCheckout(entityId, buildPendingPaystackCheckout(checkout, checkoutWalletId));
-    trackPaystackFunding("paystack_card_funding_checkout_opened", {
+    savePendingCardCheckout(entityId, buildPendingCardCheckout(checkout, checkoutWalletId));
+    trackCardFunding("card_funding_checkout_opened", {
+      provider: checkout.provider,
       collection_id: checkout.collection_id,
       reference: checkout.reference,
       wallet_id: checkoutWalletId,
@@ -221,7 +226,7 @@ const PaystackCardTopUp = ({ close, goBack }: Props) => {
 
   if (step === "status" && pendingCheckout) {
     return (
-      <PaystackFundingStatus
+      <CardFundingStatus
         checkout={pendingCheckout}
         entityId={entityId}
         onClose={(acknowledged) => {
@@ -257,9 +262,9 @@ const PaystackCardTopUp = ({ close, goBack }: Props) => {
     const fee = formatDecimalMoney(checkout.fee_amount);
     const total = formatDecimalMoney(checkout.total_amount);
     return (
-      <Overlay close={redirecting ? () => {} : close} width="400px">
-        <div className="flex flex-col h-full py-8 px-5">
-          {header("Review card payment", "Confirm the amounts before continuing to Paystack.", () => {
+      <SideModalWrapper close={redirecting ? () => {} : close}>
+        <div className="flex flex-col h-full min-h-[70vh]">
+          {header(`Review card payment`, `Confirm the amounts before continuing to ${label}.`, () => {
             setFormError(null);
             setStep("setup");
           })}
@@ -282,16 +287,16 @@ const PaystackCardTopUp = ({ close, goBack }: Props) => {
             processing fee.
           </p>
           <p className="text-xs text-zinc-500 mt-2 leading-snug">
-            You&apos;ll enter your card details securely on Paystack. Raiz never sees your card information.
+            You&apos;ll enter your card details securely on {label}. Raiz never sees your card information.
           </p>
           {formError && <ErrorMessage message={formError.message} />}
           <div className="mt-auto pt-6">
             <Button onClick={openCheckout} loading={redirecting} disabled={redirecting}>
-              Continue to Paystack
+              Continue to {label}
             </Button>
           </div>
         </div>
-      </Overlay>
+      </SideModalWrapper>
     );
   }
 
@@ -300,9 +305,9 @@ const PaystackCardTopUp = ({ close, goBack }: Props) => {
     initializeMutation.isPending || !!blockedMessage || !walletId || !amount || availableWallets.length === 0;
 
   return (
-    <Overlay close={close} width="400px">
-      <div className="flex flex-col h-full py-8 px-5 overflow-y-auto">
-        {header("Debit card via Paystack", "Fund your NGN wallet with a Nigeria-issued card.", goBack)}
+    <SideModalWrapper close={close}>
+      <div className="flex flex-col h-full min-h-[70vh]">
+        {header(`Debit card via ${label}`, "Fund your NGN wallet with a Nigeria-issued card.", goBack)}
 
         {pendingCheckout && (
           <div className="mb-5 p-4 rounded-2xl bg-amber-50 border border-amber-200" role="status">
@@ -332,8 +337,7 @@ const PaystackCardTopUp = ({ close, goBack }: Props) => {
             <p className="text-sm text-zinc-700">
               You don&apos;t have an active NGN wallet that can receive card payments yet.
             </p>
-          ) 
-          }
+          )}
 
           <InputField
             label="Amount to wallet (NGN)"
@@ -382,7 +386,7 @@ const PaystackCardTopUp = ({ close, goBack }: Props) => {
             label="Description (optional)"
             name="description"
             placeholder="NGN wallet funding"
-            maxLength={PAYSTACK_DESCRIPTION_MAX_LENGTH}
+            maxLength={CARD_DESCRIPTION_MAX_LENGTH}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             status={fieldErrors.description ? "error" : null}
@@ -402,8 +406,8 @@ const PaystackCardTopUp = ({ close, goBack }: Props) => {
           </div>
         </form>
       </div>
-    </Overlay>
+    </SideModalWrapper>
   );
 };
 
-export default withBusinessWrite(PaystackCardTopUp);
+export default withBusinessWrite(NgnCardTopUp);

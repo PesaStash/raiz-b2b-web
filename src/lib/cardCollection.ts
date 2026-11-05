@@ -1,18 +1,36 @@
 import type {
-  PaystackCardCollectionStatusResponse,
-  PaystackCollectionError,
-  PaystackCollectionErrorKind,
-  PaystackPaymentViewState,
-} from "@/types/paystackCardCollection";
+  CardCollectionError,
+  CardCollectionErrorKind,
+  CardCollectionStatusResponse,
+  CardPaymentProvider,
+  CardPaymentViewState,
+} from "@/types/cardCollection";
 
 /**
  * Preferred RaizServer callback target. Dashboard routes (including "/") also
- * recognise Paystack's `reference`/`trxref` redirect parameters.
+ * recognise provider redirect parameters. Path keeps the legacy segment for
+ * backend redirect compatibility.
  */
-export const PAYSTACK_CALLBACK_PATH = "/fund-wallet/paystack/callback";
+export const CARD_CALLBACK_PATH = "/fund-wallet/paystack/callback";
 
 /** Generic app link agreed with mobile; the app resumes from its own stored checkout. */
 export const RAIZ_APP_RETURN_URL = "raizapp://";
+
+/** Active NGN card provider. Change this constant to switch providers. */
+export const CARD_PAYMENT_PROVIDER: CardPaymentProvider = "flutterwave";
+
+export function providerLabel(provider: CardPaymentProvider): string {
+  return provider === "flutterwave" ? "Flutterwave" : "Paystack";
+}
+
+/** Infers the provider from a Raiz reference prefix when no local record exists. */
+export function providerFromReference(
+  reference: string,
+): CardPaymentProvider | null {
+  if (/^ps_ngn_/i.test(reference)) return "paystack";
+  if (/^fw_ngn_/i.test(reference)) return "flutterwave";
+  return null;
+}
 
 export function isMobileUserAgent(
   userAgent: string,
@@ -23,33 +41,41 @@ export function isMobileUserAgent(
   return /Macintosh/i.test(userAgent) && maxTouchPoints > 1;
 }
 
-export const PAYSTACK_POLL_INTERVAL_MS = 3_000;
-export const PAYSTACK_POLL_WINDOW_MS = 60_000;
-export const PAYSTACK_POLL_MAX_BACKOFF_MS = 15_000;
-export const PAYSTACK_DESCRIPTION_MAX_LENGTH = 255;
+export const CARD_POLL_INTERVAL_MS = 3_000;
+export const CARD_POLL_WINDOW_MS = 60_000;
+export const CARD_POLL_MAX_BACKOFF_MS = 15_000;
+export const CARD_DESCRIPTION_MAX_LENGTH = 255;
 
-const PAYSTACK_REFERENCE_PATTERN = /^ps_ngn_[a-z0-9]{8,64}$/i;
-const PAYSTACK_CALLBACK_PARAMS = ["reference", "trxref"];
+const CARD_REFERENCE_PATTERN = /^(ps|fw)_ngn_[a-z0-9]{8,64}$/i;
+/** Paystack and Flutterwave redirect params; never treat `status` as payment success. */
+const CARD_CALLBACK_PARAMS = [
+  "reference",
+  "trxref",
+  "tx_ref",
+  "transaction_id",
+  "status",
+];
 
 /**
- * Reads the Raiz reference Paystack appends on redirect. It is only a
+ * Reads the Raiz reference a provider appends on redirect. It is only a
  * navigation hint; status still comes from the entity-scoped backend lookup.
  */
-export function extractPaystackCallbackReference(
+export function extractCardCallbackReference(
   search: string,
 ): string | null {
   const params = new URLSearchParams(search);
-  for (const name of PAYSTACK_CALLBACK_PARAMS) {
+  for (const name of CARD_CALLBACK_PARAMS) {
+    if (name === "status" || name === "transaction_id") continue;
     const value = params.get(name)?.trim();
-    if (value && PAYSTACK_REFERENCE_PATTERN.test(value)) return value;
+    if (value && CARD_REFERENCE_PATTERN.test(value)) return value;
   }
   return null;
 }
 
-/** Returns `search` without Paystack's redirect parameters (keeps a leading "?"). */
-export function stripPaystackCallbackParams(search: string): string {
+/** Returns `search` without provider redirect parameters (keeps a leading "?"). */
+export function stripCardCallbackParams(search: string): string {
   const params = new URLSearchParams(search);
-  for (const name of PAYSTACK_CALLBACK_PARAMS) params.delete(name);
+  for (const name of CARD_CALLBACK_PARAMS) params.delete(name);
   const rest = params.toString();
   return rest ? `?${rest}` : "";
 }
@@ -60,7 +86,7 @@ const AMOUNT_PATTERN = /^(\d+)(?:\.(\d{0,2}))?$/;
  * Converts user input into the backend's decimal-string format ("50000.00").
  * Returns null for empty, non-positive, or over-precise values.
  */
-export function normalizePaystackAmount(input: string): string | null {
+export function normalizeCardAmount(input: string): string | null {
   const cleaned = input.trim().replace(/,/g, "");
   const match = AMOUNT_PATTERN.exec(cleaned);
   if (!match) return null;
@@ -105,10 +131,10 @@ export function formatDecimalMoney(
 /** Only `completed` + `credited` is success; anything unrecognized stays neutral. */
 export function paymentViewState(
   payment: Pick<
-    PaystackCardCollectionStatusResponse,
+    CardCollectionStatusResponse,
     "status" | "settlement_status"
   >,
-): PaystackPaymentViewState {
+): CardPaymentViewState {
   if (
     payment.status === "completed" &&
     payment.settlement_status === "credited"
@@ -122,13 +148,13 @@ export function paymentViewState(
 }
 
 /** Statuses that end automatic polling. `completed` without `credited` keeps polling. */
-export function isTerminalViewState(state: PaystackPaymentViewState): boolean {
+export function isTerminalViewState(state: CardPaymentViewState): boolean {
   return state !== "processing";
 }
 
 export function isUnexpectedStatusCombination(
   payment: Pick<
-    PaystackCardCollectionStatusResponse,
+    CardCollectionStatusResponse,
     "status" | "settlement_status"
   >,
 ): boolean {
@@ -145,10 +171,10 @@ export function isRetryableStatusError(status: number | undefined): boolean {
 }
 
 export function nextPollDelay(consecutiveErrors: number): number {
-  if (consecutiveErrors <= 0) return PAYSTACK_POLL_INTERVAL_MS;
+  if (consecutiveErrors <= 0) return CARD_POLL_INTERVAL_MS;
   return Math.min(
-    PAYSTACK_POLL_INTERVAL_MS * 2 ** consecutiveErrors,
-    PAYSTACK_POLL_MAX_BACKOFF_MS,
+    CARD_POLL_INTERVAL_MS * 2 ** consecutiveErrors,
+    CARD_POLL_MAX_BACKOFF_MS,
   );
 }
 
@@ -179,10 +205,20 @@ export function createIdempotencyKeyTracker(
 
 type ErrorLike = {
   status?: number;
-  data?: { detail?: unknown; message?: unknown };
+  data?: {
+    detail?: unknown;
+    message?: unknown;
+    errors?: unknown;
+    correlation_id?: unknown;
+  };
   response?: {
     status?: number;
-    data?: { detail?: unknown; message?: unknown };
+    data?: {
+      detail?: unknown;
+      message?: unknown;
+      errors?: unknown;
+      correlation_id?: unknown;
+    };
   };
 };
 
@@ -192,31 +228,40 @@ function readError(error: unknown) {
   const value = (error ?? {}) as ErrorLike;
   const response = value.response ?? value;
   const data = response.data ?? {};
-  const detail = data.detail ?? data.message;
+  const message = typeof data.message === "string" ? data.message : "";
+  const detail = data.detail;
+  const text =
+    message ||
+    (typeof detail === "string" ? detail : "");
+  const correlationId =
+    typeof data.correlation_id === "string" ? data.correlation_id : undefined;
   return {
     status: typeof response.status === "number" ? response.status : undefined,
     detail,
-    text: typeof detail === "string" ? detail : "",
+    errors: data.errors,
+    text,
+    correlationId,
   };
 }
 
 const SUPPORT_SUFFIX = "Please contact support for assistance.";
 
 function build(
-  kind: PaystackCollectionErrorKind,
+  kind: CardCollectionErrorKind,
   status: number | undefined,
   message: string,
-  extra: Partial<PaystackCollectionError> = {},
-): PaystackCollectionError {
+  extra: Partial<CardCollectionError> = {},
+): CardCollectionError {
   return { kind, status, message, canRetry: false, ...extra };
 }
 
 /** Maps the contract's documented HTTP errors to intentional UI states. */
-export function mapPaystackCollectionError(
+export function mapCardCollectionError(
   error: unknown,
-): PaystackCollectionError {
-  const { status, detail, text } = readError(error);
+): CardCollectionError {
+  const { status, detail, errors, text, correlationId } = readError(error);
   const lower = text.toLowerCase();
+  const withCorrelation = correlationId ? { correlationId } : {};
 
   if (status === undefined) {
     return build(
@@ -225,18 +270,20 @@ export function mapPaystackCollectionError(
       "We couldn't reach Raiz. Check your connection and try again.",
       {
         canRetry: true,
+        ...withCorrelation,
       },
     );
   }
 
   if (status === 400) {
     if (lower.includes("exceeds the limit"))
-      return build("amount_limit", status, text);
+      return build("amount_limit", status, text, withCorrelation);
     if (lower.includes("ngn wallet")) {
       return build(
         "wallet_reselect",
         status,
         "Please select an NGN wallet to fund.",
+        withCorrelation,
       );
     }
   }
@@ -246,6 +293,7 @@ export function mapPaystackCollectionError(
       "auth",
       status,
       "Your session has ended. Please sign in again.",
+      withCorrelation,
     );
   }
 
@@ -255,6 +303,7 @@ export function mapPaystackCollectionError(
         "verification_required",
         status,
         "Complete your business verification to fund your wallet with a card.",
+        withCorrelation,
       );
     }
     if (lower.includes("wallet does not belong")) {
@@ -262,6 +311,7 @@ export function mapPaystackCollectionError(
         "wallet_reselect",
         status,
         "This wallet isn't available on your account. Please choose another.",
+        withCorrelation,
       );
     }
     if (lower.includes("wallet is restricted")) {
@@ -269,12 +319,14 @@ export function mapPaystackCollectionError(
         "wallet_restricted",
         status,
         `This wallet is restricted. ${SUPPORT_SUFFIX}`,
+        withCorrelation,
       );
     }
     return build(
       "account_restricted",
       status,
       `${text || "Your account can't make card payments right now."} ${SUPPORT_SUFFIX}`,
+      withCorrelation,
     );
   }
 
@@ -284,12 +336,14 @@ export function mapPaystackCollectionError(
         "collection_not_found",
         status,
         "We couldn't find this card payment on your account.",
+        withCorrelation,
       );
     }
     return build(
       "wallet_reselect",
       status,
       "That wallet could not be found. Please choose another.",
+      withCorrelation,
     );
   }
 
@@ -299,26 +353,44 @@ export function mapPaystackCollectionError(
         "wallet_not_ready",
         status,
         "Your NGN wallet isn't ready for transactions yet.",
+        withCorrelation,
       );
     }
     return build(
       "duplicate",
       status,
       "A matching payment is already being processed. Please wait before trying again.",
+      withCorrelation,
     );
   }
 
   if (status === 422) {
-    const fieldErrors: PaystackCollectionError["fieldErrors"] = {};
+    const fieldErrors: CardCollectionError["fieldErrors"] = {};
     if (Array.isArray(detail)) {
       for (const item of detail as FastApiValidationItem[]) {
         const field = item.loc?.[item.loc.length - 1];
         if (
           field === "amount" ||
           field === "wallet_id" ||
-          field === "description"
+          field === "description" ||
+          field === "provider"
         ) {
           fieldErrors[field] ??= item.msg || "Invalid value";
+        }
+      }
+    }
+    if (Array.isArray(errors)) {
+      for (const entry of errors) {
+        if (typeof entry !== "string") continue;
+        const lowerEntry = entry.toLowerCase();
+        if (lowerEntry.includes("amount")) {
+          fieldErrors.amount ??= entry;
+        } else if (lowerEntry.includes("wallet")) {
+          fieldErrors.wallet_id ??= entry;
+        } else if (lowerEntry.includes("description")) {
+          fieldErrors.description ??= entry;
+        } else if (lowerEntry.includes("provider")) {
+          fieldErrors.provider ??= entry;
         }
       }
     }
@@ -328,6 +400,7 @@ export function mapPaystackCollectionError(
       "Please check the highlighted details and try again.",
       {
         fieldErrors,
+        ...withCorrelation,
       },
     );
   }
@@ -339,6 +412,7 @@ export function mapPaystackCollectionError(
       lower.includes("rolling limit")
         ? "You've reached your card funding limit for now. Please try again later."
         : "Too many card payment attempts. Please try again later.",
+      withCorrelation,
     );
   }
 
@@ -347,6 +421,7 @@ export function mapPaystackCollectionError(
       "not_configured",
       status,
       "Card funding is temporarily unavailable. Please use bank transfer for now.",
+      withCorrelation,
     );
   }
 
@@ -355,7 +430,7 @@ export function mapPaystackCollectionError(
       "provider_unavailable",
       status,
       "Our card payment provider is temporarily unavailable. Please try again.",
-      { canRetry: true },
+      { canRetry: true, ...withCorrelation },
     );
   }
 
@@ -363,10 +438,11 @@ export function mapPaystackCollectionError(
     "unknown",
     status,
     "Something went wrong. Please try again or contact support.",
+    withCorrelation,
   );
 }
 
 /** Sanitized error code safe for analytics and logs (no provider payloads). */
-export function sanitizedErrorCode(error: PaystackCollectionError): string {
+export function sanitizedErrorCode(error: CardCollectionError): string {
   return `${error.status ?? "network"}:${error.kind}`;
 }

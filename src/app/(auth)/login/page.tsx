@@ -25,7 +25,7 @@ const LoginPage = () => {
   }
 
   return (
-    <AuthLayout login>
+    <AuthLayout login showAccountLink={false}>
       {params.get("reason") === "deactivated" && !dismissed && <TeamDialog title="You have been signed out" close={() => setDismissed(true)}><InvitationOutcome state="deactivated" /></TeamDialog>}
       <div className="w-full max-w-[400px]">
         <AnimatePresence>

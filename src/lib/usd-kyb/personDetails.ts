@@ -46,14 +46,12 @@ export function personDetailsErrors(
       errors.email = "Enter a valid email address.";
     date("birth_date", person.birth_date, "date of birth", true);
     if (person.nationalities?.some((code) => !/^[A-Z]{3}$/.test(code)))
-      errors.nationalities =
-        "Use three-letter country codes separated by commas, for example NGA, USA.";
+      errors.nationalities = "Choose a valid country for each nationality.";
     if (
       person.place_of_birth?.country &&
       !/^[A-Z]{3}$/.test(person.place_of_birth.country)
     )
-      errors.place_of_birth =
-        "Use a three-letter country code, for example NGA.";
+      errors.place_of_birth = "Choose a valid country of birth.";
   }
   if (step === undefined || step === 1) {
     const address = person.residential_address ?? {};
@@ -81,12 +79,12 @@ export function personDetailsErrors(
     if (
       person.has_ownership &&
       (person.ownership_percentage == null ||
-        !Number.isFinite(person.ownership_percentage) ||
+        !Number.isInteger(person.ownership_percentage) ||
         person.ownership_percentage <= 0 ||
         person.ownership_percentage > 100)
     )
       errors.ownership_percentage =
-        "Enter an ownership percentage greater than 0 and up to 100.";
+        "Enter a whole-number ownership percentage greater than 0 and up to 100.";
     date(
       "relationship_established_at",
       person.relationship_established_at,

@@ -135,7 +135,7 @@ export function groupTasks(editor: KybEditor, group: number) {
 const tips = [
   [
     "Why we confirm",
-    "Your registered details come from your basic business details and the CAC register. Check they’re right before you continue.",
+    "Your registered details come from your basic business details and the business registry. Check they’re right before you continue.",
   ],
   [
     "Why we ask",

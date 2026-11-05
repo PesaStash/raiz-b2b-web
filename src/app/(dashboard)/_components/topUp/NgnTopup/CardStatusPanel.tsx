@@ -25,7 +25,7 @@ const ICONS = {
   pending: "/icons/pending.svg",
 };
 
-const PaystackStatusPanel = ({ icon, title, message, busy, details, secondary, primary }: Props) => (
+const CardStatusPanel = ({ icon, title, message, busy, details, secondary, primary }: Props) => (
   <div className="w-full h-full bg-gradient-to-l from-indigo-900 to-violet-600 rounded-[36px] shadow-[0px_1px_2px_0px_rgba(0,0,0,0.30)] inline-flex flex-col justify-center items-center">
     <div className="flex flex-col justify-between gap-6 h-full pt-[64px] p-[30px] items-center w-full">
       <div
@@ -73,4 +73,4 @@ const PaystackStatusPanel = ({ icon, title, message, busy, details, secondary, p
   </div>
 );
 
-export default PaystackStatusPanel;
+export default CardStatusPanel;

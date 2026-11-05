@@ -3,9 +3,9 @@ import type { IUser } from "@/types/user";
 import Button from "@/components/ui/Button";
 import InputField from "@/components/ui/InputField";
 import SelectField from "@/components/ui/SelectField";
-import AddressAutocomplete from "@/components/ui/AddressAutocomplete";
+import AddressAutocomplete, { usePlaceResolver } from "@/components/ui/AddressAutocomplete";
 import { useFormik } from "formik";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import useCountryStore from "@/store/useCountryStore";
 import { z } from "zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -22,11 +22,10 @@ import CompanyLookupStep from "@/components/onboarding/CompanyLookupStep";
 import {
   clearLookupPrefill,
   readLookupPrefill,
-  supportsCompanyLookup,
   type LookupPrefill,
 } from "@/lib/companyLookup";
 
-const nigerianRegNumberRegex = /^(RC|BN)[\s-]*\d{5,8}$/i;
+const nigerianRegNumberRegex = /^(?:RC|BN)?[A-Z0-9-]{4,24}$/i;
 
 const BusinessSchema = z.object({
   business_name: z.string().min(1, "Business name is required"),
@@ -73,15 +72,14 @@ const BusinessVerificationModal = (props: BasicFormProps) => {
   const countryCode =
     user?.business_account?.entity?.country?.country_code ?? "";
   const savedPrefill = readLookupPrefill(entityId);
-  const canLookup = supportsCompanyLookup(countryCode);
   const [step, setStep] = useState<"lookup" | "form">(() =>
-    canLookup && !savedPrefill ? "lookup" : "form",
+    !savedPrefill ? "lookup" : "form",
   );
   const [prefill, setPrefill] = useState<LookupPrefill | null>(
     () => savedPrefill,
   );
 
-  if (step === "lookup" && canLookup) {
+  if (step === "lookup") {
     return (
       <div className="flex flex-col gap-4 min-h-0">
         <CenterModalHeader close={props.close} />
@@ -129,8 +127,11 @@ export const BasicBusinessForm = ({
     () => prefillProp ?? readLookupPrefill(entityId),
     [prefillProp, entityId],
   );
+  const { resolve: resolveAddress, isLoaded: addressReady, error: addressLoadError, resolutionError } = usePlaceResolver();
+  const [addressStatus, setAddressStatus] = useState<"idle" | "loading" | "failed" | "done">("idle");
+  const [addressRetry, setAddressRetry] = useState(0);
   const [useManualAddress, setUseManualAddress] = useState(
-    () => !!storedPrefill?.address && !storedPrefill.resolved,
+    () => !!storedPrefill?.address,
   );
   const {
     countries,
@@ -210,7 +211,7 @@ export const BasicBusinessForm = ({
       },
       {
         message:
-          "Invalid Nigerian business registration number. Must start with RC or BN and contain 6-7 digits.",
+          "Enter a valid Nigerian registration number (4–24 alphanumeric or hyphen characters, with an optional RC/BN prefix).",
         path: ["business_registration_number"],
       },
     );
@@ -265,6 +266,49 @@ export const BasicBusinessForm = ({
     },
   });
 
+  const latestForm = useRef(formik);
+  useEffect(() => { latestForm.current = formik; }, [formik]);
+  const savedAddress = storedPrefill?.address;
+  useEffect(() => {
+    if (!savedAddress || !addressReady) return;
+    const before = latestForm.current.values;
+    if (before.city && before.state && before.zip_code) return;
+    let cancelled = false;
+    const run = async () => {
+      setAddressStatus("loading");
+      const parts = await resolveAddress(savedAddress, before.country_code);
+      if (cancelled) return;
+      if (!parts) { setAddressStatus("failed"); return; }
+      const current = latestForm.current.values;
+      // A late Places response must not replace a user's address edits.
+      if (current.address !== before.address || current.street !== before.street || current.country_code !== before.country_code) {
+        setAddressStatus("idle");
+        return;
+      }
+      const next = {
+        ...current,
+        street: parts.street && current.street === storedPrefill?.street
+          ? [parts.building_number, parts.street].filter(Boolean).join(" ") : current.street,
+        city: current.city || parts.city || "",
+        state: current.state || parts.state || "",
+        zip_code: current.zip_code || parts.zip_code || "",
+        address: parts.address || current.address,
+      };
+      await latestForm.current.setValues(next, false);
+      setAddressStatus(next.city && next.state && next.zip_code ? "done" : "failed");
+    };
+    void run();
+    return () => { cancelled = true; };
+  }, [savedAddress, storedPrefill?.street, addressReady, addressRetry, resolveAddress]);
+
+  const addressResolutionNotice = storedPrefill?.address && addressLoadError ? (
+    <Notice error>{addressLoadError} Reload the page to retry, or complete the address fields.</Notice>
+  ) : addressStatus === "loading" ? (
+    <p role="status" className="text-sm text-kyb-muted">Finding city, state and postcode…</p>
+  ) : addressStatus === "failed" ? (
+    <Notice>{resolutionError || "Google could not fill every address field."} <button type="button" className="underline" onClick={() => setAddressRetry(value => value + 1)}>Retry address lookup</button>, or complete the missing fields.</Notice>
+  ) : null;
+
   const selectedCountry = useMemo(
     () =>
       countryOptions.find(
@@ -285,14 +329,17 @@ export const BasicBusinessForm = ({
       toast.error(result.error.issues[0].message, { id: "onboarding-error" });
     formik.handleSubmit(event);
   };
+  // Render synchronous schema feedback; Formik still owns submit validation.
+  const liveValidation = getEffectiveSchema().safeParse(formik.values);
+  const liveErrors = liveValidation.success ? {} : mapZodFieldErrors(liveValidation.error.flatten().fieldErrors);
   const fieldError = (name: keyof BusinessFormValues) => {
-    const error = formik.touched[name] && formik.errors[name];
+    const error = (formik.touched[name] || formik.submitCount > 0) && liveErrors[name];
     if (!error) return null;
     return Array.isArray(error) ? (error.length ? "error" : null) : "error";
   };
 
   const fieldErrorMessage = (name: keyof BusinessFormValues) => {
-    const error = formik.touched[name] && formik.errors[name];
+    const error = (formik.touched[name] || formik.submitCount > 0) && liveErrors[name];
     if (!error) return undefined;
     return Array.isArray(error) ? error[0] : error;
   };
@@ -418,7 +465,6 @@ export const BasicBusinessForm = ({
                     <input
                       id="business-reg"
                       aria-label="Registration number"
-                      inputMode="numeric"
                       className="min-w-0 flex-1 border-l border-kyb-border bg-transparent pl-3 text-[15px] outline-none"
                       value={reg.replace(/^(RC|BN)[\s-]*/i, "")}
                       onBlur={() =>
@@ -444,13 +490,13 @@ export const BasicBusinessForm = ({
                 field("business_registration_number", "Registration number")
               )}
               <p className="mt-2 text-[13px] text-kyb-muted">
-                The number on your CAC
+                The number on your registration certificate
               </p>
             </div>
             <div>
               {field("business_name", "Business name")}
               <p className="mt-2 text-[13px] text-kyb-muted">
-                Fetched from the CAC registry
+                {storedPrefill ? `Fetched from the ${formik.values.country_code === "NG" ? "CAC registry" : "business registry"}` : "Enter your registered business name."}
               </p>
             </div>
             <div>
@@ -478,6 +524,7 @@ export const BasicBusinessForm = ({
               {useManualAddress ? "Search address instead" : "Enter manually"}
             </button>
           </div>
+          {addressResolutionNotice}
           {useManualAddress ? (
             <div className="grid gap-4 sm:grid-cols-2">
               {field("street", "Street address")}
@@ -557,6 +604,7 @@ export const BasicBusinessForm = ({
         </Notice>
       )}
       {prefillNotice}
+      {addressResolutionNotice}
       <div className="flex flex-col gap-3">
         <CenterModalHeader close={close} />
         <h2 className="text-xl font-bold text-raiz-gray-950 mb-4">
@@ -570,7 +618,7 @@ export const BasicBusinessForm = ({
             errorMessage={fieldErrorMessage("business_name")}
           />
           <p className="mt-2 text-[13px] text-kyb-muted">
-            Fetched from the CAC registry. You can edit it.
+            {storedPrefill ? `Fetched from the ${formik.values.country_code === "NG" ? "CAC registry" : "business registry"}. You can edit it.` : "Enter your registered business name."}
           </p>
         </div>
         <InputField

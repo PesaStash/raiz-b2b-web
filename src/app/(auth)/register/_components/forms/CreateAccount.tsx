@@ -23,6 +23,17 @@ const CreateAccount = ({ formik }: RegisterFormProps) => {
   const countryOptions = useMemo(() => countries.map(country => ({ value: String(country.country_id), label: country.country_name })), [countries]);
   const selectedCountry = countryOptions.find(option => option.value === formik.values.country_id) ?? null;
   const country = countries.find(country => String(country.country_id) === formik.values.country_id);
+  const formatCountryOption = (option: { value: string | number; label: string }) => {
+    const match = countries.find(item => String(item.country_id) === String(option.value));
+    const code = match?.country_code?.trim().toLowerCase();
+    const flag = match?.country_flag || (code ? `https://flagcdn.com/w40/${code}.png` : "");
+    return (
+      <span className="flex items-center gap-2.5">
+        {flag ? <Image src={flag} width={24} height={16} alt="" className="h-4 w-6 rounded-[3px] object-cover" /> : null}
+        {option.label}
+      </span>
+    );
+  };
   const password = formik.values.password;
   const strongPassword = newPasswordSchema.safeParse(password).success;
   const strength = [password.length >= 8, /[A-Z]/.test(password) && /[a-z]/.test(password), /\d/.test(password), /[!@#$%^&*(),.?":{}|<>]/.test(password)].filter(Boolean).length;
@@ -57,13 +68,6 @@ const CreateAccount = ({ formik }: RegisterFormProps) => {
         <div className="flex flex-col gap-2">
           <InputLabel content="Where is the business registered?" />
           <div className="relative">
-            {country && (country.country_code?.toUpperCase() === "NG" || country.country_name === "Nigeria") && <Image
-              className="pointer-events-none absolute left-4 top-4 z-10 rounded-[3px]"
-              src="/images/auth/ng-flag.png"
-              width={24}
-              height={16}
-              alt=""
-            />}
             <SelectField
               instanceId="register-country"
               name="country_id"
@@ -75,7 +79,7 @@ const CreateAccount = ({ formik }: RegisterFormProps) => {
               bgColor="#f4f4f8"
               minHeight="48px"
               height="48px"
-              controlPadding={country?.country_code?.toUpperCase() === "NG" || country?.country_name === "Nigeria" ? "0 12px 0 48px" : "0 15px"}
+              formatOptionLabel={formatCountryOption}
               onChange={option => {
                 formik.setFieldValue("country_id", option?.value != null ? String(option.value) : "", true);
                 formik.setFieldValue("country_name", option?.label ?? "", false);

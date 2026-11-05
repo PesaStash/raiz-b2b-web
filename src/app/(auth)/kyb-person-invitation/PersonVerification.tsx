@@ -199,9 +199,79 @@ export default function PersonVerification() {
         hour: "numeric", minute: "2-digit", timeZoneName: "short",
       }).format(expiry)
     : null;
+  const sessionActive = Boolean(url && !terminal);
+
+  if (sessionActive) {
+    const statusHint = cooldown
+      ? `Please wait a minute before another action.${!pollingStopped ? " Status updates continue automatically." : ""}`
+      : pollingStopped
+        ? "Automatic updates have paused. Select “Check status” to refresh."
+        : null;
+    return (
+      <main className={`${surface} flex h-dvh flex-col overflow-hidden bg-[#F8F7FB]`}>
+        <header className="shrink-0 border-b border-kyb-border bg-white px-4 py-3 sm:px-6">
+          <div className="flex items-center justify-between gap-3">
+            <Link href="/" aria-label="Raiz Business home" className="flex min-w-0 items-center gap-2">
+              <Image src="/icons/logoWText.svg" alt="" width={28} height={28} />
+              <span className="truncate text-sm font-bold tracking-tight text-kyb-ink">
+                Raiz <span className="font-normal text-kyb-muted">Business</span>
+              </span>
+            </Link>
+            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+              {personName && (
+                <span className="hidden max-w-[10rem] truncate text-xs text-kyb-muted sm:inline">
+                  {personName}
+                </span>
+              )}
+              {person && (
+                <Badge>{label(person.verification_status ?? "In progress")}</Badge>
+              )}
+              <button
+                type="button"
+                disabled={cooldown || busy}
+                onClick={() => void refresh()}
+                aria-label="Check verification status"
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-primary2 hover:bg-kyb-soft disabled:cursor-not-allowed disabled:opacity-50 sm:px-3 sm:text-sm"
+              >
+                <HiOutlineArrowPath
+                  aria-hidden
+                  className={`size-4 ${busy ? "animate-spin" : ""}`}
+                />
+                <span className="hidden sm:inline">Check status</span>
+              </button>
+            </div>
+          </div>
+          {statusHint && (
+            <p role="status" className="mt-2 text-xs leading-relaxed text-kyb-muted">
+              {statusHint}
+            </p>
+          )}
+        </header>
+        {error && (
+          <div className="shrink-0 px-4 py-2 sm:px-6">
+            <Notice error>{error}</Notice>
+          </div>
+        )}
+        <iframe
+          title="Secure identity verification"
+          src={url}
+          referrerPolicy="no-referrer"
+          allow="camera; microphone; fullscreen"
+          className="min-h-0 w-full flex-1 border-0 bg-white"
+        />
+        <footer className="shrink-0 border-t border-kyb-border bg-white px-4 py-2.5 sm:px-6">
+          <p className="flex items-center justify-center gap-1.5 text-center text-[11px] leading-relaxed text-kyb-muted">
+            <HiOutlineShieldCheck aria-hidden className="size-3.5 shrink-0 text-primary2" />
+            Your identity documents are handled securely and aren’t displayed in the business portal.
+          </p>
+        </footer>
+      </main>
+    );
+  }
+
   return (
     <main className={`${surface} min-h-screen bg-[#F8F7FB] px-4 py-6 sm:px-6 sm:py-10`}>
-      <div className={`mx-auto ${url && !terminal ? "max-w-4xl" : "max-w-xl"}`}>
+      <div className="mx-auto max-w-xl">
         <header className="mb-8 flex items-center justify-between gap-4 sm:mb-10">
           <Link href="/" aria-label="Raiz Business home" className="flex items-center gap-2.5">
             <Image src="/icons/logoWText.svg" alt="" width={36} height={36} />
@@ -258,7 +328,7 @@ export default function PersonVerification() {
                   )}
                 </div>
 
-                {!terminal && !url && (
+                {!terminal && (
                   <>
                     {sessionStarted ? (
                       <Notice>Your verification is in progress and may be awaiting review. You can resume or check your status below.</Notice>
@@ -280,11 +350,6 @@ export default function PersonVerification() {
                       </span>
                     </Action>
                   </>
-                )}
-                {url && !terminal && (
-                  <iframe title="Secure identity verification" src={url} referrerPolicy="no-referrer"
-                    allow="camera; microphone; fullscreen"
-                    className="h-[65vh] min-h-[420px] w-full rounded-xl border border-kyb-border" />
                 )}
                 {terminal && !complete && (
                   <Notice>Verification is {label(person.verification_status ?? "").toLowerCase()}. Contact the business that invited you for help.</Notice>

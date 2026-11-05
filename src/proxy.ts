@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PAYSTACK_CALLBACK_PATH } from "@/lib/paystackCardCollection";
+import { CARD_CALLBACK_PATH } from "@/lib/cardCollection";
 import { clearSession, readSessionToken } from "@/lib/server/auth";
 import { LEGACY_TOKEN_COOKIE, SESSION_COOKIE } from "@/lib/server/session";
 
@@ -11,9 +11,9 @@ const SIGN_IN = "/login";
  * RaizServer still validates the token on every API call.
  */
 export function proxy(request: NextRequest) {
-  // Mobile users return here from Paystack without a web session and are
+  // Mobile users return here from card checkout without a web session and are
   // handed back to the app; the page itself never confirms payment.
-  if (request.nextUrl.pathname.replace(/\/$/, "") === PAYSTACK_CALLBACK_PATH) {
+  if (request.nextUrl.pathname.replace(/\/$/, "") === CARD_CALLBACK_PATH) {
     return NextResponse.next();
   }
 

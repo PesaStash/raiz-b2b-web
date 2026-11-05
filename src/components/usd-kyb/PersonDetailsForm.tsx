@@ -1,13 +1,15 @@
 "use client";
+import { registryOwnership } from "@/lib/usd-kyb/model";
 import { toast } from "sonner";
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { KybPerson, KybFieldError } from "@/types/usdKyb";
 import AddressAutocomplete from "@/components/ui/AddressAutocomplete";
-import SelectField from "@/components/ui/SelectField";
+import SelectField, { type Option } from "@/components/ui/SelectField";
 import { valueAt, replaceAt, correctionPath } from "@/lib/usd-kyb/corrections";
 import { options } from "@/lib/usd-kyb/model";
 import InputField from "@/components/ui/InputField";
 import { toAlpha3Country } from "@/lib/usd-kyb/countryCode";
+import useCountryStore from "@/store/useCountryStore";
 import { Action, Notice } from "./KybUI";
 import { personDetailsErrors } from "@/lib/usd-kyb/personDetails";
 import { ownershipFlag } from "@/lib/usd-kyb/model";
@@ -49,9 +51,31 @@ export default function PersonDetailsForm({
           is_signer: !!initial.is_signer,
         }),
   });
-  const [nationalityText, setNationalityText] = useState(
-    initial.nationalities?.join(", ") ?? "",
-  );
+  const {
+    countries,
+    fetchCountries,
+    loading: countriesLoading,
+    error: countriesError,
+  } = useCountryStore();
+  useEffect(() => {
+    void fetchCountries();
+  }, [fetchCountries]);
+  const countryOptions = useMemo(() => {
+    const seen = new Set<string>();
+    return countries
+      .flatMap((country) => {
+        const value = toAlpha3Country(country.country_code);
+        if (!/^[A-Z]{3}$/.test(value) || seen.has(value)) return [];
+        seen.add(value);
+        return [{ value, label: country.country_name }];
+      })
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [countries]);
+  const countryOption = (code: string): Option =>
+    countryOptions.find((option) => option.value === code) ?? {
+      value: code,
+      label: code,
+    };
   const [step, setStep] = useState(
     corrections.some((error) => error.field.startsWith("residential_address"))
       ? 1
@@ -61,7 +85,8 @@ export default function PersonDetailsForm({
         ? 2
         : 0,
   );
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [attemptedErrors, setErrors] = useState<Record<string, string>>({});
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
   const [manualAddress, setManualAddress] = useState(
     () =>
       corrections.some((error) =>
@@ -116,6 +141,9 @@ export default function PersonDetailsForm({
     }
     return found;
   };
+  const errors = Object.fromEntries(
+    Object.entries(validate(step)).filter(([key]) => touchedFields[key] || Object.hasOwn(attemptedErrors, key)),
+  );
   const field = (
     key: string,
     title: string,
@@ -152,7 +180,11 @@ export default function PersonDetailsForm({
       }
       labelClass="!font-monzo !text-sm !font-semibold !text-kyb-ink"
       className="!h-12 !rounded-xl !border-kyb-border !bg-kyb-field !text-kyb-ink"
-      onChange={(event) => update(event.target.value)}
+      onBlur={() => setTouchedFields(current => ({ ...current, [key]: true }))}
+      onChange={(event) => {
+        setTouchedFields(current => ({ ...current, [key]: true }));
+        update(event.target.value);
+      }}
     />
   );
   return (
@@ -256,39 +288,88 @@ export default function PersonDetailsForm({
             (value) => setPerson({ ...person, birth_date: value }),
             "date",
           )}
-          {field(
-            "nationalities",
-            "Nationalities",
-            nationalityText,
-            (value) => {
-              setNationalityText(value.toUpperCase());
+          <SelectField
+            isMulti
+            label="Nationalities (optional)"
+            instanceId={`person-${initial.person_key}-nationalities`}
+            name="nationalities"
+            placeholder="Select nationalities"
+            options={countryOptions}
+            value={(person.nationalities ?? []).map(countryOption)}
+            onChange={(selected) =>
               setPerson({
                 ...person,
-                nationalities: value
-                  .toUpperCase()
-                  .split(",")
-                  .map((code) => code.trim())
-                  .filter(Boolean),
-              });
-            },
-            "text",
-            true,
-          )}
-          <p className="text-xs text-kyb-muted">
-            Use three-letter country codes separated by commas, e.g. NGA, USA.
-          </p>
-          {field(
-            "place_of_birth",
-            "Country of birth",
-            person.place_of_birth?.country ?? "",
-            (value) =>
+                nationalities: (selected ?? []).map((option) =>
+                  String(option.value),
+                ),
+              })
+            }
+            disabled={disabled}
+            isLoading={countriesLoading}
+            isClearable
+            isSearchable
+            menuPlacement="auto"
+            labelClass="!font-monzo !text-sm !font-semibold !text-kyb-ink"
+            bgColor="#F4F4F8"
+            minHeight="48px"
+            className="!shadow-none"
+            status={
+              errors.nationalities || serverError("nationalities")
+                ? "error"
+                : undefined
+            }
+            helper={
+              errors.nationalities ??
+              serverError("nationalities")?.message ??
+              (countriesError
+                ? "Countries could not be loaded. Refresh and try again."
+                : "Select every nationality.")
+            }
+          />
+          <SelectField
+            label="Country of birth (optional)"
+            instanceId={`person-${initial.person_key}-place-of-birth`}
+            name="place_of_birth"
+            placeholder="Select country of birth"
+            options={countryOptions}
+            value={
+              person.place_of_birth?.country
+                ? countryOption(person.place_of_birth.country)
+                : null
+            }
+            onChange={(option) =>
               setPerson({
                 ...person,
-                place_of_birth: { country: value.toUpperCase() },
-              }),
-            "text",
-            true,
-          )}
+                place_of_birth: option
+                  ? { country: String(option.value) }
+                  : null,
+              })
+            }
+            disabled={disabled}
+            isLoading={countriesLoading}
+            isClearable
+            isSearchable
+            menuPlacement="auto"
+            labelClass="!font-monzo !text-sm !font-semibold !text-kyb-ink"
+            bgColor="#F4F4F8"
+            minHeight="48px"
+            className="!shadow-none"
+            status={
+              errors.place_of_birth ||
+              serverError("place_of_birth") ||
+              serverError("place_of_birth.country")
+                ? "error"
+                : undefined
+            }
+            helper={
+              errors.place_of_birth ??
+              serverError("place_of_birth")?.message ??
+              serverError("place_of_birth.country")?.message ??
+              (countriesError
+                ? "Countries could not be loaded. Refresh and try again."
+                : undefined)
+            }
+          />
         </div>
       )}
       {step === 1 && (
@@ -507,6 +588,7 @@ export default function PersonDetailsForm({
                 }),
               "number",
             )}
+          {registryOwnership(person) !== "Unavailable" && <p className="text-sm text-kyb-muted">Registry-calculated ownership: {registryOwnership(person)}. Fractional registry values are read-only; complete any outstanding ownership evidence requested during review.</p>}
           {field(
             "relationship_established_at",
             "Relationship established date",

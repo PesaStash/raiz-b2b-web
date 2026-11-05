@@ -2,8 +2,6 @@
 
 import { ReactNode, useCallback, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Elements } from "@stripe/react-stripe-js";
-import { loadStripe } from "@stripe/stripe-js";
 import QRCode from "react-qr-code";
 import Link from "next/link";
 import { useUser } from "@/lib/hooks/useUser";
@@ -25,12 +23,8 @@ import {
   FetchFeeCatalogApi,
   FetchReceivingAccountsApi,
 } from "@/services/globalBalance";
-import {
-  createStripeTopPaymentIntent,
-  InitiateZelleTopApi,
-} from "@/services/transactions";
+import { InitiateZelleTopApi } from "@/services/transactions";
 import { ReceivingAccount, BalanceCurrency } from "@/types/globalBalance";
-import { useTopupStore } from "@/store/TopUp";
 import { IZelleInfo } from "@/store/TopUp/topupSlice.types";
 import {
   CurrencyFlag,
@@ -41,12 +35,9 @@ import {
 } from "../global/GlobalUI";
 import { accountPdf, copyInstructions } from "../global/AccountDetails";
 import AddReceivingAccount from "../global/AddReceivingAccount";
-import StripePayment from "./UsdTopup/StripePayment";
 import SelectField from "@/components/ui/SelectField";
+import NgnCardTopUp from "./NgnTopup/NgnCardTopUp";
 
-const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISH_KEY
-  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISH_KEY)
-  : null;
 const networks = [
   {
     id: "tron",
@@ -86,10 +77,7 @@ type Step =
   | "address"
   | "amount"
   | "zelle"
-  | "waiting"
-  | "card-review"
-  | "card"
-  | "success";
+  | "waiting";
 
 function DetailRows({
   fields,
@@ -158,7 +146,6 @@ export default function GlobalTopUp({
   const { user, showBalance, refetch: refreshUser } = useUser();
   const { canWriteBusiness } = usePermissions();
   const qc = useQueryClient();
-  const { actions, stripeDetail } = useTopupStore();
   const business = user?.business_account;
   const entityId = business?.entity_id;
   const global = isGlobalBalance(business);
@@ -169,11 +156,10 @@ export default function GlobalTopUp({
   const [bankAsset, setBankAsset] = useState<string>(currency);
   const [token, setToken] = useState<"USDT" | "USDC">("USDT");
   const [network, setNetwork] = useState("tron");
-  const [method, setMethod] = useState<"zelle" | "card">("zelle");
   const [amount, setAmount] = useState("");
   const [zelle, setZelle] = useState<IZelleInfo | null>(null);
   const [setupAsset, setSetupAsset] = useState<"EUR" | "GBP" | null>(null);
-  const [paying, setPaying] = useState(false);
+  const [cardTopUpOpen, setCardTopUpOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const canFund =
     canWriteBusiness && !!balance?.wallet_id && isAccountReady(balance.status);
@@ -244,34 +230,22 @@ export default function GlobalTopUp({
         throw new Error("USD funding is unavailable.");
       if (!/^\d+(\.\d{1,2})?$/.test(amount) || Number(amount) < 1)
         throw new Error("Enter an amount of at least $1.");
-      if (method === "zelle") {
-        const result: IZelleInfo = await InitiateZelleTopApi(
-          balance.wallet_id,
-          { expected_amount: Number(amount) },
-        );
-        setZelle(result);
-        setStep("zelle");
-      } else {
-        const result = await createStripeTopPaymentIntent(
-          Math.round(Number(amount) * 100),
-        );
-        actions.setAmount(amount);
-        actions.setStripeDetail(result);
-        setStep("card-review");
-      }
+      const result: IZelleInfo = await InitiateZelleTopApi(balance.wallet_id, {
+        expected_amount: Number(amount),
+      });
+      setZelle(result);
+      setStep("zelle");
     },
   });
-  const busy = creation.isPending || initiation.isPending || paying;
+  const busy = creation.isPending || initiation.isPending;
   const closeFlow = useCallback(() => {
     if (!busy) close();
   }, [busy, close]);
   const goBack = () => {
     if (busy) return;
     if (["address", "creating"].includes(step)) setStep("networks");
-    else if (["zelle", "card-review"].includes(step)) setStep("amount");
-    else if (step === "card") setStep("card-review");
-    else if (step === "methods" || step === "waiting" || step === "success")
-      closeFlow();
+    else if (step === "zelle") setStep("amount");
+    else if (step === "methods" || step === "waiting") closeFlow();
     else setStep("methods");
   };
   const finish = () => {
@@ -290,8 +264,7 @@ export default function GlobalTopUp({
     );
     if (!existing) creation.mutate({ asset: token, network: id });
   };
-  const fundingMethod = (value: "zelle" | "card") => {
-    setMethod(value);
+  const startZelle = () => {
     setAmount("");
     initiation.reset();
     setStep("amount");
@@ -370,16 +343,12 @@ export default function GlobalTopUp({
             : viewStep === "address"
               ? `Receive ${token}`
               : viewStep === "amount"
-                ? `Add with ${method === "zelle" ? "Zelle" : "debit card"}`
+                ? "Add with Zelle"
                 : viewStep === "zelle"
                   ? "Zelle transfer"
                   : viewStep === "waiting"
                     ? "Transfer submitted"
-                    : viewStep === "card-review"
-                      ? "Review card top-up"
-                      : viewStep === "card"
-                        ? "Enter your card details"
-                        : "Top-up submitted";
+                    : "Add money";
   const row = (
     label: string,
     subtitle: string,
@@ -400,6 +369,13 @@ export default function GlobalTopUp({
       <DesignIcon name="topup-imgVuesaxLinearArrowRight.svg" />
     </button>
   );
+  if (cardTopUpOpen)
+    return (
+      <NgnCardTopUp
+        close={close}
+        goBack={() => setCardTopUpOpen(false)}
+      />
+    );
   if (setupAsset)
     return (
       <AddReceivingAccount
@@ -499,17 +475,16 @@ export default function GlobalTopUp({
                 Other ways to add money
               </h3>
               <div className="space-y-2">
-                {row(
-                  "Debit card",
-                  currency === "NGN"
-                    ? "Temporarily unavailable for NGN"
-                    : "Instant top-up · card fee applies",
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f3f0ff]">
-                    <DesignIcon name="topup-imgIcons8BankCards1.svg" />
-                  </span>,
-                  () => fundingMethod("card"),
-                  currency === "NGN" || !canFund || !stripePromise,
-                )}
+                {currency === "NGN" &&
+                  row(
+                    "Debit card",
+                    "Nigeria-issued card · fee applies",
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f3f0ff]">
+                      <DesignIcon name="topup-imgIcons8BankCards1.svg" />
+                    </span>,
+                    () => setCardTopUpOpen(true),
+                    !canFund,
+                  )}
                 {currency === "USD" &&
                   row(
                     "Zelle",
@@ -519,7 +494,7 @@ export default function GlobalTopUp({
                         <DesignIcon name="topup-imgImage4.png" />
                       </span>
                     </span>,
-                    () => fundingMethod("zelle"),
+                    startZelle,
                     !canFund,
                   )}
               </div>
@@ -878,15 +853,9 @@ export default function GlobalTopUp({
         {viewStep === "amount" && (
           <>
             <div className="rounded-[14px] border border-[#eaecf0] bg-white p-4">
-              <p className="text-sm font-semibold">
-                {method === "zelle"
-                  ? "Send from your US bank"
-                  : "Fund your USD balance by card"}
-              </p>
+              <p className="text-sm font-semibold">Send from your US bank</p>
               <p className="mt-1 text-xs text-[#8a78ad]">
-                {method === "zelle"
-                  ? "Use the recipient and memo shown in the next step"
-                  : "Review the service fee before paying"}
+                Use the recipient and memo shown in the next step
               </p>
             </div>
             <label className="rounded-2xl bg-[#f4f4f8] p-5">
@@ -924,16 +893,9 @@ export default function GlobalTopUp({
                 </button>
               ))}
             </div>
-            <Note
-              title={
-                method === "zelle"
-                  ? "Send the exact total"
-                  : "Review before paying"
-              }
-            >
-              {method === "zelle"
-                ? "Next you’ll get the Zelle recipient, exact amount, and memo code. Include the memo exactly as shown."
-                : "Your payment details and fee will be shown before you confirm the card payment."}
+            <Note title="Send the exact total">
+              Next you’ll get the Zelle recipient, exact amount, and memo code.
+              Include the memo exactly as shown.
             </Note>
             {initiation.isError && (
               <p role="alert" className="text-sm text-red-700">
@@ -1036,57 +998,6 @@ export default function GlobalTopUp({
                 </button>
               </>
             )}
-          </>
-        )}
-        {viewStep === "card-review" && stripeDetail && (
-          <>
-            <h3 className="text-2xl font-semibold">Review your top-up</h3>
-            <DetailRows
-              copyable={false}
-              fields={[
-                { label: "Amount", value: formatMoney(amount, "USD") },
-                {
-                  label: "Transaction fee",
-                  value: formatMoney(String(stripeDetail.fee / 100), "USD"),
-                },
-              ]}
-            />
-            <Note title="Adds to your USD balance">
-              Continue to enter your card details and authorize payment.
-            </Note>
-            <button
-              className={`${primaryButton} mt-auto`}
-              onClick={() => setStep("card")}
-            >
-              Continue to payment
-            </button>
-          </>
-        )}
-        {viewStep === "card" &&
-          stripeDetail?.client_secret &&
-          stripePromise && (
-            <Elements
-              stripe={stripePromise}
-              options={{ clientSecret: stripeDetail.client_secret }}
-            >
-              <StripePayment
-                embedded
-                onBusyChange={setPaying}
-                goBack={() => setStep("card-review")}
-                goNext={() => setStep("success")}
-              />
-            </Elements>
-          )}
-        {viewStep === "success" && (
-          <>
-            <h3 className="text-2xl font-semibold">Payment confirmed</h3>
-            <p className="text-sm text-[#8a78ad]">
-              Your card payment was confirmed. Your balance and transactions
-              will refresh when you return.
-            </p>
-            <button className={`${primaryButton} mt-auto`} onClick={finish}>
-              Back to dashboard
-            </button>
           </>
         )}
       </div>

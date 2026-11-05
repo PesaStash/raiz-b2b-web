@@ -36,8 +36,9 @@ export type FailureReason =
 export type CardType = "virtual" | "physical";
 
 /** Contract-approved properties only: no card data, URLs, tokens, or emails. */
-export interface PaystackFundingAnalyticsProps {
+export interface CardFundingAnalyticsProps {
   actor_type: "business";
+  provider: "paystack" | "flutterwave";
   collection_id?: string;
   reference?: string;
   wallet_id?: string;
@@ -50,17 +51,17 @@ export interface PaystackFundingAnalyticsProps {
   error_code?: string;
 }
 
-export type PaystackFundingEventName =
-  | "paystack_card_funding_opened"
-  | "paystack_card_funding_initialize_started"
-  | "paystack_card_funding_initialized"
-  | "paystack_card_funding_checkout_opened"
-  | "paystack_card_funding_checkout_closed"
-  | "paystack_card_funding_status_polled"
-  | "paystack_card_funding_completed"
-  | "paystack_card_funding_failed"
-  | "paystack_card_funding_review"
-  | "paystack_card_funding_disputed";
+export type CardFundingEventName =
+  | "card_funding_opened"
+  | "card_funding_initialize_started"
+  | "card_funding_initialized"
+  | "card_funding_checkout_opened"
+  | "card_funding_checkout_closed"
+  | "card_funding_status_polled"
+  | "card_funding_completed"
+  | "card_funding_failed"
+  | "card_funding_review"
+  | "card_funding_disputed";
 
 /** Base params shared across events — never include PII. */
 export interface DataLayerEventMap {
@@ -173,16 +174,16 @@ export interface DataLayerEventMap {
     user_id?: string;
     session_duration_seconds?: number;
   };
-  paystack_card_funding_opened: PaystackFundingAnalyticsProps;
-  paystack_card_funding_initialize_started: PaystackFundingAnalyticsProps;
-  paystack_card_funding_initialized: PaystackFundingAnalyticsProps;
-  paystack_card_funding_checkout_opened: PaystackFundingAnalyticsProps;
-  paystack_card_funding_checkout_closed: PaystackFundingAnalyticsProps;
-  paystack_card_funding_status_polled: PaystackFundingAnalyticsProps;
-  paystack_card_funding_completed: PaystackFundingAnalyticsProps;
-  paystack_card_funding_failed: PaystackFundingAnalyticsProps;
-  paystack_card_funding_review: PaystackFundingAnalyticsProps;
-  paystack_card_funding_disputed: PaystackFundingAnalyticsProps;
+  card_funding_opened: CardFundingAnalyticsProps;
+  card_funding_initialize_started: CardFundingAnalyticsProps;
+  card_funding_initialized: CardFundingAnalyticsProps;
+  card_funding_checkout_opened: CardFundingAnalyticsProps;
+  card_funding_checkout_closed: CardFundingAnalyticsProps;
+  card_funding_status_polled: CardFundingAnalyticsProps;
+  card_funding_completed: CardFundingAnalyticsProps;
+  card_funding_failed: CardFundingAnalyticsProps;
+  card_funding_review: CardFundingAnalyticsProps;
+  card_funding_disputed: CardFundingAnalyticsProps;
 }
 
 export type DataLayerEventName = keyof DataLayerEventMap;
