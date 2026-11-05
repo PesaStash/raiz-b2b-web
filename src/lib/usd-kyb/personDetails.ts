@@ -79,12 +79,12 @@ export function personDetailsErrors(
     if (
       person.has_ownership &&
       (person.ownership_percentage == null ||
-        !Number.isFinite(person.ownership_percentage) ||
+        !Number.isInteger(person.ownership_percentage) ||
         person.ownership_percentage <= 0 ||
         person.ownership_percentage > 100)
     )
       errors.ownership_percentage =
-        "Enter an ownership percentage greater than 0 and up to 100.";
+        "Enter a whole-number ownership percentage greater than 0 and up to 100.";
     date(
       "relationship_established_at",
       person.relationship_established_at,

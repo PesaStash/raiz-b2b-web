@@ -46,6 +46,8 @@ export interface KybPerson {
   relationship_established_at?: string;
   has_ownership?: boolean;
   ownership_percentage?: number | null;
+  calculated_ownership_percentage?: string | null;
+  registry_information?: Record<string, unknown>;
   has_control?: boolean;
   is_signer?: boolean;
   is_director?: boolean;
@@ -162,4 +164,47 @@ export interface KybFormGuide {
   required_bridge_fields?: unknown;
   document_purposes?: unknown;
   [key: string]: unknown;
+}
+
+export interface RegistryJurisdiction {
+  code: string;
+  name: string;
+  provider_country_code: string;
+}
+export interface InquiryField {
+  name: string;
+  type: "string" | "boolean";
+  required: boolean;
+  label?: string;
+  value?: string;
+  default?: string;
+  min_length?: number;
+  max_length?: number;
+  must_equal?: boolean;
+  options?: Array<string | RegistryJurisdiction>;
+}
+export interface CountryRequirements {
+  country_code: string;
+  country_name: string;
+  requires_subdivision: boolean;
+  provider_country_code: string | null;
+  subdivisions: RegistryJurisdiction[];
+  required_fields: string[];
+  fields: InquiryField[];
+  premium_checks_supported: boolean;
+  premium_checks_requested: boolean;
+  tax_enrichment: boolean;
+}
+export interface LookupRequirements {
+  provider: string;
+  countries: CountryRequirements[];
+  cache_ttl_seconds: number;
+}
+export interface InquiryRequest {
+  registration_number: string;
+  country_code: string;
+  jurisdiction_code?: string;
+  registration_type?: string;
+  registration_name?: string;
+  consent: boolean;
 }

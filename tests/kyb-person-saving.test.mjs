@@ -748,3 +748,21 @@ test("one queued save may contain a new person and changed fields for an existin
     { person_key: "existing", title: "CEO" },
   );
 });
+
+test("editing a business field clears its stale server error immediately without waiting for autosave", async () => {
+  const h = editorHarness();
+  h.rejectFields([
+    { field: "business_profile.email", message: "Invalid email" },
+    { field: "business_profile.phone", message: "Invalid phone" },
+  ]);
+  let editor = h.render();
+  await editor.reload(false);
+  editor = h.render();
+  assert.ok(editor.fieldErrors.some(error => error.field === "business_profile.email"));
+  const savesBefore = h.calls.length;
+  editor.change("business_profile.email", "valid@example.com");
+  editor = h.render();
+  assert.equal(editor.fieldErrors.some(error => error.field === "business_profile.email"), false);
+  assert.equal(editor.fieldErrors.some(error => error.field === "business_profile.phone"), true);
+  assert.equal(h.calls.length, savesBefore);
+});

@@ -1,4 +1,5 @@
 "use client";
+import { registryOwnership } from "@/lib/usd-kyb/model";
 import { toast } from "sonner";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KybPerson, KybFieldError } from "@/types/usdKyb";
@@ -84,7 +85,8 @@ export default function PersonDetailsForm({
         ? 2
         : 0,
   );
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [attemptedErrors, setErrors] = useState<Record<string, string>>({});
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
   const [manualAddress, setManualAddress] = useState(
     () =>
       corrections.some((error) =>
@@ -139,6 +141,9 @@ export default function PersonDetailsForm({
     }
     return found;
   };
+  const errors = Object.fromEntries(
+    Object.entries(validate(step)).filter(([key]) => touchedFields[key] || Object.hasOwn(attemptedErrors, key)),
+  );
   const field = (
     key: string,
     title: string,
@@ -175,7 +180,11 @@ export default function PersonDetailsForm({
       }
       labelClass="!font-monzo !text-sm !font-semibold !text-kyb-ink"
       className="!h-12 !rounded-xl !border-kyb-border !bg-kyb-field !text-kyb-ink"
-      onChange={(event) => update(event.target.value)}
+      onBlur={() => setTouchedFields(current => ({ ...current, [key]: true }))}
+      onChange={(event) => {
+        setTouchedFields(current => ({ ...current, [key]: true }));
+        update(event.target.value);
+      }}
     />
   );
   return (
@@ -579,6 +588,7 @@ export default function PersonDetailsForm({
                 }),
               "number",
             )}
+          {registryOwnership(person) !== "Unavailable" && <p className="text-sm text-kyb-muted">Registry-calculated ownership: {registryOwnership(person)}. Fractional registry values are read-only; complete any outstanding ownership evidence requested during review.</p>}
           {field(
             "relationship_established_at",
             "Relationship established date",

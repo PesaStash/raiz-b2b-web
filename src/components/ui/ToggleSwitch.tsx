@@ -7,6 +7,7 @@ interface ToggleSwitchProps {
   onChange: (checked: boolean) => void;
   disabled?: boolean;
   id?: string;
+  labelledBy?: string;
   className?: string;
   checkedColor?: string;
 }
@@ -16,6 +17,7 @@ const ToggleSwitch = ({
   onChange,
   disabled = false,
   id,
+  labelledBy,
   className = "",
   checkedColor = "#7F56D9", 
 }: ToggleSwitchProps) => {
@@ -23,6 +25,7 @@ const ToggleSwitch = ({
     <button
       type="button"
       id={id}
+      aria-labelledby={labelledBy}
       role="switch"
       aria-checked={checked}
       disabled={disabled}

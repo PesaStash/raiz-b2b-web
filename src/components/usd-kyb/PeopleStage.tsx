@@ -8,7 +8,7 @@ import { readApiError } from "@/lib/apiError";
 import { kybApi } from "@/services/usdKyb";
 import type { KybEditor } from "@/lib/hooks/useUsdKyb";
 import type { KybPerson } from "@/types/usdKyb";
-import { personRemovalReason } from "@/lib/usd-kyb/model";
+import { registryPersonPrefill, personRemovalReason, ownershipDisplay, registryOwnership, record, display } from "@/lib/usd-kyb/model";
 import { correctionPath } from "@/lib/usd-kyb/corrections";
 import { Action, Badge, Notice } from "./KybUI";
 import { businessName } from "./KybGuide";
@@ -192,6 +192,19 @@ export default function PeopleStage({
   editor: KybEditor;
   guide?: import("@/types/usdKyb").KybFormGuide;
 }) {
+  const snapshot = record(editor.bundle?.case.youverify_lookup_snapshot);
+  const corporate = snapshot.corporate_entities;
+  const registryMembers = Array.isArray(snapshot.directors) ? snapshot.directors.map(record)
+    .filter(person => typeof person.person_key === "string" && person.title === "Member" &&
+      !person.is_director && !person.has_control && !person.has_ownership && !person.is_signer &&
+      !editor.people.some(saved => saved.person_key === person.person_key)) : [];
+  // Registry-only members share the list, but are saved only after details review.
+  const displayedPeople: KybPerson[] = [
+    ...editor.people,
+    ...registryMembers.map(person => registryPersonPrefill(
+      { person_key: String(person.person_key) }, snapshot,
+    )),
+  ];
   const [editing, setEditing] = useState<KybPerson>();
   const [ownershipReview, setOwnershipReview] = useState<KybPerson>();
   const ownershipIssues = editor.people.filter(ownershipNeedsReview);
@@ -279,6 +292,19 @@ export default function PeopleStage({
   };
   return (
     <div data-kyb-requirement="associated_persons" className="space-y-6">
+      {Array.isArray(corporate) && corporate.length > 0 && (
+        <section className="rounded-xl bg-kyb-soft p-4 space-y-2">
+          <h3 className="font-semibold">Corporate shareholders</h3>
+          <p className="text-sm text-kyb-muted">These are registered companies. Complete the evidence for the people who ultimately own or control them.</p>
+          {corporate.map((item, index) => {
+            const holder = record(item);
+            return <div key={index} className="text-sm">
+              {display(holder.legal_name ?? holder.name ?? holder.company_name)} · Registry ownership: {registryOwnership(holder)}
+              {holder.ownership_chain_resolved === false && <p className="text-kyb-muted">Ownership chain evidence required</p>}
+            </div>;
+          })}
+        </section>
+      )}
       <div className="space-y-2">
         <details className="text-xs text-kyb-muted">
           <summary className="w-fit cursor-pointer font-semibold text-primary2">
@@ -295,7 +321,7 @@ export default function PeopleStage({
       {formError && !editing && !ownershipReview && (
         <Notice error>{formError}</Notice>
       )}
-      {!editor.people.length ? (
+      {!displayedPeople.length ? (
         <section className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-[#E3E1EC] bg-[#FAFAFC] px-5 py-8 text-center">
           <span className="flex size-16 items-center justify-center rounded-full bg-[#E6F4FB]">
             <span className="relative size-8 shrink-0 overflow-hidden">
@@ -348,7 +374,7 @@ export default function PeopleStage({
         <>
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-kyb-soft px-4 py-3 text-xs">
             <span className="font-semibold text-kyb-ink" role="status">
-              {editor.people.length - needingInvitation.length} of {editor.people.length} people invited or verified
+              {editor.people.length - needingInvitation.length} of {displayedPeople.length} people invited or verified
             </span>
             <span className={total > 100 ? "text-red-700" : "text-kyb-muted"}>
               {total}% ownership recorded
@@ -357,7 +383,7 @@ export default function PeopleStage({
           </div>
           {total > 100 && <Notice error>Combined ownership must not exceed 100%.</Notice>}
           <div className="divide-y divide-kyb-border rounded-xl border border-kyb-border">
-            {editor.people.map((person, index) => {
+            {displayedPeople.map((person, index) => {
               const id = person.associated_person_id ?? person.business_usd_kyb_associated_person_id;
               const approved = ["approved", "completed"].includes(person.verification_status ?? "");
               const active = !!person.verification_started_at || !!person.verified_at;
@@ -400,10 +426,11 @@ export default function PeopleStage({
                       </h3>
                       <p className="mt-1 text-xs text-kyb-muted">
                         {[
+                          !id && person.title,
                           person.is_director && "Director",
                           person.has_control && "Control person",
                           person.is_signer && "Signer",
-                          person.has_ownership && `Owns ${person.ownership_percentage ?? "?"}%`,
+                          person.has_ownership && `Owns ${ownershipDisplay(person)}`,
                         ].filter(Boolean).join(" · ")}
                       </p>
                       <div className="mt-2">

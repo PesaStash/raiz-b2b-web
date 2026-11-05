@@ -2,7 +2,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { IoIosArrowDown, IoIosArrowUp } from "react-icons/io";
 import Select, { StylesConfig } from "react-select";
 import InputLabel from "./InputLabel";
@@ -37,6 +37,7 @@ interface SelectFieldProps {
   isClearable?: boolean;
   menuPlacement?: "auto" | "bottom" | "top";
   formatOptionLabel?: (option: Option) => React.ReactNode;
+  isOptionDisabled?: (option: Option) => boolean;
 }
 
 type SelectFieldSelectionProps =
@@ -69,9 +70,9 @@ const SelectField: React.FC<SelectFieldProps & SelectFieldSelectionProps> = ({
   isClearable = false,
   menuPlacement = "bottom",
   formatOptionLabel,
+  isOptionDisabled,
 }) => {
   const [optionsIsShown, setOptionsIsShown] = useState<boolean>(false);
-  const [selectedOption, setSelectedOption] = useState<Option | readonly Option[] | null>(value);
 
   const customStyles: StylesConfig<Option, boolean> = {
     control: (provided: any, state: any) => ({
@@ -130,16 +131,11 @@ const SelectField: React.FC<SelectFieldProps & SelectFieldSelectionProps> = ({
     }),
   };
 
-  useEffect(() => {
-    setSelectedOption(value); // Sync selectedOption with value prop
-  }, [value]);
-
   const toggleOptions = () => {
     setOptionsIsShown((prevState) => !prevState);
   };
 
   const handleInputChange = (selectedOption: any) => {
-    setSelectedOption(selectedOption);
     setOptionsIsShown(!!isMulti);
     onChange(selectedOption);
   };
@@ -196,8 +192,9 @@ const SelectField: React.FC<SelectFieldProps & SelectFieldSelectionProps> = ({
         onChange={handleInputChange}
         onBlur={handleBlur}
         onFocus={handleInputClick}
-        value={selectedOption}
+        value={value}
         options={options}
+        isOptionDisabled={isOptionDisabled}
         placeholder={placeholder}
         menuIsOpen={optionsIsShown}
         name={name}

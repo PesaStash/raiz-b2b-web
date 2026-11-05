@@ -416,3 +416,51 @@ export function personRemovalReason(
     ? undefined
     : "Removal is unavailable for this person.";
 }
+
+/** Registry percentages are decimal strings; never round them into writable integers. */
+export function registryOwnership(person: Record<string, unknown>): string {
+  const value = person.calculated_ownership_percentage ?? record(person.registry_information).calculated_ownership_percentage;
+  return typeof value === "string" && /^\d+(?:\.\d+)?$/.test(value) ? `${value}%` : "Unavailable";
+}
+export function ownershipDisplay(person: Record<string, unknown>): string {
+  const calculated = registryOwnership(person);
+  return calculated !== "Unavailable" ? calculated :
+    typeof person.ownership_percentage === "number" ? `${person.ownership_percentage}%` : "Unavailable";
+}
+
+/** Registry values are defaults only; saved values and explicit role decisions win. */
+export function registryBusinessPrefill(snapshot: unknown) {
+  const lookup = record(snapshot);
+  const fields: Record<string, string> = {
+    legal_name: "business_legal_name", trade_name: "business_trade_name",
+    business_type: "business_type", business_description: "business_description",
+    email: "email", phone: "phone", primary_website: "primary_website",
+  };
+  const profile = Object.fromEntries(Object.entries(fields)
+    .filter(([key]) => typeof lookup[key] === "string" && String(lookup[key]).trim())
+    .map(([key, field]) => [field, lookup[key]]));
+  return {
+    business_profile: profile,
+    ...Object.fromEntries(["registered_address", "physical_address"]
+      .filter(key => Object.keys(record(lookup[key])).length)
+      .map(key => [key, lookup[key]])),
+  };
+}
+
+/** Fill missing public details by stable key, without creating people or guessing roles. */
+export function registryPersonPrefill<T extends { person_key: string; [key: string]: unknown }>(person: T, snapshot: unknown): T {
+  const directors = record(snapshot).directors;
+  const lookup = Array.isArray(directors)
+    ? directors.map(record).find(row => row.person_key === person.person_key) : undefined;
+  if (!lookup) return person;
+  const metadata = record(record(lookup.payload).registry_information);
+  const defaults = personPatch(lookup);
+  const appointment = metadata.appointedOn;
+  if (typeof appointment === "string" && /^\d{4}-\d{2}-\d{2}$/.test(appointment))
+    defaults.relationship_established_at = appointment;
+  const result: Record<string, unknown> = { ...person };
+  for (const [key, value] of Object.entries(defaults)) {
+    if ((result[key] === undefined || result[key] === null || result[key] === "") && value != null && value !== "") result[key] = value;
+  }
+  return result as T;
+}

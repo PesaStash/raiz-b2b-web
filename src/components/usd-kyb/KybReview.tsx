@@ -20,6 +20,7 @@ import {
 import type { KybPerson } from "@/types/usdKyb";
 import type { KybEditor } from "@/lib/hooks/useUsdKyb";
 import {
+  ownershipDisplay,
   deferredRequirements,
   display,
   getPath,
@@ -238,7 +239,7 @@ export default function KybReview({
             p.is_director && "Director",
             p.has_control && "Control person",
             p.is_signer && "Signer",
-            p.has_ownership && `${p.ownership_percentage}%`,
+            p.has_ownership && ownershipDisplay(p),
             label(
               p.verification_status ?? p.invitation_status ?? "Not invited",
             ),

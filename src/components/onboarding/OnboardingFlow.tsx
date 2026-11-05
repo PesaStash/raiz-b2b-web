@@ -19,7 +19,6 @@ import {
 import {
   clearLookupPrefill,
   readLookupPrefill,
-  supportsCompanyLookup,
 } from "@/lib/companyLookup";
 import { Action, Notice } from "@/components/usd-kyb/KybUI";
 import { KybIcon } from "@/components/usd-kyb/KybGuide";
@@ -31,7 +30,6 @@ import {
   GuideSection,
   OnboardingPanel,
   OpenTask,
-  Tags,
   Welcome,
 } from "./OnboardingUI";
 import OnboardingSkeleton from "./OnboardingSkeleton";
@@ -93,7 +91,6 @@ export function StartGuideView({
   const entityId = user?.business_account?.entity_id ?? "";
   const countryCode =
     user?.business_account?.entity?.country?.country_code ?? "";
-  const canLookup = supportsCompanyLookup(countryCode);
   const savedPrefill = useSyncExternalStore(
     subscribeChoice,
     () => readLookupPrefill(entityId),
@@ -120,7 +117,7 @@ export function StartGuideView({
         <DoneTask>Create your Raiz account</DoneTask>
         {complete ? (
           <DoneTask>Basic business details</DoneTask>
-        ) : canLookup ? (
+        ) : (
           <OpenTask
             title="Find your business"
             minutes="About 2 mins"
@@ -145,31 +142,6 @@ export function StartGuideView({
                 Continue with {savedPrefill.business_name}
               </button>
             )}
-          </OpenTask>
-        ) : (
-          <OpenTask
-            title="Add your basic business details"
-            minutes="About 3 mins"
-            tag="Pre-fills later steps"
-            image="basic"
-          >
-            <p className="text-sm leading-[21px] text-[#444454]">
-              Your business name, registration number, email and address. We use
-              them to open USD, NGN or both, so you never type them twice.
-            </p>
-            <div>
-              <p className="mb-2 text-xs font-semibold text-kyb-muted">
-                You’ll need
-              </p>
-              <Tags
-                items={[
-                  "Registration number",
-                  "Business email",
-                  "Business address",
-                ]}
-              />
-            </div>
-            <Action onClick={openBusinessForm}>Add business details</Action>
           </OpenTask>
         )}
         <div className="flex flex-wrap items-center gap-3 px-3 py-3.5">

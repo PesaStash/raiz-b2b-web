@@ -570,6 +570,11 @@ export function useUsdKyb() {
       return;
     ref.current.draft = setPath(ref.current.draft, path, value);
     ref.current.pending = setPath(ref.current.pending, path, value);
+    ref.current.fieldErrors = ref.current.fieldErrors.filter(error => {
+      const field = error.field;
+      return field !== path && field !== path.split(".").at(-1) && !field.startsWith(path + ".");
+    });
+    setFieldErrors(ref.current.fieldErrors);
     setDraft(ref.current.draft);
     setSaveState("Unsaved changes");
     setDirtyTick((n) => n + 1);
@@ -884,7 +889,12 @@ export function useUsdKyb() {
     draft,
     people,
     missing,
-    fieldErrors,
+    fieldErrors: fieldErrors.filter(error => {
+      if (error.field.startsWith("associated_persons")) return true;
+      const field = error.field;
+      return getPath(ref.current.pending, field) === undefined &&
+        !Object.values(ref.current.pending).some(section => section && typeof section === "object" && Object.hasOwn(section, field));
+    }),
     personErrors: (person: KybPerson) => {
       const current =
         ref.current.people.find((p) => p.person_key === person.person_key) ??

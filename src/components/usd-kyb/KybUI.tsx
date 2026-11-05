@@ -1,5 +1,5 @@
 "use client";
-import { useId, type ComponentProps, type ReactNode } from "react";
+import { useId, useState, type ComponentProps, type ReactNode } from "react";
 import Button from "@/components/ui/Button";
 import InputField from "@/components/ui/InputField";
 import TextareaField from "@/components/ui/TextareaField";
@@ -115,9 +115,19 @@ export function Field({
   const correction = groupFieldErrors(editor.fieldErrors ?? []).find(
     (error) => error.field === path || error.field === path.split(".").at(-1),
   );
-  const error =
-    correction?.message ||
-    (missing ? `${title} is required or needs attention.` : undefined);
+  const [requiredPreviously, setRequiredPreviously] = useState(missing);
+  const change = (next: unknown) => {
+    if (missing) setRequiredPreviously(true);
+    editor.change(path, next);
+  };
+  let localError: string | undefined;
+  if ((missing || requiredPreviously) && !text.trim()) localError = `${title} is required.`;
+  else if (text && type === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)) localError = "Enter a valid email address.";
+  else if (text && type === "url") {
+    try { const url = new URL(text); if (!["http:", "https:"].includes(url.protocol)) localError = "Enter a valid website URL."; }
+    catch { localError = "Enter a valid website URL."; }
+  } else if (text && type === "number" && (!Number.isFinite(Number(text)) || (min != null && Number(text) < Number(min)))) localError = `Enter a valid number${min != null ? ` of at least ${min}` : ""}.`;
+  const error = localError || correction?.message;
   if (choices) {
     const list =
       strictChoices || choices.some((o) => o.value === text) || !text
@@ -137,7 +147,7 @@ export function Field({
           name={path}
           value={list.find((o) => o.value === text) ?? null}
           options={list}
-          onChange={(v) => editor.change(path, v ? String(v.value) : "")}
+          onChange={(v) => change(v ? String(v.value) : "")}
           disabled={!editor.editable || editor.busy}
           status={error ? "error" : undefined}
           helper={error ?? helper}
@@ -155,7 +165,7 @@ export function Field({
     placeholder: correction?.placeholder,
     value: text,
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      editor.change(path, e.target.value),
+      change(e.target.value),
     disabled: !editor.editable || editor.busy,
     errorMessage: error,
     labelClass: "!font-monzo !text-sm !font-semibold !text-kyb-ink",

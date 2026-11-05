@@ -31,7 +31,7 @@ import {
   REVENUE_OPTIONS,
   HIGH_RISK_ACTIVITIES,
 } from "@/lib/usd-kyb/bridgeOptions";
-import { formatLookupAddress, lookupAddressForForm } from "@/lib/companyLookup";
+import { formatLookupAddress, lookupAddressForForm, lookupWasRejected } from "@/lib/companyLookup";
 import type { KybEditor } from "@/lib/hooks/useUsdKyb";
 import { KybIcon } from "./KybGuide";
 import type { KybFormGuide } from "@/types/usdKyb";
@@ -48,6 +48,7 @@ export function IdentityStage({
   onFound?: () => void;
 }) {
   const snapshot = record(editor.bundle?.case.youverify_lookup_snapshot);
+  const unconfirmed = lookupWasRejected(editor.access.user?.business_account?.entity_id, snapshot);
   const hasRegistry = Object.keys(snapshot).length > 0;
   const businessName =
     getPath(editor.draft, "business_profile.business_legal_name") ||
@@ -74,9 +75,9 @@ export function IdentityStage({
 
   return (
     <div className="space-y-6">
+      {unconfirmed && <Notice>This registry result was not confirmed during basic verification. Review and correct the saved business details before continuing.</Notice>}
       <p className="text-sm leading-[21px] text-[#444454]">
-        We’ve already found your business. Check these details, then continue to
-        confirm the rest of your business information.
+        Review your saved business details, then continue to complete the rest of your business information.
       </p>
       <section className="rounded-xl bg-kyb-soft">
         <div className="mb-4 flex items-center gap-2 text-xs font-semibold text-kyb-muted">
@@ -180,7 +181,7 @@ function AddressFields({
     )
       return;
     let cancelled = false;
-    void resolve(savedQuery).then((components) => {
+    void resolve(savedQuery, typeof current.country === "string" ? current.country : undefined).then((components) => {
       const latest = latestEditor.current;
       if (
         cancelled ||
@@ -199,8 +200,8 @@ function AddressFields({
       const resolvedAddress = {
         ...previous,
         street_line_1:
+          (savedQuery === savedAddress ? previous.street_line_1 : "") ||
           street ||
-          previous.street_line_1 ||
           components.address?.split(",")[0]?.trim() ||
           "",
         city: previous.city || components.city || "",
@@ -229,6 +230,8 @@ function AddressFields({
     editor.busy,
     complete,
     savedQuery,
+    savedAddress,
+    current.country,
     addressSignature,
     path,
     resolve,
@@ -291,7 +294,7 @@ function AddressFields({
           />
           <p className="mt-2 text-xs text-kyb-muted">
             Choose a suggestion to fill the address. You can edit every field
-            before continuing. Country uses a two-letter code, such as NG.
+            before continuing.
           </p>
         </div>
       )}
@@ -418,38 +421,20 @@ export function BusinessDetails({
   const identifiers = Array.isArray(editor.draft.identifying_information)
     ? (editor.draft.identifying_information as Record<string, unknown>[])
     : [];
-  const tinEntry = identifiers.find((item) => item.type === "tin");
+  const registrationCountry = String(snapshot.country_code || editor.access.user?.business_account?.entity?.country?.country_code || "").toUpperCase();
+  const isNigerian = registrationCountry === "NG";
+  const tinEntry = identifiers.find(item => item.type === "tin" && item.issuing_country === "NG");
   const tinNumber = String(tinEntry?.number ?? "");
-  const rewrittenIds = useRef<string | undefined>(undefined);
   const setTin = (number: string) => {
-    const value = number.trim();
-    editor.change(
-      "identifying_information",
-      value ? [{ type: "tin", issuing_country: "NG", number: value }] : [],
-    );
+    const other = identifiers.filter(item => item !== tinEntry);
+    editor.change("identifying_information", number.trim()
+      ? [...other, { ...tinEntry, type: "tin", issuing_country: "NG", number: number.trim() }]
+      : other);
   };
-  useEffect(() => {
-    if (!editor.editable) return;
-    const current = Array.isArray(editor.draft.identifying_information)
-      ? (editor.draft.identifying_information as Record<string, unknown>[])
-      : [];
-    const onlyTin =
-      current.length === 0 ||
-      (current.length === 1 &&
-        current[0]?.type === "tin" &&
-        current[0]?.issuing_country === "NG");
-    if (onlyTin) return;
-    const signature = JSON.stringify(current);
-    if (rewrittenIds.current === signature) return;
-    rewrittenIds.current = signature;
-    const value = String(
-      current.find((item) => item.type === "tin")?.number ?? "",
-    ).trim();
-    editor.change(
-      "identifying_information",
-      value ? [{ type: "tin", issuing_country: "NG", number: value }] : [],
-    );
-  }, [editor]);
+  const setIdentifier = (index: number, key: string, value: string) => editor.change(
+    "identifying_information", identifiers.map((item, i) => i === index ? { ...item, [key]: value } : item),
+  );
+  const evidence = record(snapshot.registry_evidence);
   return (
     <div className="space-y-4">
       <p className="text-sm text-kyb-muted">
@@ -468,7 +453,7 @@ export function BusinessDetails({
             <div className="mb-4 flex items-center justify-between gap-3 text-xs">
               <span className="flex items-center gap-2 text-kyb-muted">
                 <KybIcon name="lock" />
-                From the CAC register
+                From the business registry
               </span>
               <button
                 type="button"
@@ -485,13 +470,20 @@ export function BusinessDetails({
                   getPath(editor.draft, "business_profile.business_legal_name"),
                 ],
                 [
-                  "RC number",
+                  "Registration number",
                   snapshot.registration_number ??
                     editor.bundle?.case.youverify_lookup_registration_number,
                 ],
                 ["Company type", snapshot.company_type],
                 ["Incorporated", snapshot.incorporation_date],
-              ].map(([title, value]) => (
+                ["Registry status", snapshot.status],
+                ["VAT number", snapshot.vat_number],
+                ["Tax ID", snapshot.tax_id],
+                ["Registration submitted", evidence.registrationSubmissionDate],
+                ["Branch address", evidence.branchAddress],
+                ["Registered activity", evidence.activity],
+                ["Paid share capital (registry value)", evidence.paidShareCapital],
+              ].filter(([, value]) => value != null && value !== "").map(([title, value]) => (
                 <div key={String(title)}>
                   <dt className="text-xs text-kyb-muted">{String(title)}</dt>
                   <dd className="mt-1 font-semibold">{display(value)}</dd>
@@ -610,17 +602,18 @@ export function BusinessDetails({
             className="flex items-start justify-between gap-4"
             data-kyb-requirement="business_profile.is_dao"
           >
-            <label
-              htmlFor={`${sectionGroup}-dao`}
+            <p
+              id={`${sectionGroup}-dao-label`}
               className="text-sm font-semibold text-kyb-ink"
             >
               Is this business a DAO?
               <span className="mt-1 block text-xs font-normal text-kyb-muted">
                 A Decentralised Autonomous Organisation (DAO)
               </span>
-            </label>
+            </p>
             <ToggleSwitch
               id={`${sectionGroup}-dao`}
+              labelledBy={`${sectionGroup}-dao-label`}
               checked={
                 getPath(editor.draft, "business_profile.is_dao") === true
               }
@@ -707,7 +700,7 @@ export function BusinessDetails({
               </label>
             );
           })}
-        <div data-kyb-requirement="identifying_information">
+        {isNigerian ? <div data-kyb-requirement="identifying_information">
           <label
             htmlFor="business-tin"
             className="mb-2 block text-sm font-semibold text-kyb-ink"
@@ -724,7 +717,17 @@ export function BusinessDetails({
             disabled={!editor.editable || editor.busy}
             autoComplete="off"
           />
-        </div>
+        </div> : <div className="space-y-4" data-kyb-requirement="identifying_information">
+          <Notice>Choose the applicable identification type for your country. Registry numbers are available below; confirm their type before using them.</Notice>
+          {identifiers.map((item, index) => <div key={index} className="space-y-3 rounded-xl border border-kyb-border p-4">
+            <SelectField label="Identification type" options={options(guide?.identification_types)} value={options(guide?.identification_types).find(option => option.value === item.type) ?? null} onChange={option => setIdentifier(index, "type", String(option?.value ?? ""))} disabled={!editor.editable || editor.busy} />
+            <label className="block text-sm">Issuing country<input className="mt-2 h-12 w-full rounded-xl bg-kyb-field px-3" value={String(item.issuing_country ?? "")} disabled={!editor.editable || editor.busy} onChange={event => setIdentifier(index, "issuing_country", event.target.value.toUpperCase())} /></label>
+            <label className="block text-sm">Identification number<input className="mt-2 h-12 w-full rounded-xl bg-kyb-field px-3" value={String(item.number ?? "")} disabled={!editor.editable || editor.busy} onChange={event => setIdentifier(index, "number", event.target.value)} /></label>
+            <div className="flex flex-wrap gap-3">{[["Registration", snapshot.registration_number], ["VAT", snapshot.vat_number], ["Tax ID", snapshot.tax_id]].filter(([, value]) => typeof value === "string" && value).map(([title, value]) => <button key={String(title)} type="button" className="text-xs text-primary2 underline" disabled={!editor.editable || editor.busy} onClick={() => setIdentifier(index, "number", String(value))}>Use {String(title)}: {String(value)}</button>)}</div>
+            <button type="button" className="text-sm text-red-700" disabled={!editor.editable || editor.busy} onClick={() => editor.change("identifying_information", identifiers.filter((_, i) => i !== index))}>Remove identifier</button>
+          </div>)}
+          <Action variant="secondary" disabled={!editor.editable || editor.busy} onClick={() => editor.change("identifying_information", [...identifiers, { type: "", issuing_country: registrationCountry, number: "" }])}>Add business identifier</Action>
+        </div>}
       </BusinessSection>
     </div>
   );
@@ -1026,6 +1029,9 @@ export function ActivityStage({
             label="Does your business do any of these?"
             placeholder="Select all that apply"
             options={riskChoices}
+            isOptionDisabled={(option) =>
+              risk.includes("none_of_the_above") && option.value !== "none_of_the_above"
+            }
             value={selectedRisk}
             minHeight="48px"
             bgColor="#F4F4F8"
@@ -1034,7 +1040,7 @@ export function ActivityStage({
             disabled={!editor.editable || editor.busy}
             status={riskError ? "error" : undefined}
             helper={
-              riskError ?? "Choose all that apply, or select None of the above."
+              riskError ?? (risk.includes("none_of_the_above") ? "Remove None of the above to select business activities." : "Choose all that apply, or select None of the above.")
             }
             onChange={(selected) => {
               const values = selected.map((option) => String(option.value));

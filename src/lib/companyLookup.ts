@@ -1,20 +1,9 @@
 import { isProductionDeployment } from "@/lib/permissions";
 import type { AddressComponents } from "@/components/ui/AddressAutocomplete";
-import type { LookupResult } from "@/types/usdKyb";
+import type { KybBundle, LookupResult } from "@/types/usdKyb";
 
-export const LOOKUP_COUNTRIES = ["NG", "ZA", "KE"] as const;
-
-export type LookupCountry = (typeof LOOKUP_COUNTRIES)[number];
-
-/** Real address used on non-production so Places can resolve structured fields. */
+/** Known sandbox fixture replacement, never applied to other addresses. */
 export const DEV_LOOKUP_ADDRESS = "13 Thorbon Avenue sabo yaba lagos";
-
-/** Backend registration_type for countries without RC/BN prefixes. Confirm with API. */
-const DEFAULT_REGISTRATION_TYPE: Record<Exclude<LookupCountry, "NG">, string> =
-  {
-    ZA: "CN",
-    KE: "BN",
-  };
 
 export type LookupPrefill = {
   registration_number: string;
@@ -28,41 +17,12 @@ export type LookupPrefill = {
   state?: string;
   zip_code?: string;
   resolved: boolean;
-  lookup: Record<string, unknown>;
+  jurisdiction_code?: string;
+  confirmed_at?: string;
 };
 
 function storageKey(entityId: string) {
   return `raiz-company-lookup:${entityId}`;
-}
-
-export function supportsCompanyLookup(countryCode: string): boolean {
-  return (LOOKUP_COUNTRIES as readonly string[]).includes(
-    countryCode.toUpperCase(),
-  );
-}
-
-export function registrationType(countryCode: string, number: string): string {
-  const country = countryCode.toUpperCase();
-  if (country === "NG") {
-    const match = number.trim().match(/^(RC|BN)/i);
-    return (match?.[1] ?? "RC").toUpperCase();
-  }
-  if (country === "ZA" || country === "KE") {
-    return DEFAULT_REGISTRATION_TYPE[country];
-  }
-  return "RC";
-}
-
-/** Digits (or raw value) for the company-lookup registration_number field. */
-export function registrationNumberForLookup(
-  countryCode: string,
-  number: string,
-): string {
-  const trimmed = number.trim();
-  if (countryCode.toUpperCase() === "NG") {
-    return trimmed.replace(/^(RC|BN)[\s-]*/i, "");
-  }
-  return trimmed;
 }
 
 /** Human-readable line from a register address string or object. */
@@ -117,29 +77,42 @@ export function lookupPrefill(lookup: Record<string, unknown>): {
   };
 }
 
+function object(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" ? value as Record<string, unknown> : {};
+}
+
 export function buildLookupPrefill(
   result: LookupResult,
   registrationNumber: string,
   countryCode: string,
   resolved: AddressComponents | null,
+  bundle?: KybBundle,
 ): LookupPrefill {
-  const base = lookupPrefill(result.lookup);
-  const address = resolved?.address ?? base.address;
-  const streetFallback = address?.split(",")[0]?.trim() || address;
-
+  const draft = object(bundle?.prefilled_draft ?? result.case?.draft_payload);
+  const profile = { ...draft, ...object(draft.business_profile) };
+  const savedAddress = draft.registered_address ?? profile.registered_address;
+  const source = Object.keys(object(savedAddress)).length
+    ? savedAddress : result.lookup.registered_address;
+  const original = object(source);
+  const line = lookupAddressForForm(source);
+  const sandboxSwap = line !== formatLookupAddress(source);
+  const address = sandboxSwap ? {} : original;
+  const street = text(address.street_line_1) || text(address.street) || resolved?.street || line.split(",")[0];
+  const city = text(address.city) || resolved?.city;
+  const state = text(address.subdivision) || text(address.state) || resolved?.state;
+  const zip = text(address.postal_code) || text(address.zip_code) || resolved?.zip_code;
   return {
-    registration_number: registrationNumber.trim(),
-    country_code: countryCode.toUpperCase(),
-    business_name: base.business_name ?? "",
-    ...(base.business_email ? { business_email: base.business_email } : {}),
-    ...(address ? { address } : {}),
-    street: resolved?.street || streetFallback || undefined,
-    building_number: resolved?.building_number || undefined,
-    city: resolved?.city || undefined,
-    state: resolved?.state || undefined,
-    zip_code: resolved?.zip_code || undefined,
-    resolved: !!resolved,
-    lookup: result.lookup,
+    registration_number: text(result.lookup.registration_number) || registrationNumber.trim(),
+    country_code: text(original.country).toUpperCase() || countryCode.toUpperCase(),
+    jurisdiction_code: text(result.lookup.jurisdiction_code) || undefined,
+    business_name: text(profile.business_legal_name) || text(result.lookup.legal_name),
+    business_email: text(profile.email) || text(result.lookup.email) || undefined,
+    address: resolved?.address || line,
+    street,
+    building_number: text(address.building_number) || resolved?.building_number,
+    city, state, zip_code: zip,
+    resolved: !!(street && city && state && zip),
+    confirmed_at: new Date().toISOString(),
   };
 }
 
@@ -152,14 +125,20 @@ export function saveLookupPrefill(entityId: string, prefill: LookupPrefill) {
   }
 }
 
+let cachedRaw: string | null = null;
+let cachedPrefill: LookupPrefill | null = null;
 export function readLookupPrefill(entityId?: string): LookupPrefill | null {
   if (!entityId || typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(storageKey(entityId));
     if (!raw) return null;
+    if (raw === cachedRaw) return cachedPrefill;
     const parsed = JSON.parse(raw) as LookupPrefill;
     if (!parsed || typeof parsed !== "object") return null;
     if (!parsed.registration_number || !parsed.country_code) return null;
+    if (!parsed.confirmed_at) return null;
+    cachedRaw = raw;
+    cachedPrefill = parsed;
     return parsed;
   } catch {
     return null;
@@ -173,4 +152,22 @@ export function clearLookupPrefill(entityId?: string) {
   } catch {
     /* Ignore storage failures. */
   }
+}
+
+/** Confirmation is a UI decision: the inquiry endpoint saves before the user reviews it. */
+export function saveLookupDecision(entityId: string, lookup: Record<string, unknown>, accepted: boolean) {
+  if (!entityId || typeof window === "undefined") return;
+  try {
+    localStorage.setItem(`raiz-company-decision:${entityId}`, JSON.stringify({
+      country: lookup.country_code, jurisdiction: lookup.jurisdiction_code,
+      number: lookup.registration_number, accepted,
+    }));
+  } catch { /* The current view still requires explicit confirmation. */ }
+}
+export function lookupWasRejected(entityId: string | undefined, lookup: Record<string, unknown>): boolean {
+  if (!entityId || typeof window === "undefined") return false;
+  try {
+    const saved = JSON.parse(localStorage.getItem(`raiz-company-decision:${entityId}`) || "null");
+    return !!saved && saved.accepted === false && saved.country === lookup.country_code && saved.jurisdiction === lookup.jurisdiction_code && saved.number === lookup.registration_number;
+  } catch { return false; }
 }
