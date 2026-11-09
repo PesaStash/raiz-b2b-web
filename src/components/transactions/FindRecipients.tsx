@@ -3,8 +3,7 @@ import { ISearchedUser } from "@/types/user";
 import { debounce } from "lodash";
 import Image from "next/image";
 import React, { useEffect, useMemo, useState } from "react";
-import RecentUsers from "./RecentUsers";
-import Beneficiaries from "./Beneficiaries";
+import { FlowHeader, FlowCard } from "./send-flow/Flow";
 import { useQuery } from "@tanstack/react-query";
 import { SearchAllUsersApi } from "@/services/user";
 import { IUserSearchParams } from "@/types/services";
@@ -12,8 +11,6 @@ import { useUser } from "@/lib/hooks/useUser";
 import Avatar from "../ui/Avatar";
 import { findWalletByCurrency } from "@/utils/helpers";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
-import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
-import MobileSheetHeader from "../mobile/MobileSheetHeader";
 
 interface Props {
   recentUsers: ISearchedUser[];
@@ -38,13 +35,27 @@ const RecipientRow = ({
         className="w-full p-3 flex gap-3 items-center rounded-xl bg-white active:bg-raiz-gray-100 transition-colors text-left"
         onClick={() => setSelectedUser(user)}
       >
-        <Avatar src={user?.selfie_image} name={user?.account_name} size={44} />
+        <Avatar
+          className="!bg-[#f3f1fd] !text-primary2 shrink-0"
+          src={user?.selfie_image}
+          name={user?.account_name}
+          size={44}
+        />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-raiz-gray-950 truncate">
             {user.account_name || "Unknown User"}
           </p>
-          <p className="text-xs text-raiz-gray-500 truncate">@{user.username}</p>
+          <p className="text-xs text-raiz-gray-500 truncate">
+            @{user.username}
+          </p>
         </div>
+        <Image
+          src="/images/send/chevron.svg"
+          width={18}
+          height={18}
+          alt=""
+          className="rotate-180"
+        />
       </button>
     </li>
   );
@@ -59,7 +70,6 @@ const FindRecipients = ({
   emptyStateTitle = "You haven't Sent Money to any Raizers",
 }: Props) => {
   const { user } = useUser();
-  const isMobile = useMediaQuery("(max-width: 768px)");
   const NGNAcct = findWalletByCurrency(user, "NGN");
   const USDAcct = findWalletByCurrency(user, "USD");
   const SBCAcct = findWalletByCurrency(user, "SBC");
@@ -86,7 +96,6 @@ const FindRecipients = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [queryTerm, setQueryTerm] = useState("");
 
-  const [suggestions, setSuggestions] = useState<ISearchedUser[]>([]);
   const debouncedSetQueryTerm = useMemo(
     () =>
       debounce((value: string) => {
@@ -95,7 +104,7 @@ const FindRecipients = ({
     [],
   );
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: [
       "searched-users",
       { wallet_id: currentWallet?.wallet_id, search: queryTerm },
@@ -107,9 +116,7 @@ const FindRecipients = ({
     enabled: !!queryTerm && !!currentWallet?.wallet_id,
   });
 
-  useEffect(() => {
-    setSuggestions(data?.results || []);
-  }, [data]);
+  const suggestions = data?.results || [];
 
   useEffect(() => {
     return () => debouncedSetQueryTerm.cancel();
@@ -121,95 +128,119 @@ const FindRecipients = ({
     debouncedSetQueryTerm(value);
   };
 
-  const recentsLayout = isMobile ? "list" : "grid";
-  const hasHistory = recentUsers.length > 0 || beneficiaries.length > 0;
-
+  const searching = searchTerm !== queryTerm || isLoading;
   return (
-    <div className="flex flex-col min-h-0 pb-2">
+    <>
       {header && goBack && (
-        <MobileSheetHeader title="Find Recipient" onBack={goBack} />
-      )}
-
-      <div className="relative w-full shrink-0">
-        <Image
-          className="absolute top-1/2 left-3.5 -translate-y-1/2 pointer-events-none"
-          src={"/icons/search.svg"}
-          alt=""
-          width={20}
-          height={20}
+        <FlowHeader
+          title="Send to a Raizer"
+          subtitle="Find someone by username or email"
+          onBack={goBack}
         />
-        <input
-          value={searchTerm}
-          onChange={handleInputChange}
-          placeholder="Search username or email"
-          className="pl-11 pr-4 h-12 w-full bg-raiz-gray-50 text-sm rounded-2xl border border-raiz-gray-200 focus:outline-none focus:border-primary2/40 focus:ring-2 focus:ring-primary2/10"
-        />
-      </div>
-
-      {isLoading && searchTerm && (
-        <ul className="mt-3 w-full flex flex-col gap-2">
-          {Array(3)
-            .fill("")
-            .map((_, index) => (
-              <li key={index} className="flex gap-3 items-center p-2">
-                <div className="bg-raiz-gray-200 animate-pulse size-11 rounded-full shrink-0" />
-                <div className="p-2 bg-raiz-gray-200 animate-pulse rounded-xl h-11 flex-1" />
-              </li>
-            ))}
-        </ul>
       )}
-
-      {!isLoading && searchTerm && (
-        <div className="mt-3">
-          {suggestions.length > 0 ? (
-            <ul className="w-full flex flex-col gap-1 rounded-2xl bg-raiz-gray-50 p-2">
-              {suggestions.map((user) => (
+      <FlowCard className="!gap-10">
+        <div className="flex flex-col gap-4">
+          <label className="flex flex-col gap-3 text-[13px]">
+            Search
+            <input
+              value={searchTerm}
+              onChange={handleInputChange}
+              placeholder="Username or email"
+              className="h-12 w-full bg-[#f4f4f8] rounded-xl px-3.5 text-sm outline-primary2"
+            />
+          </label>
+          {!searchTerm && recentUsers.length > 0 && (
+            <>
+              <h2 className="text-[13px] text-[#79708d] font-semibold">
+                Recent
+              </h2>
+              <div className="flex gap-3 overflow-x-auto">
+                {recentUsers.slice(0, 6).map((person) => (
+                  <button
+                    type="button"
+                    key={person.entity_id ?? person.username}
+                    className="flex flex-col items-center gap-1.5 w-[84px] shrink-0"
+                    onClick={() => setSelectedUser(person)}
+                  >
+                    <Avatar
+                      className="!bg-[#f3f1fd] !text-primary2 shrink-0"
+                      name={person.account_name}
+                      src={person.selfie_image}
+                      size={52}
+                    />
+                    <span className="text-xs font-semibold truncate max-w-full">
+                      {person.account_name?.split(" ")[0]}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+        {searchTerm ? (
+          searching ? (
+            <p
+              role="status"
+              className="text-[#79708d] text-sm py-8 text-center"
+            >
+              Searching for a Raizer…
+            </p>
+          ) : isError ? (
+            <div role="alert" className="text-center text-sm">
+              <p>Couldn’t search recipients.</p>
+              <button
+                type="button"
+                onClick={() => refetch()}
+                className="text-primary2 mt-3 font-semibold"
+              >
+                Try again
+              </button>
+            </div>
+          ) : suggestions.length ? (
+            <ul className="flex flex-col gap-4">
+              {suggestions.map((person) => (
                 <RecipientRow
-                  key={user.entity_id ?? user.username}
-                  user={user}
+                  key={person.entity_id ?? person.username}
+                  user={person}
                   setSelectedUser={setSelectedUser}
                 />
               ))}
             </ul>
           ) : (
-            <p className="text-center text-sm text-raiz-gray-600 rounded-2xl bg-raiz-gray-50 py-12 px-4">
-              No users found for &ldquo;{searchTerm}&rdquo;
-            </p>
-          )}
-        </div>
-      )}
-
-      {!searchTerm && !hasHistory && (
-        <div className="flex flex-col justify-center items-center text-center mt-8 text-raiz-gray-950 rounded-2xl bg-raiz-gray-50 py-14 px-6">
-          <Image src={"/icons/send-3.svg"} alt="" width={48} height={48} />
-          <h4 className="text-base font-bold leading-tight mt-5 mb-2">
-            {emptyStateTitle}
-          </h4>
-          <p className="text-sm text-raiz-gray-600 leading-relaxed">
-            Search by username or email to send money to another Raizer.
-          </p>
-        </div>
-      )}
-
-      {!searchTerm && hasHistory && (
-        <div className="mt-5 rounded-2xl bg-raiz-gray-50 p-3 md:p-6">
-          {!searchTerm && recentUsers.length > 0 && (
-            <RecentUsers
-              users={recentUsers}
-              setSelectedUser={setSelectedUser}
-              type="p2p"
-              layout={recentsLayout}
-            />
-          )}
-          {!searchTerm && beneficiaries.length > 0 && (
-            <div className={recentUsers.length > 0 ? "mt-5" : ""}>
-              <Beneficiaries users={beneficiaries} />
+            <div className="text-center py-8">
+              <h2 className="font-semibold">No match found</h2>
+              <p className="text-sm text-[#79708d] mt-2">
+                Check the username or email and try again.
+              </p>
             </div>
-          )}
-        </div>
-      )}
-    </div>
+          )
+        ) : beneficiaries.length ? (
+          <section>
+            <h2 className="text-[13px] text-[#79708d] font-semibold mb-4">
+              Your Raizers
+            </h2>
+            <ul className="flex flex-col gap-4">
+              {beneficiaries.map((person) => (
+                <RecipientRow
+                  key={person.entity_id ?? person.username}
+                  user={person}
+                  setSelectedUser={setSelectedUser}
+                />
+              ))}
+            </ul>
+          </section>
+        ) : (
+          recentUsers.length === 0 && (
+            <div className="py-8 text-center">
+              <h2 className="font-semibold">{emptyStateTitle}</h2>
+              <p className="mt-2 text-sm text-[#79708d]">
+                Search by username or email to send your first transfer.
+              </p>
+            </div>
+          )
+        )}
+      </FlowCard>
+    </>
   );
 };
-
 export default FindRecipients;

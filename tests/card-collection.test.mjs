@@ -23,9 +23,11 @@ import {
 } from "../src/lib/cardCollection.ts";
 import {
   buildPendingCardCheckout,
+  CARD_CHECKOUT_RESUME_WINDOW_MS,
   clearPendingCardCheckout,
   getCardCheckoutKey,
   getLegacyCardCheckoutKey,
+  isCardCheckoutStale,
   loadPendingCardCheckout,
   pendingCheckoutFromStatus,
   savePendingCardCheckout,
@@ -219,6 +221,14 @@ test("recovery record stores only safe fields and is isolated per business entit
 
   clearPendingCardCheckout("entity-a", storage);
   assert.equal(loadPendingCardCheckout("entity-a", storage), null);
+});
+
+test("a checkout past the resume window is stale and an unfinished one should not reopen", () => {
+  const started = new Date("2026-10-07T10:00:00.000Z");
+  const record = buildPendingCardCheckout(initializeResponse, "wallet-1", started);
+  assert.equal(isCardCheckoutStale(record, new Date(started.getTime() + CARD_CHECKOUT_RESUME_WINDOW_MS)), false);
+  assert.equal(isCardCheckoutStale(record, new Date(started.getTime() + CARD_CHECKOUT_RESUME_WINDOW_MS + 1)), true);
+  assert.equal(isCardCheckoutStale({ ...record, started_at: "not-a-date" }, started), true);
 });
 
 test("legacy recovery records without provider migrate to the new key as paystack", () => {

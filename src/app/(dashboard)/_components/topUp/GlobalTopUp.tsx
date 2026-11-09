@@ -3,6 +3,7 @@
 import { ReactNode, useCallback, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import QRCode from "react-qr-code";
+import Image from "next/image";
 import Link from "next/link";
 import { useUser } from "@/lib/hooks/useUser";
 import { usePermissions } from "@/lib/hooks/usePermissions";
@@ -37,6 +38,7 @@ import { accountPdf, copyInstructions } from "../global/AccountDetails";
 import AddReceivingAccount from "../global/AddReceivingAccount";
 import SelectField from "@/components/ui/SelectField";
 import NgnCardTopUp from "./NgnTopup/NgnCardTopUp";
+import AfricaCollectionTopUp from "./UsdTopup/AfricaCollectionTopUp";
 
 const networks = [
   {
@@ -160,6 +162,7 @@ export default function GlobalTopUp({
   const [zelle, setZelle] = useState<IZelleInfo | null>(null);
   const [setupAsset, setSetupAsset] = useState<"EUR" | "GBP" | null>(null);
   const [cardTopUpOpen, setCardTopUpOpen] = useState(false);
+  const [africaCollectionOpen, setAfricaCollectionOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const canFund =
     canWriteBusiness && !!balance?.wallet_id && isAccountReady(balance.status);
@@ -376,6 +379,14 @@ export default function GlobalTopUp({
         goBack={() => setCardTopUpOpen(false)}
       />
     );
+  if (africaCollectionOpen)
+    return (
+      <AfricaCollectionTopUp
+        close={close}
+        onDone={finish}
+        goBack={() => setAfricaCollectionOpen(false)}
+      />
+    );
   if (setupAsset)
     return (
       <AddReceivingAccount
@@ -495,6 +506,22 @@ export default function GlobalTopUp({
                       </span>
                     </span>,
                     startZelle,
+                    !canFund,
+                  )}
+                {currency === "USD" &&
+                  row(
+                    "African countries",
+                    "Bank transfer or mobile money",
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f3f0ff]">
+                      <Image
+                        src="/icons/africa.png"
+                        alt=""
+                        width={25}
+                        height={25}
+                        className="object-contain"
+                      />
+                    </span>,
+                    () => setAfricaCollectionOpen(true),
                     !canFund,
                   )}
               </div>

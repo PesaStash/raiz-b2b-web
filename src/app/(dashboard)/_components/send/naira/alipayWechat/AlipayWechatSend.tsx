@@ -1,266 +1,321 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import {
-  IAlipayWechatAmountQuoteResponse,
-  IAlipayWechatBeneficiary,
-  IAlipayWechatSendResponse,
-} from "@/types/services";
-import { PaymentStatusType } from "@/types/transactions";
-import PaymentStatusModal from "@/components/modals/PaymentStatusModal";
-import { AlipayWechatSendApi } from "@/services/transactions";
-import {
-  getTransactionId,
-  getTransactionStatus,
-  trackMoneyMovementSuccess,
-  trackTransactionFailed,
-} from "@/utils/analytics/dataLayer";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { IAlipayWechatBeneficiary } from "@/types/services";
+import type {
+  ChinaPayChannel,
+  ChinaPayQuote,
+  ChinaPayResult,
+} from "@/types/chinaPay";
+import type { BalanceCurrency } from "@/types/globalBalance";
+import {
+  QuoteChinaPayApi,
+  SendChinaPayApi,
+  SendLegacyChinaPayApi,
+} from "@/services/chinaPay";
+import { chinaPayError, usableChinaPayQuote } from "@/utils/chinaPayQuote";
+import { useQuoteSeconds } from "@/lib/hooks/useQuoteSeconds";
+import {
+  trackMoneyMovementSuccess,
+  getTransactionId,
+} from "@/utils/analytics/dataLayer";
+import {
+  FlowCard,
+  FlowActions,
+} from "@/components/transactions/send-flow/Flow";
+import SendProcessing from "@/components/transactions/send-flow/SendProcessing";
+import { getCurrencySymbol } from "@/utils/helpers";
 import ChannelSelect from "./ChannelSelect";
 import AmountEntry from "./AmountEntry";
 import BeneficiarySelect from "./BeneficiarySelect";
 import AlipayWechatSummary from "./AlipayWechatSummary";
 import AlipayWechatPay from "./AlipayWechatPay";
 import AlipayWechatStatus from "./AlipayWechatStatus";
-
-type AlipayWechatStep =
-  | "channel"
-  | "beneficiary"
-  | "amount"
-  | "summary"
-  | "pay"
-  | "status";
-
+type Step = "channel" | "beneficiary" | "amount" | "summary" | "pay" | "status";
 interface Props {
   close: () => void;
-  onPastChannelChange?: (pastChannel: boolean) => void;
+  onPastChannelChange?: (past: boolean) => void;
 }
-
-const AlipayWechatSend = ({ close, onPastChannelChange }: Props) => {
-  const [step, setStep] = useState<AlipayWechatStep>("channel");
-  const [channel, setChannel] = useState<"alipay" | "wechat" | null>(null);
-  const [rate, setRate] = useState("");
-  const [destinationAmount, setDestinationAmount] = useState("");
-  const [quote, setQuote] = useState<IAlipayWechatAmountQuoteResponse | null>(
-    null,
-  );
-  const [selectedBeneficiary, setSelectedBeneficiary] =
+export default function AlipayWechatSend({
+  close,
+  onPastChannelChange,
+}: Props) {
+  const [step, setStep] = useState<Step>("channel");
+  const [channel, setChannel] = useState<ChinaPayChannel>("alipay");
+  // The deployed China Pay APIs currently debit NGN only. Do not request the
+  // proposed USD v2 quote endpoint until that contract is available server-side.
+  const [funding, setFunding] = useState<BalanceCurrency>("NGN");
+  const [amount, setAmount] = useState("");
+  const [beneficiary, setBeneficiary] =
     useState<IAlipayWechatBeneficiary | null>(null);
-  const [transactionResult, setTransactionResult] =
-    useState<IAlipayWechatSendResponse | null>(null);
-  const [paymentError, setPaymentError] = useState("");
-  const [status, setStatus] = useState<PaymentStatusType>(null);
+  const [quote, setQuote] = useState<ChinaPayQuote | null>(null);
+  const [result, setResult] = useState<ChinaPayResult | null>(null);
+  const [error, setError] = useState("");
+  const [serverExpired, setServerExpired] = useState(false);
+  const [uncertain, setUncertain] = useState(false);
+  const actionKey = useRef<{
+    quoteId: string;
+    beneficiaryId: string;
+    key: string;
+  } | null>(null);
+  const seconds = useQuoteSeconds(quote?.expires_at);
+  const expired = serverExpired || seconds === 0;
   const qc = useQueryClient();
-
   useEffect(() => {
     onPastChannelChange?.(step !== "channel");
   }, [step, onPastChannelChange]);
-
-  const reset = () => {
-    setStep("channel");
-    setChannel(null);
-    setRate("");
-    setDestinationAmount("");
-    setQuote(null);
-    setSelectedBeneficiary(null);
-    setTransactionResult(null);
-    setPaymentError("");
-    setStatus(null);
+  const request = {
+    channel,
+    destination_amount: amount,
+    funding_currency: funding,
   };
-
-  const handleDone = () => {
-    reset();
-    close();
-  };
-
-  const handleChannelSelected = (
-    ch: "alipay" | "wechat",
-    fetchedRate: string,
-  ) => {
-    setChannel(ch);
-    setRate(fetchedRate);
-    setStep("beneficiary");
-  };
-
-  const handleBeneficiarySelected = (b: IAlipayWechatBeneficiary) => {
-    setSelectedBeneficiary(b);
-    setStep("amount");
-  };
-
-  const handleAmountConfirmed = (
-    amount: string,
-    fetchedQuote: IAlipayWechatAmountQuoteResponse,
-  ) => {
-    setDestinationAmount(amount);
-    setQuote(fetchedQuote);
-    setStep("summary");
-  };
-
-  const sendMutation = useMutation({
-    mutationFn: async (transactionPin: string) => {
-      if (!channel || !selectedBeneficiary) {
-        throw new Error("Missing Alipay/WeChat payment details");
-      }
-      return AlipayWechatSendApi({
-        beneficiary_id: selectedBeneficiary.alipay_wechat_beneficiary_id,
-        channel,
-        amount: destinationAmount,
-        transaction_pin: transactionPin,
-      });
-    },
+  const refresh = useMutation({
+    mutationFn: () => QuoteChinaPayApi(request, crypto.randomUUID()),
     onMutate: () => {
-      setPaymentError("");
-      setStatus("loading");
+      setError("");
+      setStep("summary");
+    },
+    onSuccess: (fresh) => {
+      if (!usableChinaPayQuote(fresh, request)) {
+        setError(
+          "The quote is unavailable or expired. Please request a new rate.",
+        );
+        return;
+      }
+      setQuote(fresh);
+      setServerExpired(false);
+      actionKey.current = null;
+    },
+    onError: (e) => setError(chinaPayError(e).message),
+  });
+  const send = useMutation({
+    mutationFn: async (pin: string) => {
+      if (
+        !quote ||
+        !beneficiary ||
+        serverExpired ||
+        !usableChinaPayQuote(quote, request)
+      )
+        throw new Error(
+          "The quote expired. Get a new rate before authorising.",
+        );
+      if (
+        !actionKey.current ||
+        actionKey.current.quoteId !== quote.quote_id ||
+        actionKey.current.beneficiaryId !==
+          beneficiary.alipay_wechat_beneficiary_id
+      )
+        actionKey.current = {
+          quoteId: quote.quote_id,
+          beneficiaryId: beneficiary.alipay_wechat_beneficiary_id,
+          key: crypto.randomUUID(),
+        };
+      if (quote.legacy) {
+        return SendLegacyChinaPayApi({
+          beneficiary_id: beneficiary.alipay_wechat_beneficiary_id,
+          channel,
+          amount,
+          transaction_pin: pin,
+        });
+      }
+      return SendChinaPayApi(
+        {
+          quote_id: quote.quote_id,
+          beneficiary_id: beneficiary.alipay_wechat_beneficiary_id,
+          transaction_pin: pin,
+        },
+        actionKey.current.key,
+      );
+    },
+    retry: false,
+    onMutate: () => {
+      setError("");
+      setUncertain(false);
       setStep("status");
     },
-    onSuccess: (result: IAlipayWechatSendResponse) => {
+    onSuccess: (response) => {
+      setResult(response);
       qc.invalidateQueries({ queryKey: ["user"] });
       qc.invalidateQueries({ queryKey: ["transactions-report"] });
-      qc.invalidateQueries({ queryKey: ["alipay-wechat-beneficiaries"] });
-
-      if (getTransactionStatus(result) === "completed") {
-        const transactionId = getTransactionId(result);
-        if (transactionId) {
+      qc.invalidateQueries({ queryKey: ["today-outflow"] });
+      if (response.status === "completed") {
+        const id = getTransactionId(response);
+        if (id)
           trackMoneyMovementSuccess({
             event: "send_completed",
-            transactionId,
-            value: Number(destinationAmount) || 0,
-            currency: "NGN",
+            transactionId: id,
+            value: Number(response.funding_amount),
+            currency: response.funding_currency,
             extra: { recipient_type: "external" },
           });
-        }
       }
-
-      setTransactionResult(result);
-      setStatus(null);
     },
-    onError: (err: unknown) => {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || "Transaction failed. Please try again.";
-      trackTransactionFailed({
-        transactionType: "send",
-        error: (err as { response?: unknown })?.response ?? err,
-        value: Number(destinationAmount) || undefined,
-        currency: "NGN",
-      });
-      setPaymentError(msg);
-      setStatus("failed");
+    onError: (e) => {
+      const failure = chinaPayError(e);
+      setError(failure.message);
+      if (
+        failure.code === "quote_expired" ||
+        (quote && !usableChinaPayQuote(quote, request))
+      ) {
+        setServerExpired(true);
+        setStep("summary");
+        actionKey.current = null;
+        return;
+      }
+      if (
+        !failure.status ||
+        failure.status >= 500 ||
+        failure.code === "quote_already_used" ||
+        failure.code === "idempotency_conflict"
+      ) {
+        setUncertain(true);
+        return;
+      }
+      actionKey.current = null;
     },
   });
-
-  switch (step) {
-    case "channel":
-      return <ChannelSelect onSelect={handleChannelSelected} />;
-
-    case "beneficiary":
+  if (step === "channel")
+    return (
+      <ChannelSelect
+        onBack={close}
+        onSelect={(value) => {
+          setChannel(value);
+          setQuote(null);
+          setStep("beneficiary");
+        }}
+      />
+    );
+  if (step === "beneficiary")
+    return (
+      <BeneficiarySelect
+        channel={channel}
+        onSelect={(value) => {
+          setBeneficiary(value);
+          setQuote(null);
+          setStep("amount");
+        }}
+        onBack={() => setStep("channel")}
+      />
+    );
+  if (step === "amount" && beneficiary)
+    return (
+      <AmountEntry
+        channel={channel}
+        beneficiary={beneficiary}
+        initialAmount={amount}
+        fundingCurrency={funding}
+        onFundingChange={(value) => {
+          setFunding(value);
+          setQuote(null);
+        }}
+        onBack={() => setStep("beneficiary")}
+        onConfirm={(value, newQuote) => {
+          setAmount(value);
+          setQuote(newQuote);
+          setError("");
+          setServerExpired(false);
+          actionKey.current = null;
+          setStep("summary");
+        }}
+      />
+    );
+  if (step === "status") {
+    if (result)
       return (
-        channel && (
-          <BeneficiarySelect
-            channel={channel}
-            onSelect={handleBeneficiarySelected}
-            onBack={() => setStep("channel")}
-          />
-        )
+        <AlipayWechatStatus
+          result={result}
+          beneficiary={beneficiary ?? undefined}
+          quote={quote ?? undefined}
+          error={error}
+          onDone={close}
+        />
       );
-
-    case "amount":
+    if (send.isPending) {
+      const destination = quote?.destination_money;
+      const amountLabel = destination
+        ? `${getCurrencySymbol(destination.currency)}${Number(destination.amount).toLocaleString()}`
+        : amount;
       return (
-        channel && (
-          <AmountEntry
-            channel={channel}
-            rate={rate}
-            onConfirm={handleAmountConfirmed}
-            onBack={() => setStep("beneficiary")}
-          />
-        )
+        <SendProcessing
+          title={`Sending ${amountLabel} to ${beneficiary?.name || "recipient"}`}
+        />
       );
-
-    case "summary":
-      return (
-        channel &&
-        selectedBeneficiary &&
-        quote && (
-          <AlipayWechatSummary
-            channel={channel}
-            beneficiary={selectedBeneficiary}
-            destinationAmount={destinationAmount}
-            quote={quote}
-            onConfirm={() => setStep("pay")}
-            onBack={() => setStep("amount")}
-          />
-        )
-      );
-
-    case "pay":
-      return (
-        channel &&
-        selectedBeneficiary &&
-        quote && (
-          <>
-            <AlipayWechatSummary
-              channel={channel}
-              beneficiary={selectedBeneficiary}
-              destinationAmount={destinationAmount}
-              quote={quote}
-              onConfirm={() => setStep("pay")}
-              onBack={() => setStep("amount")}
-            />
-            <AlipayWechatPay
-              submitting={sendMutation.isPending}
-              onSubmit={(pin) => sendMutation.mutate(pin)}
-              onClose={() => setStep("summary")}
-            />
-          </>
-        )
-      );
-
-    case "status":
-      if (status === null && transactionResult) {
-        return (
-          <AlipayWechatStatus
-            result={transactionResult}
-            error={paymentError}
-            onDone={handleDone}
-          />
-        );
-      }
-
-      return (
-        channel &&
-        selectedBeneficiary &&
-        quote && (
-          <>
-            <AlipayWechatSummary
-              channel={channel}
-              beneficiary={selectedBeneficiary}
-              destinationAmount={destinationAmount}
-              quote={quote}
-              onConfirm={() => setStep("pay")}
-              onBack={() => setStep("amount")}
-            />
-            {(status === "loading" || status === "failed") && (
-              <PaymentStatusModal
-                status={status}
-                amount={parseFloat(destinationAmount) || 0}
-                currency="CNY"
-                user={selectedBeneficiary}
-                close={handleDone}
-                error={paymentError}
-                tryAgain={() => {
-                  setStatus(null);
+    }
+    return (
+      <FlowCard>
+        <h1 className="text-2xl font-semibold">
+          {uncertain
+            ? "We’re checking your payment"
+            : "Payment didn’t go through"}
+        </h1>
+        <p role="status" className="text-sm text-[#79708d]">
+          {uncertain
+            ? "We couldn’t confirm the outcome. Check your transaction history before trying another payment."
+            : error}
+        </p>
+        <FlowActions
+          tone="purple"
+          onBack={uncertain ? undefined : close}
+          backLabel="Done"
+          onNext={
+            uncertain
+              ? close
+              : () => {
+                  setError("");
                   setStep("summary");
-                }}
-                viewReceipt={handleDone}
-                type="external"
-              />
-            )}
-          </>
-        )
-      );
-
-    default:
-      return null;
+                }
+          }
+          nextLabel={uncertain ? "Done" : "Review payment"}
+        />
+      </FlowCard>
+    );
   }
-};
-
-export default AlipayWechatSend;
+  if (!quote || !beneficiary) return null;
+  const summary = (
+    <AlipayWechatSummary
+      beneficiary={beneficiary}
+      quote={quote}
+      seconds={seconds}
+      expired={expired}
+      refreshing={refresh.isPending}
+      error={error}
+      onRefresh={() => refresh.mutate()}
+      onConfirm={() => {
+        if (usableChinaPayQuote(quote, request) && !serverExpired)
+          setStep("pay");
+        else setServerExpired(true);
+      }}
+      onBack={() => setStep("amount")}
+    />
+  );
+  return (
+    <>
+      {summary}
+      {step === "pay" && !expired && (
+        <AlipayWechatPay
+          transfer={{
+            recipient: beneficiary.name,
+            amount: quote.destination_money.amount,
+            currency: "CNY",
+            sourceCurrency: funding,
+            debit: quote.total_debit.amount,
+          }}
+          submitting={send.isPending}
+          onSubmit={(pin) => {
+            if (
+              !send.isPending &&
+              usableChinaPayQuote(quote, request) &&
+              !serverExpired
+            )
+              send.mutate(pin);
+            else {
+              setServerExpired(true);
+              setStep("summary");
+            }
+          }}
+          onClose={() => setStep("summary")}
+        />
+      )}
+    </>
+  );
+}

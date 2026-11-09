@@ -16,7 +16,7 @@ interface Props {
   setPaymentError: Dispatch<SetStateAction<string>>;
   fee: number;
 }
-const UsdBankPay = ({ close, goNext, setPaymentError }: Props) => {
+const UsdBankPay = ({ close, goNext, setPaymentError, fee }: Props) => {
   const [pin, setPin] = useState<string>("");
   const { usdBeneficiary, purpose, category, amount, actions } = useSendStore();
   const qc = useQueryClient();
@@ -78,7 +78,20 @@ const UsdBankPay = ({ close, goNext, setPaymentError }: Props) => {
     }
   }, [pin]);
 
-  return <EnterPin pin={pin} setPin={setPin} close={close} />;
+  return (
+    <EnterPin
+      transfer={{
+        recipient: usdBeneficiary?.usd_beneficiary.account_name || "",
+        amount: Number(amount),
+        currency: "USD",
+        sourceCurrency: "USD",
+        debit: Number(amount) + fee,
+      }}
+      pin={pin}
+      setPin={setPin}
+      close={close}
+    />
+  );
 };
 
 export default UsdBankPay;

@@ -41,6 +41,7 @@ import { useUser } from "@/lib/hooks/useUser";
 import { toast } from "sonner";
 import { CurrencyTypeKey } from "@/store/Swap/swapSlice.types";
 import CryptoSwap from "@/app/(dashboard)/_components/crypto/swap/CryptoSwap";
+import { isGlobalBalance, spendableBalances } from "@/lib/globalBalance";
 
 type ModalKeys =
   | "notifications"
@@ -283,6 +284,21 @@ const Header = () => {
   };
 
   const handleSwapClick = () => {
+    if (isGlobalBalance(user?.business_account)) {
+      const balances = spendableBalances(user?.business_account);
+      const hasUsd = balances.some((b) => b.currency === "USD");
+      const hasNgn = balances.some((b) => b.currency === "NGN");
+      if (!hasUsd || !hasNgn) {
+        toast.warning("USD and NGN balances are required to swap.");
+        return;
+      }
+      const from = selectedCurrency.name === "NGN" ? "NGN" : "USD";
+      const to = from === "USD" ? "NGN" : "USD";
+      actions.switchSwapWallet(to, walletData ?? [], from);
+      setShowModal("swap");
+      return;
+    }
+
     if (!walletData || walletData.length < 2) {
       toast.warning("You need at least two wallets to use swap");
       return;
@@ -550,6 +566,7 @@ const Header = () => {
         showModal !== "selectAcct" &&
         (showModal !== "topUp" || !hasDedicatedTopUp) && (
           <CenterModalWrapper
+            sendFlow={showModal === "send"}
             close={handleCloseModal}
             wrapperStyle={
               showModal === "createCrypto" ? "!bg-raiz-crypto-primary" : ""

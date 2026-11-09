@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  FlowHeader,
+  FlowCard,
+  FlowRow,
+} from "@/components/transactions/send-flow/Flow";
 import AddressAutocomplete from "@/components/ui/AddressAutocomplete";
 import Avatar from "@/components/ui/Avatar";
 import Button from "@/components/ui/Button";
@@ -20,7 +25,6 @@ import { maskAccountNumber, truncateString } from "@/utils/helpers";
 import { mapSwiftError } from "@/utils/swiftErrors";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Form, Formik, FormikProps } from "formik";
-import Image from "next/image";
 import React, { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { toFormikValidationSchema } from "zod-formik-adapter";
@@ -89,11 +93,7 @@ const fullSchema = step1Schema.extend({
       { message: "SWIFT code must be 8 or 11 letters or numbers" },
     ),
   bank_name: z.string().trim().min(2, "Bank name is required").max(255),
-  beneficiary_address: z
-    .string()
-    .trim()
-    .min(2, "Address is required")
-    .max(500),
+  beneficiary_address: z.string().trim().min(2, "Address is required").max(500),
   city: z.string().trim().min(1, "City is required").max(150),
   state: z.string().trim().min(1, "State is required").max(150),
   postal_code: z.string().trim().min(1, "Postal code is required").max(40),
@@ -118,13 +118,16 @@ const SwiftBeneficiarySelect = ({
   invoiceFile,
   onInvoiceChange,
 }: Props) => {
-  const [formStep, setFormStep] = useState<1 | 2>(1);
+  const [formStep, setFormStep] = useState<1 | 2 | 3>(1);
   const [showChooser, setShowChooser] = useState(false);
   const [invoiceError, setInvoiceError] = useState("");
   const [submitError, setSubmitError] = useState("");
   const qc = useQueryClient();
-  const { countries, fetchCountries, loading: countriesLoading } =
-    useCountryStore();
+  const {
+    countries,
+    fetchCountries,
+    loading: countriesLoading,
+  } = useCountryStore();
 
   useEffect(() => {
     fetchCountries();
@@ -176,15 +179,36 @@ const SwiftBeneficiarySelect = ({
   };
 
   return (
-    <div className="p-0 md:p-6 h-full flex flex-col overflow-y-auto no-scrollbar">
-      <button type="button" onClick={onBack} className="mb-4 self-start">
-        <Image src="/icons/arrow-left.svg" width={18} height={18} alt="back" />
-      </button>
-      <h2 className="text-raiz-gray-950 md:text-[22px] text-lg font-semibold leading-10 tracking-[-0.44px] mb-6">
-        SWIFT
-      </h2>
-
-      <div className="bg-raiz-gray-50 md:p-6 p-3 rounded-[20px] flex-1">
+    <div>
+      <FlowHeader
+        title={
+          formStep === 1
+            ? "SWIFT beneficiary"
+            : formStep === 2
+              ? "SWIFT bank details"
+              : "Preview beneficiary"
+        }
+        onBack={() =>
+          formStep === 1 ? onBack() : setFormStep(formStep === 3 ? 2 : 1)
+        }
+      />
+      <div className="flex gap-2 mb-5" aria-label={`Step ${formStep} of 3`}>
+        {[1, 2, 3].map((step) => (
+          <div
+            key={step}
+            className={`h-1.5 flex-1 rounded ${step <= formStep ? "bg-primary2" : "bg-[#e3e3ec]"}`}
+          />
+        ))}
+      </div>
+      <p className="text-sm text-[#79708d] mb-5">
+        Step {formStep} of 3 ·{" "}
+        {formStep === 1
+          ? "Beneficiary"
+          : formStep === 2
+            ? "Bank details"
+            : "Preview"}
+      </p>
+      <FlowCard>
         <div className="mb-11">
           <h5 className="text-raiz-gray-950 text-sm font-bold leading-[16.8px] mb-[15px]">
             {beneficiaries.length > 0 ? "Recent" : "Beneficiary"}
@@ -221,6 +245,10 @@ const SwiftBeneficiarySelect = ({
           initialValues={initialValues}
           validationSchema={toFormikValidationSchema(fullSchema)}
           onSubmit={async (values, { setFieldError }) => {
+            if (formStep !== 3) {
+              setFormStep(3);
+              return;
+            }
             setSubmitError("");
             const payload: ISwiftCreateBeneficiaryPayload = {
               country: values.country.trim().toUpperCase(),
@@ -276,8 +304,9 @@ const SwiftBeneficiarySelect = ({
             } = formik;
 
             const selectedCountry =
-              countryOptions.find((option) => option.value === values.country) ??
-              null;
+              countryOptions.find(
+                (option) => option.value === values.country,
+              ) ?? null;
             const selectedType =
               typeOptions.find(
                 (option) => option.value === values.beneficiary_type,
@@ -300,7 +329,15 @@ const SwiftBeneficiarySelect = ({
                   ) : null}
                 </div>
 
-                {formStep === 1 ? (
+                {formStep === 3 ? (
+                  <div className="flex flex-col gap-4">
+                    {Object.entries(values).map(([key, value]) => (
+                      <FlowRow key={key} label={key.replace(/_/g, " ")}>
+                        {value}
+                      </FlowRow>
+                    ))}
+                  </div>
+                ) : formStep === 1 ? (
                   <>
                     <SelectField
                       label="Country"
@@ -314,7 +351,9 @@ const SwiftBeneficiarySelect = ({
                         setFieldValue("country", option?.value ?? "", true);
                         setFieldTouched("country", true, false);
                       }}
-                      status={touched.country && errors.country ? "error" : null}
+                      status={
+                        touched.country && errors.country ? "error" : null
+                      }
                       helper={
                         touched.country && errors.country
                           ? String(errors.country)
@@ -432,10 +471,7 @@ const SwiftBeneficiarySelect = ({
                         setFieldValue(
                           "beneficiary_address",
                           components.address ||
-                            [
-                              components.building_number,
-                              components.street,
-                            ]
+                            [components.building_number, components.street]
                               .filter(Boolean)
                               .join(" ") ||
                             values.beneficiary_address,
@@ -521,8 +557,8 @@ const SwiftBeneficiarySelect = ({
                 <div className="pt-4 flex flex-col gap-2">
                   <p className="text-raiz-gray-500 text-sm">
                     {formStep === 1
-                      ? "Step 1 of 2 · Beneficiary details"
-                      : "Step 2 of 2 · Bank details"}
+                      ? "Step 1 of 3 · Beneficiary details"
+                      : `Step ${formStep} of 3 · ${formStep === 2 ? "Bank details" : "Preview"}`}
                   </p>
                   {formStep === 1 ? (
                     <Button
@@ -532,7 +568,7 @@ const SwiftBeneficiarySelect = ({
                         if (ok) setFormStep(2);
                       }}
                     >
-                      Continue
+                      Next: bank details
                     </Button>
                   ) : (
                     <>
@@ -540,12 +576,14 @@ const SwiftBeneficiarySelect = ({
                         type="submit"
                         loading={isSubmitting || createMutation.isPending}
                       >
-                        Continue
+                        {formStep === 2
+                          ? "Next: preview"
+                          : "Save beneficiary and continue"}
                       </Button>
                       <Button
                         type="button"
                         variant="secondary"
-                        onClick={() => setFormStep(1)}
+                        onClick={() => setFormStep(formStep === 3 ? 2 : 1)}
                       >
                         Back
                       </Button>
@@ -556,7 +594,7 @@ const SwiftBeneficiarySelect = ({
             );
           }}
         </Formik>
-      </div>
+      </FlowCard>
 
       {showChooser ? (
         <SwiftBeneficiaryModal

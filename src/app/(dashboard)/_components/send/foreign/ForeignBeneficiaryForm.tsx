@@ -29,6 +29,7 @@ interface Props {
   close: () => void;
   goNext: () => void;
   hideHeader?: boolean;
+  currencyOverride?: ForeignCurrency;
 }
 
 interface FormValues {
@@ -106,13 +107,13 @@ const initialValues: FormValues = {
   last_name: "",
 };
 
-const ForeignBeneficiaryForm = ({ close, goNext, hideHeader }: Props) => {
+const ForeignBeneficiaryForm = ({ close, goNext, hideHeader, currencyOverride }: Props) => {
   const qc = useQueryClient();
   const { actions } = useSendStore();
   const { selectedCurrency } = useCurrencyStore();
   const { countries, fetchCountries, loading: countriesLoading } =
     useCountryStore();
-  const currency = selectedCurrency.name as ForeignCurrency;
+  const currency = currencyOverride ?? (selectedCurrency.name as ForeignCurrency);
   const queryParams: IForeignBeneficiariesParams = { page: 1, limit: 50 };
 
   useEffect(() => {
