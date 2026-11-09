@@ -25,6 +25,8 @@ interface Props {
   currency: string;
   amount: string;
   merchantName: string;
+  /** Skip Overlay when rendered inside SideModalWrapper / GlobalDialog. */
+  embedded?: boolean;
 }
 
 const TerminalMessage = ({
@@ -73,6 +75,7 @@ const GuestSendStatusModal = ({
   amount,
   currency,
   merchantName,
+  embedded = false,
 }: Props) => {
   const amountLabel = `${getCurrencySymbol(currency)}${Number(amount).toLocaleString()}`;
 
@@ -127,11 +130,17 @@ const GuestSendStatusModal = ({
     return null;
   };
 
+  const content = (
+    <div className="flex flex-col h-[400px] sm:h-[488px] w-full from-indigo-900 to-violet-600">
+      {displayStatus()}
+    </div>
+  );
+
+  if (embedded) return content;
+
   return (
     <Overlay close={() => {}} width={"400px"}>
-      <div className="flex flex-col h-[400px] sm:h-[488px] w-full from-indigo-900 to-violet-600">
-        {displayStatus()}
-      </div>
+      {content}
     </Overlay>
   );
 };

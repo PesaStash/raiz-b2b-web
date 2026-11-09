@@ -102,6 +102,7 @@ export function GlobalDialog({
   drawer = false,
   compact = false,
   hero = false,
+  variant = "default",
   children,
 }: {
   title: string;
@@ -110,8 +111,11 @@ export function GlobalDialog({
   drawer?: boolean;
   compact?: boolean;
   hero?: boolean;
+  /** Purple drawer used by the redesigned transaction details panel. */
+  variant?: "default" | "purple";
   children: ReactNode;
 }) {
+  const purple = variant === "purple" && drawer;
   const ref = useRef<HTMLDivElement>(null);
   const titleId = useId();
   useEffect(() => {
@@ -161,7 +165,17 @@ export function GlobalDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={`flex w-full flex-col overflow-y-auto font-monzo text-raiz-gray-950 outline-none ${drawer ? `h-dvh max-w-[480px] bg-[#fbfaff] p-5 sm:p-7 ${onBack ? "sm:pt-4 sm:pb-6 shadow-[-12px_0_40px_rgba(26,20,51,0.18)]" : ""}` : hero ? "max-h-[90dvh] max-w-[480px] overflow-hidden rounded-3xl bg-white drop-shadow-[0px_24px_32px_rgba(13,13,38,0.25)]" : compact ? "max-h-[90dvh] max-w-[440px] rounded-3xl bg-white p-6 shadow-[0px_24px_64px_0px_rgba(13,13,38,0.25)]" : "max-h-[90dvh] max-w-[480px] rounded-3xl bg-white p-6 sm:p-7"}`}
+        className={`flex w-full flex-col overflow-y-auto font-monzo outline-none ${
+          purple
+            ? "h-dvh max-w-[480px] bg-[#3c2875] px-7 pb-6 pt-4 text-white shadow-[-12px_0_40px_rgba(26,20,51,0.18)]"
+            : drawer
+              ? `h-dvh max-w-[480px] bg-[#fbfaff] p-5 text-raiz-gray-950 sm:p-7 ${onBack ? "sm:pt-4 sm:pb-6 shadow-[-12px_0_40px_rgba(26,20,51,0.18)]" : ""}`
+              : hero
+                ? "max-h-[90dvh] max-w-[480px] overflow-hidden rounded-3xl bg-white text-raiz-gray-950 drop-shadow-[0px_24px_32px_rgba(13,13,38,0.25)]"
+                : compact
+                  ? "max-h-[90dvh] max-w-[440px] rounded-3xl bg-white p-6 text-raiz-gray-950 shadow-[0px_24px_64px_0px_rgba(13,13,38,0.25)]"
+                  : "max-h-[90dvh] max-w-[480px] rounded-3xl bg-white p-6 text-raiz-gray-950 sm:p-7"
+        }`}
       >
         {hero ? (
           <h2 id={titleId} className="sr-only">
@@ -169,24 +183,50 @@ export function GlobalDialog({
           </h2>
         ) : (
           <header
-            className={`flex shrink-0 items-center ${compact ? "mb-4" : onBack ? "mb-6 gap-3" : "mb-8 gap-3"}`}
+            className={`flex shrink-0 items-center ${
+              purple
+                ? "mb-8 gap-3 py-3"
+                : compact
+                  ? "mb-4"
+                  : onBack
+                    ? "mb-6 gap-3"
+                    : "mb-8 gap-3"
+            }`}
           >
             {drawer && (
               <button
-                aria-label={onBack ? "Back" : "Close account details"}
+                aria-label={onBack ? "Back" : "Close"}
                 onClick={onBack ?? close}
-                className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-raiz-gray-100"
+                className={`flex h-9 w-9 items-center justify-center rounded-full ${
+                  purple ? "hover:bg-white/10" : "hover:bg-raiz-gray-100"
+                }`}
               >
-                <DesignIcon name="32273-13049-imgVuesaxLinearArrowLeft.svg" />
+                <DesignIcon
+                  name={
+                    purple
+                      ? "32533-drawer-arrow-left-white.svg"
+                      : "32273-13049-imgVuesaxLinearArrowLeft.svg"
+                  }
+                />
               </button>
             )}
             <h2
               id={titleId}
-              className={`flex-1 font-semibold ${drawer ? "text-center text-base" : compact ? "text-xl leading-normal text-[#19151e]" : "text-xl"}`}
+              className={`flex-1 font-semibold ${
+                purple
+                  ? "text-center text-base text-white"
+                  : drawer
+                    ? "text-center text-base"
+                    : compact
+                      ? "text-xl leading-normal text-[#19151e]"
+                      : "text-xl"
+              }`}
             >
               {title}
             </h2>
-            {compact ? (
+            {purple ? (
+              <span className="h-9 w-9 shrink-0" aria-hidden />
+            ) : compact ? (
               <button
                 aria-label="Close"
                 onClick={close}

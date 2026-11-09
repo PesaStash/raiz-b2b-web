@@ -50,13 +50,15 @@ export function formatMoney(
   if (!/^-?\d+(\.\d+)?$/.test(raw)) return "—";
   const negative = raw.startsWith("-");
   const [whole, fraction = ""] = (negative ? raw.slice(1) : raw).split(".");
-  const decimals = fraction.slice(0, 2).padEnd(2, "0");
+  const precision = ["USDT", "USDC"].includes(currency) ? 6 : 2;
+  const decimals = fraction.slice(0, precision).padEnd(precision, "0");
   const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   const symbols: Record<string, string> = {
     USD: "$",
     NGN: "₦",
     EUR: "€",
     GBP: "£",
+    CNY: "¥",
   };
   const sign = negative && (whole !== "0" || decimals !== "00") ? "-" : "";
   return `${sign}${symbols[currency] ?? ""}${grouped}.${decimals}${symbols[currency] ? "" : ` ${currency}`}`;

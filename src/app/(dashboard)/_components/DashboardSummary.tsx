@@ -3,7 +3,7 @@ import { usePermissions } from "@/lib/hooks/usePermissions";
 
 import React, { useEffect, useState } from "react";
 import GlobalDashboard from "./global/GlobalDashboard";
-import { isGlobalBalance } from "@/lib/globalBalance";
+import { isGlobalBalance, spendableBalances } from "@/lib/globalBalance";
 import { AnimatePresence } from "motion/react";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import NgnSend from "./send/naira/NgnSend";
@@ -166,6 +166,28 @@ const DashboardSummary = () => {
       );
       return;
     }
+
+    if (isGlobalBalance(user?.business_account)) {
+      const balances = spendableBalances(user?.business_account);
+      const hasUsd = balances.some((b) => b.currency === "USD");
+      const hasNgn = balances.some((b) => b.currency === "NGN");
+      if (!hasUsd || !hasNgn) {
+        toast.warning("USD and NGN balances are required to swap.");
+        return;
+      }
+      const from =
+        sourceCurrency === "NGN" || sourceCurrency === "USD"
+          ? sourceCurrency
+          : selectedCurrency.name === "NGN"
+            ? "NGN"
+            : "USD";
+      const to = from === "USD" ? "NGN" : "USD";
+      actions.switchSwapWallet(to, walletData ?? [], from);
+      if (amount !== undefined) actions.setAmount(amount);
+      setOpenModal("swap");
+      return;
+    }
+
     if (!walletData || walletData.length < 2) {
       toast.warning("You need at least two wallets to use swap");
       return;
@@ -429,6 +451,7 @@ const DashboardSummary = () => {
         openModal !== "selectAcct" &&
         (openModal !== "topUp" || !hasDedicatedTopUp) ? (
           <CenterModalWrapper
+            sendFlow={openModal === "send"}
             close={closeModal}
             wrapperStyle={
               openModal === "createCrypto" ? "!bg-raiz-crypto-primary" : ""

@@ -1,4 +1,5 @@
 "use client";
+import { FlowCard } from "@/components/transactions/send-flow/Flow";
 import BankModal from "@/components/modals/BankModal";
 import BeneficiariesModal from "@/components/modals/BeneficiariesModal";
 import RecentUsers from "@/components/transactions/RecentUsers";
@@ -65,7 +66,6 @@ const SelectUser = () => {
       { account_number: acctNo, bank_code: bank?.bankCode },
     ],
     queryFn: async ({ queryKey }) => {
-       
       const [_, params] = queryKey as [
         string,
         { account_number: string; bank_code: string },
@@ -83,7 +83,7 @@ const SelectUser = () => {
   };
 
   const handleNext = () => {
-    if (!bank) return;
+    if (!bank || !isValid || isFetching || !data?.account_name) return;
     actions.selectExternalUser(userPayload);
   };
 
@@ -95,8 +95,8 @@ const SelectUser = () => {
     );
   return (
     <div className="flex flex-col h-full ">
-      <div className="flex  flex-col justify-between gap-6">
-        <div className="bg-raiz-gray-50 rounded-[20px] md:p-6 ">
+      <FlowCard>
+        <div>
           {recents.length !== 0 && (
             <RecentUsers
               type="external"
@@ -146,7 +146,7 @@ const SelectUser = () => {
         <Button disabled={!data || isFetching} onClick={handleNext}>
           Continue
         </Button>
-      </div>
+      </FlowCard>
       {showModal === "bank" && (
         <BankModal setSelectedBank={setBank} close={() => setShowModal(null)} />
       )}

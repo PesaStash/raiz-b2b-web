@@ -186,6 +186,13 @@ const SwiftSend = ({ close }: Props) => {
               onBack={() => setStep("amount")}
             />
             <SwiftPay
+              transfer={{
+                recipient: beneficiary.account_name,
+                amount: Number(amount),
+                currency: "USD",
+                sourceCurrency: "USD",
+                debit: Number(amount) + fee,
+              }}
               submitting={sendMutation.isPending}
               onSubmit={(pin) => sendMutation.mutate(pin)}
               onClose={() => setStep("summary")}
@@ -219,6 +226,7 @@ const SwiftSend = ({ close }: Props) => {
               }}
               viewReceipt={handleDone}
               type="external"
+              processingTitle={`Submitting SWIFT request to ${beneficiary.account_name}`}
             />
           </>
         )

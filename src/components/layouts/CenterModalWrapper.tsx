@@ -5,14 +5,21 @@ import * as motion from "motion/react-client";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import Link from "next/link";
 import { createPortal } from "react-dom";
+import { SendFlowContext } from "@/components/transactions/send-flow/Flow";
 
 interface Props {
   children: ReactNode;
   close: () => void;
   wrapperStyle?: string;
+  sendFlow?: boolean;
 }
 
-const CenterModalWrapper = ({ children, close, wrapperStyle }: Props) => {
+const CenterModalWrapper = ({
+  children,
+  close,
+  wrapperStyle,
+  sendFlow = false,
+}: Props) => {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const [isHydrated, setIsHydrated] = useState(false);
 
@@ -31,13 +38,9 @@ const CenterModalWrapper = ({ children, close, wrapperStyle }: Props) => {
 
   if (!isHydrated) return null;
 
-  const initial = isMobile
-    ? { opacity: 0, y: "100%" }
-    : { opacity: 0, y: 20 };
+  const initial = isMobile ? { opacity: 0, y: "100%" } : { opacity: 0, y: 20 };
   const animate = { opacity: 1, x: 0, y: 0 };
-  const exit = isMobile
-    ? { opacity: 0, y: "100%" }
-    : { opacity: 0, y: 20 };
+  const exit = isMobile ? { opacity: 0, y: "100%" } : { opacity: 0, y: 20 };
 
   const modal = (
     <motion.div
@@ -56,14 +59,13 @@ const CenterModalWrapper = ({ children, close, wrapperStyle }: Props) => {
         <Link
           href="/"
           onClick={close}
-          className="absolute top-6 left-6 z-10"
+          className={
+            sendFlow
+              ? "absolute top-8 left-6 z-10"
+              : "absolute top-6 left-6 z-10"
+          }
         >
-          <Image
-            src={"/icons/Logo-4.svg"}
-            width={104}
-            height={46}
-            alt="Raiz"
-          />
+          <Image src={"/icons/Logo-4.svg"} width={104} height={46} alt="Raiz" />
         </Link>
       )}
 
@@ -81,7 +83,9 @@ const CenterModalWrapper = ({ children, close, wrapperStyle }: Props) => {
         className={
           isMobile
             ? `w-full max-h-[92dvh] flex flex-col bg-white rounded-t-[24px] shadow-[0_-8px_40px_rgba(16,24,40,0.18)] overflow-hidden ${wrapperStyle ?? ""}`
-            : `p-4 lg:p-[25px] xl:p-10 desktop:p-[64px] no-scrollbar justify-start gap-2 flex flex-col fixed bottom-0 w-full max-w-[562px] lg:top-[45px] xl:top-0 md:h-screen overflow-y-scroll ${wrapperStyle ?? ""}`
+            : sendFlow
+              ? `text-[#19151e] leading-[1.4] w-full max-w-[688px] px-6 pt-16 pb-10 [@media(max-height:800px)]:pt-6 [@media(max-height:800px)]:pb-6 h-dvh overflow-y-auto no-scrollbar ${wrapperStyle ?? ""}`
+              : `p-4 lg:p-[25px] xl:p-10 desktop:p-[64px] no-scrollbar justify-start gap-2 flex flex-col fixed bottom-0 w-full max-w-[562px] lg:top-[45px] xl:top-0 md:h-screen overflow-y-scroll ${wrapperStyle ?? ""}`
         }
       >
         {isMobile && (
@@ -90,11 +94,15 @@ const CenterModalWrapper = ({ children, close, wrapperStyle }: Props) => {
           </div>
         )}
         <div
-          className={`w-full flex flex-col flex-1 min-h-0 overflow-y-auto no-scrollbar ${
-            isMobile ? "px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-1" : "h-full"
+          className={`${sendFlow ? "text-[#19151e] leading-[1.4] [&_button.relative]:!rounded-xl [&_button.relative]:min-h-12 [&_button.relative]:font-semibold" : ""} w-full flex flex-col flex-1 min-h-0 ${sendFlow && !isMobile ? "" : "overflow-y-auto no-scrollbar"} ${
+            isMobile
+              ? "px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-1"
+              : "h-full"
           }`}
         >
-          {children}
+          <SendFlowContext.Provider value={sendFlow}>
+            {children}
+          </SendFlowContext.Provider>
         </div>
       </motion.div>
     </motion.div>

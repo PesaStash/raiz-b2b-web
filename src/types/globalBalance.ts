@@ -64,15 +64,54 @@ export interface FeeCatalogResponse {
   personalized: boolean;
   fees: FeeCatalogItem[];
 }
+export type CryptoNetwork =
+  | "ethereum"
+  | "base"
+  | "polygon"
+  | "bsc"
+  | "avalanche"
+  | "optimism"
+  | "tron"
+  | "solana"
+  | string;
+
+export interface Rate {
+  value: string;
+  base_currency: string;
+  quote_currency: string;
+  source?: "bridge" | "admin_fallback" | "parity" | "admin_config" | string;
+  observed_at?: string;
+}
+
+export interface FeeLineCalculation {
+  kind: "flat_usd" | "percent_of_usd_equivalent" | string;
+  configured_value: string;
+  basis: Money;
+}
+
+export interface SettlementFeeLine {
+  code: string;
+  label: string;
+  amount: Money;
+  calculation?: FeeLineCalculation;
+}
+
+export interface WalletImpact {
+  wallet_id: string;
+  direction: "credit" | "debit" | "reversal" | "none" | string;
+  gross: Money;
+  fees: SettlementFeeLine[];
+  net: Money;
+  balance_after: Money | null;
+}
+
 export interface Settlement {
   source_money: Money | null;
   destination_money: Money | null;
-  wallet_impact: {
-    wallet_id: string;
-    direction: string;
-    gross: Money;
-    fees: { code: string; label: string; amount: Money }[];
-    net: Money;
-    balance_after: Money | null;
-  };
+  wallet_impact: WalletImpact;
+  rate?: Rate | null;
+  quote_id?: string | null;
+  provider_reference?: string | null;
+  network?: CryptoNetwork | null;
+  transaction_hash?: string | null;
 }

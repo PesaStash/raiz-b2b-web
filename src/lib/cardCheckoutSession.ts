@@ -6,6 +6,12 @@ import type {
 } from "@/types/cardCollection";
 
 const KEY_PREFIX = "raiz:ngn-card-checkout:";
+/**
+ * A stored checkout may reopen the processing modal on its own only while the
+ * provider session can still be in progress. After this, a still-pending
+ * payment was abandoned and must not interrupt the dashboard.
+ */
+export const CARD_CHECKOUT_RESUME_WINDOW_MS = 24 * 60 * 60 * 1000;
 /** Legacy key from the Paystack-only integration; still read and migrated. */
 const LEGACY_KEY_PREFIX = "raiz:paystack-ngn-checkout:";
 
@@ -20,7 +26,8 @@ function defaultStorage(): KeyValueStorage | null {
   }
 }
 
-export const getCardCheckoutKey = (entityId: string) => `${KEY_PREFIX}${entityId}`;
+export const getCardCheckoutKey = (entityId: string) =>
+  `${KEY_PREFIX}${entityId}`;
 export const getLegacyCardCheckoutKey = (entityId: string) =>
   `${LEGACY_KEY_PREFIX}${entityId}`;
 
@@ -79,13 +86,24 @@ function isPendingCardCheckout(value: unknown): value is PendingCardCheckout {
   if (
     !(record.actor === "business" || record.actor === "personal") ||
     !required.every(
-      (field) => typeof record[field] === "string" && (record[field] as string).length > 0,
+      (field) =>
+        typeof record[field] === "string" &&
+        (record[field] as string).length > 0,
     )
   ) {
     return false;
   }
   if (record.provider === undefined) return true;
   return record.provider === "paystack" || record.provider === "flutterwave";
+}
+
+export function isCardCheckoutStale(
+  record: Pick<PendingCardCheckout, "started_at">,
+  now: Date = new Date(),
+): boolean {
+  const started = Date.parse(record.started_at);
+  if (!Number.isFinite(started)) return true;
+  return now.getTime() - started > CARD_CHECKOUT_RESUME_WINDOW_MS;
 }
 
 function withDefaultProvider(record: PendingCardCheckout): PendingCardCheckout {

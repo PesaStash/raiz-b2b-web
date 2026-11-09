@@ -2,11 +2,14 @@ import { withBusinessWrite } from "@/components/team/BusinessWrite";
 import React from "react";
 import SendOptions from "./SendOptions";
 import ToRaizers from "./toRaizers/ToRaizers";
+import { useTransactionCategories } from "@/lib/hooks/useTransactionCategories";
 import { useSendStore } from "@/store/Send";
 
-import ToUsdBanks from "./bankTransfer/toBanks/ToUsdBanks";
+import BankDestinations from "./bankTransfer/BankDestinations";
 import ToGlobal from "./bankTransfer/toGlobal/ToGlobal";
+import AlipayWechatSend from "../naira/alipayWechat/AlipayWechatSend";
 import SwiftSend from "./swift/SwiftSend";
+import CryptoSend from "./crypto/CryptoSend";
 
 interface Props {
   close: () => void;
@@ -14,6 +17,7 @@ interface Props {
 
 const UsdSend = ({ close }: Props) => {
   const { usdSendType, actions } = useSendStore();
+  useTransactionCategories();
 
   const displayStep = () => {
     switch (usdSendType) {
@@ -23,10 +27,7 @@ const UsdSend = ({ close }: Props) => {
         return <ToRaizers close={close} />;
       case "usBank":
         return (
-          <ToUsdBanks
-            close={() => actions.selectUSDSendOption(null)}
-            bankType="us"
-          />
+          <BankDestinations close={() => actions.selectUSDSendOption(null)} />
         );
       case "internationalRemittance":
         return (
@@ -35,6 +36,10 @@ const UsdSend = ({ close }: Props) => {
             bankType="global"
           />
         );
+      case "alipay-wechat":
+        return <AlipayWechatSend close={() => actions.selectUSDSendOption(null)} />;
+      case "crypto":
+        return <CryptoSend close={() => actions.selectUSDSendOption(null)} />;
       case "swift":
         return <SwiftSend close={() => actions.selectUSDSendOption(null)} />;
       default:
