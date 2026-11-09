@@ -38,7 +38,7 @@ interface Props {
 // Only NGN is backed by a deployed quote/send API today. Keeping USD out of
 // this list also prevents useQueries from speculatively calling the proposed
 // `/v2/alipay-wechat/quotes/` route and disabling the valid NGN flow.
-const currencies: BalanceCurrency[] = ["NGN"];
+const currencies: BalanceCurrency[] = ["NGN", "USD"];
 export default function AmountEntry({
   channel,
   beneficiary,

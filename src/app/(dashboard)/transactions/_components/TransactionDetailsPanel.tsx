@@ -230,7 +230,7 @@ export default function TransactionDetailsPanel({
                 href={view.proofUrl}
                 target="_blank"
                 rel="noreferrer"
-                className={`${primaryButton} bg-white text-raiz-usd-primary`}
+                className={`${primaryButton} bg-raiz-usd-primary text-white`}
               >
                 View payment proof
               </a>

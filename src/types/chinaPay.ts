@@ -10,8 +10,6 @@ export interface ChinaPayQuote {
   total_debit: Money;
   rate: { value: string; base_currency: string; quote_currency: string; source: string; observed_at: string };
   expires_at: string;
-  /** Legacy NGN quotes do not have a server quote id or expiry. */
-  legacy?: boolean;
 }
 export interface ChinaPayQuoteRequest { channel: ChinaPayChannel; destination_amount: string; funding_currency: BalanceCurrency; }
 export interface ChinaPaySendRequest { quote_id: string; beneficiary_id: string; transaction_pin: string; }

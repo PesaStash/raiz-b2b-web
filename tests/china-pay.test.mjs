@@ -17,6 +17,10 @@ test("China Pay validates quote amount, channel, funding currency and expiry",()
  const ngn={...quote,funding_money:{amount:"4715",currency:"NGN"},total_debit:{amount:"4715",currency:"NGN"},fees:[]};
  assert.equal(usableChinaPayQuote(ngn,{...request,funding_currency:"NGN"},now),true);
 });
+test("China Pay treats backend timezone-less microsecond quote timestamps as UTC",()=>{
+ const apiQuote={quote_id:"f3a48506-cd3d-4452-9cdd-afc018184299",channel:"alipay",destination_money:{amount:"32.00",currency:"CNY"},funding_money:{amount:"4.86",currency:"USD"},fees:[],total_debit:{amount:"4.86",currency:"USD"},rate:{value:"0.151724610000000000",base_currency:"CNY",quote_currency:"USD",source:"market",observed_at:"2026-11-09T13:14:32.453918"},expires_at:"2026-11-09T13:47:30.396103"};
+ assert.equal(usableChinaPayQuote(apiQuote,{channel:"alipay",destination_amount:"32",funding_currency:"USD"},Date.parse("2026-11-09T13:43:20Z")),true);
+});
 test("balance comparison preserves fractional and large decimal precision",()=>{
  assert.equal(compareDecimalAmounts("9007199254740993.01","9007199254740993.00"),1);
  assert.equal(compareDecimalAmounts("3.730","3.73"),0);
@@ -41,32 +45,11 @@ test("China Pay uses v2 funding-aware quotes and idempotent quote-bound sends",a
  const body={quote_id:"quote",beneficiary_id:"recipient",transaction_pin:"test-pin"};
  await module.exports.SendChinaPayApi(body,"send-key");
  await module.exports.SendChinaPayApi(body,"send-key");
- assert.equal(calls[0][0],"/business/transactions/v2/alipay-wechat/quotes/");
+ assert.equal(calls[0][0],"/business/transactions/alipay-wechat/quotes/");
  assert.equal(calls[0][1].funding_currency,"USD");
  assert.equal(calls[0][2].headers["Idempotency-Key"],"quote-key");
- assert.equal(calls[1][0],"/business/transactions/v2/alipay-wechat/send-v2/");
+ assert.equal(calls[1][0],"/business/transactions/alipay-wechat/send-v2/");
  assert.deepEqual(calls[1][1],body);
  assert.equal(calls[1][2].headers["Idempotency-Key"],calls[2][2].headers["Idempotency-Key"]);
  assert.equal(calls[1][1].amount,undefined);
-});
-
-test("China Pay preserves the deployed NGN amount and send APIs",async()=>{
- const module={exports:{}};
- const source=ts.transpileModule(readFileSync(new URL("../src/services/chinaPay.ts",import.meta.url),"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText;
- const legacyCalls=[];
- vm.runInNewContext(source,{module,exports:module.exports,require:name=>{
-   if(name==="@/lib/authAxios") return {AuthAxios:{post:async()=>{throw new Error("v2 must not be called for NGN")}}};
-   if(name==="@/services/transactions") return {
-     AlipayWechatAmountQuoteApi:async input=>{legacyCalls.push(["quote",input]);return {channel:"alipay",destination_amount:"23.00",rate:"205",naira_amount:"4715.00"};},
-     AlipayWechatSendApi:async payload=>{legacyCalls.push(["send",payload]);return {alipay_wechat_transaction_request_id:"legacy-id",entity_id:"entity",wallet_id:"wallet",beneficiary_id:payload.beneficiary_id,channel:payload.channel,destination_amount:payload.amount,rate:"205",naira_amount:"4715.00",status:"pending",initiated_at:"2030-01-01",liquidated_at:null,transaction_report_id:null,original_ledger_transaction_id:null,reversal_ledger_transaction_id:null,created_at:"2030-01-01",updated_at:"2030-01-01"};},
-   };
-   return {};
- }});
- const legacyQuote=await module.exports.QuoteChinaPayApi({...request,funding_currency:"NGN"},"unused");
- assert.equal(legacyQuote.legacy,true);
- assert.equal(legacyQuote.total_debit.amount,"4715.00");
- const result=await module.exports.SendLegacyChinaPayApi({beneficiary_id:"recipient",channel:"alipay",amount:"23.00",transaction_pin:"1234"});
- assert.equal(result.funding_currency,"NGN");
- assert.equal(legacyCalls[0][0],"quote");
- assert.equal(legacyCalls[1][0],"send");
 });

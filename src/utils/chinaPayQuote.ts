@@ -1,4 +1,5 @@
 import type { ChinaPayQuote, ChinaPayQuoteRequest } from "../types/chinaPay";
+import { parseServerTime } from "../lib/swapQuote.ts";
 
 /** Compare nonnegative decimal money without converting it to floating point. */
 export function compareDecimalAmounts(left: string, right: string): number {
@@ -13,7 +14,8 @@ export function compareDecimalAmounts(left: string, right: string): number {
 export function usableChinaPayQuote(quote: ChinaPayQuote | undefined, request: ChinaPayQuoteRequest, now=Date.now()): quote is ChinaPayQuote {
   if(!quote) return false;
   try {
-    return !!quote.quote_id && quote.channel===request.channel && quote.destination_money.currency==="CNY" && quote.funding_money.currency===request.funding_currency && quote.total_debit.currency===request.funding_currency && compareDecimalAmounts(quote.destination_money.amount,request.destination_amount)===0 && compareDecimalAmounts(quote.total_debit.amount,"0")>0 && compareDecimalAmounts(quote.funding_money.amount,"0")>=0 && Array.isArray(quote.fees) && quote.fees.every(f=>/^\d+(\.\d+)?$/.test(f.amount.amount) && !!f.amount.currency) && Number.isFinite(Date.parse(quote.expires_at)) && Date.parse(quote.expires_at)>now;
+    const expiresAt = parseServerTime(quote.expires_at);
+    return !!quote.quote_id && quote.channel===request.channel && quote.destination_money.currency==="CNY" && quote.funding_money.currency===request.funding_currency && quote.total_debit.currency===request.funding_currency && compareDecimalAmounts(quote.destination_money.amount,request.destination_amount)===0 && compareDecimalAmounts(quote.total_debit.amount,"0")>0 && compareDecimalAmounts(quote.funding_money.amount,"0")>=0 && Array.isArray(quote.fees) && quote.fees.every(f=>/^\d+(\.\d+)?$/.test(f.amount.amount) && !!f.amount.currency) && Number.isFinite(expiresAt) && expiresAt>now;
   } catch {return false;}
 }
 export function chinaPayError(error: unknown): {code: string; message: string; status?: number} {

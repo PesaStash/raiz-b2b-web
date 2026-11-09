@@ -11,10 +11,10 @@ import type { BalanceCurrency } from "@/types/globalBalance";
 import {
   QuoteChinaPayApi,
   SendChinaPayApi,
-  SendLegacyChinaPayApi,
 } from "@/services/chinaPay";
 import { chinaPayError, usableChinaPayQuote } from "@/utils/chinaPayQuote";
 import { useQuoteSeconds } from "@/lib/hooks/useQuoteSeconds";
+import { useCurrencyStore } from "@/store/useCurrencyStore";
 import {
   trackMoneyMovementSuccess,
   getTransactionId,
@@ -40,11 +40,12 @@ export default function AlipayWechatSend({
   close,
   onPastChannelChange,
 }: Props) {
+  const { selectedCurrency } = useCurrencyStore();
   const [step, setStep] = useState<Step>("channel");
   const [channel, setChannel] = useState<ChinaPayChannel>("alipay");
-  // The deployed China Pay APIs currently debit NGN only. Do not request the
-  // proposed USD v2 quote endpoint until that contract is available server-side.
-  const [funding, setFunding] = useState<BalanceCurrency>("NGN");
+  const [funding, setFunding] = useState<BalanceCurrency>(() =>
+    selectedCurrency.name === "NGN" ? "NGN" : "USD",
+  );
   const [amount, setAmount] = useState("");
   const [beneficiary, setBeneficiary] =
     useState<IAlipayWechatBeneficiary | null>(null);
@@ -110,14 +111,6 @@ export default function AlipayWechatSend({
           beneficiaryId: beneficiary.alipay_wechat_beneficiary_id,
           key: crypto.randomUUID(),
         };
-      if (quote.legacy) {
-        return SendLegacyChinaPayApi({
-          beneficiary_id: beneficiary.alipay_wechat_beneficiary_id,
-          channel,
-          amount,
-          transaction_pin: pin,
-        });
-      }
       return SendChinaPayApi(
         {
           quote_id: quote.quote_id,
