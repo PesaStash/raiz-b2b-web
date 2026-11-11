@@ -426,7 +426,7 @@ export function BusinessDetails({
   const tinEntry = identifiers.find(item => item.type === "tin" && item.issuing_country === "NG");
   const tinNumber = String(tinEntry?.number ?? "");
   const setTin = (number: string) => {
-    const other = identifiers.filter(item => item !== tinEntry);
+    const other = identifiers.filter(item => !(item.type === "tin" && item.issuing_country === "NG"));
     editor.change("identifying_information", number.trim()
       ? [...other, { ...tinEntry, type: "tin", issuing_country: "NG", number: number.trim() }]
       : other);
@@ -527,6 +527,7 @@ export function BusinessDetails({
           editor={editor}
           path="business_profile.primary_website"
           title="Business website"
+          type="url"
         />
       </BusinessSection>
       <BusinessSection
@@ -803,6 +804,7 @@ function IndustryField({ editor }: { editor: KybEditor }) {
                 {industries.isPending && (
                   <p className="text-sm">Loading industries…</p>
                 )}
+                {!industries.isFetching && options(industries.data).length === 0 && <p role="status" className="text-sm">No industries found. Try a different search.</p>}
                 {options(industries.data).map((o) => (
                   <Check
                     key={o.value}
@@ -824,7 +826,7 @@ function IndustryField({ editor }: { editor: KybEditor }) {
           </div>
         </details>
       </div>
-      {editor.missing.some((k) => k.includes("business_industry")) && (
+      {editor.validationAttempted && editor.missing.some((k) => k.includes("business_industry")) && (
         <p className="text-xs text-red-700">Choose a business industry.</p>
       )}
     </section>
@@ -866,7 +868,7 @@ function BusinessYesNo({
   );
   const showError =
     !!correction ||
-    (!answered && (yesNoRequirement(editor.missing, path) || groupNeedsAnswer));
+    (editor.validationAttempted && !answered && (yesNoRequirement(editor.missing, path) || groupNeedsAnswer));
   return (
     <div data-kyb-requirement={path} className="py-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -939,7 +941,7 @@ export function ActivityStage({
         error.field === "risk_profile.high_risk_activities" ||
         error.field === "high_risk_activities",
     )?.message ??
-    (editor.missing.some(
+    (editor.validationAttempted && editor.missing.some(
       (key) =>
         key === "risk_profile.high_risk_activities" ||
         key === "high_risk_activities",

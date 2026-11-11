@@ -48,8 +48,8 @@ const invoiceSchema = z
       .array(
         z.object({
           description: z.string().min(1, "Item description is required"),
-          quantity: z.number().min(1, "Quantity must be at least 1"),
-          unitPrice: z.number().min(0, "Unit price cannot be negative"),
+          quantity: z.number().finite().min(1, "Quantity must be at least 1"),
+          unitPrice: z.number().finite().min(0, "Unit price cannot be negative"),
         }),
       )
       .min(1, "At least one item is required"),
@@ -83,6 +83,7 @@ const EditInvoicePage = () => {
   const { selectedCurrency } = useCurrencyStore();
   const { user } = useUser();
   const router = useRouter();
+  const [validationSummary, setValidationSummary] = useState<string[]>([]);
   const { invoiceNo } = useParams<{ invoiceNo: string }>();
 
   const formikRef = useRef<FormikProps<InvoiceFormValues>>(null);
@@ -261,6 +262,10 @@ const EditInvoicePage = () => {
 
   const handleSubmit = (values: InvoiceFormValues) => {
     const { totalDiscount, totalTax, total } = calculateTotals(values);
+    if (!Number.isFinite(total) || total < 0) {
+      setValidationSummary(["Invoice total must be a finite amount of zero or more. Check item amounts, tax and discounts."]);
+      return;
+    }
 
     const payload: ICreateInvoicePayload = {
       invoice_number: values.invoiceNumber,
@@ -294,7 +299,10 @@ const EditInvoicePage = () => {
   const displayModal = () => {
     switch (showSideModal) {
       case "customer":
-        return <AddNewCustomer close={closeSideModal} />;
+        return <AddNewCustomer close={closeSideModal} onCreated={customer => {
+          setSelectedCustomer(customer);
+          void formikRef.current?.setFieldValue("customerName", customer.customer_id);
+        }} />;
       default:
         break;
     }
@@ -303,7 +311,7 @@ const EditInvoicePage = () => {
   if (isLoading) {
     return (
       <section className=" sm:p-6 bg-transparent md:bg-raiz-gray-50 rounded-none md:rounded-[20px] min-w-0">
-        <InvoiceMobileBack href={`/invoice/${invoiceNo}`} label="Invoice" />
+      <InvoiceMobileBack href={`/invoice/${invoiceNo}`} label="Invoice" />
         <div className="flex justify-center items-center h-48">
           <p className="text-zinc-700 text-sm">Loading invoice...</p>
         </div>
@@ -398,7 +406,11 @@ const EditInvoicePage = () => {
           const { subtotal, totalTax, total } = calculateTotals(formik.values);
 
           return (
-            <form onSubmit={formik.handleSubmit} className="space-y-5">
+            <form noValidate onSubmit={event => {
+              const validation = invoiceSchema.safeParse(formik.values);
+              setValidationSummary(validation.success ? [] : validation.error.issues.map(issue => issue.message));
+              formik.handleSubmit(event);
+            }} className="space-y-5">
               {/* Customer Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4">
                 <div>
@@ -562,6 +574,9 @@ const EditInvoicePage = () => {
                 </div>
                 {formik.values.items.map((item, index) => {
                   const itemAmount = item.unitPrice * item.quantity;
+                  const itemErrors = formik.errors.items?.[index];
+                  const quantityError = typeof itemErrors === "object" ? itemErrors.quantity : undefined;
+                  const priceError = typeof itemErrors === "object" ? itemErrors.unitPrice : undefined;
 
                   return (
                     <div
@@ -632,6 +647,8 @@ const EditInvoicePage = () => {
                               className="!bg-white"
                               type="number"
                               min="1"
+                              aria-label={`Item ${index + 1} quantity`}
+                              errorMessage={formik.touched.items?.[index]?.quantity && quantityError}
                               {...formik.getFieldProps(
                                 `items[${index}].quantity`,
                               )}
@@ -645,6 +662,9 @@ const EditInvoicePage = () => {
                               className="!bg-white"
                               type="number"
                               min="0"
+                              step="0.01"
+                              aria-label={`Item ${index + 1} unit price`}
+                              errorMessage={formik.touched.items?.[index]?.unitPrice && priceError}
                               {...formik.getFieldProps(
                                 `items[${index}].unitPrice`,
                               )}
@@ -814,6 +834,7 @@ const EditInvoicePage = () => {
                 </div>
               </div>
 
+              {validationSummary.length > 0 && <div role="alert" className="mb-4 rounded-xl bg-red-50 p-4 text-sm text-red-800"><p className="font-semibold">Check these invoice details:</p><ul className="list-disc pl-5">{[...new Set(validationSummary)].map(message => <li key={message}>{message}</li>)}</ul></div>}
               {/* Buttons */}
               <div className="flex flex-col-reverse lg:flex-row lg:justify-between border-t border-gray-100 py-6 lg:py-[30px] gap-5 lg:gap-8 items-stretch lg:items-center">
                 <div className="flex gap-2 font-brSonoma text-zinc-700 flex-col">
@@ -849,6 +870,10 @@ const EditInvoicePage = () => {
                     disabled={UpdateMutation.isPending}
                     onClick={() => {
                       setSubmitType("draft");
+                      const validation = invoiceSchema.safeParse(formik.values);
+                      if (!validation.success) {
+                        setValidationSummary(validation.error.issues.map(issue => issue.message));
+                      } else setValidationSummary([]);
                       formik.handleSubmit();
                     }}
                     variant="secondary"
@@ -859,6 +884,10 @@ const EditInvoicePage = () => {
                     type="button"
                     onClick={() => {
                       setSubmitType("preview");
+                      const validation = invoiceSchema.safeParse(formik.values);
+                      if (!validation.success) {
+                        setValidationSummary(validation.error.issues.map(issue => issue.message));
+                      } else setValidationSummary([]);
                       formik.handleSubmit();
                     }}
                     loading={

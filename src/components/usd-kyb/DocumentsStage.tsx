@@ -122,7 +122,7 @@ export default function DocumentsStage({ editor }: { editor: KybEditor }) {
     <input
       aria-label={`${previous ? "Replace" : "Upload"} ${title}`}
       type="file"
-      accept="application/pdf,image/jpeg,image/png,image/webp,image/heic,image/heif"
+
       className="sr-only"
       disabled={
         !editor.editable ||

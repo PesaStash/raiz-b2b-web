@@ -4,10 +4,12 @@ import { isGlobalBalance, spendableBalances } from "@/lib/globalBalance";
 import { useRouter } from "next/navigation";
 import {
   basicDetailsComplete,
+  hasSubmittedKyb,
   readAccountChoice,
   accountChoiceRoute,
 } from "@/lib/onboarding";
 import Link from "next/link";
+import { useKybNavigation } from "@/lib/hooks/useKybNavigation";
 import DashboardSummary from "./_components/DashboardSummary";
 import DashboardSkeleton from "./_components/DashboardSkeleton";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
@@ -23,24 +25,28 @@ export default function Home() {
   const { selectedCurrency } = useCurrencyStore();
   const { user, isLoading } = useUser();
   const router = useRouter();
+  const usdStatus = useKybNavigation(user);
   const needsSetup = !!user && !user.business_account?.wallets?.length && !spendableBalances(user.business_account).length;
   useEffect(() => {
-    if (!needsSetup || !user) return;
+    if (!needsSetup || !user || usdStatus.isLoading || usdStatus.isError) return;
     const choice = readAccountChoice(user.business_account.entity_id);
     router.replace(
       !basicDetailsComplete(user)
         ? "/onboarding"
-        : choice
+        : hasSubmittedKyb(usdStatus.data?.case)
+          ? "/onboarding/usd"
+          : choice
           ? accountChoiceRoute(choice)
           : "/onboarding/accounts",
     );
-  }, [needsSetup, user, router]);
+  }, [needsSetup, user, router, usdStatus.isLoading, usdStatus.isError, usdStatus.data]);
   const verificationStatus =
     user?.business_account?.business_verifications?.[0]?.verification_status;
   const branchState = getOnboardingBranchState(user, verificationStatus);
 
   const redesigned = branchState.showDashboard && (isGlobalBalance(user?.business_account) || selectedCurrency.name === "USD" || selectedCurrency.name === "NGN");
 
+  if (needsSetup && usdStatus.isError) return <div role="alert" className="rounded-xl bg-white p-6">We couldn’t check your account setup. <button className="underline" onClick={() => void usdStatus.refetch()}>Try again</button></div>;
   if (isLoading || needsSetup) return <DashboardSkeleton />;
   return (
     <div className="flex flex-col gap-5 md:gap-0 min-w-0">

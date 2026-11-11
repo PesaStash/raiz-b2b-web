@@ -35,6 +35,7 @@ export default function PersonVerification() {
   const [loading, setLoading] = useState(true);
   const [url, setUrl] = useState("");
   const [sessionStarted, setSessionStarted] = useState(false);
+  const [resultUnavailable, setResultUnavailable] = useState(false);
   const [cooldown, setCooldown] = useState(false);
   const [pollingStopped, setPollingStopped] = useState(false);
   const cooldownTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
@@ -85,7 +86,7 @@ export default function PersonVerification() {
     setError("");
     try {
       const next = await personInvitationApi.inspect(token.current);
-      if (alive.current) setPerson(next);
+      if (alive.current) { setPerson(next); setResultUnavailable(false); }
     } catch (failure) {
       if (alive.current) setError(errorMessage(failure));
     } finally {
@@ -96,6 +97,15 @@ export default function PersonVerification() {
       }
     }
   };
+  const statusError = (failure: unknown) => {
+    const { status } = readApiError(failure);
+    if ([404, 410].includes(status ?? 0) && sessionStarted) {
+      setUrl("");
+      setResultUnavailable(true);
+      setPollingStopped(true);
+      setError("Your verification session has ended, but we couldn’t confirm the final result. The business can check your latest status. You do not need to restart verification.");
+    } else setError(errorMessage(failure));
+  };
   const refresh = async () => {
     if (pending.current || cooldown || !token.current) return;
     pending.current = true;
@@ -104,9 +114,9 @@ export default function PersonVerification() {
     setCooldown(true);
     try {
       const next = await personInvitationApi.status(token.current);
-      if (alive.current) setPerson(next);
+      if (alive.current) { setPerson(next); setResultUnavailable(false); }
     } catch (failure) {
-      if (alive.current) setError(errorMessage(failure));
+      if (alive.current) statusError(failure);
     } finally {
       pending.current = false;
       if (alive.current) {
@@ -140,7 +150,7 @@ export default function PersonVerification() {
         })
         .catch((failure) => {
           if (!controller.signal.aborted) {
-            setError(errorMessage(failure));
+            statusError(failure);
             clearInterval(timer);
             setPollingStopped(true);
           }
@@ -154,7 +164,7 @@ export default function PersonVerification() {
       controller.abort();
     };
     // Status changes restart the effect only at a terminal boundary; polling is bounded.
-  }, [!!person, terminalIdentity(person?.verification_status), pollingStopped]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [!!person, terminalIdentity(person?.verification_status), pollingStopped, sessionStarted]); // eslint-disable-line react-hooks/exhaustive-deps
   const start = async () => {
     if (
       pending.current ||
@@ -290,12 +300,12 @@ export default function PersonVerification() {
             </div>
             <p className="text-[10px] font-semibold uppercase tracking-widest text-primary2">Business verification</p>
             <h1 id="verification-heading" className="mt-2 text-2xl font-bold tracking-tight text-kyb-ink sm:text-3xl">
-              {complete ? "You’re verified" : "Verify your identity"}
+              {complete ? "You’re verified" : resultUnavailable ? "Verification session ended" : "Verify your identity"}
             </h1>
             <p className="mt-3 text-sm leading-relaxed text-kyb-muted">
               {complete
                 ? "Your status has been shared with the business that invited you. You can close this page."
-                : "Help the business that invited you complete its verification. You don’t need a Raiz account."}
+                : resultUnavailable ? "We couldn’t confirm the final result. Contact the business that invited you to check your latest verification status." : "Help the business that invited you complete its verification. You don’t need a Raiz account."}
             </p>
 
             {loading && (
@@ -318,7 +328,7 @@ export default function PersonVerification() {
                       <p className="text-xs text-kyb-muted">{personName ? "Invited to verify" : "Your invitation"}</p>
                       {personName && <p className="mt-1 break-words text-sm font-semibold">{personName}</p>}
                     </div>
-                    <Badge good={complete}>{label(person.verification_status ?? "Ready to verify")}</Badge>
+                    <Badge good={complete}>{resultUnavailable ? "Result not confirmed" : label(person.verification_status ?? "Ready to verify")}</Badge>
                   </div>
                   {expiryLabel && !terminal && (
                     <p className="mt-3 flex items-start gap-1.5 border-t border-kyb-border pt-3 text-xs leading-relaxed text-kyb-muted">
@@ -328,7 +338,7 @@ export default function PersonVerification() {
                   )}
                 </div>
 
-                {!terminal && (
+                {!terminal && !resultUnavailable && (
                   <>
                     {sessionStarted ? (
                       <Notice>Your verification is in progress and may be awaiting review. You can resume or check your status below.</Notice>

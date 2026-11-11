@@ -1,4 +1,5 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 
 import React, { useEffect, useState } from "react";
@@ -16,7 +17,6 @@ import { useSendStore } from "@/store/Send";
 import { toast } from "sonner";
 import Swap from "./swap/Swap";
 import { useSwapStore } from "@/store/Swap";
-import { usePathname } from "next/navigation";
 import SelectAccount from "./SelectAccount";
 import CreateNgnAcct from "./createNgnAcct/CreateNgnAcct";
 import CreateCryptoWallet from "./crypto/dashboard/CreateCryptoWallet";
@@ -56,7 +56,8 @@ type actionBtnKeytype = "send" | "request" | "topUp" | "details";
 const PROFILE_COMPLETED_KEY = "raiz_profile_completed_fired";
 
 const DashboardSummary = () => {
-  const { user, refetch, isLoading } = useUser();
+  const { user, isLoading } = useUser();
+  const router = useRouter();
   const { canWriteBusiness } = usePermissions();
   const walletData = user?.business_account?.wallets;
   const { actions: sendActions } = useSendStore();
@@ -72,7 +73,6 @@ const DashboardSummary = () => {
     | null
   >(null);
   const [showAcctInfo, setShowAcctInfo] = useState(false);
-  const pathName = usePathname();
   const NGNAcct = findWalletByCurrency(user, "NGN");
   const USDAcct = findWalletByCurrency(user, "USD");
   const GBPAcct = findWalletByCurrency(user, "GBP");
@@ -143,7 +143,8 @@ const DashboardSummary = () => {
     }
     if (!currentWallet) {
       toast.warning(
-        "You do not have an account for this currency. Create one first!",
+        "This action is available once your account for this currency is approved and opened. View your business verification status to continue.",
+        { action: { label: "View setup", onClick: () => router.push("/onboarding") } },
       );
     } else if (action === "details") {
       if (selectedCurrency.name === "SBC") {
@@ -352,9 +353,6 @@ const DashboardSummary = () => {
     },
   ];
 
-  useEffect(() => {
-    refetch();
-  }, [pathName, refetch]);
 
   const redesigned = branchState.showDashboard && (isGlobalBalance(user?.business_account) || selectedCurrency.name === "USD" || selectedCurrency.name === "NGN");
 

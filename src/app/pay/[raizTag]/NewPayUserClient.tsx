@@ -3,7 +3,11 @@ import React, { JSX, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import Avatar from "@/components/ui/Avatar";
-import GuestPayWithCard from "./GuestPayWithCard";
+import dynamic from "next/dynamic";
+const GuestPayWithCard = dynamic(() => import("./GuestPayWithCard"), {
+  ssr: false,
+  loading: () => <p role="status">Loading secure card payment…</p>,
+});
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { FetchPaymentInfoApi, GetAfricaPayinStatus } from "@/services/business";
@@ -176,8 +180,9 @@ const RaizPaymentPage = () => {
     detectCountry();
   }, []);
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["business-payment-info"],
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["business-payment-info", username],
+    retry: false,
     queryFn: () => FetchPaymentInfoApi(username),
     enabled: !!username,
   });
@@ -521,7 +526,7 @@ const RaizPaymentPage = () => {
         return null;
     }
   };
-  if ((error || !data) && !isLoading) {
+  if ((error || !data || !data.wallets?.length) && !isLoading) {
     return (
       <section className="p-6 md:p-12 lg:px-8 xl:px-12 h-[calc(100vh-2rem)] md:h-full min-h-[100vh] flex justify-center items-center">
         <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-6 w-full max-w-md text-center shadow-md">
@@ -547,11 +552,11 @@ const RaizPaymentPage = () => {
                 fill="#0C160E"
               />
             </svg>
-            <h2 className="text-lg font-semibold">Something went wrong</h2>
+            <h2 className="text-lg font-semibold">Payments are not available right now</h2>
             <p className="text-sm text-red-700">
-              We couldn&#39;t fetch the payment information. Please try again
-              later.
+              This business may still be setting up its receiving account. Contact the business or try again later.
             </p>
+            <button type="button" className="text-sm font-semibold underline" onClick={() => void refetch()}>Try again</button>
           </div>
         </div>
       </section>

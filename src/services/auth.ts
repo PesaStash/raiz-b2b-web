@@ -22,7 +22,7 @@ export interface IResetPasswordPayload {
   email: string;
 }
 export const SignupApi = async (data: IRegisterPayload) => {
-  const response = await PublicAxios.post("/business/auth/sign-up/", data);
+  const response = await PublicAxios.post("/business/auth/sign-up/", data, { silent: true } as CustomAxiosRequestConfig);
   return response?.data;
 };
 

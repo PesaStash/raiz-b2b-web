@@ -1,4 +1,6 @@
 "use client";
+import { readApiError } from "@/lib/apiError";
+import { toast } from "sonner";
 import React, { useMemo, useState } from "react";
 import CreateAccount from "./forms/CreateAccount";
 import Button from "@/components/ui/Button";
@@ -29,6 +31,7 @@ import { getAnalyticsUserType } from "@/utils/analytics/userProps";
 const RegisterForm = () => {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
+  const [duplicateEmail, setDuplicateEmail] = useState(false);
   const steps = ["createAccount", "otp", "congrats"];
 
   const initialValues: IRegisterFormValues = {
@@ -63,7 +66,16 @@ const RegisterForm = () => {
   const signupMutation = useMutation({
     mutationFn: (data: IRegisterPayload) => SignupApi(data),
     onSuccess: () => {
+      setDuplicateEmail(false);
       handleNavigate("next");
+    },
+    onError: error => {
+      const { message, code } = readApiError(error);
+      if (/duplicate|already.*(?:exist|registered)|email.*(?:taken|in use)/i.test(`${code} ${message ?? ""}`)) {
+        setDuplicateEmail(true);
+        formik.setFieldError("email", "We couldn’t create an account with these details. Check your email or try logging in.");
+        formik.setFieldTouched("email", true, false);
+      } else toast.error(message || "We couldn’t create your account. Please try again.");
     },
   });
 
@@ -158,7 +170,7 @@ const RegisterForm = () => {
   const displayStep = (step: number) => {
     switch (step) {
       case 1:
-        return <CreateAccount formik={formik} />;
+        return <><CreateAccount formik={formik} />{duplicateEmail && <p role="alert" className="text-sm">Already have an account? <Link href="/login" className="font-semibold underline">Log in</Link></p>}</>;
       case 2:
         return (
           <RegisterOtp

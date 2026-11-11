@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { isAxiosError } from "axios";
+import { readApiError } from "@/lib/apiError";
 import Checkbox from "@/components/ui/Checkbox";
 import { usePlaceResolver } from "@/components/ui/AddressAutocomplete";
 import { Action, Notice } from "@/components/usd-kyb/KybUI";
@@ -76,6 +76,7 @@ export default function CompanyLookupStep({ countryCode, entityId, onConfirmed, 
     busy.current = true;
     setPending(true);
     setError("");
+    setResult(undefined);
     const sent = inquiryRequest(selected, effectiveValues, consent);
     setRequest(sent);
     clearLookupPrefill(entityId);
@@ -90,12 +91,13 @@ export default function CompanyLookupStep({ countryCode, entityId, onConfirmed, 
       setNeedsRefresh(false);
     } catch (err) {
       if (generation.current !== token) return;
-      const status = isAxiosError(err) ? err.response?.status : undefined;
-      const body = isAxiosError(err) ? err.response?.data : undefined;
-      const messages = [body?.message, ...(Array.isArray(body?.errors) ? body.errors.filter((e: unknown) => typeof e === "string") : []), body?.correlation_id ? `Reference: ${body.correlation_id}` : ""].filter(Boolean);
-      setError(messages.join(". ") || "The inquiry could not be completed. Check the saved result before trying again.");
+      const { status, message } = readApiError(err);
+      const response = (err as { response?: { data?: Record<string, unknown>; headers?: Record<string, string> } }).response ?? err as { data?: Record<string, unknown>; headers?: Record<string, string> };
+      const body = response.data;
+      const messages = [message, ...(Array.isArray(body?.errors) ? body.errors.filter((e: unknown) => typeof e === "string") : []), body?.correlation_id ? `Reference: ${body.correlation_id}` : ""].filter(Boolean);
+      setError(messages.join(". ") || "The lookup could not be completed. Check the registration details and try again, or enter them manually.");
       if (status === 429) {
-        const retry = isAxiosError(err) ? Number(err.response?.headers["retry-after"]) : 60;
+        const retry = Number(response.headers?.["retry-after"] ?? 60);
         setWait(Number.isFinite(retry) && retry > 0 ? Math.ceil(retry) : 60);
       }
       if (found || !status || status >= 500 || status === 409) {
