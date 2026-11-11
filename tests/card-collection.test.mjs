@@ -293,6 +293,7 @@ test("Paystack and Flutterwave redirect parameters are recognised and stripped",
 test("provider is inferred from the Raiz reference prefix", () => {
   assert.equal(providerFromReference("ps_ngn_abcdef123456"), "paystack");
   assert.equal(providerFromReference("ps-ngn-abcdef123456"), "paystack");
+  assert.equal(providerFromReference("PS-NGN-AbCdEf123456"), "paystack");
   assert.equal(providerFromReference("fw_ngn_9c13c2f03ce44cc6a2a535584ba4a67f"), "flutterwave");
   assert.equal(providerFromReference("unknown_ref"), null);
   assert.equal(providerLabel("paystack"), "Paystack");
@@ -372,3 +373,18 @@ test("initialize requires business write access; status reads are open to active
     assert.equal(canMakeRequest(profile, "GET", status), true);
   }
 });
+
+test("both Paystack formats are accepted unchanged in reference and trxref", () => {
+  for (const prefix of ["ps_ngn_", "ps-ngn-", "PS-NGN-"]) {
+    for (const parameter of ["reference", "trxref"]) {
+      const reference = `${prefix}AbCdEf123456`;
+      const search = `?tab=wallets&${parameter}=${reference}&status=successful`;
+      assert.equal(extractCardCallbackReference(search), reference);
+      assert.equal(stripCardCallbackParams(search), "?tab=wallets");
+    }
+  }
+  for (const reference of ["ps-ngn-short", `ps-ngn-${"a".repeat(65)}`, "ps-ngn-abcdef12/extra", "ps-ngn-abcdef12%0A", "ps-ngn-abcdef12=", "ps_ngn-abcdef1234"]) {
+    assert.equal(extractCardCallbackReference(`?reference=${encodeURIComponent(reference)}`), null, reference);
+  }
+});
+
