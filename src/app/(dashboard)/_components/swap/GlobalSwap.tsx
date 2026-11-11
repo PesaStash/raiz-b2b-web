@@ -124,7 +124,7 @@ export default function GlobalSwap({
     );
     setPreview(next);
     if (next) setTimeLeft(secondsUntil(next.expiresAt));
-  }, [liveRate, debouncedAmount, sourceCurrency, destinationCurrency]);
+  }, [liveRate, debouncedAmount, sourceCurrency, destinationCurrency, setPreview, setTimeLeft]);
 
   const fetchQuote = useCallback(async () => {
     if (!debouncedAmount || Number(debouncedAmount) <= 0) {
@@ -182,6 +182,11 @@ export default function GlobalSwap({
     destinationCurrency,
     v2Available,
     applyLivePreview,
+    setPreview,
+    setQuoteNotice,
+    setTimeLeft,
+    setQuoteLoading,
+    setV2Available,
   ]);
 
   useEffect(() => {
@@ -227,6 +232,8 @@ export default function GlobalSwap({
     fetchQuote,
     refetchLiveRate,
     applyLivePreview,
+    setQuoteNotice,
+    setTimeLeft,
   ]);
 
   const applyReplacement = useCallback(
@@ -252,7 +259,7 @@ export default function GlobalSwap({
       setStep("confirm");
       if (!next) refreshExpiredQuote();
     },
-    [sourceCurrency, refreshExpiredQuote],
+    [sourceCurrency, refreshExpiredQuote, setPreview, setQuoteNotice, setStep, setTimeLeft],
   );
 
   useEffect(() => {
