@@ -13,7 +13,7 @@ Zustand · Formik + Zod.
 ```bash
 pnpm install
 cp .env.example .env.local   # then fill in the values
-pnpm dev                      # http://localhost:3000
+pnpm dev                     # http://localhost:3000
 ```
 
 | Script                      | What it does                                |
