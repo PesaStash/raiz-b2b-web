@@ -292,10 +292,37 @@ test("Paystack and Flutterwave redirect parameters are recognised and stripped",
 
 test("provider is inferred from the Raiz reference prefix", () => {
   assert.equal(providerFromReference("ps_ngn_abcdef123456"), "paystack");
+  assert.equal(providerFromReference("ps-ngn-abcdef123456"), "paystack");
   assert.equal(providerFromReference("fw_ngn_9c13c2f03ce44cc6a2a535584ba4a67f"), "flutterwave");
   assert.equal(providerFromReference("unknown_ref"), null);
   assert.equal(providerLabel("paystack"), "Paystack");
   assert.equal(providerLabel("flutterwave"), "Flutterwave");
+});
+
+test("provider-compatible Paystack callbacks recover from backend status without local state", () => {
+  const reference = "ps-ngn-829cbac572ca4d7894692f24910cbb1e";
+  for (const parameter of ["reference", "trxref"]) {
+    const search = `?tab=wallets&${parameter}=${reference}&status=successful`;
+    const callbackReference = extractCardCallbackReference(search);
+    assert.equal(callbackReference, reference);
+    const provider = providerFromReference(callbackReference);
+    assert.equal(provider, "paystack");
+    const record = pendingCheckoutFromStatus({
+      ...initializeResponse,
+      reference: callbackReference,
+      provider,
+      settlement_status: "unsettled",
+      transaction_report_id: null,
+      paid_at: null,
+      credited_at: null,
+    });
+    assert.equal(record.reference, reference);
+    assert.equal(record.provider, "paystack");
+    assert.equal(paymentViewState({ status: "pending", settlement_status: "unsettled" }), "processing");
+    assert.equal(stripCardCallbackParams(search), "?tab=wallets");
+  }
+  assert.equal(extractCardCallbackReference("?reference=ps-ngn-../../admin"), null);
+  assert.equal(extractCardCallbackReference("?reference=ps-ngn-short"), null);
 });
 
 test("mobile return link is the generic app link with no parameters", () => {
