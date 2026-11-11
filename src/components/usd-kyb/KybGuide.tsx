@@ -338,7 +338,7 @@ export default function SetupGuide({
                         <span className="flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-xs">
                           <KybIcon name="shield" />
                           {group === 1
-                            ? "Pre-filled from CAC"
+                            ? (editor.bundle?.case.youverify_lookup_snapshot && String((editor.bundle.case.youverify_lookup_snapshot as Record<string, unknown>).legal_name ?? "").trim() ? "From the business register" : "Business details")
                             : group === 2
                               ? "Private uploads"
                               : "Identity verification"}

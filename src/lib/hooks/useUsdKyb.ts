@@ -5,12 +5,13 @@ import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { kybApi } from "@/services/usdKyb";
 import { usePermissions } from "@/lib/hooks/usePermissions";
-import { readApiError } from "@/lib/apiError";
+import { apiFieldCorrections, readApiError } from "@/lib/apiError";
 import { sessionGeneration } from "@/lib/session";
 import {
   editableStatus,
   getPath,
   mergeDraft,
+  mergePersonResponse,
   normalizeDraft,
   setPath,
   withDaoDefault,
@@ -24,6 +25,7 @@ import {
   persistedPersonDetailsErrors,
 } from "@/lib/usd-kyb/personDetails";
 import {
+  personWriteErrors,
   cleanDraft,
   cleanPerson,
   errorsForPerson,
@@ -33,6 +35,7 @@ import {
   replaceAt,
   rebasePersonInput,
 } from "@/lib/usd-kyb/corrections";
+import { draftInputErrors } from "@/lib/usd-kyb/inputValidation";
 import { SaveQueue } from "@/lib/usd-kyb/saveQueue";
 import type {
   KybBundle,
@@ -106,6 +109,7 @@ export function useUsdKyb() {
   const [dirtyTick, setDirtyTick] = useState(0);
   const [fieldErrors, setFieldErrors] = useState<KybFieldError[]>([]);
   const [missing, setMissing] = useState<string[]>([]);
+  const [validationAttempted, setValidationAttempted] = useState(false);
   const ref = useRef({
     bundle: undefined as KybBundle | undefined,
     draft: {} as KybDraft,
@@ -124,6 +128,7 @@ export function useUsdKyb() {
   const queue = useRef(new SaveQueue());
   const commandPending = useRef(false);
   const saving = useRef(false);
+  const rejectedWrite = useRef<{ signature: string; message: string } | undefined>(undefined);
   const alive = useRef(true);
   const generation = useRef(sessionGeneration());
   const writable = useRef(false);
@@ -191,7 +196,7 @@ export function useUsdKyb() {
     if (query.data && !ref.current.bundle) adopt(query.data);
   }, [query.data, adopt]);
   const fail = useCallback(
-    async (failure: unknown) => {
+    async (failure: unknown, corrections = apiFieldCorrections(failure)) => {
       if (!currentSession()) return;
       const api = readApiError(failure);
       if (api.status === 429) {
@@ -223,27 +228,11 @@ export function useUsdKyb() {
       };
       const keys = (body.response?.data ?? body.data)?.detail?.missing;
       if (Array.isArray(keys)) setMissing(keys);
-      const responseBody =
-        (
-          failure as {
-            response?: {
-              data?: { message?: { field_errors?: KybFieldError[] } };
-            };
-            data?: { message?: { field_errors?: KybFieldError[] } };
-          }
-        ).response?.data ??
-        (failure as { data?: { message?: { field_errors?: KybFieldError[] } } })
-          .data;
-      if (Array.isArray(responseBody?.message?.field_errors)) {
-        const errors = currentFieldErrors(
-          responseBody.message.field_errors,
-          ref.current.people,
-        );
+      if (corrections.length) {
+        const errors = currentFieldErrors(corrections, ref.current.people);
         ref.current.fieldErrors = errors;
         setFieldErrors(errors);
-        setMissing((current) => [
-          ...new Set([...current, ...errors.map((error) => error.field)]),
-        ]);
+        setMissing(current => [...new Set([...current, ...errors.map(error => error.field)])]);
       }
       if (api.status === 409) {
         ref.current.blocked = true;
@@ -310,6 +299,8 @@ export function useUsdKyb() {
         stored,
       );
     });
+    const signature = JSON.stringify({ draft_payload: patch, associated_persons: personWrites });
+    if (rejectedWrite.current?.signature === signature) throw new Error(rejectedWrite.current.message);
     const revision = state.peopleRevision;
     state.pending = {};
     state.peopleDirty = false;
@@ -365,6 +356,12 @@ export function useUsdKyb() {
           : {}),
       });
       if (!currentSession()) return;
+      rejectedWrite.current = undefined;
+      result.associated_persons = result.associated_persons.map(person => mergePersonResponse(
+        state.peopleBase.find(previous => previous.person_key === person.person_key),
+        inputs.find(input => input.person_key === person.person_key),
+        person,
+      ));
       for (const input of inputs)
         state.savedPersonInputs.set(input.person_key, input);
       const mergedPeople =
@@ -407,6 +404,15 @@ export function useUsdKyb() {
       setDraft(state.draft);
       if (seedDao) setDirtyTick((n) => n + 1);
       setBundle(state.bundle);
+      // A later mount must see the saved response rather than the pre-save Infinity-stale query.
+      // Include only the submitted patch; edits made while this request was running stay local.
+      qc.setQueryData(["usd-kyb", tenant], {
+        ...state.bundle,
+        case: {
+          ...state.bundle.case,
+          draft_payload: composeDraft(result.case.draft_payload, state.bundle.prefilled_draft, patch, result.validation.field_errors ?? []),
+        },
+      });
       setPeople(mergedPeople);
       setMissing(result.validation.missing_requirements);
       state.fieldErrors = currentFieldErrors(
@@ -417,19 +423,23 @@ export function useUsdKyb() {
       setSaveState(
         Object.keys(state.pending).length || state.peopleDirty
           ? "Unsaved changes"
-          : "Saved",
+          : draftInputErrors(state.draft).length ? "Draft saved — needs correction" : "Saved",
       );
       setError("");
     } catch (failure) {
       state.pending = mergeDraft(patch, state.pending);
       state.peopleDirty ||= sentPeople;
       for (const key of sentKeys) state.dirtyPeople.add(key);
-      await fail(failure);
+      const corrections = personWriteErrors(apiFieldCorrections(failure), inputs, state.people);
+      if (readApiError(failure).status === 422 && corrections.length) {
+        rejectedWrite.current = { signature, message: readApiError(failure).message || "Correct the highlighted fields before saving again." };
+      }
+      await fail(failure, corrections);
       throw failure;
     } finally {
       saving.current = false;
     }
-  }, [currentSession, fail]);
+  }, [currentSession, fail, qc, tenant]);
   useEffect(() => {
     if (!cooldown) return;
     const timer = setInterval(
@@ -889,12 +899,13 @@ export function useUsdKyb() {
     draft,
     people,
     missing,
-    fieldErrors: fieldErrors.filter(error => {
+    inputErrors: draftInputErrors(draft),
+    fieldErrors: [...fieldErrors.filter(error => {
       if (error.field.startsWith("associated_persons")) return true;
       const field = error.field;
       return getPath(ref.current.pending, field) === undefined &&
         !Object.values(ref.current.pending).some(section => section && typeof section === "object" && Object.hasOwn(section, field));
-    }),
+    }), ...draftInputErrors(draft).filter(local => !fieldErrors.some(error => error.field === local.field)).map(error => ({ ...error, source: "local" as const }))],
     personErrors: (person: KybPerson) => {
       const current =
         ref.current.people.find((p) => p.person_key === person.person_key) ??
@@ -926,6 +937,8 @@ export function useUsdKyb() {
     reload,
     flush,
     setMissing,
+    validationAttempted,
+    revealRequiredErrors: () => setValidationAttempted(true),
   };
 }
 export type KybEditor = ReturnType<typeof useUsdKyb>;

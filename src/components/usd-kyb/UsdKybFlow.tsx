@@ -151,11 +151,14 @@ export function KybWorkspace({
     }
   };
   const next = async () => {
+    editor.revealRequiredErrors();
     const result = await editor.command(() => kybApi.validate());
     if (!result) return;
-    const errors = result.validation.missing_requirements.filter(
-      (k) => !deferredRequirements.has(k) && requirementStage(k) === step,
-    );
+    const errors = [...new Set([
+      ...result.validation.missing_requirements,
+      ...(result.validation.field_errors ?? []).map(error => error.field),
+      ...editor.inputErrors.map(error => error.field),
+    ])].filter(k => !deferredRequirements.has(k) && requirementStage(k) === step);
     if (errors.length) {
       setIssues(errors);
       return;
@@ -164,11 +167,14 @@ export function KybWorkspace({
   };
   const submit = async () => {
     if (!declaration || termsBusy || !signedAgreementId(editor.bundle)) return;
+    editor.revealRequiredErrors();
     await editor.command(async (current) => {
       const validation = await kybApi.validate();
-      const hard = validation.validation.missing_requirements.filter(
-        (k) => !deferredRequirements.has(k),
-      );
+      const hard = [...new Set([
+        ...validation.validation.missing_requirements,
+        ...(validation.validation.field_errors ?? []).map(error => error.field),
+        ...editor.inputErrors.map(error => error.field),
+      ])].filter(k => !deferredRequirements.has(k));
       if (hard.length) {
         setIssues(hard);
         editor.setMissing(validation.validation.missing_requirements);

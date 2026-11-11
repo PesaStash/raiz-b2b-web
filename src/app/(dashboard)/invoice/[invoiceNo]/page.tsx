@@ -1,4 +1,5 @@
 "use client";
+import { invoicePaymentReady, invoiceUnavailableMessage } from "@/lib/invoiceReadiness";
 import React, { useRef, useState } from "react";
 import InvoiceFile from "../_components/InvoiceFile";
 import InvoiceTableMoreOpts from "../_components/InvoiceTableMoreOpts";
@@ -101,6 +102,10 @@ const InvoiceDetail = () => {
   };
 
   const handleSendEmail = async () => {
+    if (!invoicePaymentReady(user?.business_account, data.currency)) {
+      toast.warning(invoiceUnavailableMessage);
+      return;
+    }
     setSendingmail(true);
     const toastId = toast.loading("Generating invoice PDF...");
 
@@ -124,7 +129,7 @@ const InvoiceDetail = () => {
       });
     } catch (err) {
       console.error("Email sending failed:", err);
-      toast.error("Failed to send invoice email. Please try again.", {
+      toast.error(err instanceof Error ? err.message : "Failed to send invoice email. Please try again.", {
         id: toastId,
       });
     } finally {
@@ -145,6 +150,7 @@ const InvoiceDetail = () => {
   return (
     <section className="min-w-0 pb-4 md:pb-0">
       <InvoiceMobileBack href="/invoice" label="Invoices" />
+      {!invoicePaymentReady(user?.business_account, data.currency) && <p role="status" className="mb-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-900">{invoiceUnavailableMessage}</p>}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-4 md:mb-6">
         <div className="min-w-0">
@@ -167,6 +173,7 @@ const InvoiceDetail = () => {
         <Button
           type="button"
           variant="secondary"
+          width="fit"
           className="hidden sm:inline-flex shrink-0"
           onClick={() => router.push(`/invoice/${invoiceNo}/edit`)}
         >

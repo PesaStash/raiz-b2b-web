@@ -1,3 +1,4 @@
+import type { KybPerson } from "../../types/usdKyb.ts";
 export const stages = [
   {
     key: "identity",
@@ -463,4 +464,9 @@ export function registryPersonPrefill<T extends { person_key: string; [key: stri
     if ((result[key] === undefined || result[key] === null || result[key] === "") && value != null && value !== "") result[key] = value;
   }
   return result as T;
+}
+
+/** Preserve omitted fields in partial mutation responses; explicit null/blank values remain authoritative. */
+export function mergePersonResponse(previous: KybPerson | undefined, input: KybPerson | undefined, response: KybPerson): KybPerson {
+  return mergeDraft(mergeDraft(previous ?? {}, input ?? {}), response) as KybPerson;
 }

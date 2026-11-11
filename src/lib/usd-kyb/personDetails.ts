@@ -84,7 +84,7 @@ export function personDetailsErrors(
         person.ownership_percentage > 100)
     )
       errors.ownership_percentage =
-        "Enter a whole-number ownership percentage greater than 0 and up to 100.";
+        "Enter a whole-number ownership percentage greater than 0 and up to 100. Registry decimals are shown separately; do not round them.";
     date(
       "relationship_established_at",
       person.relationship_established_at,
@@ -114,7 +114,7 @@ export function ownershipNeedsReview(person: KybPerson) {
   return (
     !!person.has_ownership &&
     (person.ownership_percentage == null ||
-      !Number.isFinite(Number(person.ownership_percentage)) ||
+      !Number.isInteger(person.ownership_percentage) ||
       Number(person.ownership_percentage) <= 0 ||
       Number(person.ownership_percentage) > 100)
   );

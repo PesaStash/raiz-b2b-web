@@ -10,6 +10,7 @@ import PhoneNumberInput from "@/components/ui/PhoneNumberInput";
 import z from "zod";
 import { toFormikValidationSchema } from "zod-formik-adapter";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { ICustomer } from "@/types/invoice";
 import { IAddCustomerPayload } from "@/types/services";
 import { AddCustomerApi } from "@/services/invoice";
 import SelectField from "@/components/ui/SelectField";
@@ -21,6 +22,7 @@ import { useUser } from "@/lib/hooks/useUser";
 
 interface Props {
   close: () => void;
+  onCreated?: (customer: ICustomer) => void;
 }
 
 // Base schema with conditional validation
@@ -38,6 +40,9 @@ const AddCustomerSchema = z
       .min(10, "Invalid phone number")
       .regex(/^\+?[1-9]\d{6,14}$/, "Enter a valid phone number"),
     address: z.string().min(3, "Address is required"),
+    city: z.string().min(1, "City is required"),
+    state: z.string().min(1, "State is required"),
+    country_code: z.string().regex(/^[A-Z]{2}$/, "Select a valid address country"),
   })
   .refine(
     (data) => {
@@ -64,12 +69,14 @@ const AddCustomerSchema = z
     },
   );
 
-const AddNewCustomer = ({ close }: Props) => {
+const AddNewCustomer = ({ close, onCreated }: Props) => {
   const qc = useQueryClient();
   const { user } = useUser();
   const AddMutation = useMutation({
     mutationFn: (payload: IAddCustomerPayload) => AddCustomerApi(payload),
-    onSuccess: () => {
+    onSuccess: (response) => {
+      const customer = response?.data ?? response;
+      if (customer?.customer_id) onCreated?.(customer);
       qc.invalidateQueries({ queryKey: ["customers"] });
       const userId = getAnalyticsUserId(user);
       if (userId) {
@@ -131,7 +138,10 @@ const AddNewCustomer = ({ close }: Props) => {
       <div className="flex-1 overflow-y-auto flex flex-col justify-between min-h-0 gap-4">
         <div className="flex flex-col gap-4 rounded-2xl bg-raiz-gray-50 p-4 sm:p-6">
           <SelectField
-            placeholder="Customer Type"
+            label="Customer type *"
+            placeholder="Select customer type"
+            status={formik.touched.customerType && formik.errors.customerType ? "error" : null}
+            helper={formik.touched.customerType ? formik.errors.customerType : undefined}
             options={customerTypeOpt}
             value={
               formik.values.customerType
@@ -150,7 +160,7 @@ const AddNewCustomer = ({ close }: Props) => {
             <>
               {formik.values.customerType === "individual" && (
                 <InputField
-                  label="Full Name"
+                  label="Full Name *"
                   {...formik.getFieldProps("fullname")}
                   status={
                     formik.touched.fullname && formik.errors.fullname
@@ -164,7 +174,7 @@ const AddNewCustomer = ({ close }: Props) => {
               )}
               {formik.values.customerType === "business" && (
                 <InputField
-                  label="Business Name"
+                  label="Business Name *"
                   {...formik.getFieldProps("companyName")}
                   status={
                     formik.touched.companyName && formik.errors.companyName
@@ -177,7 +187,7 @@ const AddNewCustomer = ({ close }: Props) => {
                 />
               )}
               <InputField
-                label="Email"
+                label="Email *"
                 type="email"
                 {...formik.getFieldProps("email")}
                 status={
@@ -187,7 +197,7 @@ const AddNewCustomer = ({ close }: Props) => {
               />
               <div className="">
                 <PhoneNumberInput
-                  label="Phone Number"
+                  label="Phone Number *"
                   value={formik.values.phone}
                   onChange={(value) => formik.setFieldValue("phone", value)}
                   error={formik.errors.phone}
@@ -210,13 +220,11 @@ const AddNewCustomer = ({ close }: Props) => {
             </>
           )}
         </div>
+        {formik.submitCount > 0 && Object.keys(formik.errors).length > 0 && <p role="alert" className="text-sm text-red-700">{Object.values(formik.errors).join(" ")}</p>}
         <div className="flex flex-col gap-3 pt-2 shrink-0">
           <Button
             disabled={
-              !formik.dirty ||
-              AddMutation.isPending ||
-              !formik.values.city ||
-              !formik.values.state
+              AddMutation.isPending
             }
             loading={AddMutation.isPending}
             type="submit"

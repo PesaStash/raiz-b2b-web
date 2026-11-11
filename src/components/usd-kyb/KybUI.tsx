@@ -109,19 +109,21 @@ export function Field({
   const id = useId();
   const value = getPath(editor.draft, path);
   const text = value == null ? "" : String(value);
-  const missing = editor.missing.some(
+  const missing = editor.validationAttempted && editor.missing.some(
     (key) => key === path || key === path.split(".").at(-1),
   );
   const correction = groupFieldErrors(editor.fieldErrors ?? []).find(
     (error) => error.field === path || error.field === path.split(".").at(-1),
   );
-  const [requiredPreviously, setRequiredPreviously] = useState(missing);
+  const [requiredPreviously, setRequiredPreviously] = useState(false);
+  const [touched, setTouched] = useState(false);
   const change = (next: unknown) => {
+    setTouched(true);
     if (missing) setRequiredPreviously(true);
     editor.change(path, next);
   };
   let localError: string | undefined;
-  if ((missing || requiredPreviously) && !text.trim()) localError = `${title} is required.`;
+  if ((touched || requiredPreviously || editor.validationAttempted) && missing && !text.trim()) localError = `${title} is required.`;
   else if (text && type === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)) localError = "Enter a valid email address.";
   else if (text && type === "url") {
     try { const url = new URL(text); if (!["http:", "https:"].includes(url.protocol)) localError = "Enter a valid website URL."; }
@@ -249,7 +251,7 @@ export function SegmentedField({
     current && !choices.some((option) => option.value === current)
       ? [...choices, { value: current, label: label(current) }]
       : choices;
-  const missing = editor.missing.some(
+  const missing = editor.validationAttempted && editor.missing.some(
     (key) => key === path || key === path.split(".").at(-1),
   );
   const correction = groupFieldErrors(editor.fieldErrors ?? []).find(

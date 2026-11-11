@@ -1,3 +1,4 @@
+import { apiFieldErrors } from "@/lib/apiError";
 import Image from "next/image";
 import type { IUser } from "@/types/user";
 import Button from "@/components/ui/Button";
@@ -37,14 +38,15 @@ const BusinessSchema = z.object({
     .email("Invalid email address")
     .min(1, "Email is required"),
   address: z.string().optional(),
-  country_code: z.string().min(1, "Country is required"),
+  country_code: z.string().regex(/^[A-Z]{2}$/, "Select a valid country"),
   state: z.string().min(1, "State is required"),
-  zip_code: z.string().optional(),
+  zip_code: z.string().trim().min(1, "Postcode is required"),
   street: z.string().min(1, "Street is required"),
   building_number: z.string().optional(),
   city: z.string().min(1, "City is required"),
   length_of_stay_months: z.coerce
     .number({ invalid_type_error: "Length of stay is required" })
+    .int("Enter a whole number of months")
     .min(6, "Minimum length of stay is 6 months"),
 });
 
@@ -131,7 +133,7 @@ export const BasicBusinessForm = ({
   const [addressStatus, setAddressStatus] = useState<"idle" | "loading" | "failed" | "done">("idle");
   const [addressRetry, setAddressRetry] = useState(0);
   const [useManualAddress, setUseManualAddress] = useState(
-    () => !!storedPrefill?.address,
+    () => !!storedPrefill?.address || !!user?.business_account?.entity?.entity_address?.[0]?.street,
   );
   const {
     countries,
@@ -183,6 +185,10 @@ export const BasicBusinessForm = ({
   const BusinessVerificationMutation = useMutation({
     mutationFn: (payload: IBusinessVerificationPayload) =>
       BusinessVerificationApi(payload),
+    onError: error => {
+      const fields = Object.fromEntries(Object.entries(apiFieldErrors(error)).filter(([key]) => Object.hasOwn(formik.values, key)));
+      formik.setErrors(fields);
+    },
     onSuccess: async (response) => {
       clearLookupPrefill(entityId);
       toast.success(
@@ -219,10 +225,11 @@ export const BasicBusinessForm = ({
   const existingEmail =
     user?.business_account?.business_email || user?.email || "";
 
+  const saved = user?.business_account?.entity?.entity_address?.[0];
   const formik = useFormik<BusinessFormValues>({
     initialValues: {
       business_registration_number:
-        storedPrefill?.registration_number || "",
+        user?.business_account?.business_registration_number || storedPrefill?.registration_number || "",
       business_name:
         storedPrefill?.business_name ||
         user?.business_account?.business_name ||
@@ -233,12 +240,12 @@ export const BasicBusinessForm = ({
         storedPrefill?.country_code ||
         user?.business_account?.entity?.country?.country_code ||
         "",
-      state: storedPrefill?.state || "",
-      zip_code: storedPrefill?.zip_code || "",
-      street: storedPrefill?.street || "",
-      building_number: storedPrefill?.building_number || "",
-      city: storedPrefill?.city || "",
-      length_of_stay_months: undefined as unknown as number,
+      state: saved?.state || storedPrefill?.state || "",
+      zip_code: saved?.zip_code || storedPrefill?.zip_code || "",
+      street: saved?.street || storedPrefill?.street || "",
+      building_number: saved?.building_number || storedPrefill?.building_number || "",
+      city: saved?.city || storedPrefill?.city || "",
+      length_of_stay_months: saved?.length_of_stay_months ?? (undefined as unknown as number),
       address: storedPrefill?.address || "",
     },
     enableReinitialize: true,
@@ -333,17 +340,18 @@ export const BasicBusinessForm = ({
   const liveValidation = getEffectiveSchema().safeParse(formik.values);
   const liveErrors = liveValidation.success ? {} : mapZodFieldErrors(liveValidation.error.flatten().fieldErrors);
   const fieldError = (name: keyof BusinessFormValues) => {
-    const error = (formik.touched[name] || formik.submitCount > 0) && liveErrors[name];
+    const error = (formik.touched[name] || formik.submitCount > 0) && (formik.errors[name] || liveErrors[name]);
     if (!error) return null;
     return Array.isArray(error) ? (error.length ? "error" : null) : "error";
   };
 
   const fieldErrorMessage = (name: keyof BusinessFormValues) => {
-    const error = (formik.touched[name] || formik.submitCount > 0) && liveErrors[name];
+    const error = (formik.touched[name] || formik.submitCount > 0) && (formik.errors[name] || liveErrors[name]);
     if (!error) return undefined;
     return Array.isArray(error) ? error[0] : error;
   };
 
+  const hasRegistryName = !!storedPrefill?.business_name?.trim() && storedPrefill.business_name.trim() === formik.values.business_name.trim();
   const prefillNotice = storedPrefill ? (
     <Notice>
       Pre-filled from the business register. Check and edit anything that’s
@@ -496,7 +504,7 @@ export const BasicBusinessForm = ({
             <div>
               {field("business_name", "Business name")}
               <p className="mt-2 text-[13px] text-kyb-muted">
-                {storedPrefill ? `Fetched from the ${formik.values.country_code === "NG" ? "CAC registry" : "business registry"}` : "Enter your registered business name."}
+                {hasRegistryName ? `Fetched from the ${formik.values.country_code === "NG" ? "CAC registry" : "business registry"}` : "Enter your registered business name."}
               </p>
             </div>
             <div>
@@ -531,7 +539,7 @@ export const BasicBusinessForm = ({
               {field("building_number", "Apartment / floor (optional)")}
               {field("city", "City")}
               {field("state", "State / region")}
-              {field("zip_code", "Postcode (optional)")}
+              {field("zip_code", "Postcode *")}
               {field(
                 "length_of_stay_months",
                 "Time at this address (months)",
@@ -618,7 +626,7 @@ export const BasicBusinessForm = ({
             errorMessage={fieldErrorMessage("business_name")}
           />
           <p className="mt-2 text-[13px] text-kyb-muted">
-            {storedPrefill ? `Fetched from the ${formik.values.country_code === "NG" ? "CAC registry" : "business registry"}. You can edit it.` : "Enter your registered business name."}
+            {hasRegistryName ? `Fetched from the ${formik.values.country_code === "NG" ? "CAC registry" : "business registry"}. You can edit it.` : "Enter your registered business name."}
           </p>
         </div>
         <InputField
