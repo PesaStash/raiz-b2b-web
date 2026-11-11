@@ -1,5 +1,6 @@
 "use client";
-import { invoicePaymentReady, invoiceUnavailableMessage } from "@/lib/invoiceReadiness";
+import { invoiceEmailPayload } from "@/lib/invoiceEmail";
+import { readApiError } from "@/lib/apiError";
 import React, { useRef, useState } from "react";
 import InvoiceFile from "../_components/InvoiceFile";
 import InvoiceTableMoreOpts from "../_components/InvoiceTableMoreOpts";
@@ -23,6 +24,7 @@ import {
   downloadInvoice,
   formatAmount,
   generateInvoicePDFBlob,
+  getApiErrorMessage,
   getCurrencySymbol,
 } from "@/utils/helpers";
 import { useUser } from "@/lib/hooks/useUser";
@@ -76,6 +78,9 @@ const InvoiceDetail = () => {
   });
 
   const [sendingMail, setSendingmail] = useState(false);
+  const mailInFlight = useRef(false);
+  const [includePaymentLink, setIncludePaymentLink] = useState(true);
+  const [paymentLinkUnavailable, setPaymentLinkUnavailable] = useState(false);
 
   if (isLoading) {
     return <Loading />;
@@ -103,11 +108,14 @@ const InvoiceDetail = () => {
     }
   };
 
-  const handleSendEmail = async () => {
-    if (!invoicePaymentReady(user?.business_account, data.currency)) {
-      toast.warning(invoiceUnavailableMessage);
+  const handleSendEmail = async (withPaymentLink = includePaymentLink) => {
+    if (mailInFlight.current) return;
+    if (withPaymentLink && !user?.business_account?.username) {
+      setPaymentLinkUnavailable(true);
+      toast.warning("Set up a payment link, or email this invoice without one.");
       return;
     }
+    mailInFlight.current = true;
     setSendingmail(true);
     const toastId = toast.loading("Generating invoice PDF...");
 
@@ -120,23 +128,26 @@ const InvoiceDetail = () => {
       toast.loading("Converting PDF to base64...", { id: toastId });
       const pdfBase64 = await blobToBase64(pdfBlob);
 
-      const payload = {
-        payment_link: `${process.env.NEXT_PUBLIC_APP_BASE_URL}/pay/${user?.business_account?.username}`,
-        invoice_pdf_url: pdfBase64,
-      };
+      const payload = invoiceEmailPayload(pdfBase64, withPaymentLink
+        ? `${process.env.NEXT_PUBLIC_APP_BASE_URL || window.location.origin}/pay/${encodeURIComponent(user?.business_account?.username || "")}`
+        : undefined);
 
       toast.loading("Sending invoice email...", { id: toastId });
       await SendInvoiceMailApi(data.invoice_id, payload);
-      toast.success("Invoice email sent successfully!", { id: toastId });
-      qc.invalidateQueries({
-        queryKey: ["invoices-list", "invoice-detail", invoiceNo],
-      });
+      toast.success("Invoice email queued for delivery.", { id: toastId });
+      setPaymentLinkUnavailable(false);
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["invoices-list"] }),
+        qc.invalidateQueries({ queryKey: ["invoice-detail", invoiceNo] }),
+        qc.invalidateQueries({ queryKey: ["invoice-activity", invoiceNo] }),
+      ]);
     } catch (err) {
-      console.error("Email sending failed:", err);
-      toast.error(err instanceof Error ? err.message : "Failed to send invoice email. Please try again.", {
+      if (readApiError(err).code === "invoice_payments_unavailable") setPaymentLinkUnavailable(true);
+      toast.error(getApiErrorMessage(err, "Failed to send invoice email. Please try again."), {
         id: toastId,
       });
     } finally {
+      mailInFlight.current = false;
       setSendingmail(false);
     }
   };
@@ -154,7 +165,15 @@ const InvoiceDetail = () => {
   return (
     <section className="min-w-0 pb-4 md:pb-0">
       <InvoiceMobileBack href="/invoice" label="Invoices" />
-      {!invoicePaymentReady(user?.business_account, data.currency) && <p role="status" className="mb-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-900">{invoiceUnavailableMessage}</p>}
+      {["pending", "draft"].includes(data.status) && <div className="mb-4 space-y-3 rounded-xl border border-raiz-gray-200 p-4">
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={includePaymentLink} disabled={sendingMail} onChange={event => setIncludePaymentLink(event.target.checked)} />Include a payment link</label>
+        <p className="text-sm">You can email the invoice without a payment link. The recipient link does not confirm payment of this invoice.</p>
+        {paymentLinkUnavailable && <div role="alert" className="space-y-2 text-sm">
+          <p>Receiving setup is unavailable. Your invoice is kept. Set up receiving or send without a payment link.</p>
+          <Button type="button" variant="secondary" onClick={() => router.push("/onboarding")} disabled={sendingMail}>View receiving setup</Button>
+          <Button type="button" variant="secondary" onClick={() => { setIncludePaymentLink(false); void handleSendEmail(false); }} disabled={sendingMail}>Send without a payment link</Button>
+        </div>}
+      </div>}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-4 md:mb-6">
         <div className="min-w-0">
@@ -215,11 +234,11 @@ const InvoiceDetail = () => {
             >
               Edit Invoice
             </Button>
-            {data?.status === "pending" ? (
+            {["pending", "draft"].includes(data.status) ? (
               <Button
                 className="w-full sm:w-[200px]"
                 disabled={sendingMail}
-                onClick={handleSendEmail}
+                onClick={() => void handleSendEmail()}
                 icon={
                   <svg
                     width="16"

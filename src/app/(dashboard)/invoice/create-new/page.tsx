@@ -1,4 +1,5 @@
 "use client";
+import { invoiceLineItemSchema } from "@/lib/invoiceLineItem";
 import { withBusinessWrite } from "@/components/team/BusinessWrite";
 import React, { useRef, useState } from "react";
 import { Formik, FormikProps } from "formik";
@@ -51,11 +52,7 @@ const invoiceSchema = z
       .optional(),
     items: z
       .array(
-        z.object({
-          description: z.string().min(1, "Item description is required"),
-          quantity: z.number().finite().min(1, "Quantity must be at least 1"),
-          unitPrice: z.number().finite().min(0, "Unit price cannot be negative"),
-        }),
+        invoiceLineItemSchema,
       )
       .min(1, "At least one item is required"),
     terms: z
@@ -601,7 +598,7 @@ const CreateInvoicePage = () => {
                             <InputField
                               className="!bg-white"
                               type="number"
-                              min="0"
+                              min="1"
                               step="0.01"
                               aria-label={`Item ${index + 1} unit price`}
                               errorMessage={formik.touched.items?.[index]?.unitPrice && priceError}
