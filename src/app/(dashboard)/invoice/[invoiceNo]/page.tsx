@@ -41,7 +41,7 @@ const InvoiceDetail = () => {
   const { invoiceNo } = useParams<{ invoiceNo: string }>();
   const invoiceRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const { user } = useUser();
+  const { user, refetch: refreshProfile } = useUser();
   const qc = useQueryClient();
   const { data, isLoading, isError } = useQuery({
     queryKey: ["invoice-detail", invoiceNo],
@@ -94,6 +94,8 @@ const InvoiceDetail = () => {
 
   const handleDownload = async () => {
     try {
+      await refreshProfile({ throwOnError: true });
+      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
       await downloadInvoice(invoiceRef, data.invoice_number, "pdf");
       toast.success("Pdf downloaded successfully ");
     } catch {
@@ -110,6 +112,8 @@ const InvoiceDetail = () => {
     const toastId = toast.loading("Generating invoice PDF...");
 
     try {
+      await refreshProfile({ throwOnError: true });
+      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
       const pdfBlob = await generateInvoicePDFBlob(invoiceRef);
       if (!pdfBlob) throw new Error("Failed to generate invoice PDF");
 

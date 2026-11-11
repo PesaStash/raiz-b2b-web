@@ -426,6 +426,13 @@ export function useUsdKyb() {
           : draftInputErrors(state.draft).length ? "Draft saved — needs correction" : "Saved",
       );
       setError("");
+      const editedPhone = getPath(patch, "business_profile.phone");
+      if (typeof editedPhone === "string" && editedPhone.trim() &&
+          !draftInputErrors(patch).some(error => error.field === "business_profile.phone")) {
+        // The explicit KYB contact save synchronizes the invoice profile on the server.
+        // Finish its refresh before a caller navigates to invoice preview/PDF.
+        await qc.invalidateQueries({ queryKey: ["user"] }).catch(() => undefined);
+      }
     } catch (failure) {
       state.pending = mergeDraft(patch, state.pending);
       state.peopleDirty ||= sentPeople;

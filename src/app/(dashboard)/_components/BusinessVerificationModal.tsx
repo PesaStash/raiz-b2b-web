@@ -1,4 +1,5 @@
-import { apiFieldErrors } from "@/lib/apiError";
+import { apiFieldCorrections, apiFieldErrors } from "@/lib/apiError";
+import { basicBusinessField, mergePristineFields } from "@/lib/businessFormState";
 import Image from "next/image";
 import type { IUser } from "@/types/user";
 import Button from "@/components/ui/Button";
@@ -181,13 +182,22 @@ export const BasicBusinessForm = ({
     );
   };
 
+  const formRef = useRef<HTMLFormElement>(null);
+  const focusField = (name: string) => {
+    const controls = formRef.current?.querySelectorAll<HTMLElement>("input, select, textarea, [role=combobox]");
+    const control = Array.from(controls ?? []).find(control => control.getAttribute("name") === name || (name === "business_registration_number" && control.id === "business-reg") || (name === "country_code" && control.getAttribute("role") === "combobox"));
+    control?.focus();
+    control?.scrollIntoView({ block: "center" });
+  };
   const qc = useQueryClient();
   const BusinessVerificationMutation = useMutation({
     mutationFn: (payload: IBusinessVerificationPayload) =>
       BusinessVerificationApi(payload),
     onError: error => {
-      const fields = Object.fromEntries(Object.entries(apiFieldErrors(error)).filter(([key]) => Object.hasOwn(formik.values, key)));
+      const fields = Object.fromEntries(Object.entries(apiFieldErrors(error)).map(([key, message]) => [basicBusinessField(key), message]).filter(([key]) => Object.hasOwn(formik.values, key)));
       formik.setErrors(fields);
+      const first = Object.keys(fields)[0];
+      requestAnimationFrame(() => first ? focusField(first) : errorSummaryRef.current?.focus());
     },
     onSuccess: async (response) => {
       clearLookupPrefill(entityId);
@@ -226,19 +236,18 @@ export const BasicBusinessForm = ({
     user?.business_account?.business_email || user?.email || "";
 
   const saved = user?.business_account?.entity?.entity_address?.[0];
-  const formik = useFormik<BusinessFormValues>({
-    initialValues: {
+  const initialValues = useMemo<BusinessFormValues>(() => ({
       business_registration_number:
         user?.business_account?.business_registration_number || storedPrefill?.registration_number || "",
       business_name:
-        storedPrefill?.business_name ||
         user?.business_account?.business_name ||
+        storedPrefill?.business_name ||
         "",
       business_email:
         existingEmail || storedPrefill?.business_email || "",
       country_code:
-        storedPrefill?.country_code ||
         user?.business_account?.entity?.country?.country_code ||
+        storedPrefill?.country_code ||
         "",
       state: saved?.state || storedPrefill?.state || "",
       zip_code: saved?.zip_code || storedPrefill?.zip_code || "",
@@ -247,8 +256,12 @@ export const BasicBusinessForm = ({
       city: saved?.city || storedPrefill?.city || "",
       length_of_stay_months: saved?.length_of_stay_months ?? (undefined as unknown as number),
       address: storedPrefill?.address || "",
-    },
-    enableReinitialize: true,
+    }), [user, storedPrefill, existingEmail, saved]);
+  const previousInitial = useRef(initialValues);
+  const previousEntity = useRef(entityId);
+  const errorSummaryRef = useRef<HTMLDivElement>(null);
+  const formik = useFormik<BusinessFormValues>({
+    initialValues,
     validateOnChange: true,
     validate: (values) => {
       const result = getEffectiveSchema().safeParse(values);
@@ -272,6 +285,17 @@ export const BasicBusinessForm = ({
       });
     },
   });
+
+  const setFormValues = formik.setValues;
+  useEffect(() => {
+    const previous = previousInitial.current;
+    const changedBusiness = previousEntity.current !== entityId;
+    previousEntity.current = entityId;
+    previousInitial.current = initialValues;
+    if (changedBusiness || JSON.stringify(previous) !== JSON.stringify(initialValues)) {
+      void setFormValues(current => changedBusiness ? initialValues : mergePristineFields(current, previous, initialValues), false);
+    }
+  }, [entityId, initialValues, setFormValues]);
 
   const latestForm = useRef(formik);
   useEffect(() => { latestForm.current = formik; }, [formik]);
@@ -316,13 +340,9 @@ export const BasicBusinessForm = ({
     <Notice>{resolutionError || "Google could not fill every address field."} <button type="button" className="underline" onClick={() => setAddressRetry(value => value + 1)}>Retry address lookup</button>, or complete the missing fields.</Notice>
   ) : null;
 
-  const selectedCountry = useMemo(
-    () =>
-      countryOptions.find(
-        (option) => option.value === formik.values.country_code,
-      ) ?? null,
-    [countryOptions, formik.values.country_code],
-  );
+  const selectedCountry = countryOptions.find(
+    option => option.value === formik.values.country_code,
+  ) ?? null;
 
   const hasRequiredAddress =
     !!formik.values.city &&
@@ -332,8 +352,11 @@ export const BasicBusinessForm = ({
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     const result = getEffectiveSchema().safeParse(formik.values);
-    if (!result.success)
+    if (!result.success) {
       toast.error(result.error.issues[0].message, { id: "onboarding-error" });
+      const first = String(result.error.issues[0].path[0] ?? "");
+      requestAnimationFrame(() => focusField(first));
+    }
     formik.handleSubmit(event);
   };
   // Render synchronous schema feedback; Formik still owns submit validation.
@@ -359,6 +382,16 @@ export const BasicBusinessForm = ({
     </Notice>
   ) : null;
 
+  const serverCorrections = apiFieldCorrections(BusinessVerificationMutation.error);
+  const correctionSummary = BusinessVerificationMutation.isError && (
+    <div ref={errorSummaryRef} tabIndex={-1} role="alert" className="rounded-xl border border-red-200 p-4 text-sm text-red-700">
+      <p>{getApiErrorMessage(BusinessVerificationMutation.error, "Unable to submit your business details. Please try again.")}</p>
+      <ul className="list-disc pl-5">{serverCorrections.map(({ field, message }, index) => <li key={`${field}-${index}`}>
+        <button type="button" className="text-left underline" onClick={() => focusField(basicBusinessField(field))}>{basicBusinessField(field).replace(/[_.[\]]+/g, " ")}: {message}</button>
+      </li>)}</ul>
+    </div>
+  );
+
   if (page) {
     const field = (
       name: keyof BusinessFormValues,
@@ -382,17 +415,11 @@ export const BasicBusinessForm = ({
     const prefix = reg.startsWith("BN") ? "BN" : "RC";
     return (
       <form
+        ref={formRef}
         onSubmit={handleSubmit}
         className="space-y-7 rounded-2xl border border-kyb-border bg-white p-5 md:p-8"
       >
-        {BusinessVerificationMutation.isError && (
-          <Notice error>
-            {getApiErrorMessage(
-              BusinessVerificationMutation.error,
-              "Unable to submit your business details. Please try again.",
-            )}
-          </Notice>
-        )}
+        {correctionSummary}
         {/* {prefillNotice} */}
         <header>
           <p className="text-xs font-semibold text-primary2">
@@ -602,15 +629,8 @@ export const BasicBusinessForm = ({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4 min-h-0">
-      {BusinessVerificationMutation.isError && (
-        <Notice error>
-          {getApiErrorMessage(
-            BusinessVerificationMutation.error,
-            "Unable to submit your business details. Please try again.",
-          )}
-        </Notice>
-      )}
+    <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-4 min-h-0">
+      {correctionSummary}
       {prefillNotice}
       {addressResolutionNotice}
       <div className="flex flex-col gap-3">
@@ -705,7 +725,7 @@ export const BasicBusinessForm = ({
               errorMessage={fieldErrorMessage("state")}
             />
             <InputField
-              label="ZIP / Postal Code"
+              label="ZIP / Postal Code *"
               {...formik.getFieldProps("zip_code")}
               status={fieldError("zip_code")}
               errorMessage={fieldErrorMessage("zip_code")}
