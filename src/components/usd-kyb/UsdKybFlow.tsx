@@ -2,6 +2,7 @@
 import {
   personRequirementMessage,
   peopleNeedingInvitation,
+  isEligibleAssociatedPerson,
 } from "@/lib/usd-kyb/personDetails";
 import { toast } from "sonner";
 import { focusAttention } from "@/lib/usd-kyb/attention";
@@ -152,7 +153,10 @@ export function KybWorkspace({
   };
   const next = async () => {
     editor.revealRequiredErrors();
-    const result = await editor.command(() => kybApi.validate());
+    const result = await editor.command(async () => {
+      if (step === 2) await editor.prepareAssociatedPersons();
+      return kybApi.validate();
+    });
     if (!result) return;
     const errors = [...new Set([
       ...result.validation.missing_requirements,
@@ -169,6 +173,7 @@ export function KybWorkspace({
     if (!declaration || termsBusy || !signedAgreementId(editor.bundle)) return;
     editor.revealRequiredErrors();
     await editor.command(async (current) => {
+      await editor.prepareAssociatedPersons();
       const validation = await kybApi.validate();
       const hard = [...new Set([
         ...validation.validation.missing_requirements,
@@ -181,6 +186,8 @@ export function KybWorkspace({
         return validation;
       }
       const fresh = await kybApi.get();
+      if (fresh.associated_persons.some(person => !isEligibleAssociatedPerson(person)))
+        throw new Error("Only people with at least 25% ownership can be submitted. Refresh the owners section before continuing.");
       if (peopleNeedingInvitation(fresh.associated_persons).length) {
         setIssues(["associated_persons.invitations"]);
         return fresh;

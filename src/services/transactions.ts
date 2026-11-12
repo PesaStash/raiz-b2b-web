@@ -295,6 +295,7 @@ export async function GetExchangeRate(
 ): Promise<IUsdBaseExchangeRateResponse> {
   const response = await AuthAxios.get(
     `/business/transactions/swap/exchange-rates/?currency=${currencyCode}`,
+    { silent: true } as CustomAxiosRequestConfig,
   );
   return response.data;
 }

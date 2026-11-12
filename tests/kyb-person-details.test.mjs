@@ -4,6 +4,10 @@ import {
   personDetailsErrors,
   persistedPersonDetailsErrors,
   identityStarted,
+  personFormErrors,
+  personDetailsStep,
+  latestPersonBirthDate,
+  isEligibleAssociatedPerson,
 } from "../src/lib/usd-kyb/personDetails.ts";
 import { personPatch } from "../src/lib/usd-kyb/model.ts";
 const input = () => ({
@@ -44,6 +48,38 @@ test("new person requires personal details, a complete address and explicit busi
     assert.ok(missing[key], key);
   assert.equal(personDetailsErrors(input(), 0).roles, undefined);
 });
+
+test("existing registry people must fill missing visible details without re-entering redacted identity", () => {
+  const redacted = { ownership_percentage: 25, has_ownership: true, person_key: "registry", associated_person_id: "id-registry", first_name: "Ada", last_name: "Example", email: "", is_director: true };
+  const errors = personFormErrors(redacted, true);
+  assert.deepEqual(Object.keys(errors), ["email"]);
+  assert.equal(personFormErrors(redacted, true, 2).email, undefined);
+  assert.ok(personFormErrors(redacted, true, 0).email);
+  assert.deepEqual(personFormErrors({ ...redacted, email: "ada@example.com" }, true), {});
+  assert.ok(personFormErrors({ ...redacted, email: "ada@example.com", birth_date: "" }, true).birth_date);
+  assert.ok(personFormErrors({ ...redacted, email: "ada@example.com" }, false).birth_date);
+});
+
+test("person validation routes every field to its own step", () => {
+  assert.equal(personDetailsStep("last_name"), 0);
+  assert.equal(personDetailsStep("nationalities"), 0);
+  assert.equal(personDetailsStep("residential_address.postal_code"), 1);
+  assert.equal(personDetailsStep("ownership_percentage"), 2);
+  assert.equal(personDetailsStep("roles"), 2);
+  assert.equal(personDetailsStep("identifying_information[0].type"), 2);
+});
+test("associated persons must have reached their tenth birthday", () => {
+  const today = new Date("2026-11-12T12:00:00Z");
+  for (const birth_date of ["2016-11-12", "2016-11-11", "1985-02-20"])
+    assert.equal(personDetailsErrors({ ...input(), birth_date }, 0, today).birth_date, undefined);
+  for (const birth_date of ["2016-11-13", "2020-01-01"])
+    assert.equal(personDetailsErrors({ ...input(), birth_date }, 0, today).birth_date,
+      "Associated persons must be at least 10 years old.");
+  assert.equal(latestPersonBirthDate(new Date("2024-02-29T12:00:00Z")), "2014-02-28");
+  assert.ok(personDetailsErrors({ ...input(), birth_date: "2016-02-29" }, 0, new Date("2026-02-28T12:00:00Z")).birth_date);
+  assert.equal(personDetailsErrors({ ...input(), birth_date: "2016-02-29" }, 0, new Date("2026-03-01T12:00:00Z")).birth_date, undefined);
+});
+
 test("person dates, country formats and ownership are validated without inventing identity approval", () => {
   for (const birth_date of ["2025-02-30", "2999-01-01", "02/20/1985"])
     assert.ok(personDetailsErrors({ ...input(), birth_date }).birth_date);
@@ -143,7 +179,7 @@ test("seven profiles can have pending verification without ownership errors when
   assert.match(message, /confirm they are not an owner/);
 });
 
-test("every associated person must be invited or verified before submission, including minor owners", async () => {
+test("only people with at least 25 percent ownership require invitations", async () => {
   const { peopleNeedingInvitation, personRequirementMessage } = await import(
     "../src/lib/usd-kyb/personDetails.ts"
   );
@@ -167,21 +203,21 @@ test("every associated person must be invited or verified before submission, inc
       ownership_percentage: 20,
       invitation_status: "not_sent",
     },
-    { person_key: "expired", invitation_status: "expired" },
-    { person_key: "revoked", invitation_status: "revoked" },
+    { person_key: "expired", ownership_percentage: 25, invitation_status: "expired" },
+    { person_key: "revoked", ownership_percentage: 25, invitation_status: "revoked" },
     {
-      person_key: "stale",
+      person_key: "stale", ownership_percentage: 25,
       invitation_status: "sent",
       invitation_expires_at: "2000-01-01T00:00:00Z",
     },
   ];
   assert.deepEqual(
     peopleNeedingInvitation(people).map((p) => p.person_key),
-    ["minor-owner", "expired", "revoked", "stale"],
+    ["expired", "revoked", "stale"],
   );
   assert.match(
     personRequirementMessage("associated_persons.invitations", people),
-    /Minor/,
+    /Unnamed person/,
   );
   assert.deepEqual(
     peopleNeedingInvitation(
@@ -193,4 +229,12 @@ test("every associated person must be invited or verified before submission, inc
     ),
     [],
   );
+});
+
+test("25 percent is inclusive and other roles do not bypass the ownership threshold", () => {
+  for (const ownership_percentage of [25, 50, 100])
+    assert.equal(isEligibleAssociatedPerson({ ownership_percentage }), true);
+  for (const ownership_percentage of [0, 24, 24.99, null, undefined, NaN, Infinity, 101, "25"])
+    assert.equal(isEligibleAssociatedPerson({ ownership_percentage, is_director: true, has_control: true, is_signer: true }), false);
+  assert.match(personDetailsErrors({ ...input(), ownership_percentage: 24 }, 2).ownership_percentage, /at least 25%/);
 });

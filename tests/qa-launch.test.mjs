@@ -16,11 +16,11 @@ test("KYB validates entered values without blocking an incomplete draft", () => 
 });
 
 test("writable ownership remains integral without rounding registry decimals", () => {
-  for (const ownership_percentage of [1, 99, 100]) assert.equal(personDetailsErrors({ has_ownership: true, ownership_percentage }, 2).ownership_percentage, undefined);
-  for (const ownership_percentage of [0, 0.1, 99.9, -1, 100.1, NaN, Infinity]) assert.ok(personDetailsErrors({ has_ownership: true, ownership_percentage }, 2).ownership_percentage);
+  for (const ownership_percentage of [25, 99, 100]) assert.equal(personDetailsErrors({ has_ownership: true, ownership_percentage }, 2).ownership_percentage, undefined);
+  for (const ownership_percentage of [0, 1, 24, 24.99, 99.9, -1, 100.1, NaN, Infinity]) assert.ok(personDetailsErrors({ has_ownership: true, ownership_percentage }, 2).ownership_percentage);
 });
 
-test("person dates follow the existing real-date contract without inventing a minimum age", () => {
+test("person dates require a real date and the minimum age", () => {
   assert.equal(personDetailsErrors({ birth_date: "2015-01-01" }, 0).birth_date, undefined);
   assert.ok(personDetailsErrors({ birth_date: "2999-01-01" }, 0).birth_date);
   assert.ok(personDetailsErrors({ birth_date: "2025-02-30" }, 0).birth_date);

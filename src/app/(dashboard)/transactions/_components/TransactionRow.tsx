@@ -70,12 +70,14 @@ export function TransactionRowDesktop({
           </p>
         )}
       </td>
-      <td className="hidden whitespace-nowrap lg:table-cell">
-        <div className="flex items-center gap-2">
+      <td className="hidden lg:table-cell">
+        <div className="flex min-w-0 items-center gap-2">
           {view.railCurrency && (
             <CurrencyFlag currency={view.railCurrency} mini />
           )}
-          <span className="text-[13px] text-[#2c2435]">{view.railLabel}</span>
+          <span className="min-w-0 truncate text-[13px] text-[#2c2435]">
+            {view.railLabel}
+          </span>
         </div>
       </td>
       <td className="hidden md:table-cell">
@@ -90,7 +92,7 @@ export function TransactionRowDesktop({
       <td className="hidden whitespace-nowrap sm:table-cell">
         <p className="text-xs text-[#6b6b80]">{view.absoluteDateLabel}</p>
       </td>
-      <td>
+      <td className="pr-4">
         <StatusBadge
           label={view.statusLabel}
           tone={statusTone(view)}

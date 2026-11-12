@@ -21,6 +21,7 @@ import {
 } from "@/lib/usd-kyb/model";
 import {
   canResendPersonInvitation,
+  isEligibleAssociatedPerson,
   personDetailsErrors,
   persistedPersonDetailsErrors,
 } from "@/lib/usd-kyb/personDetails";
@@ -273,6 +274,8 @@ export function useUsdKyb() {
     const sentPeople = state.peopleDirty;
     const sentKeys = new Set(state.dirtyPeople);
     const inputs = [...sentKeys].map((key) => state.personInputs.get(key)!);
+    if (inputs.some(person => !isEligibleAssociatedPerson(person)))
+      throw new Error("Only persons with at least 25% ownership can be saved, regardless of role.");
     const personWrites = inputs.map((input) => {
       const stored = state.bundle?.associated_persons.find(
         (person) => person.person_key === input.person_key,
@@ -474,6 +477,7 @@ export function useUsdKyb() {
         ...person,
         ...state.personInputs.get(person.person_key),
       };
+      if (!isEligibleAssociatedPerson(source)) continue;
       state.personInputs.set(person.person_key, {
         ...source,
         has_ownership: ownershipFlag(source),
@@ -631,7 +635,11 @@ export function useUsdKyb() {
       return false;
     if (saved && input)
       return (
-        Object.keys(personDetailsErrors(saved)).length === 0 &&
+        Object.keys(
+          saved.associated_person_id || saved.business_usd_kyb_associated_person_id
+            ? persistedPersonDetailsErrors(saved)
+            : personDetailsErrors(saved),
+        ).length === 0 &&
         JSON.stringify(personPatch(saved)) ===
           JSON.stringify(personPatch(input))
       );
@@ -666,6 +674,10 @@ export function useUsdKyb() {
           JSON.stringify(personPatch(person))
       );
     });
+    if (changed.some(person => !isEligibleAssociatedPerson(person))) {
+      setError("Only persons with at least 25% ownership can be saved, regardless of role.");
+      return;
+    }
     if (changed.some((person) => !canEditPerson(person))) {
       setError(
         "These saved person details cannot be safely edited. Contact support to update them.",
@@ -761,12 +773,15 @@ export function useUsdKyb() {
       return result;
     });
   const invitePerson = async (person: KybPerson, action: "send" | "resend") =>
-    command(async (current) => {
+    command(async () => {
+      const current = await kybApi.get();
       const saved = current.associated_persons.find(
         (p) => p.person_key === person.person_key,
       );
       if (!saved)
         throw new Error("Save this person’s details before inviting them.");
+      if (!isEligibleAssociatedPerson(saved))
+        throw new Error("Only persons with at least 25% ownership can be invited, regardless of role.");
       if (
         action === "resend"
           ? saved.invitation_status !== "sent"
@@ -833,6 +848,29 @@ export function useUsdKyb() {
       commandPending.current = false;
       if (currentSession()) setBusy(false);
     }
+  };
+  // Called inside the command queue before validation/submission, never for ordinary reads.
+  const prepareAssociatedPersons = async () => {
+    let current = await kybApi.get();
+    const excluded = current.associated_persons.filter(person => !isEligibleAssociatedPerson(person));
+    if (excluded.some(person => !person.can_remove ||
+      !(person.associated_person_id ?? person.business_usd_kyb_associated_person_id)) ||
+      (excluded.length && (!["not_started", "collecting"].includes(current.case.status) ||
+        current.case.submitted_for_review_at || current.case.bridge_customer_id)))
+      throw new Error("This case contains people below 25% ownership whose removal is locked. Contact support before submitting.");
+    for (const person of excluded) {
+      await kybApi.removePerson(
+        (person.associated_person_id ?? person.business_usd_kyb_associated_person_id)!,
+        current.case.payload_version,
+      );
+      ref.current.personInputs.delete(person.person_key);
+      ref.current.savedPersonInputs.delete(person.person_key);
+      current = await kybApi.get();
+      adopt(current);
+    }
+    if (current.associated_persons.some(person => !isEligibleAssociatedPerson(person)))
+      throw new Error("Remove people below 25% ownership before submitting.");
+    return current;
   };
   const reload = async (keepEdits: boolean) => {
     if (commandPending.current) return;
@@ -937,6 +975,7 @@ export function useUsdKyb() {
     personInput,
     personDetailsSaved,
     invitePerson,
+    prepareAssociatedPersons,
     removePerson,
     canResendPerson,
     resendPerson,

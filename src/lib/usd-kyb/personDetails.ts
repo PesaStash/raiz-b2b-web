@@ -1,5 +1,18 @@
 import type { KybPerson } from "../../types/usdKyb.ts";
 
+export function isEligibleAssociatedPerson(person: Pick<KybPerson, "ownership_percentage">) {
+  return typeof person.ownership_percentage === "number" &&
+    Number.isFinite(person.ownership_percentage) &&
+    person.ownership_percentage >= 25 && person.ownership_percentage <= 100;
+}
+
+export function latestPersonBirthDate(today = new Date()) {
+  const year = today.getUTCFullYear() - 10;
+  const month = today.getUTCMonth();
+  const day = Math.min(today.getUTCDate(), new Date(Date.UTC(year, month + 1, 0)).getUTCDate());
+  return new Date(Date.UTC(year, month, day)).toISOString().slice(0, 10);
+}
+
 export function identityStarted(person: KybPerson) {
   return (
     !!person.verification_started_at ||
@@ -15,6 +28,7 @@ export function identityStarted(person: KybPerson) {
 export function personDetailsErrors(
   person: KybPerson,
   step?: number,
+  today = new Date(),
 ): Record<string, string> {
   const errors: Record<string, string> = {};
   const text = (value: unknown) =>
@@ -45,6 +59,8 @@ export function personDetailsErrors(
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text(person.email)))
       errors.email = "Enter a valid email address.";
     date("birth_date", person.birth_date, "date of birth", true);
+    if (!errors.birth_date && typeof person.birth_date === "string" && person.birth_date > latestPersonBirthDate(today))
+      errors.birth_date = "Associated persons must be at least 10 years old.";
     if (person.nationalities?.some((code) => !/^[A-Z]{3}$/.test(code)))
       errors.nationalities = "Choose a valid country for each nationality.";
     if (
@@ -67,6 +83,8 @@ export function personDetailsErrors(
         "Use a three-letter country code, for example NGA.";
   }
   if (step === undefined || step === 2) {
+    if (!isEligibleAssociatedPerson(person))
+      errors.ownership_percentage = "Only persons with at least 25% ownership can be included and invited, regardless of role.";
     if (
       ![
         person.has_ownership,
@@ -109,6 +127,18 @@ export function persistedPersonDetailsErrors(person: KybPerson) {
   return errors;
 }
 
+export function personDetailsStep(field: string): number {
+  if (field.startsWith("residential_address")) return 1;
+  if (field.startsWith("identifying_information") || ["roles", "has_ownership", "ownership_percentage", "has_control", "is_signer", "is_director", "relationship_established_at", "title"].includes(field)) return 2;
+  return 0;
+}
+
+/** Existing records may redact private fields, but missing visible details still need completion. */
+export function personFormErrors(person: KybPerson, partial: boolean, step?: number) {
+  const errors = partial ? persistedPersonDetailsErrors(person) : personDetailsErrors(person);
+  return Object.fromEntries(Object.entries(errors).filter(([field]) => step === undefined || personDetailsStep(field) === step));
+}
+
 /** Missing ownership is distinct from pending identity verification. */
 export function ownershipNeedsReview(person: KybPerson) {
   return (
@@ -141,6 +171,7 @@ export function ownershipRequirementMessage(key: string, people: KybPerson[]) {
 /** Resending an existing invitation is separate from editing the submitted person payload. */
 export function canResendPersonInvitation(person: KybPerson, status: string) {
   return (
+    isEligibleAssociatedPerson(person) &&
     [
       "not_started",
       "collecting",
@@ -163,6 +194,7 @@ export function canResendPersonInvitation(person: KybPerson, status: string) {
 /** Invite delivery, not completed identity, is the business submission prerequisite. */
 export function peopleNeedingInvitation(people: KybPerson[]) {
   return people.filter((person) => {
+    if (!isEligibleAssociatedPerson(person)) return false;
     if (["approved", "completed"].includes(person.verification_status ?? ""))
       return false;
     if (person.invitation_status !== "sent") return true;
