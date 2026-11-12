@@ -333,11 +333,11 @@ export default function TransactionHistory({
 
   return (
     <section className="min-w-0 rounded-[20px] bg-[#fcfcfd] p-4 md:p-8">
-      <div className="mb-5 flex flex-col gap-3 xl:mb-[41px] xl:grid xl:grid-cols-[173px_340px_minmax(0,1fr)] xl:items-center xl:gap-x-[68px]">
-        <h2 className="text-[18px] font-semibold leading-[22px] text-[#19151e]">
+      <div className="mb-5 flex flex-col gap-3 xl:mb-[41px] xl:flex-row xl:items-center xl:gap-4 2xl:gap-[68px]">
+        <h2 className="shrink-0 whitespace-nowrap text-[18px] font-semibold leading-[22px] text-[#19151e]">
           Transaction history
         </h2>
-        <div className="relative h-11 min-w-0">
+        <div className="relative h-11 w-full min-w-0 xl:max-w-[340px] xl:flex-1">
           <Image
             className="absolute left-4 top-1/2 -translate-y-1/2 opacity-60"
             src="/images/dashboard/32532-history-search.svg"
@@ -352,7 +352,7 @@ export default function TransactionHistory({
             className="h-11 w-full rounded-2xl border border-white bg-[#f8f7fa] pl-[46px] pr-4 text-sm text-[#19151e] outline-none placeholder:text-[#a89ab9] focus:ring-2 focus:ring-[#e4e0ea]"
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2.5 xl:justify-end xl:gap-3">
+        <div className="flex flex-wrap items-center gap-2.5 xl:ml-auto xl:flex-nowrap xl:justify-end xl:gap-3">
           <div className="relative">
             <button
               type="button"
@@ -475,15 +475,15 @@ export default function TransactionHistory({
             ))}
           </div>
 
-          <div className="hidden overflow-x-auto lg:block">
-            <table className="w-full min-w-[1056px] table-fixed text-left">
+          <div className="hidden lg:block">
+            <table className="w-full table-fixed text-left">
               <colgroup>
-                <col className="w-[320px]" />
-                <col className="w-[180px]" />
-                <col className="w-[160px]" />
-                <col className="w-[120px]" />
-                <col className="w-[140px]" />
-                <col className="w-[116px]" />
+                <col className="w-[28%]" />
+                <col className="w-[16%]" />
+                <col className="w-[20%]" />
+                <col className="w-[12%]" />
+                <col className="w-[12%]" />
+                <col className="w-[12%]" />
               </colgroup>
               <thead>
                 <tr className="h-10 bg-[#f8f7fa] text-xs font-normal text-[#6b6b80]">
@@ -494,7 +494,7 @@ export default function TransactionHistory({
                   <th className="font-normal">Rail</th>
                   <th className="font-normal">Category</th>
                   <th className="font-normal">Date</th>
-                  <th className="rounded-r-xl font-normal">
+                  <th className="rounded-r-xl pr-4 font-normal">
                     Status
                   </th>
                 </tr>

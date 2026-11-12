@@ -8,7 +8,14 @@ import { readApiError } from "@/lib/apiError";
 import { kybApi } from "@/services/usdKyb";
 import type { KybEditor } from "@/lib/hooks/useUsdKyb";
 import type { KybPerson } from "@/types/usdKyb";
-import { registryPersonPrefill, personRemovalReason, ownershipDisplay, registryOwnership, record, display } from "@/lib/usd-kyb/model";
+import {
+  registryPersonPrefill,
+  personRemovalReason,
+  ownershipDisplay,
+  registryOwnership,
+  record,
+  display,
+} from "@/lib/usd-kyb/model";
 import { correctionPath } from "@/lib/usd-kyb/corrections";
 import { Action, Badge, Notice } from "./KybUI";
 import { businessName } from "./KybGuide";
@@ -17,6 +24,7 @@ import {
   personDetailsErrors,
   peopleNeedingInvitation,
   ownershipNeedsReview,
+  isEligibleAssociatedPerson,
 } from "@/lib/usd-kyb/personDetails";
 function ButtonSpinner() {
   return (
@@ -46,6 +54,7 @@ function SendInviteButton({
         pending ||
         !editor.editable ||
         editor.busy ||
+        !isEligibleAssociatedPerson(person) ||
         (!sent && !editor.personDetailsSaved(person))
       }
       onClick={() => {
@@ -129,10 +138,12 @@ function PersonActions({
           </button>
           {id && !approved && (
             <>
-              {["sent", "expired", "revoked"].includes(person.invitation_status ?? "") && (
+              {["sent", "expired", "revoked"].includes(
+                person.invitation_status ?? "",
+              ) && (
                 <button
                   type="button"
-                  disabled={!!pending || !editor.editable || editor.busy}
+                  disabled={!!pending || !editor.editable || editor.busy || !isEligibleAssociatedPerson(person)}
                   onClick={() => void invite("resend")}
                   className="inline-flex items-center justify-center gap-2 disabled:opacity-50"
                 >
@@ -194,16 +205,31 @@ export default function PeopleStage({
 }) {
   const snapshot = record(editor.bundle?.case.youverify_lookup_snapshot);
   const corporate = snapshot.corporate_entities;
-  const registryMembers = Array.isArray(snapshot.directors) ? snapshot.directors.map(record)
-    .filter(person => typeof person.person_key === "string" && person.title === "Member" &&
-      !person.is_director && !person.has_control && !person.has_ownership && !person.is_signer &&
-      !editor.people.some(saved => saved.person_key === person.person_key)) : [];
+  const registryMembers = Array.isArray(snapshot.directors)
+    ? snapshot.directors
+        .map(record)
+        .filter(
+          (person) =>
+            typeof person.person_key === "string" &&
+            person.title === "Member" &&
+            !person.is_director &&
+            !person.has_control &&
+            !person.has_ownership &&
+            !person.is_signer &&
+            !editor.people.some(
+              (saved) => saved.person_key === person.person_key,
+            ),
+        )
+    : [];
   // Registry-only members share the list, but are saved only after details review.
   const displayedPeople: KybPerson[] = [
     ...editor.people,
-    ...registryMembers.map(person => registryPersonPrefill(
-      { person_key: String(person.person_key) }, snapshot,
-    )),
+    ...registryMembers.map((person) =>
+      registryPersonPrefill(
+        { person_key: String(person.person_key) },
+        snapshot,
+      ),
+    ),
   ];
   const [editing, setEditing] = useState<KybPerson>();
   const [ownershipReview, setOwnershipReview] = useState<KybPerson>();
@@ -234,6 +260,10 @@ export default function PeopleStage({
     });
   };
   const savePerson = async (editing: KybPerson) => {
+    if (!isEligibleAssociatedPerson(editing)) {
+      setFormError("Only persons with at least 25% ownership can be included and invited, regardless of role.");
+      return;
+    }
     if (
       !editing.associated_person_id &&
       !editing.business_usd_kyb_associated_person_id &&
@@ -271,14 +301,8 @@ export default function PeopleStage({
           ),
       );
       if (corrections.length) throw new Error(corrections[0].message);
-      if (
-        !editor.personDetailsSaved(editing) &&
-        !(
-          editing.associated_person_id ??
-          editing.business_usd_kyb_associated_person_id
-        )
-      )
-        throw new Error("Your details could not be saved. Please try again.");
+      if (!editor.personDetailsSaved(editing))
+        throw new Error("Some details still need attention. Review the required fields before sending an invite.");
       toast.success("Details saved.");
       setEditing(undefined);
     } catch (failure) {
@@ -292,16 +316,31 @@ export default function PeopleStage({
   };
   return (
     <div data-kyb-requirement="associated_persons" className="space-y-6">
+      <Notice>
+        Only people with at least 25% ownership are included and invited, regardless of their other roles. People below this threshold will be excluded before submission.
+      </Notice>
       {Array.isArray(corporate) && corporate.length > 0 && (
         <section className="rounded-xl bg-kyb-soft p-4 space-y-2">
           <h3 className="font-semibold">Corporate shareholders</h3>
-          <p className="text-sm text-kyb-muted">These are registered companies. Complete the evidence for the people who ultimately own or control them.</p>
+          <p className="text-sm text-kyb-muted">
+            These are registered companies. Complete the evidence for the people
+            who ultimately own or control them.
+          </p>
           {corporate.map((item, index) => {
             const holder = record(item);
-            return <div key={index} className="text-sm">
-              {display(holder.legal_name ?? holder.name ?? holder.company_name)} · Registry ownership: {registryOwnership(holder)}
-              {holder.ownership_chain_resolved === false && <p className="text-kyb-muted">Ownership chain evidence required</p>}
-            </div>;
+            return (
+              <div key={index} className="text-sm">
+                {display(
+                  holder.legal_name ?? holder.name ?? holder.company_name,
+                )}{" "}
+                · Registry ownership: {registryOwnership(holder)}
+                {holder.ownership_chain_resolved === false && (
+                  <p className="text-kyb-muted">
+                    Ownership chain evidence required
+                  </p>
+                )}
+              </div>
+            );
           })}
         </section>
       )}
@@ -311,10 +350,10 @@ export default function PeopleStage({
             Who needs to verify?
           </summary>
           <p className="mt-2 max-w-xl leading-relaxed">
-            Directors, control persons, signers and owners holding 25% or more
-            must verify before provider submission. Send everyone an invite before
-            submitting your application; identity checks can finish during review.
-            They don’t need a Raiz account.
+            Only people holding at least 25% ownership are included, regardless
+            of their director, control person or signer roles. Send each eligible person an invite
+            before submitting your application; identity checks can finish
+            during review. They don’t need a Raiz account.
           </p>
         </details>
       </div>
@@ -350,7 +389,7 @@ export default function PeopleStage({
               No owners or directors yet
             </h3>
             <p className="text-sm text-kyb-muted">
-              {`We couldn’t find anyone on the register for ${businessName(editor)}. Add an owner, director or signer to get started.`}
+              {`We couldn’t find anyone on the register for ${businessName(editor)}. Add an owner with at least 25% ownership to get started.`}
             </p>
           </div>
           <Action
@@ -358,7 +397,7 @@ export default function PeopleStage({
             disabled={!editor.editable || editor.busy}
             onClick={addPerson}
           >
-            Add an owner or director
+            Add an owner (25% or more)
           </Action>
           <p className="flex items-center gap-1.5 text-xs text-kyb-muted">
             <Image
@@ -374,50 +413,83 @@ export default function PeopleStage({
         <>
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-kyb-soft px-4 py-3 text-xs">
             <span className="font-semibold text-kyb-ink" role="status">
-              {editor.people.length - needingInvitation.length} of {displayedPeople.length} people invited or verified
+              {editor.people.filter(isEligibleAssociatedPerson).length - needingInvitation.length} of{" "}
+              {displayedPeople.filter(isEligibleAssociatedPerson).length} eligible people invited or verified
             </span>
             <span className={total > 100 ? "text-red-700" : "text-kyb-muted"}>
               {total}% ownership recorded
-              {ownershipIssues.length > 0 ? ` · ${ownershipIssues.length} to confirm` : ""}
+              {ownershipIssues.length > 0
+                ? ` · ${ownershipIssues.length} to confirm`
+                : ""}
             </span>
           </div>
-          {total > 100 && <Notice error>Combined ownership must not exceed 100%.</Notice>}
+          {total > 100 && (
+            <Notice error>Combined ownership must not exceed 100%.</Notice>
+          )}
           <div className="divide-y divide-kyb-border rounded-xl border border-kyb-border">
             {displayedPeople.map((person, index) => {
-              const id = person.associated_person_id ?? person.business_usd_kyb_associated_person_id;
-              const approved = ["approved", "completed"].includes(person.verification_status ?? "");
-              const active = !!person.verification_started_at || !!person.verified_at;
-              const sent = ["sent", "expired", "revoked"].includes(person.invitation_status ?? "");
-              const needsInvite = needingInvitation.some((p) => p.person_key === person.person_key);
+              const id =
+                person.associated_person_id ??
+                person.business_usd_kyb_associated_person_id;
+              const approved = ["approved", "completed"].includes(
+                person.verification_status ?? "",
+              );
+              const active =
+                !!person.verification_started_at || !!person.verified_at;
+              const sent = ["sent", "expired", "revoked"].includes(
+                person.invitation_status ?? "",
+              );
+              const needsInvite = needingInvitation.some(
+                (p) => p.person_key === person.person_key,
+              );
               const detailsSaved = editor.personDetailsSaved(person);
-              const needsDetails = !approved && !sent && !active && !detailsSaved;
+              const needsDetails =
+                !approved && !sent && !active && !detailsSaved;
               const corrections = editor.personErrors?.(person) ?? [];
-              const needsOwnership = ownershipNeedsReview(person);
+              const needsOwnership = ownershipNeedsReview(person) || !isEligibleAssociatedPerson(person);
               const needsCorrection = corrections.length > 0;
               const canEdit = editor.canEditPerson(person);
               const editPerson = () => {
                 setFormError("");
                 if (!canEdit) {
-                  setFormError("Editing is unavailable. Refresh this case to continue.");
+                  setFormError(
+                    "Editing is unavailable. Refresh this case to continue.",
+                  );
                   return;
                 }
                 setEditing({ ...editor.personInput(person) });
               };
-              const status = needsOwnership ? "Ownership needed"
-                : needsCorrection ? `${corrections.length} ${corrections.length === 1 ? "detail needs" : "details need"} attention`
-                : approved ? "Verified"
-                : sent && needsInvite ? (person.invitation_status === "revoked" ? "Invite revoked" : "Invite expired")
-                : sent ? "Invite sent"
-                : active ? "Verifying identity"
-                : needsDetails ? "Details needed" : "Ready to invite";
+              const status = !isEligibleAssociatedPerson(person)
+                ? "Excluded: minimum 25% ownership"
+                : needsOwnership
+                ? "Ownership needed"
+                : needsCorrection
+                  ? `${corrections.length} ${corrections.length === 1 ? "detail needs" : "details need"} attention`
+                  : approved
+                    ? "Verified"
+                    : sent && needsInvite
+                      ? person.invitation_status === "revoked"
+                        ? "Invite revoked"
+                        : "Invite expired"
+                      : sent
+                        ? "Invite sent"
+                        : active
+                          ? "Verifying identity"
+                          : needsDetails
+                            ? "Details needed"
+                            : "Ready to invite";
               return (
                 <section
                   key={person.person_key}
                   data-kyb-requirement={`associated_persons[${index}]`}
                   className="relative flex gap-3 p-4"
                 >
-                  <div aria-hidden="true" className="flex size-9 shrink-0 items-center justify-center rounded-full bg-kyb-selected text-xs font-semibold text-primary2">
-                    {person.first_name?.[0]}{person.last_name?.[0]}
+                  <div
+                    aria-hidden="true"
+                    className="flex size-9 shrink-0 items-center justify-center rounded-full bg-kyb-selected text-xs font-semibold text-primary2"
+                  >
+                    {person.first_name?.[0]}
+                    {person.last_name?.[0]}
                   </div>
                   <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
@@ -430,37 +502,71 @@ export default function PeopleStage({
                           person.is_director && "Director",
                           person.has_control && "Control person",
                           person.is_signer && "Signer",
-                          person.has_ownership && `Owns ${ownershipDisplay(person)}`,
-                        ].filter(Boolean).join(" · ")}
+                          person.has_ownership &&
+                            `Owns ${ownershipDisplay(person)}`,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
                       </p>
                       <div className="mt-2">
-                        <Badge good={approved && !needsOwnership && !needsCorrection}
-                          tone={needsOwnership || needsCorrection || needsDetails ? "error" : sent && needsInvite ? "warning" : undefined}>
+                        <Badge
+                          good={approved && !needsOwnership && !needsCorrection}
+                          tone={
+                            needsOwnership || needsCorrection || needsDetails
+                              ? "error"
+                              : sent && needsInvite
+                                ? "warning"
+                                : undefined
+                          }
+                        >
                           {status}
                         </Badge>
                       </div>
                       {needsOwnership && !canEdit && (
-                        <p className="mt-2 text-xs text-red-700">Contact support to correct ownership; verification has started.</p>
+                        <p className="mt-2 text-xs text-red-700">
+                          Contact support to correct ownership; verification has
+                          started.
+                        </p>
                       )}
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       {needsOwnership && canEdit ? (
-                        <Action variant="secondary" disabled={!editor.editable || editor.busy}
+                        <Action
+                          variant="secondary"
+                          disabled={!editor.editable || editor.busy}
                           onClick={() => {
                             setFormError("");
-                            setOwnershipReview({ ...editor.personInput(person) });
-                          }}>
+                            setOwnershipReview({
+                              ...editor.personInput(person),
+                            });
+                          }}
+                        >
                           Confirm ownership
                         </Action>
                       ) : needsCorrection || needsDetails ? (
-                        <Action disabled={!editor.editable || editor.busy} onClick={editPerson}>
-                          {needsCorrection ? "Correct details" : "Complete details"}
+                        <Action
+                          disabled={!editor.editable || editor.busy}
+                          onClick={editPerson}
+                        >
+                          {needsCorrection
+                            ? "Correct details"
+                            : "Complete details"}
                         </Action>
-                      ) : !needsOwnership && !approved && needsInvite && id && (sent || detailsSaved) ? (
+                      ) : !needsOwnership &&
+                        !approved &&
+                        needsInvite &&
+                        id &&
+                        (sent || detailsSaved) ? (
                         <SendInviteButton person={person} editor={editor} />
                       ) : null}
-                      <PersonActions person={person} id={id} approved={approved} editor={editor}
-                        setFormError={setFormError} setEditing={setEditing} />
+                      <PersonActions
+                        person={person}
+                        id={id}
+                        approved={approved}
+                        editor={editor}
+                        setFormError={setFormError}
+                        setEditing={setEditing}
+                      />
                     </div>
                   </div>
                 </section>
@@ -473,7 +579,7 @@ export default function PeopleStage({
             disabled={!editor.editable || editor.busy}
             onClick={addPerson}
           >
-            ＋ Add an owner, director or signer
+            ＋ Add an owner (25% or more)
           </Action>
         </>
       )}
@@ -489,9 +595,9 @@ export default function PeopleStage({
             className="space-y-5"
             onSubmit={async (event) => {
               event.preventDefault();
-              if (ownershipNeedsReview(ownershipReview)) {
+              if (ownershipNeedsReview(ownershipReview) || !isEligibleAssociatedPerson(ownershipReview)) {
                 setFormError(
-                  "Enter a whole-number ownership percentage greater than 0 and up to 100. Do not round fractional registry holdings.",
+                  "Enter a whole-number ownership percentage from 25 to 100. Only people with at least 25% ownership can be included, regardless of role.",
                 );
                 return;
               }
@@ -554,7 +660,14 @@ export default function PeopleStage({
                 {ownershipReview.first_name} {ownershipReview.last_name}
               </p>
             </div>
-            {registryOwnership(ownershipReview) !== "Unavailable" && <Notice>Registry ownership: {registryOwnership(ownershipReview)}. The editable field accepts whole numbers only. Do not round a fractional holding or remove ownership to continue; contact support for guidance.</Notice>}
+            {registryOwnership(ownershipReview) !== "Unavailable" && (
+              <Notice>
+                Registry ownership: {registryOwnership(ownershipReview)}. The
+                editable field accepts whole numbers only. Do not round a
+                fractional holding or remove ownership to continue; contact
+                support for guidance.
+              </Notice>
+            )}
             {formError && <Notice error>{formError}</Notice>}
             <label className="flex items-start gap-3 text-sm">
               <input
@@ -580,7 +693,7 @@ export default function PeopleStage({
                 <input
                   aria-label="Ownership percentage"
                   type="number"
-                  min="1"
+                  min="25"
                   max="100"
                   step="1"
                   required
@@ -631,10 +744,16 @@ export default function PeopleStage({
           close={() => setEditing(undefined)}
         >
           <PersonDetailsForm
+            key={editing.person_key}
             initial={editing}
             corrections={editor.personErrors?.(editing) ?? []}
             identificationTypes={guide?.identification_types}
-            partial={!!(editing.associated_person_id ?? editing.business_usd_kyb_associated_person_id)}
+            partial={
+              !!(
+                editing.associated_person_id ??
+                editing.business_usd_kyb_associated_person_id
+              )
+            }
             disabled={savingPerson || !editor.editable || editor.busy}
             saving={savingPerson}
             error={formError}

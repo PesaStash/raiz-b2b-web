@@ -15,6 +15,7 @@ import {
 } from "@/components/transactions/send-flow/Flow";
 import SendProcessing from "@/components/transactions/send-flow/SendProcessing";
 import { spendableBalances, formatMoney } from "@/lib/globalBalance";
+import { useCreatedForeignAccounts } from "@/lib/hooks/useCreatedForeignAccounts";
 import { useUser } from "@/lib/hooks/useUser";
 import { useQuoteSeconds } from "@/lib/hooks/useQuoteSeconds";
 import {
@@ -40,6 +41,7 @@ export default function GlobalForeignSend({
   close: () => void;
 }) {
   const { user } = useUser();
+  const accounts = useCreatedForeignAccounts();
   const qc = useQueryClient();
   const { foreignBeneficiary, amount, purpose, category, actions } =
     useSendStore();
@@ -61,6 +63,8 @@ export default function GlobalForeignSend({
     foreignBeneficiary?.foreign_currency_beneficiary_id ?? "";
   const seconds = useQuoteSeconds(quote?.expires_at);
   const amountValid = /^\d+(\.\d{0,2})?$/.test(amount) && Number(amount) > 0;
+  const reason = purpose.trim();
+  const reasonValid = reason.length >= 6;
   const fee = useMemo(
     () =>
       quote?.fees.reduce((sum, item) => sum + Number(item.amount.amount), 0) ??
@@ -98,7 +102,7 @@ export default function GlobalForeignSend({
           quote_id: quote!.quote_id,
           beneficiary_id: beneficiaryId,
           transaction_pin: pin,
-          transaction_reason: purpose,
+          transaction_reason: reason,
           transaction_category_id: category?.transaction_category_id,
         },
         sendKey.current,
@@ -122,6 +126,49 @@ export default function GlobalForeignSend({
     setStep("amount");
   };
 
+  if (accounts.isChecking)
+    return (
+      <>
+        <FlowHeader title="Send money" onBack={close} />
+        <FlowCard>
+          <p className="py-6 text-sm text-[#79708d]">
+            Checking your {currency} account…
+          </p>
+        </FlowCard>
+      </>
+    );
+  if (accounts.isError && !accounts.has(currency))
+    return (
+      <>
+        <FlowHeader title="Send money" onBack={close} />
+        <FlowCard>
+          <p role="alert" className="text-sm text-[#d92d20]">
+            Couldn’t check your {currency} account.
+          </p>
+          <FlowActions
+            onNext={() => accounts.retry()}
+            nextLabel="Retry"
+            loading={accounts.isRetrying}
+          />
+        </FlowCard>
+      </>
+    );
+  if (!accounts.has(currency))
+    return (
+      <>
+        <FlowHeader
+          title={`Create a ${currency} account first`}
+          onBack={close}
+        />
+        <FlowCard>
+          <p className="text-sm text-[#79708d]">
+            Create your {currency} account before you add a {currency}{" "}
+            beneficiary or send {currency}.
+          </p>
+          <FlowActions onNext={close} nextLabel="Go back" />
+        </FlowCard>
+      </>
+    );
   if (step === "beneficiary")
     return (
       <ForeignBeneficiaryFlow
@@ -228,6 +275,7 @@ export default function GlobalForeignSend({
           <FlowRow label="Recipient gets">
             {formatMoney(quote.destination_money.amount, currency)}
           </FlowRow>
+          <FlowRow label="Reason">{reason}</FlowRow>
           <p
             className={`text-xs ${seconds <= 0 ? "text-[#d92d20]" : "text-[#79708d]"}`}
           >
@@ -239,7 +287,9 @@ export default function GlobalForeignSend({
             onBack={() => setStep("category")}
             onNext={() => setStep("pin")}
             disabled={
-              seconds <= 0 || Number(quote.total_debit.amount) > usdBalance
+              seconds <= 0 ||
+              Number(quote.total_debit.amount) > usdBalance ||
+              !reasonValid
             }
             nextLabel={`Send ${formatMoney(amount, currency)}`}
           />
@@ -278,6 +328,26 @@ export default function GlobalForeignSend({
         <FlowRow label="You send">Calculated in USD</FlowRow>
         <FlowRow label="Fee">Calculated in your live quote</FlowRow>
         <FlowTotal currency="USD" balance={usdBalance} />
+        <label className="text-xs">
+          Transaction reason
+          <input
+            className="mt-2 h-12 w-full rounded-xl border-0 bg-[#f4f4f8] px-4 text-sm text-[#14141e] outline-none ring-1 ring-transparent focus:bg-white focus:ring-primary2"
+            value={purpose}
+            maxLength={255}
+            placeholder="What is this payment for?"
+            onChange={(event) =>
+              actions.setAmountAndRemark({
+                amount,
+                purpose: event.target.value,
+              })
+            }
+          />
+        </label>
+        {reason.length > 0 && !reasonValid && (
+          <p className="text-xs text-[#d92d20]">
+            Transaction reason must be at least 6 characters.
+          </p>
+        )}
         {error && (
           <p role="alert" className="text-sm text-[#d92d20]">
             {error}
@@ -285,7 +355,7 @@ export default function GlobalForeignSend({
         )}
         <FlowActions
           onNext={() => quoteMutation.mutate()}
-          disabled={!amountValid}
+          disabled={!amountValid || !reasonValid}
           loading={quoteMutation.isPending}
           nextLabel="Get quote"
         />

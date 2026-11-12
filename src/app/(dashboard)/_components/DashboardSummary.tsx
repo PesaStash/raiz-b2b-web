@@ -358,10 +358,10 @@ const DashboardSummary = () => {
 
   return (
     <div className="w-full">
-      {redesigned ? <>
-        <GlobalDashboard onAction={handleActionButton} onConvert={handleSwapClick} onCreateNgn={openNGNModal} />
+      {redesigned ? <div className="flex flex-col gap-5">
         <Infos isNgnBranch={branchState.isNgnBranch} hideAccountPrompts={isGlobalBalance(user?.business_account)} />
-      </> : <>
+        <GlobalDashboard onAction={handleActionButton} onConvert={handleSwapClick} onCreateNgn={openNGNModal} />
+      </div> : <>
       {/* Accts */}
       {/* Mobile: wallets + quick actions */}
       {branchState.showDashboard && (

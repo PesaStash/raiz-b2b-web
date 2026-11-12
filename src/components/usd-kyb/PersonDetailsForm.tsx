@@ -11,7 +11,7 @@ import InputField from "@/components/ui/InputField";
 import { toAlpha3Country } from "@/lib/usd-kyb/countryCode";
 import useCountryStore from "@/store/useCountryStore";
 import { Action, Notice } from "./KybUI";
-import { personDetailsErrors } from "@/lib/usd-kyb/personDetails";
+import { personFormErrors, personDetailsStep, latestPersonBirthDate } from "@/lib/usd-kyb/personDetails";
 import { ownershipFlag } from "@/lib/usd-kyb/model";
 
 const steps = [
@@ -76,15 +76,7 @@ export default function PersonDetailsForm({
       value: code,
       label: code,
     };
-  const [step, setStep] = useState(
-    corrections.some((error) => error.field.startsWith("residential_address"))
-      ? 1
-      : corrections.some((error) =>
-            error.field.startsWith("identifying_information"),
-          )
-        ? 2
-        : 0,
-  );
+  const [step, setStep] = useState(0);
   const [attemptedErrors, setErrors] = useState<Record<string, string>>({});
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
   const [manualAddress, setManualAddress] = useState(
@@ -109,25 +101,9 @@ export default function PersonDetailsForm({
         correctionPath(error.field) === correctionPath(path) && !changed(path),
     );
   const validate = (page?: number) => {
-    const found = personDetailsErrors(person, page);
-    if (partial)
-      for (const key of Object.keys(found))
-        if (
-          !changed(key) &&
-          !(
-            key === "roles" &&
-            ["has_ownership", "has_control", "is_signer", "is_director"].some(
-              changed,
-            )
-          )
-        )
-          delete found[key];
+    const found = personFormErrors(person, partial, page);
     for (const correction of corrections) {
-      const pageFor = correction.field.startsWith("residential_address")
-        ? 1
-        : correction.field.startsWith("identifying_information")
-          ? 2
-          : 0;
+      const pageFor = personDetailsStep(correctionPath(correction.field));
       const field = correctionPath(correction.field);
       // Boolean true already answers this correction. Leaving the checkbox
       // untouched must not block the rest of the form or submission.
@@ -168,7 +144,8 @@ export default function PersonDetailsForm({
       type={type}
       autoComplete="off"
       step={type === "number" ? "1" : undefined}
-      max={type === "date" ? new Date().toISOString().slice(0, 10) : undefined}
+      min={key === "ownership_percentage" ? 25 : undefined}
+      max={key === "ownership_percentage" ? 100 : type === "date" ? key === "birth_date" ? latestPersonBirthDate() : new Date().toISOString().slice(0, 10) : undefined}
       disabled={disabled}
       aria-invalid={!!errors[key] || !!serverError(key)}
       errorMessage={errors[key] ?? serverError(key)?.message}
@@ -207,9 +184,9 @@ export default function PersonDetailsForm({
           if (Object.keys(all).length) {
             setErrors(all);
             toast.error(Object.values(all)[0], { id: "onboarding-error" });
-            const personal = all.first_name || all.email || all.birth_date;
-            setStep(personal ? 0 : 1);
-            if (!personal) setManualAddress(true);
+            const invalidStep = personDetailsStep(Object.keys(all)[0]);
+            setStep(invalidStep);
+            if (invalidStep === 1) setManualAddress(true);
             return;
           }
           void save({
@@ -575,8 +552,7 @@ export default function PersonDetailsForm({
               </p>
             )}
           </fieldset>
-          {person.has_ownership &&
-            field(
+          {field(
               "ownership_percentage",
               "Ownership percentage",
               person.ownership_percentage == null
