@@ -63,21 +63,25 @@ export function apiFieldCorrections(error: unknown): ApiFieldCorrection[] {
     ? data.message as Record<string, unknown> : {};
   const detail = data.detail && typeof data.detail === "object" && !Array.isArray(data.detail)
     ? data.detail as Record<string, unknown> : {};
-  const source = message.field_errors ?? detail.field_errors ?? data.field_errors ?? data.detail ?? data.errors;
-  if (!Array.isArray(source)) return [];
+  const sources = [data.field_errors, message.field_errors, detail.field_errors, data.errors, message.errors, detail.errors, data.detail];
   const result: ApiFieldCorrection[] = [];
-  for (const item of source) {
+  const seen = new Set<string>();
+  for (const item of sources.flatMap(source => Array.isArray(source) ? source : [])) {
     if (!item || typeof item !== "object") continue;
     const row = item as Record<string, unknown>;
     const field = typeof row.field === "string" ? row.field : Array.isArray(row.loc)
       ? row.loc.filter(part => part !== "body").join(".") : undefined;
     const text = row.message ?? row.msg;
-    if (typeof field === "string" && field && typeof text === "string") result.push({
+    const key = JSON.stringify([field, text, row.associated_person_id]);
+    if (typeof field === "string" && field && typeof text === "string" && !seen.has(key)) {
+      seen.add(key);
+      result.push({
       field, message: text,
       ...(typeof row.associated_person_id === "string" ? { associated_person_id: row.associated_person_id } : {}),
       ...(row.source === "local" || row.source === "bridge" ? { source: row.source } : {}),
       ...(typeof row.placeholder === "string" ? { placeholder: row.placeholder } : {}),
-    });
+      });
+    }
   }
   return result;
 }

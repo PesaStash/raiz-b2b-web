@@ -1,5 +1,4 @@
-import { FetchUserApi } from "./user";
-import { invoicePaymentReady, invoiceUnavailableMessage } from "@/lib/invoiceReadiness";
+import { invoiceEmailPayload } from "@/lib/invoiceEmail";
 import { AuthAxios } from "@/lib/authAxios";
 import {
   ICreateInvoicePayload,
@@ -134,11 +133,9 @@ export const SendInvoiceMailApi = async (
   invoice_id: string,
   payload: SendInvoicemailPayload
 ) => {
-  const [user, invoice] = await Promise.all([FetchUserApi(), FetchInvoiceDetailApi(invoice_id)]);
-  if (!invoicePaymentReady(user.business_account, invoice.currency)) throw new Error(invoiceUnavailableMessage);
   const response = await AuthAxios.post(
     `/business/invoice/send/mail/?invoice_id=${invoice_id}`,
-    payload
+    invoiceEmailPayload(payload.invoice_pdf_url, payload.payment_link)
   );
   return response?.data;
 };

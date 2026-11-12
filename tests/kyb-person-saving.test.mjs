@@ -75,6 +75,7 @@ function editorHarness({
   };
   const calls = [];
   const cachedWrites = [];
+  const profileRefreshes = [];
   const invitations = [];
   const removals = [];
   const toasts = [];
@@ -199,7 +200,7 @@ function editorHarness({
           useQuery: () => ({ data: bundle }),
           useQueryClient: () => ({
             setQueryData(key, value) { cachedWrites.push({key, value}); },
-            invalidateQueries: async () => {},
+            invalidateQueries: async (options) => { profileRefreshes.push(options.queryKey); },
           }),
         };
       if (name === "@/services/usdKyb") return { kybApi: api };
@@ -239,6 +240,7 @@ function editorHarness({
     render,
     calls,
     cachedWrites,
+    profileRefreshes,
     invitations,
     removals,
     toasts,
@@ -822,4 +824,21 @@ test("early schema 422 highlights the person field and does not retry unchanged 
   editor.changePeople([{ ...editor.people[0], ownership_percentage: 2 }]);
   await editor.flush();
   assert.equal(h.calls.length, requests + 1);
+});
+
+test("only explicit valid KYB phone edits refresh the invoice profile", async () => {
+  const h = editorHarness();
+  let e = h.render();
+  e.change("business_profile.primary_website", "https://example.com");
+  await e.flush();
+  assert.equal(h.profileRefreshes.length, 0);
+  e = h.render();
+  e.change("business_profile.phone", "invalid");
+  await e.flush();
+  assert.equal(h.profileRefreshes.length, 0);
+  e = h.render();
+  e.change("business_profile.phone", "+2348159263748");
+  await e.flush();
+  assert.equal(h.profileRefreshes.length, 1);
+  assert.equal(h.profileRefreshes[0][0], "user");
 });

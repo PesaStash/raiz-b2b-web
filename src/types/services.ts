@@ -1013,7 +1013,7 @@ export interface IFectchInvoiceParams {
 }
 
 export interface SendInvoicemailPayload {
-  payment_link: string;
+  payment_link?: string | null;
   invoice_pdf_url: string;
 }
 
