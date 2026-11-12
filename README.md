@@ -16,13 +16,13 @@ cp .env.example .env.local   # then fill in the values
 pnpm dev                     # http://localhost:3000
 ```
 
-| Script | What it does |
-| --- | --- |
-| `pnpm dev` | Dev server (Turbopack) |
-| `pnpm build` / `pnpm start` | Production build / serve |
-| `pnpm lint` | ESLint (flat config, `eslint-config-next`) |
-| `pnpm typecheck` | `tsc --noEmit` |
-| `pnpm test` | Unit tests in `tests/` (Node's test runner) |
+| Script                      | What it does                                |
+| --------------------------- | ------------------------------------------- |
+| `pnpm dev`                  | Dev server (Turbopack)                      |
+| `pnpm build` / `pnpm start` | Production build / serve                    |
+| `pnpm lint`                 | ESLint (flat config, `eslint-config-next`)  |
+| `pnpm typecheck`            | `tsc --noEmit`                              |
+| `pnpm test`                 | Unit tests in `tests/` (Node's test runner) |
 
 CI (`.github/workflows/ci.yml`) runs lint, type check, tests and build on every
 pull request and on pushes to `dev`, `staging` and `main`.

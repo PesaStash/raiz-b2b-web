@@ -300,18 +300,30 @@ test("provider is inferred from the Raiz reference prefix", () => {
   assert.equal(providerLabel("flutterwave"), "Flutterwave");
 });
 
-test("both Paystack formats are accepted unchanged in reference and trxref", () => {
-  for (const prefix of ["ps_ngn_", "ps-ngn-", "PS-NGN-"]) {
-    for (const parameter of ["reference", "trxref"]) {
-      const reference = `${prefix}AbCdEf123456`;
-      const search = `?tab=wallets&${parameter}=${reference}&status=successful`;
-      assert.equal(extractCardCallbackReference(search), reference);
-      assert.equal(stripCardCallbackParams(search), "?tab=wallets");
-    }
+test("provider-compatible Paystack callbacks recover from backend status without local state", () => {
+  const reference = "ps-ngn-829cbac572ca4d7894692f24910cbb1e";
+  for (const parameter of ["reference", "trxref"]) {
+    const search = `?tab=wallets&${parameter}=${reference}&status=successful`;
+    const callbackReference = extractCardCallbackReference(search);
+    assert.equal(callbackReference, reference);
+    const provider = providerFromReference(callbackReference);
+    assert.equal(provider, "paystack");
+    const record = pendingCheckoutFromStatus({
+      ...initializeResponse,
+      reference: callbackReference,
+      provider,
+      settlement_status: "unsettled",
+      transaction_report_id: null,
+      paid_at: null,
+      credited_at: null,
+    });
+    assert.equal(record.reference, reference);
+    assert.equal(record.provider, "paystack");
+    assert.equal(paymentViewState({ status: "pending", settlement_status: "unsettled" }), "processing");
+    assert.equal(stripCardCallbackParams(search), "?tab=wallets");
   }
-  for (const reference of ["ps-ngn-short", `ps-ngn-${"a".repeat(65)}`, "ps-ngn-abcdef12/extra", "ps-ngn-abcdef12%0A", "ps-ngn-abcdef12=", "ps_ngn-abcdef1234"]) {
-    assert.equal(extractCardCallbackReference(`?reference=${encodeURIComponent(reference)}`), null, reference);
-  }
+  assert.equal(extractCardCallbackReference("?reference=ps-ngn-../../admin"), null);
+  assert.equal(extractCardCallbackReference("?reference=ps-ngn-short"), null);
 });
 
 test("mobile return link is the generic app link with no parameters", () => {
@@ -361,3 +373,18 @@ test("initialize requires business write access; status reads are open to active
     assert.equal(canMakeRequest(profile, "GET", status), true);
   }
 });
+
+test("both Paystack formats are accepted unchanged in reference and trxref", () => {
+  for (const prefix of ["ps_ngn_", "ps-ngn-", "PS-NGN-"]) {
+    for (const parameter of ["reference", "trxref"]) {
+      const reference = `${prefix}AbCdEf123456`;
+      const search = `?tab=wallets&${parameter}=${reference}&status=successful`;
+      assert.equal(extractCardCallbackReference(search), reference);
+      assert.equal(stripCardCallbackParams(search), "?tab=wallets");
+    }
+  }
+  for (const reference of ["ps-ngn-short", `ps-ngn-${"a".repeat(65)}`, "ps-ngn-abcdef12/extra", "ps-ngn-abcdef12%0A", "ps-ngn-abcdef12=", "ps_ngn-abcdef1234"]) {
+    assert.equal(extractCardCallbackReference(`?reference=${encodeURIComponent(reference)}`), null, reference);
+  }
+});
+
