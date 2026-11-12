@@ -19,8 +19,9 @@ import {
   type AccountChoice,
 } from "@/lib/onboarding";
 import {
-  clearLookupPrefill,
+  enterBusinessManually,
   readLookupPrefill,
+  subscribeLookupPrefill,
 } from "@/lib/companyLookup";
 import { Action, Notice } from "@/components/usd-kyb/KybUI";
 import { KybIcon } from "@/components/usd-kyb/KybGuide";
@@ -97,7 +98,7 @@ export function StartGuideView({
   const countryCode =
     user?.business_account?.entity?.country?.country_code ?? "";
   const savedPrefill = useSyncExternalStore(
-    subscribeChoice,
+    subscribeLookupPrefill,
     () => readLookupPrefill(entityId),
     () => null,
   );
@@ -134,7 +135,7 @@ export function StartGuideView({
               entityId={entityId}
               onConfirmed={() => openBusinessForm()}
               onManual={() => {
-                clearLookupPrefill(entityId);
+                enterBusinessManually(entityId);
                 openBusinessForm();
               }}
             />

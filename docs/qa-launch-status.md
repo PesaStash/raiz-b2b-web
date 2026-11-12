@@ -49,3 +49,55 @@ Source: [GitHub issues #302–#338](https://github.com/PesaStash/raiz-b2b-web/is
 Passed locally: 166 Node regression tests, TypeScript, lint (zero errors; 118 existing warnings), a production webpack build, and five isolated Chrome checks. The browser checks cover restored business address/postcode validation, negative invoice feedback without a write, saveable invalid monthly drafts that cannot advance, submitted-case routing without local preferences, and the public unavailable-payment state. No browser page errors were reported. Tests cover partial response/cache persistence, redacted fields, saveable correction drafts, indexed 422 feedback, unchanged-rejection retries, integer ownership, canonical routing, and invoice validation. No live provider or money movement is performed.
 
 Before closure, run the per-issue reproduction on the deployed web/backend versions and record the build/commit. For #318, capture cold/warm navigation timings and API waterfalls. For #303, test an eligible and an unavailable receiving currency through the actual emailed URL. Complete the report's outstanding funded sandbox, team, Gateway, bill-request, account-control and mobile/accessibility journeys.
+
+## Deployed retest — 11 November 2026
+
+PR #340 is merged into dev at `e00f7f0cc89cc8585cbe613ac8a9af2650073efb`. Browser tests ran against https://raiz-b2b-web-git-dev-oyedelesgs-projects.vercel.app after the merge. The UI exhibits the new implementation; deployment SHA metadata was not independently available. Backend PR #1704 is merged; that fact alone is not proof of its deployed version.
+
+Closed with individual GitHub evidence comments: **#308, #309, #311, #313, #320, #327, #330, #331, #334, #337, #338**.
+
+- #308: negative monthly estimate displayed inline correction, saved as “Draft saved — needs correction”, and remained on the incomplete activity step after continuation. Original blank value restored and Saved observed.
+- #309/#327: normal QA password/email-code sign-in displayed six-character case-sensitive guidance. One deliberately invalid code was rejected; Try again cleared all six inputs without resubmission. Mixed-case emailed codes then authenticated successfully.
+- #311/#313/#320: submitted QA business signed in directly to In review; Dashboard respected that status, and setup showed 3 of 3 complete. Submission timestamps included GMT+1. Unavailable money actions displayed account/balance requirements and setup guidance. No transaction or PIN change occurred.
+- #330/#331: new empty industry/activity fields deferred required prompts until continuation; actionable errors then blocked progression. Searching Software in the industry catalogue returned “No industries found. Try a different search.”
+- #334: pages/actions search returned and navigated to Invoices; an unmatched query gave useful feedback; Command+K focused search, with a macOS Command hint. Native Windows was not exercised in this live session.
+- #337: invoice detail Edit Invoice was content-sized at 1440×1000; at 390×844 the mobile document/header fit and the separate Edit action was accessible below activities.
+- #338: signup country combobox had a meaningful accessible name and keyboard announcements; person fields had explicit labels and browser-local date/ISO guidance. No new person or signup was submitted.
+
+Partial deployed results, left open:
+
+- #302: required postcode label, inline blank-field feedback, preserved input and restored postcode all passed. Genuine server 422 address rejection remains untested.
+- #305: saved address and months rehydrated after a full reload. Registration is blank in the fixture, so a known persisted registration baseline is still needed.
+- #317: negative invoice price produced inline feedback and blocked preview/save. Customer required indicators/error feedback appear, but its summary repeats generic “Required” entries; successful creation and auto-selection remain untested. Both forms were cancelled without creating records.
+- #319: signup country ordering is alphabetical; eligibility/sanctions policy remains open.
+
+Other issues remain open rather than inferred passed:
+
+- #304/#307/#314/#321/#322/#326: outstanding ownership, registry association/visibility, age, PIN, address-duration or password-reuse policy decisions. PIN/password changes also require user participation.
+- #306/#310/#315/#323: need an editable persisted-person/correction fixture to prove partial-save, redaction and contact/address behavior across reload. The submitted QA account is locked to review; the unfinished QA account has no saved people.
+- #303/#312/#325/#336: actual emailed payment-link/currency, provider completion receipt, attachment filename and OTP expiry boundaries need their distinct end-to-end checks. Delivered login mail still advertises ten minutes; actual expiry was not tested or inferred.
+- #316/#318: authoritative business-phone synchronization and measured cold/warm timings/API waterfalls remain investigations. Invoice detail loading was visibly slow, so no performance pass is claimed.
+- #324/#328/#329/#332/#333/#335: registry lookup failure/provenance, successful signup copy, invalid document selection, completed review labels and duplicate-signup acceptance were not fully exercised with suitable disposable fixtures. No registry inquiry, document upload, signup/terms acceptance, invitation or email send was performed for a manufactured pass.
+
+No money movement, account opening, credential change, KYB submission or real identity submission was performed. Test credentials, codes and identity data are omitted from this record and GitHub evidence.
+
+## Frontend integration contract follow-up
+
+Reconciled against the supplied `Raiz_Frontend_Integration_Contract.md` on 11 November 2026. The owner reports the backend changes deployed; the document's older “not yet deployed” wording is historical release context. All work here is confined to the web repository. The agent must never access RaizServer or merge a PR.
+
+The current GitHub snapshot contains **26 open issues**, including the newly added #342. The count includes fixes awaiting deployed acceptance, policy questions, and investigations; it is not a count of 26 unimplemented frontend defects.
+
+- **PR #345 / #342:** both Paystack reference prefixes are supported without rewriting references. Recovery, malformed input, history cleanup and false-success boundaries are tested. PR #345 is now merged by the repository workflow; no agent merge was performed. Keep #342 open for deployed/provider acceptance.
+- **PR #346 / #302, #305, #316:** aggregate top-level/nested/structured field corrections; preserve unknown-path explanations and safe correlation summaries; focus invalid fields; hydrate authenticated registration/address values without overwriting unsaved edits during refresh; refresh the invoice profile after explicit valid phone saves and before PDF generation. Pending owner merge/deployment and live acceptance.
+- **PR #347 / #303, #317, #325:** depends on #346. Invoice-only email omits blank/absent links and is no longer blocked by a client receiving-currency gate. Receiving rejection preserves the invoice and offers setup or an explicit send without a link. Mail success is shown only after endpoint acknowledgment as queued delivery. Duplicate sends are guarded immediately. Encoded PDF size and the documented positive-integer quantity/minimum-price schema are enforced. Decimal-safe totals and actual attachment/delivery acceptance remain outstanding.
+
+Local validation for the combined work: **182 tests passed**, TypeScript passed, production webpack build passed, targeted lint had no errors and one existing invoice-edit effect warning. Hosted PR checks and deployed acceptance are separate evidence and must not be inferred from those local results.
+
+Remaining acceptance groups:
+
+- #306, #310, #315, #323, #324, #328, #329, #333, #335: previously implemented web behavior still needs suitable live fixtures and full reproduction evidence.
+- #325, #336: actual received PDF filename/content and flow-specific OTP expiry need evidence; do not add a universal frontend expiry.
+- #318: capture reproducible deployed cold/warm timings and request evidence before claiming a performance pass.
+- #304, #307, #312, #314, #319, #321, #322, #326: fractional ownership guidance, registry association/visibility, verification receipt, age, country, PIN, address duration and password-reuse decisions remain unresolved. Do not invent policies to close them.
+
+Do not close any additional issue solely because a PR exists or the supplied backend contract says the server behavior is fixed. Merge/deployment is owned by the user; close only after the relevant deployed acceptance passes.

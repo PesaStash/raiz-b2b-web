@@ -35,10 +35,10 @@ test('fractional ownership stays exact, unavailable stays unavailable, and metad
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
-function prefillHelpers(env = 'production') {
+function prefillHelpers(env = 'production', storage) {
   const module = { exports: {} };
   const output = ts.transpileModule(readFileSync(new URL('../src/lib/companyLookup.ts', import.meta.url), 'utf8'), {compilerOptions:{module:ts.ModuleKind.CommonJS, target:ts.ScriptTarget.ES2022}}).outputText;
-  vm.runInNewContext(output, { module, exports: module.exports, require: () => ({isProductionDeployment: v => v === 'production'}), process:{env:{NEXT_PUBLIC_APP_ENV:env}} });
+  vm.runInNewContext(output, { module, exports: module.exports, ...(storage ? { window: {}, localStorage: storage } : {}), require: () => ({isProductionDeployment: v => v === 'production'}), process:{env:{NEXT_PUBLIC_APP_ENV:env}} });
   return module.exports;
 }
 test('saved manual fields win over lookup and Places, while missing address leaves are filled', () => {
@@ -51,6 +51,60 @@ test('saved manual fields win over lookup and Places, while missing address leav
   assert.equal(next.city, 'My city');
   assert.equal(next.zip_code, '12345');
   assert.equal(next.lookup, undefined);
+});
+
+const lookupStorage = () => {
+  const map = new Map();
+  return { getItem: key => map.get(key) ?? null, setItem: (key, value) => map.set(key, value), removeItem: key => map.delete(key) };
+};
+const confirmedLookup = {
+  registration_number: 'RC1234567', country_code: 'NG', business_name: 'Rejected Registry Company',
+  street: 'Registry Street', city: 'Registry City', state: 'Registry State', zip_code: '123456',
+  resolved: true, confirmed_at: '2026-11-12T10:00:00Z',
+};
+test('explicit manual form input never falls back to a stored or in-memory lookup', () => {
+  const { selectLookupPrefill } = prefillHelpers();
+  assert.equal(selectLookupPrefill(false, null, confirmedLookup), null);
+  assert.equal(selectLookupPrefill(true, confirmedLookup, confirmedLookup), null);
+  assert.equal(selectLookupPrefill(false, undefined, confirmedLookup), confirmedLookup);
+  assert.equal(selectLookupPrefill(false, confirmedLookup, null), confirmedLookup);
+});
+test('manual entry suppresses old lookup data after module reload and sign-in', () => {
+  const storage = lookupStorage();
+  let helpers = prefillHelpers('production', storage);
+  helpers.saveLookupPrefill('business-a', confirmedLookup);
+  assert.equal(helpers.readLookupPrefill('business-a').business_name, confirmedLookup.business_name);
+  helpers.enterBusinessManually('business-a');
+  assert.equal(helpers.readLookupPrefill('business-a'), null);
+  // A restored stale cache must not undo an explicit manual-entry decision.
+  storage.setItem('raiz-company-lookup:business-a', JSON.stringify(confirmedLookup));
+  helpers = prefillHelpers('production', storage);
+  assert.equal(helpers.isManualBusinessEntry('business-a'), true);
+  assert.equal(helpers.readLookupPrefill('business-a'), null);
+  assert.equal(helpers.isManualBusinessEntry('business-b'), false);
+});
+
+test('a rejected inquiry cannot restore a previously cached matching prefill', () => {
+  const storage = lookupStorage();
+  const helpers = prefillHelpers('production', storage);
+  helpers.saveLookupPrefill('business-a', confirmedLookup);
+  helpers.readLookupPrefill('business-a');
+  helpers.saveLookupDecision('business-a', { country_code: 'NG', registration_number: 'RC1234567' }, false);
+  assert.equal(helpers.readLookupPrefill('business-a'), null);
+});
+
+test('only explicit confirmation restores prefill after manual entry, without changing another business', () => {
+  const storage = lookupStorage();
+  const helpers = prefillHelpers('production', storage);
+  helpers.saveLookupPrefill('business-b', { ...confirmedLookup, business_name: 'Other Business' });
+  helpers.enterBusinessManually('business-a');
+  helpers.saveLookupDecision('business-a', { country_code: 'NG', registration_number: 'RC1234567' }, true);
+  helpers.saveLookupPrefill('business-a', confirmedLookup);
+  assert.equal(helpers.isManualBusinessEntry('business-a'), false);
+  assert.equal(helpers.readLookupPrefill('business-a').business_name, confirmedLookup.business_name);
+  assert.equal(helpers.readLookupPrefill('business-b').business_name, 'Other Business');
+  helpers.clearLookupPrefill('business-a');
+  assert.equal(helpers.readLookupPrefill('business-a'), null);
 });
 test('only the known fake address is replaced outside production', () => {
   const fake = {street_line_1:'1st floor,sum house,fake street',country:'ng'};

@@ -32,11 +32,23 @@ import { IInvoiceStatus } from "@/types/invoice";
 import { pushDataLayerEvent } from "@/utils/analytics/dataLayer";
 
 const statusStyles: Record<string, { dot: string; badge: string }> = {
-  paid: { dot: "bg-green-500", badge: "border-emerald-200 text-emerald-700 bg-emerald-50" },
-  pending: { dot: "bg-yellow-500", badge: "border-amber-200 text-amber-700 bg-amber-50" },
-  draft: { dot: "bg-[#CED3D2]", badge: "border-raiz-gray-200 text-raiz-gray-600 bg-raiz-gray-50" },
+  paid: {
+    dot: "bg-green-500",
+    badge: "border-emerald-200 text-emerald-700 bg-emerald-50",
+  },
+  pending: {
+    dot: "bg-yellow-500",
+    badge: "border-amber-200 text-amber-700 bg-amber-50",
+  },
+  draft: {
+    dot: "bg-[#CED3D2]",
+    badge: "border-raiz-gray-200 text-raiz-gray-600 bg-raiz-gray-50",
+  },
   sent: { dot: "bg-[#0D90DC]", badge: "border-sky-200 text-sky-700 bg-sky-50" },
-  awaiting_payment: { dot: "bg-[#0D90DC]", badge: "border-sky-200 text-sky-700 bg-sky-50" },
+  awaiting_payment: {
+    dot: "bg-[#0D90DC]",
+    badge: "border-sky-200 text-sky-700 bg-sky-50",
+  },
 };
 
 const InvoiceDetail = () => {
@@ -91,7 +103,9 @@ const InvoiceDetail = () => {
       <section className="p-4 sm:p-6 min-w-0">
         <InvoiceMobileBack href="/invoice" label="Invoices" />
         <div className="flex justify-center items-center h-48 rounded-xl border border-raiz-gray-100 bg-white">
-          <p className="text-red-600 text-sm">Error fetching invoice details.</p>
+          <p className="text-red-600 text-sm">
+            Error fetching invoice details.
+          </p>
         </div>
       </section>
     );
@@ -100,7 +114,9 @@ const InvoiceDetail = () => {
   const handleDownload = async () => {
     try {
       await refreshProfile({ throwOnError: true });
-      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      );
       await downloadInvoice(invoiceRef, data.invoice_number, "pdf");
       toast.success("Pdf downloaded successfully ");
     } catch {
@@ -112,7 +128,9 @@ const InvoiceDetail = () => {
     if (mailInFlight.current) return;
     if (withPaymentLink && !user?.business_account?.username) {
       setPaymentLinkUnavailable(true);
-      toast.warning("Set up a payment link, or email this invoice without one.");
+      toast.warning(
+        "Set up a payment link, or email this invoice without one.",
+      );
       return;
     }
     mailInFlight.current = true;
@@ -121,16 +139,21 @@ const InvoiceDetail = () => {
 
     try {
       await refreshProfile({ throwOnError: true });
-      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      );
       const pdfBlob = await generateInvoicePDFBlob(invoiceRef);
       if (!pdfBlob) throw new Error("Failed to generate invoice PDF");
 
       toast.loading("Converting PDF to base64...", { id: toastId });
       const pdfBase64 = await blobToBase64(pdfBlob);
 
-      const payload = invoiceEmailPayload(pdfBase64, withPaymentLink
-        ? `${process.env.NEXT_PUBLIC_APP_BASE_URL || window.location.origin}/pay/${encodeURIComponent(user?.business_account?.username || "")}`
-        : undefined);
+      const payload = invoiceEmailPayload(
+        pdfBase64,
+        withPaymentLink
+          ? `${process.env.NEXT_PUBLIC_APP_BASE_URL || window.location.origin}/pay/${encodeURIComponent(user?.business_account?.username || "")}`
+          : undefined,
+      );
 
       toast.loading("Sending invoice email...", { id: toastId });
       await SendInvoiceMailApi(data.invoice_id, payload);
@@ -142,10 +165,17 @@ const InvoiceDetail = () => {
         qc.invalidateQueries({ queryKey: ["invoice-activity", invoiceNo] }),
       ]);
     } catch (err) {
-      if (readApiError(err).code === "invoice_payments_unavailable") setPaymentLinkUnavailable(true);
-      toast.error(getApiErrorMessage(err, "Failed to send invoice email. Please try again."), {
-        id: toastId,
-      });
+      if (readApiError(err).code === "invoice_payments_unavailable")
+        setPaymentLinkUnavailable(true);
+      toast.error(
+        getApiErrorMessage(
+          err,
+          "Failed to send invoice email. Please try again.",
+        ),
+        {
+          id: toastId,
+        },
+      );
     } finally {
       mailInFlight.current = false;
       setSendingmail(false);
@@ -165,15 +195,50 @@ const InvoiceDetail = () => {
   return (
     <section className="min-w-0 pb-4 md:pb-0">
       <InvoiceMobileBack href="/invoice" label="Invoices" />
-      {["pending", "draft"].includes(data.status) && <div className="mb-4 space-y-3 rounded-xl border border-raiz-gray-200 p-4">
-        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={includePaymentLink} disabled={sendingMail} onChange={event => setIncludePaymentLink(event.target.checked)} />Include a payment link</label>
-        <p className="text-sm">You can email the invoice without a payment link. The recipient link does not confirm payment of this invoice.</p>
-        {paymentLinkUnavailable && <div role="alert" className="space-y-2 text-sm">
-          <p>Receiving setup is unavailable. Your invoice is kept. Set up receiving or send without a payment link.</p>
-          <Button type="button" variant="secondary" onClick={() => router.push("/onboarding")} disabled={sendingMail}>View receiving setup</Button>
-          <Button type="button" variant="secondary" onClick={() => { setIncludePaymentLink(false); void handleSendEmail(false); }} disabled={sendingMail}>Send without a payment link</Button>
-        </div>}
-      </div>}
+      {["pending", "draft"].includes(data.status) && (
+        <div className="mb-4 space-y-3 rounded-xl border border-raiz-gray-200 p-4">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={includePaymentLink}
+              disabled={sendingMail}
+              onChange={(event) => setIncludePaymentLink(event.target.checked)}
+            />
+            Include a payment link
+          </label>
+          <p className="text-sm">
+            You can email the invoice without a payment link. The recipient link
+            does not confirm payment of this invoice.
+          </p>
+          {paymentLinkUnavailable && (
+            <div role="alert" className="space-y-2 text-sm">
+              <p>
+                Receiving setup is unavailable. Your invoice is kept. Set up
+                receiving or send without a payment link.
+              </p>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => router.push("/onboarding")}
+                disabled={sendingMail}
+              >
+                View receiving setup
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setIncludePaymentLink(false);
+                  void handleSendEmail(false);
+                }}
+                disabled={sendingMail}
+              >
+                Send without a payment link
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-4 md:mb-6">
         <div className="min-w-0">

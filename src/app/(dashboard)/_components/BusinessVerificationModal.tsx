@@ -1,13 +1,24 @@
 import { apiFieldCorrections, apiFieldErrors } from "@/lib/apiError";
-import { basicBusinessField, mergePristineFields } from "@/lib/businessFormState";
+import {
+  basicBusinessField,
+  mergePristineFields,
+} from "@/lib/businessFormState";
 import Image from "next/image";
 import type { IUser } from "@/types/user";
 import Button from "@/components/ui/Button";
 import InputField from "@/components/ui/InputField";
 import SelectField from "@/components/ui/SelectField";
-import AddressAutocomplete, { usePlaceResolver } from "@/components/ui/AddressAutocomplete";
+import AddressAutocomplete, {
+  usePlaceResolver,
+} from "@/components/ui/AddressAutocomplete";
 import { useFormik } from "formik";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import useCountryStore from "@/store/useCountryStore";
 import { z } from "zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -24,6 +35,10 @@ import CompanyLookupStep from "@/components/onboarding/CompanyLookupStep";
 import {
   clearLookupPrefill,
   readLookupPrefill,
+  enterBusinessManually,
+  isManualBusinessEntry,
+  subscribeLookupPrefill,
+  selectLookupPrefill,
   type LookupPrefill,
 } from "@/lib/companyLookup";
 
@@ -104,7 +119,7 @@ const BusinessVerificationModal = (props: BasicFormProps) => {
             setStep("form");
           }}
           onManual={() => {
-            clearLookupPrefill(entityId);
+            enterBusinessManually(entityId);
             setPrefill(null);
             setStep("form");
           }}
@@ -113,9 +128,7 @@ const BusinessVerificationModal = (props: BasicFormProps) => {
     );
   }
 
-  return (
-    <BasicBusinessForm {...props} user={user} prefill={prefill} />
-  );
+  return <BasicBusinessForm {...props} user={user} prefill={prefill} />;
 };
 
 export const BasicBusinessForm = ({
@@ -126,15 +139,31 @@ export const BasicBusinessForm = ({
   prefill: prefillProp,
 }: BasicFormProps & { user?: IUser }) => {
   const entityId = user?.business_account?.entity_id ?? "";
-  const storedPrefill = useMemo(
-    () => prefillProp ?? readLookupPrefill(entityId),
-    [prefillProp, entityId],
+  const persistedPrefill = useSyncExternalStore(
+    subscribeLookupPrefill,
+    () => readLookupPrefill(entityId),
+    () => null,
   );
-  const { resolve: resolveAddress, isLoaded: addressReady, error: addressLoadError, resolutionError } = usePlaceResolver();
-  const [addressStatus, setAddressStatus] = useState<"idle" | "loading" | "failed" | "done">("idle");
+  // Explicit null means manual entry; it must not fall back to an earlier lookup.
+  const storedPrefill = selectLookupPrefill(
+    isManualBusinessEntry(entityId),
+    prefillProp,
+    persistedPrefill,
+  );
+  const {
+    resolve: resolveAddress,
+    isLoaded: addressReady,
+    error: addressLoadError,
+    resolutionError,
+  } = usePlaceResolver();
+  const [addressStatus, setAddressStatus] = useState<
+    "idle" | "loading" | "failed" | "done"
+  >("idle");
   const [addressRetry, setAddressRetry] = useState(0);
   const [useManualAddress, setUseManualAddress] = useState(
-    () => !!storedPrefill?.address || !!user?.business_account?.entity?.entity_address?.[0]?.street,
+    () =>
+      !!storedPrefill?.address ||
+      !!user?.business_account?.entity?.entity_address?.[0]?.street,
   );
   const {
     countries,
@@ -184,8 +213,17 @@ export const BasicBusinessForm = ({
 
   const formRef = useRef<HTMLFormElement>(null);
   const focusField = (name: string) => {
-    const controls = formRef.current?.querySelectorAll<HTMLElement>("input, select, textarea, [role=combobox]");
-    const control = Array.from(controls ?? []).find(control => control.getAttribute("name") === name || (name === "business_registration_number" && control.id === "business-reg") || (name === "country_code" && control.getAttribute("role") === "combobox"));
+    const controls = formRef.current?.querySelectorAll<HTMLElement>(
+      "input, select, textarea, [role=combobox]",
+    );
+    const control = Array.from(controls ?? []).find(
+      (control) =>
+        control.getAttribute("name") === name ||
+        (name === "business_registration_number" &&
+          control.id === "business-reg") ||
+        (name === "country_code" &&
+          control.getAttribute("role") === "combobox"),
+    );
     control?.focus();
     control?.scrollIntoView({ block: "center" });
   };
@@ -193,11 +231,17 @@ export const BasicBusinessForm = ({
   const BusinessVerificationMutation = useMutation({
     mutationFn: (payload: IBusinessVerificationPayload) =>
       BusinessVerificationApi(payload),
-    onError: error => {
-      const fields = Object.fromEntries(Object.entries(apiFieldErrors(error)).map(([key, message]) => [basicBusinessField(key), message]).filter(([key]) => Object.hasOwn(formik.values, key)));
+    onError: (error) => {
+      const fields = Object.fromEntries(
+        Object.entries(apiFieldErrors(error))
+          .map(([key, message]) => [basicBusinessField(key), message])
+          .filter(([key]) => Object.hasOwn(formik.values, key)),
+      );
       formik.setErrors(fields);
       const first = Object.keys(fields)[0];
-      requestAnimationFrame(() => first ? focusField(first) : errorSummaryRef.current?.focus());
+      requestAnimationFrame(() =>
+        first ? focusField(first) : errorSummaryRef.current?.focus(),
+      );
     },
     onSuccess: async (response) => {
       clearLookupPrefill(entityId);
@@ -236,15 +280,17 @@ export const BasicBusinessForm = ({
     user?.business_account?.business_email || user?.email || "";
 
   const saved = user?.business_account?.entity?.entity_address?.[0];
-  const initialValues = useMemo<BusinessFormValues>(() => ({
+  const initialValues = useMemo<BusinessFormValues>(
+    () => ({
       business_registration_number:
-        user?.business_account?.business_registration_number || storedPrefill?.registration_number || "",
+        user?.business_account?.business_registration_number ||
+        storedPrefill?.registration_number ||
+        "",
       business_name:
         user?.business_account?.business_name ||
         storedPrefill?.business_name ||
         "",
-      business_email:
-        existingEmail || storedPrefill?.business_email || "",
+      business_email: existingEmail || storedPrefill?.business_email || "",
       country_code:
         user?.business_account?.entity?.country?.country_code ||
         storedPrefill?.country_code ||
@@ -252,11 +298,15 @@ export const BasicBusinessForm = ({
       state: saved?.state || storedPrefill?.state || "",
       zip_code: saved?.zip_code || storedPrefill?.zip_code || "",
       street: saved?.street || storedPrefill?.street || "",
-      building_number: saved?.building_number || storedPrefill?.building_number || "",
+      building_number:
+        saved?.building_number || storedPrefill?.building_number || "",
       city: saved?.city || storedPrefill?.city || "",
-      length_of_stay_months: saved?.length_of_stay_months ?? (undefined as unknown as number),
+      length_of_stay_months:
+        saved?.length_of_stay_months ?? (undefined as unknown as number),
       address: storedPrefill?.address || "",
-    }), [user, storedPrefill, existingEmail, saved]);
+    }),
+    [user, storedPrefill, existingEmail, saved],
+  );
   const previousInitial = useRef(initialValues);
   const previousEntity = useRef(entityId);
   const errorSummaryRef = useRef<HTMLDivElement>(null);
@@ -292,13 +342,24 @@ export const BasicBusinessForm = ({
     const changedBusiness = previousEntity.current !== entityId;
     previousEntity.current = entityId;
     previousInitial.current = initialValues;
-    if (changedBusiness || JSON.stringify(previous) !== JSON.stringify(initialValues)) {
-      void setFormValues(current => changedBusiness ? initialValues : mergePristineFields(current, previous, initialValues), false);
+    if (
+      changedBusiness ||
+      JSON.stringify(previous) !== JSON.stringify(initialValues)
+    ) {
+      void setFormValues(
+        (current) =>
+          changedBusiness
+            ? initialValues
+            : mergePristineFields(current, previous, initialValues),
+        false,
+      );
     }
   }, [entityId, initialValues, setFormValues]);
 
   const latestForm = useRef(formik);
-  useEffect(() => { latestForm.current = formik; }, [formik]);
+  useEffect(() => {
+    latestForm.current = formik;
+  }, [formik]);
   const savedAddress = storedPrefill?.address;
   useEffect(() => {
     if (!savedAddress || !addressReady) return;
@@ -309,40 +370,76 @@ export const BasicBusinessForm = ({
       setAddressStatus("loading");
       const parts = await resolveAddress(savedAddress, before.country_code);
       if (cancelled) return;
-      if (!parts) { setAddressStatus("failed"); return; }
+      if (!parts) {
+        setAddressStatus("failed");
+        return;
+      }
       const current = latestForm.current.values;
       // A late Places response must not replace a user's address edits.
-      if (current.address !== before.address || current.street !== before.street || current.country_code !== before.country_code) {
+      if (
+        current.address !== before.address ||
+        current.street !== before.street ||
+        current.country_code !== before.country_code
+      ) {
         setAddressStatus("idle");
         return;
       }
       const next = {
         ...current,
-        street: parts.street && current.street === storedPrefill?.street
-          ? [parts.building_number, parts.street].filter(Boolean).join(" ") : current.street,
+        street:
+          parts.street && current.street === storedPrefill?.street
+            ? [parts.building_number, parts.street].filter(Boolean).join(" ")
+            : current.street,
         city: current.city || parts.city || "",
         state: current.state || parts.state || "",
         zip_code: current.zip_code || parts.zip_code || "",
         address: parts.address || current.address,
       };
       await latestForm.current.setValues(next, false);
-      setAddressStatus(next.city && next.state && next.zip_code ? "done" : "failed");
+      setAddressStatus(
+        next.city && next.state && next.zip_code ? "done" : "failed",
+      );
     };
     void run();
-    return () => { cancelled = true; };
-  }, [savedAddress, storedPrefill?.street, addressReady, addressRetry, resolveAddress]);
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    savedAddress,
+    storedPrefill?.street,
+    addressReady,
+    addressRetry,
+    resolveAddress,
+  ]);
 
-  const addressResolutionNotice = storedPrefill?.address && addressLoadError ? (
-    <Notice error>{addressLoadError} Reload the page to retry, or complete the address fields.</Notice>
-  ) : addressStatus === "loading" ? (
-    <p role="status" className="text-sm text-kyb-muted">Finding city, state and postcode…</p>
-  ) : addressStatus === "failed" ? (
-    <Notice>{resolutionError || "Google could not fill every address field."} <button type="button" className="underline" onClick={() => setAddressRetry(value => value + 1)}>Retry address lookup</button>, or complete the missing fields.</Notice>
-  ) : null;
+  const addressResolutionNotice =
+    storedPrefill?.address && addressLoadError ? (
+      <Notice error>
+        {addressLoadError} Reload the page to retry, or complete the address
+        fields.
+      </Notice>
+    ) : addressStatus === "loading" ? (
+      <p role="status" className="text-sm text-kyb-muted">
+        Finding city, state and postcode…
+      </p>
+    ) : addressStatus === "failed" ? (
+      <Notice>
+        {resolutionError || "Google could not fill every address field."}{" "}
+        <button
+          type="button"
+          className="underline"
+          onClick={() => setAddressRetry((value) => value + 1)}
+        >
+          Retry address lookup
+        </button>
+        , or complete the missing fields.
+      </Notice>
+    ) : null;
 
-  const selectedCountry = countryOptions.find(
-    option => option.value === formik.values.country_code,
-  ) ?? null;
+  const selectedCountry =
+    countryOptions.find(
+      (option) => option.value === formik.values.country_code,
+    ) ?? null;
 
   const hasRequiredAddress =
     !!formik.values.city &&
@@ -361,20 +458,28 @@ export const BasicBusinessForm = ({
   };
   // Render synchronous schema feedback; Formik still owns submit validation.
   const liveValidation = getEffectiveSchema().safeParse(formik.values);
-  const liveErrors = liveValidation.success ? {} : mapZodFieldErrors(liveValidation.error.flatten().fieldErrors);
+  const liveErrors = liveValidation.success
+    ? {}
+    : mapZodFieldErrors(liveValidation.error.flatten().fieldErrors);
   const fieldError = (name: keyof BusinessFormValues) => {
-    const error = (formik.touched[name] || formik.submitCount > 0) && (formik.errors[name] || liveErrors[name]);
+    const error =
+      (formik.touched[name] || formik.submitCount > 0) &&
+      (formik.errors[name] || liveErrors[name]);
     if (!error) return null;
     return Array.isArray(error) ? (error.length ? "error" : null) : "error";
   };
 
   const fieldErrorMessage = (name: keyof BusinessFormValues) => {
-    const error = (formik.touched[name] || formik.submitCount > 0) && (formik.errors[name] || liveErrors[name]);
+    const error =
+      (formik.touched[name] || formik.submitCount > 0) &&
+      (formik.errors[name] || liveErrors[name]);
     if (!error) return undefined;
     return Array.isArray(error) ? error[0] : error;
   };
 
-  const hasRegistryName = !!storedPrefill?.business_name?.trim() && storedPrefill.business_name.trim() === formik.values.business_name.trim();
+  const hasRegistryName =
+    !!storedPrefill?.business_name?.trim() &&
+    storedPrefill.business_name.trim() === formik.values.business_name.trim();
   const prefillNotice = storedPrefill ? (
     <Notice>
       Pre-filled from the business register. Check and edit anything that’s
@@ -382,13 +487,35 @@ export const BasicBusinessForm = ({
     </Notice>
   ) : null;
 
-  const serverCorrections = apiFieldCorrections(BusinessVerificationMutation.error);
+  const serverCorrections = apiFieldCorrections(
+    BusinessVerificationMutation.error,
+  );
   const correctionSummary = BusinessVerificationMutation.isError && (
-    <div ref={errorSummaryRef} tabIndex={-1} role="alert" className="rounded-xl border border-red-200 p-4 text-sm text-red-700">
-      <p>{getApiErrorMessage(BusinessVerificationMutation.error, "Unable to submit your business details. Please try again.")}</p>
-      <ul className="list-disc pl-5">{serverCorrections.map(({ field, message }, index) => <li key={`${field}-${index}`}>
-        <button type="button" className="text-left underline" onClick={() => focusField(basicBusinessField(field))}>{basicBusinessField(field).replace(/[_.[\]]+/g, " ")}: {message}</button>
-      </li>)}</ul>
+    <div
+      ref={errorSummaryRef}
+      tabIndex={-1}
+      role="alert"
+      className="rounded-xl border border-red-200 p-4 text-sm text-red-700"
+    >
+      <p>
+        {getApiErrorMessage(
+          BusinessVerificationMutation.error,
+          "Unable to submit your business details. Please try again.",
+        )}
+      </p>
+      <ul className="list-disc pl-5">
+        {serverCorrections.map(({ field, message }, index) => (
+          <li key={`${field}-${index}`}>
+            <button
+              type="button"
+              className="text-left underline"
+              onClick={() => focusField(basicBusinessField(field))}
+            >
+              {basicBusinessField(field).replace(/[_.[\]]+/g, " ")}: {message}
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 
@@ -531,7 +658,9 @@ export const BasicBusinessForm = ({
             <div>
               {field("business_name", "Business name")}
               <p className="mt-2 text-[13px] text-kyb-muted">
-                {hasRegistryName ? `Fetched from the ${formik.values.country_code === "NG" ? "CAC registry" : "business registry"}` : "Enter your registered business name."}
+                {hasRegistryName
+                  ? `Fetched from the ${formik.values.country_code === "NG" ? "CAC registry" : "business registry"}`
+                  : "Enter your registered business name."}
               </p>
             </div>
             <div>
@@ -629,7 +758,11 @@ export const BasicBusinessForm = ({
   }
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-4 min-h-0">
+    <form
+      ref={formRef}
+      onSubmit={handleSubmit}
+      className="flex flex-col gap-4 min-h-0"
+    >
       {correctionSummary}
       {prefillNotice}
       {addressResolutionNotice}
@@ -646,7 +779,9 @@ export const BasicBusinessForm = ({
             errorMessage={fieldErrorMessage("business_name")}
           />
           <p className="mt-2 text-[13px] text-kyb-muted">
-            {hasRegistryName ? `Fetched from the ${formik.values.country_code === "NG" ? "CAC registry" : "business registry"}. You can edit it.` : "Enter your registered business name."}
+            {hasRegistryName
+              ? `Fetched from the ${formik.values.country_code === "NG" ? "CAC registry" : "business registry"}. You can edit it.`
+              : "Enter your registered business name."}
           </p>
         </div>
         <InputField
