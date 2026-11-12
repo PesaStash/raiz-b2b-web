@@ -485,12 +485,13 @@ export default function PeopleStage({
           close={() => setOwnershipReview(undefined)}
         >
           <form
+            noValidate
             className="space-y-5"
             onSubmit={async (event) => {
               event.preventDefault();
               if (ownershipNeedsReview(ownershipReview)) {
                 setFormError(
-                  "Enter an ownership percentage greater than 0 and up to 100.",
+                  "Enter a whole-number ownership percentage greater than 0 and up to 100. Do not round fractional registry holdings.",
                 );
                 return;
               }
@@ -553,6 +554,7 @@ export default function PeopleStage({
                 {ownershipReview.first_name} {ownershipReview.last_name}
               </p>
             </div>
+            {registryOwnership(ownershipReview) !== "Unavailable" && <Notice>Registry ownership: {registryOwnership(ownershipReview)}. The editable field accepts whole numbers only. Do not round a fractional holding or remove ownership to continue; contact support for guidance.</Notice>}
             {formError && <Notice error>{formError}</Notice>}
             <label className="flex items-start gap-3 text-sm">
               <input
@@ -578,9 +580,9 @@ export default function PeopleStage({
                 <input
                   aria-label="Ownership percentage"
                   type="number"
-                  min="0.01"
+                  min="1"
                   max="100"
-                  step="0.01"
+                  step="1"
                   required
                   className="mt-2 h-12 w-full rounded-xl border border-kyb-border bg-kyb-field px-3"
                   disabled={savingPerson}
@@ -632,18 +634,7 @@ export default function PeopleStage({
             initial={editing}
             corrections={editor.personErrors?.(editing) ?? []}
             identificationTypes={guide?.identification_types}
-            partial={
-              !!(
-                editing.associated_person_id ??
-                editing.business_usd_kyb_associated_person_id
-              ) &&
-              (!!editing.verification_started_at ||
-                !!editing.verified_at ||
-                ["approved", "completed", "pending", "in_progress"].includes(
-                  editing.verification_status ?? "",
-                ) ||
-                (editor.personErrors?.(editing).length ?? 0) > 0)
-            }
+            partial={!!(editing.associated_person_id ?? editing.business_usd_kyb_associated_person_id)}
             disabled={savingPerson || !editor.editable || editor.busy}
             saving={savingPerson}
             error={formError}

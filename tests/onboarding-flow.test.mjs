@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {basicDetailsComplete,accountChoiceRoute,readAccountChoice,saveAccountChoice} from '../src/lib/onboarding.ts';
+import {basicDetailsComplete,hasSubmittedKyb,accountChoiceRoute,readAccountChoice,saveAccountChoice} from '../src/lib/onboarding.ts';
 const user=status=>({business_account:{business_verifications:[{verification_status:status}]}});
 test('only submitted or completed basic verification unlocks account choice',()=>{
  for(const status of ['pending','kyc_tier_1','completed']) assert.equal(basicDetailsComplete(user(status)),true);
@@ -21,4 +21,11 @@ test('account preference is tenant scoped and tolerates blocked storage',()=>{
  globalThis.localStorage.getItem=()=>{throw new Error('blocked')};assert.equal(readAccountChoice('b'),null);
  globalThis.localStorage.setItem=()=>{throw new Error('blocked')};assert.doesNotThrow(()=>saveAccountChoice('b','USD'));
  } finally {delete globalThis.window;delete globalThis.localStorage;}
+});
+
+test('submitted and reopened KYB cases resume without browser account preferences', () => {
+ for (const status of ['awaiting_admin_review', 'under_review', 'awaiting_ubo', 'requires_correction', 'completed', 'rejected']) assert.equal(hasSubmittedKyb({status}), true);
+ for (const status of ['collecting', 'not_started', undefined]) assert.equal(hasSubmittedKyb({status}), false);
+ assert.equal(hasSubmittedKyb({status:'collecting', submitted_for_review_at:'2026-11-10T22:26:00Z'}), true);
+ assert.equal(hasSubmittedKyb(undefined), false);
 });

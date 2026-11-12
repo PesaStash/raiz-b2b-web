@@ -20,7 +20,7 @@ const CreateAccount = ({ formik }: RegisterFormProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const { countries, fetchCountries, loading: countriesLoading, error } = useCountryStore();
   useEffect(() => { fetchCountries(); }, [fetchCountries]);
-  const countryOptions = useMemo(() => countries.map(country => ({ value: String(country.country_id), label: country.country_name })), [countries]);
+  const countryOptions = useMemo(() => [...countries].sort((a, b) => a.country_name.localeCompare(b.country_name)).map(country => ({ value: String(country.country_id), label: country.country_name })), [countries]);
   const selectedCountry = countryOptions.find(option => option.value === formik.values.country_id) ?? null;
   const country = countries.find(country => String(country.country_id) === formik.values.country_id);
   const formatCountryOption = (option: { value: string | number; label: string }) => {
@@ -70,6 +70,7 @@ const CreateAccount = ({ formik }: RegisterFormProps) => {
           <div className="relative">
             <SelectField
               instanceId="register-country"
+              aria-label="Where is the business registered?"
               name="country_id"
               className="auth-country !rounded-xl !shadow-none"
               placeholder="Select country"

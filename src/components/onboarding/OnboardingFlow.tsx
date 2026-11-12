@@ -7,18 +7,21 @@ import {
 } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useKybNavigation } from "@/lib/hooks/useKybNavigation";
 import { useUser } from "@/lib/hooks/useUser";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import {
   accountChoiceRoute,
   basicDetailsComplete,
+  hasSubmittedKyb,
   readAccountChoice,
   saveAccountChoice,
   type AccountChoice,
 } from "@/lib/onboarding";
 import {
-  clearLookupPrefill,
+  enterBusinessManually,
   readLookupPrefill,
+  subscribeLookupPrefill,
 } from "@/lib/companyLookup";
 import { Action, Notice } from "@/components/usd-kyb/KybUI";
 import { KybIcon } from "@/components/usd-kyb/KybGuide";
@@ -79,12 +82,15 @@ export function OnboardingAccess({
 }
 export function StartGuide() {
   const { user } = useUser();
-  return <StartGuideView user={user} />;
+  const status = useKybNavigation(user);
+  return <StartGuideView user={user} submitted={hasSubmittedKyb(status.data?.case)} />;
 }
 export function StartGuideView({
   user,
+  submitted = false,
 }: {
   user?: import("@/types/user").IUser;
+  submitted?: boolean;
 }) {
   const router = useRouter();
   const complete = basicDetailsComplete(user);
@@ -92,7 +98,7 @@ export function StartGuideView({
   const countryCode =
     user?.business_account?.entity?.country?.country_code ?? "";
   const savedPrefill = useSyncExternalStore(
-    subscribeChoice,
+    subscribeLookupPrefill,
     () => readLookupPrefill(entityId),
     () => null,
   );
@@ -111,7 +117,7 @@ export function StartGuideView({
       <GuideSection
         title="Verify your business"
         description="Done once. We reuse these details for every account you open."
-        done={complete ? 2 : 1}
+        done={submitted ? 3 : complete ? 2 : 1}
         secondary
       >
         <DoneTask>Create your Raiz account</DoneTask>
@@ -121,7 +127,7 @@ export function StartGuideView({
           <OpenTask
             title="Find your business"
             minutes="About 2 mins"
-            tag="Pre-filled from register"
+            tag={savedPrefill?.business_name ? "Pre-filled from register" : undefined}
             image="business"
           >
             <CompanyLookupStep
@@ -129,7 +135,7 @@ export function StartGuideView({
               entityId={entityId}
               onConfirmed={() => openBusinessForm()}
               onManual={() => {
-                clearLookupPrefill(entityId);
+                enterBusinessManually(entityId);
                 openBusinessForm();
               }}
             />
@@ -149,9 +155,9 @@ export function StartGuideView({
           <button
             className="flex-1 text-left text-[15px] font-semibold disabled:text-kyb-muted"
             disabled={!complete}
-            onClick={() => router.push("/onboarding/accounts")}
+            onClick={() => router.push(submitted ? "/onboarding/usd" : "/onboarding/accounts")}
           >
-            Choose your accounts
+            {submitted ? "View your verification status" : "Choose your accounts"}
           </button>
           <span className="text-[13px] text-kyb-muted">About 1 min</span>
         </div>
@@ -387,6 +393,13 @@ export function AccountChoices({
 export function AccountsPage() {
   const { user } = useUser();
   const router = useRouter();
+  const status = useKybNavigation(user);
+  const hasRequest = hasSubmittedKyb(status.data?.case);
+  useEffect(() => {
+    if (hasRequest) router.replace("/onboarding/usd");
+  }, [hasRequest, router]);
+  if (status.isError) return <Notice error>Unable to check your account setup. <button className="underline" onClick={() => void status.refetch()}>Try again</button></Notice>;
+  if (status.isLoading || hasRequest) return <OnboardingSkeleton label="Loading your account setup…" />;
   return (
     <OnboardingAccess requireBasic>
       <AccountChoices

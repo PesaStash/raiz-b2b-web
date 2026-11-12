@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import ts from "typescript";
 import { validationForPeople } from "../src/lib/usd-kyb/corrections.ts";
-import { personPatch } from "../src/lib/usd-kyb/model.ts";
+import { personPatch, registryBusinessPrefill, registryPersonPrefill, mergeDraft, normalizeDraft } from "../src/lib/usd-kyb/model.ts";
 
 function service({ uploadError, uploadStatus = 200 } = {}) {
   const calls = [];
@@ -46,7 +46,7 @@ function service({ uploadError, uploadStatus = 200 } = {}) {
     require: (name) => {
       if (name === "@/lib/authAxios") return { AuthAxios: client };
       if (name === "@/lib/publicAxios") return { PublicAxios: client };
-      if (name === "@/lib/usd-kyb/model") return { personPatch };
+      if (name === "@/lib/usd-kyb/model") return { personPatch, registryBusinessPrefill, registryPersonPrefill, mergeDraft, normalizeDraft };
       if (name === "@/lib/usd-kyb/corrections") return { validationForPeople };
       if (name === "axios")
         return {
@@ -69,7 +69,8 @@ function service({ uploadError, uploadStatus = 200 } = {}) {
 }
 
 test("KYB requests use authenticated tenant scope and explicit version/declaration payloads", async () => {
-  const { kybApi, calls } = service();
+  const { kybApi, calls, replies } = service();
+  replies.push({ success: true, data: { case: { draft_payload: {} }, prefilled_draft: {}, associated_persons: [] } });
   await kybApi.get();
   await kybApi.patch({
     expected_version: 7,

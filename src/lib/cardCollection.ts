@@ -27,7 +27,7 @@ export function providerLabel(provider: CardPaymentProvider): string {
 export function providerFromReference(
   reference: string,
 ): CardPaymentProvider | null {
-  if (/^ps_ngn_/i.test(reference)) return "paystack";
+  if (/^(?:ps_ngn_|ps-ngn-)/i.test(reference)) return "paystack";
   if (/^fw_ngn_/i.test(reference)) return "flutterwave";
   return null;
 }
@@ -46,7 +46,7 @@ export const CARD_POLL_WINDOW_MS = 60_000;
 export const CARD_POLL_MAX_BACKOFF_MS = 15_000;
 export const CARD_DESCRIPTION_MAX_LENGTH = 255;
 
-const CARD_REFERENCE_PATTERN = /^(ps|fw)_ngn_[a-z0-9]{8,64}$/i;
+const CARD_REFERENCE_PATTERN = /^(?:ps_ngn_|ps-ngn-|fw_ngn_)[a-z0-9]{8,64}$/i;
 /** Paystack and Flutterwave redirect params; never treat `status` as payment success. */
 const CARD_CALLBACK_PARAMS = [
   "reference",

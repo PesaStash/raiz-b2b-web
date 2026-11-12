@@ -1,3 +1,5 @@
+import { apiFieldCorrections, apiFieldErrors } from "@/lib/apiError";
+import { basicBusinessField, mergePristineFields } from "@/lib/businessFormState";
 import Image from "next/image";
 import type { IUser } from "@/types/user";
 import Button from "@/components/ui/Button";
@@ -5,7 +7,7 @@ import InputField from "@/components/ui/InputField";
 import SelectField from "@/components/ui/SelectField";
 import AddressAutocomplete, { usePlaceResolver } from "@/components/ui/AddressAutocomplete";
 import { useFormik } from "formik";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import useCountryStore from "@/store/useCountryStore";
 import { z } from "zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -22,6 +24,10 @@ import CompanyLookupStep from "@/components/onboarding/CompanyLookupStep";
 import {
   clearLookupPrefill,
   readLookupPrefill,
+  enterBusinessManually,
+  isManualBusinessEntry,
+  subscribeLookupPrefill,
+  selectLookupPrefill,
   type LookupPrefill,
 } from "@/lib/companyLookup";
 
@@ -37,14 +43,15 @@ const BusinessSchema = z.object({
     .email("Invalid email address")
     .min(1, "Email is required"),
   address: z.string().optional(),
-  country_code: z.string().min(1, "Country is required"),
+  country_code: z.string().regex(/^[A-Z]{2}$/, "Select a valid country"),
   state: z.string().min(1, "State is required"),
-  zip_code: z.string().optional(),
+  zip_code: z.string().trim().min(1, "Postcode is required"),
   street: z.string().min(1, "Street is required"),
   building_number: z.string().optional(),
   city: z.string().min(1, "City is required"),
   length_of_stay_months: z.coerce
     .number({ invalid_type_error: "Length of stay is required" })
+    .int("Enter a whole number of months")
     .min(6, "Minimum length of stay is 6 months"),
 });
 
@@ -101,7 +108,7 @@ const BusinessVerificationModal = (props: BasicFormProps) => {
             setStep("form");
           }}
           onManual={() => {
-            clearLookupPrefill(entityId);
+            enterBusinessManually(entityId);
             setPrefill(null);
             setStep("form");
           }}
@@ -123,15 +130,14 @@ export const BasicBusinessForm = ({
   prefill: prefillProp,
 }: BasicFormProps & { user?: IUser }) => {
   const entityId = user?.business_account?.entity_id ?? "";
-  const storedPrefill = useMemo(
-    () => prefillProp ?? readLookupPrefill(entityId),
-    [prefillProp, entityId],
-  );
+  const persistedPrefill = useSyncExternalStore(subscribeLookupPrefill, () => readLookupPrefill(entityId), () => null);
+  // Explicit null means manual entry; it must not fall back to an earlier lookup.
+  const storedPrefill = selectLookupPrefill(isManualBusinessEntry(entityId), prefillProp, persistedPrefill);
   const { resolve: resolveAddress, isLoaded: addressReady, error: addressLoadError, resolutionError } = usePlaceResolver();
   const [addressStatus, setAddressStatus] = useState<"idle" | "loading" | "failed" | "done">("idle");
   const [addressRetry, setAddressRetry] = useState(0);
   const [useManualAddress, setUseManualAddress] = useState(
-    () => !!storedPrefill?.address,
+    () => !!storedPrefill?.address || !!user?.business_account?.entity?.entity_address?.[0]?.street,
   );
   const {
     countries,
@@ -179,10 +185,23 @@ export const BasicBusinessForm = ({
     );
   };
 
+  const formRef = useRef<HTMLFormElement>(null);
+  const focusField = (name: string) => {
+    const controls = formRef.current?.querySelectorAll<HTMLElement>("input, select, textarea, [role=combobox]");
+    const control = Array.from(controls ?? []).find(control => control.getAttribute("name") === name || (name === "business_registration_number" && control.id === "business-reg") || (name === "country_code" && control.getAttribute("role") === "combobox"));
+    control?.focus();
+    control?.scrollIntoView({ block: "center" });
+  };
   const qc = useQueryClient();
   const BusinessVerificationMutation = useMutation({
     mutationFn: (payload: IBusinessVerificationPayload) =>
       BusinessVerificationApi(payload),
+    onError: error => {
+      const fields = Object.fromEntries(Object.entries(apiFieldErrors(error)).map(([key, message]) => [basicBusinessField(key), message]).filter(([key]) => Object.hasOwn(formik.values, key)));
+      formik.setErrors(fields);
+      const first = Object.keys(fields)[0];
+      requestAnimationFrame(() => first ? focusField(first) : errorSummaryRef.current?.focus());
+    },
     onSuccess: async (response) => {
       clearLookupPrefill(entityId);
       toast.success(
@@ -219,29 +238,33 @@ export const BasicBusinessForm = ({
   const existingEmail =
     user?.business_account?.business_email || user?.email || "";
 
-  const formik = useFormik<BusinessFormValues>({
-    initialValues: {
+  const saved = user?.business_account?.entity?.entity_address?.[0];
+  const initialValues = useMemo<BusinessFormValues>(() => ({
       business_registration_number:
-        storedPrefill?.registration_number || "",
+        user?.business_account?.business_registration_number || storedPrefill?.registration_number || "",
       business_name:
-        storedPrefill?.business_name ||
         user?.business_account?.business_name ||
+        storedPrefill?.business_name ||
         "",
       business_email:
         existingEmail || storedPrefill?.business_email || "",
       country_code:
-        storedPrefill?.country_code ||
         user?.business_account?.entity?.country?.country_code ||
+        storedPrefill?.country_code ||
         "",
-      state: storedPrefill?.state || "",
-      zip_code: storedPrefill?.zip_code || "",
-      street: storedPrefill?.street || "",
-      building_number: storedPrefill?.building_number || "",
-      city: storedPrefill?.city || "",
-      length_of_stay_months: undefined as unknown as number,
+      state: saved?.state || storedPrefill?.state || "",
+      zip_code: saved?.zip_code || storedPrefill?.zip_code || "",
+      street: saved?.street || storedPrefill?.street || "",
+      building_number: saved?.building_number || storedPrefill?.building_number || "",
+      city: saved?.city || storedPrefill?.city || "",
+      length_of_stay_months: saved?.length_of_stay_months ?? (undefined as unknown as number),
       address: storedPrefill?.address || "",
-    },
-    enableReinitialize: true,
+    }), [user, storedPrefill, existingEmail, saved]);
+  const previousInitial = useRef(initialValues);
+  const previousEntity = useRef(entityId);
+  const errorSummaryRef = useRef<HTMLDivElement>(null);
+  const formik = useFormik<BusinessFormValues>({
+    initialValues,
     validateOnChange: true,
     validate: (values) => {
       const result = getEffectiveSchema().safeParse(values);
@@ -265,6 +288,17 @@ export const BasicBusinessForm = ({
       });
     },
   });
+
+  const setFormValues = formik.setValues;
+  useEffect(() => {
+    const previous = previousInitial.current;
+    const changedBusiness = previousEntity.current !== entityId;
+    previousEntity.current = entityId;
+    previousInitial.current = initialValues;
+    if (changedBusiness || JSON.stringify(previous) !== JSON.stringify(initialValues)) {
+      void setFormValues(current => changedBusiness ? initialValues : mergePristineFields(current, previous, initialValues), false);
+    }
+  }, [entityId, initialValues, setFormValues]);
 
   const latestForm = useRef(formik);
   useEffect(() => { latestForm.current = formik; }, [formik]);
@@ -309,13 +343,9 @@ export const BasicBusinessForm = ({
     <Notice>{resolutionError || "Google could not fill every address field."} <button type="button" className="underline" onClick={() => setAddressRetry(value => value + 1)}>Retry address lookup</button>, or complete the missing fields.</Notice>
   ) : null;
 
-  const selectedCountry = useMemo(
-    () =>
-      countryOptions.find(
-        (option) => option.value === formik.values.country_code,
-      ) ?? null,
-    [countryOptions, formik.values.country_code],
-  );
+  const selectedCountry = countryOptions.find(
+    option => option.value === formik.values.country_code,
+  ) ?? null;
 
   const hasRequiredAddress =
     !!formik.values.city &&
@@ -325,31 +355,45 @@ export const BasicBusinessForm = ({
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     const result = getEffectiveSchema().safeParse(formik.values);
-    if (!result.success)
+    if (!result.success) {
       toast.error(result.error.issues[0].message, { id: "onboarding-error" });
+      const first = String(result.error.issues[0].path[0] ?? "");
+      requestAnimationFrame(() => focusField(first));
+    }
     formik.handleSubmit(event);
   };
   // Render synchronous schema feedback; Formik still owns submit validation.
   const liveValidation = getEffectiveSchema().safeParse(formik.values);
   const liveErrors = liveValidation.success ? {} : mapZodFieldErrors(liveValidation.error.flatten().fieldErrors);
   const fieldError = (name: keyof BusinessFormValues) => {
-    const error = (formik.touched[name] || formik.submitCount > 0) && liveErrors[name];
+    const error = (formik.touched[name] || formik.submitCount > 0) && (formik.errors[name] || liveErrors[name]);
     if (!error) return null;
     return Array.isArray(error) ? (error.length ? "error" : null) : "error";
   };
 
   const fieldErrorMessage = (name: keyof BusinessFormValues) => {
-    const error = (formik.touched[name] || formik.submitCount > 0) && liveErrors[name];
+    const error = (formik.touched[name] || formik.submitCount > 0) && (formik.errors[name] || liveErrors[name]);
     if (!error) return undefined;
     return Array.isArray(error) ? error[0] : error;
   };
 
+  const hasRegistryName = !!storedPrefill?.business_name?.trim() && storedPrefill.business_name.trim() === formik.values.business_name.trim();
   const prefillNotice = storedPrefill ? (
     <Notice>
       Pre-filled from the business register. Check and edit anything that’s
       changed.
     </Notice>
   ) : null;
+
+  const serverCorrections = apiFieldCorrections(BusinessVerificationMutation.error);
+  const correctionSummary = BusinessVerificationMutation.isError && (
+    <div ref={errorSummaryRef} tabIndex={-1} role="alert" className="rounded-xl border border-red-200 p-4 text-sm text-red-700">
+      <p>{getApiErrorMessage(BusinessVerificationMutation.error, "Unable to submit your business details. Please try again.")}</p>
+      <ul className="list-disc pl-5">{serverCorrections.map(({ field, message }, index) => <li key={`${field}-${index}`}>
+        <button type="button" className="text-left underline" onClick={() => focusField(basicBusinessField(field))}>{basicBusinessField(field).replace(/[_.[\]]+/g, " ")}: {message}</button>
+      </li>)}</ul>
+    </div>
+  );
 
   if (page) {
     const field = (
@@ -374,17 +418,11 @@ export const BasicBusinessForm = ({
     const prefix = reg.startsWith("BN") ? "BN" : "RC";
     return (
       <form
+        ref={formRef}
         onSubmit={handleSubmit}
         className="space-y-7 rounded-2xl border border-kyb-border bg-white p-5 md:p-8"
       >
-        {BusinessVerificationMutation.isError && (
-          <Notice error>
-            {getApiErrorMessage(
-              BusinessVerificationMutation.error,
-              "Unable to submit your business details. Please try again.",
-            )}
-          </Notice>
-        )}
+        {correctionSummary}
         {/* {prefillNotice} */}
         <header>
           <p className="text-xs font-semibold text-primary2">
@@ -496,7 +534,7 @@ export const BasicBusinessForm = ({
             <div>
               {field("business_name", "Business name")}
               <p className="mt-2 text-[13px] text-kyb-muted">
-                {storedPrefill ? `Fetched from the ${formik.values.country_code === "NG" ? "CAC registry" : "business registry"}` : "Enter your registered business name."}
+                {hasRegistryName ? `Fetched from the ${formik.values.country_code === "NG" ? "CAC registry" : "business registry"}` : "Enter your registered business name."}
               </p>
             </div>
             <div>
@@ -531,7 +569,7 @@ export const BasicBusinessForm = ({
               {field("building_number", "Apartment / floor (optional)")}
               {field("city", "City")}
               {field("state", "State / region")}
-              {field("zip_code", "Postcode (optional)")}
+              {field("zip_code", "Postcode *")}
               {field(
                 "length_of_stay_months",
                 "Time at this address (months)",
@@ -594,15 +632,8 @@ export const BasicBusinessForm = ({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4 min-h-0">
-      {BusinessVerificationMutation.isError && (
-        <Notice error>
-          {getApiErrorMessage(
-            BusinessVerificationMutation.error,
-            "Unable to submit your business details. Please try again.",
-          )}
-        </Notice>
-      )}
+    <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-4 min-h-0">
+      {correctionSummary}
       {prefillNotice}
       {addressResolutionNotice}
       <div className="flex flex-col gap-3">
@@ -618,7 +649,7 @@ export const BasicBusinessForm = ({
             errorMessage={fieldErrorMessage("business_name")}
           />
           <p className="mt-2 text-[13px] text-kyb-muted">
-            {storedPrefill ? `Fetched from the ${formik.values.country_code === "NG" ? "CAC registry" : "business registry"}. You can edit it.` : "Enter your registered business name."}
+            {hasRegistryName ? `Fetched from the ${formik.values.country_code === "NG" ? "CAC registry" : "business registry"}. You can edit it.` : "Enter your registered business name."}
           </p>
         </div>
         <InputField
@@ -697,7 +728,7 @@ export const BasicBusinessForm = ({
               errorMessage={fieldErrorMessage("state")}
             />
             <InputField
-              label="ZIP / Postal Code"
+              label="ZIP / Postal Code *"
               {...formik.getFieldProps("zip_code")}
               status={fieldError("zip_code")}
               errorMessage={fieldErrorMessage("zip_code")}

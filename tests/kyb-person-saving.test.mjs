@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import ts from "typescript";
-import { readApiError } from "../src/lib/apiError.ts";
+import { apiFieldCorrections, readApiError } from "../src/lib/apiError.ts";
 import * as corrections from "../src/lib/usd-kyb/corrections.ts";
 import * as model from "../src/lib/usd-kyb/model.ts";
 import {
@@ -12,6 +12,7 @@ import {
   persistedPersonDetailsErrors,
   canResendPersonInvitation,
 } from "../src/lib/usd-kyb/personDetails.ts";
+import { draftInputErrors } from "../src/lib/usd-kyb/inputValidation.ts";
 import { SaveQueue } from "../src/lib/usd-kyb/saveQueue.ts";
 function editorHarness({
   status = "collecting",
@@ -73,6 +74,8 @@ function editorHarness({
     prefilled_draft: prefilled,
   };
   const calls = [];
+  const cachedWrites = [];
+  const profileRefreshes = [];
   const invitations = [];
   const removals = [];
   const toasts = [];
@@ -196,8 +199,8 @@ function editorHarness({
         return {
           useQuery: () => ({ data: bundle }),
           useQueryClient: () => ({
-            setQueryData() {},
-            invalidateQueries: async () => {},
+            setQueryData(key, value) { cachedWrites.push({key, value}); },
+            invalidateQueries: async (options) => { profileRefreshes.push(options.queryKey); },
           }),
         };
       if (name === "@/services/usdKyb") return { kybApi: api };
@@ -209,8 +212,9 @@ function editorHarness({
             user: { business_account: { entity_id: "test" } },
           }),
         };
-      if (name === "@/lib/apiError") return { readApiError };
+      if (name === "@/lib/apiError") return { readApiError, apiFieldCorrections };
       if (name === "@/lib/session") return { sessionGeneration: () => 1 };
+      if (name === "@/lib/usd-kyb/inputValidation") return { draftInputErrors };
       if (name === "@/lib/usd-kyb/model") return model;
       if (name === "@/lib/usd-kyb/corrections") return corrections;
       if (name === "@/lib/usd-kyb/personDetails")
@@ -235,6 +239,8 @@ function editorHarness({
   return {
     render,
     calls,
+    cachedWrites,
+    profileRefreshes,
     invitations,
     removals,
     toasts,
@@ -656,9 +662,10 @@ test("can_remove permits registry/verified people to be removed and the selected
   let e = h.render();
   await e.removePerson(e.people[0]);
   e = h.render();
-  assert.deepEqual(h.removals, [{ id: "registry-person", version: 1 }]);
+  assert.deepEqual(h.removals, [{ id: "registry-person", version: 2 }]);
   assert.equal(e.people.length, 0);
-  assert.equal(e.bundle.case.payload_version, 2);
+  assert.equal(h.calls[0].draft_payload.business_profile.is_dao, false);
+  assert.equal(e.bundle.case.payload_version, 3);
   assert.deepEqual(
     Array.from(
       e.bundle.documents,
@@ -765,4 +772,73 @@ test("editing a business field clears its stale server error immediately without
   assert.equal(editor.fieldErrors.some(error => error.field === "business_profile.email"), false);
   assert.equal(editor.fieldErrors.some(error => error.field === "business_profile.phone"), true);
   assert.equal(h.calls.length, savesBefore);
+});
+
+
+test("invalid monthly estimates remain saveable drafts but retain completion corrections", async () => {
+  const h = editorHarness();
+  let editor = h.render();
+  editor.change("industry_purpose.expected_monthly_payments_usd", "-100");
+  await editor.flush();
+  editor = h.render();
+  assert.equal(h.calls.length, 1);
+  assert.equal(h.calls[0].draft_payload.industry_purpose.expected_monthly_payments_usd, "-100");
+  assert.equal(editor.saveState, "Draft saved — needs correction");
+  assert.ok(editor.inputErrors.some(error => error.field === "industry_purpose.expected_monthly_payments_usd"));
+  assert.ok(editor.fieldErrors.some(error => error.field === "industry_purpose.expected_monthly_payments_usd"));
+  editor.change("industry_purpose.expected_monthly_payments_usd", "100");
+  await editor.flush();
+  editor = h.render();
+  assert.equal(h.calls.length, 2);
+  assert.equal(editor.inputErrors.length, 0);
+});
+
+test("partial person saves keep the displayed name and roles alongside saved date of birth", async () => {
+  const h = editorHarness();
+  let editor = h.render();
+  const person = editor.personInput(editor.people[0]);
+  editor.changePeople([{ ...person, birth_date: "1985-02-20" }]);
+  await editor.flush();
+  editor = h.render();
+  assert.equal(editor.people[0].last_name, "Director");
+  assert.equal(editor.people[0].has_ownership, true);
+  assert.equal(editor.people[0].birth_date, "1985-02-20");
+  const cached = h.cachedWrites.at(-1).value;
+  assert.equal(cached.associated_persons[0].last_name, "Director");
+  assert.equal(cached.associated_persons[0].birth_date, "1985-02-20");
+  assert.equal(cached.case.payload_version, editor.bundle.case.payload_version);
+});
+
+
+test("early schema 422 highlights the person field and does not retry unchanged input", async () => {
+  const h = editorHarness();
+  let editor = h.render();
+  editor.changePeople([{ ...editor.people[0], ownership_percentage: 0.1 }]);
+  h.failSave({ status: 422, data: { detail: { message: "Correct the highlighted associated-person fields", field_errors: [{ field: "associated_persons[0].ownership_percentage", message: "Whole numbers only" }] } } });
+  await assert.rejects(editor.flush());
+  editor = h.render();
+  assert.equal(editor.personErrors(editor.people[0])[0].message, "Whole numbers only");
+  const requests = h.calls.length;
+  await assert.rejects(editor.flush(), /Correct the highlighted/);
+  assert.equal(h.calls.length, requests);
+  editor.changePeople([{ ...editor.people[0], ownership_percentage: 2 }]);
+  await editor.flush();
+  assert.equal(h.calls.length, requests + 1);
+});
+
+test("only explicit valid KYB phone edits refresh the invoice profile", async () => {
+  const h = editorHarness();
+  let e = h.render();
+  e.change("business_profile.primary_website", "https://example.com");
+  await e.flush();
+  assert.equal(h.profileRefreshes.length, 0);
+  e = h.render();
+  e.change("business_profile.phone", "invalid");
+  await e.flush();
+  assert.equal(h.profileRefreshes.length, 0);
+  e = h.render();
+  e.change("business_profile.phone", "+2348159263748");
+  await e.flush();
+  assert.equal(h.profileRefreshes.length, 1);
+  assert.equal(h.profileRefreshes[0][0], "user");
 });

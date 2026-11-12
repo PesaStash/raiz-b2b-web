@@ -145,7 +145,7 @@ export function OpenTask({
 }: {
   title: string;
   minutes: string;
-  tag: string;
+  tag?: string;
   image: string;
   children: ReactNode;
 }) {
@@ -165,10 +165,10 @@ export function OpenTask({
               <KybIcon name="clock" />
               {minutes}
             </span>
-            <span className="flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1">
+            {tag && <span className="flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1">
               <KybIcon name="shield" />
               {tag}
-            </span>
+            </span>}
           </div>
           {children}
         </div>

@@ -14,6 +14,7 @@ export interface Option {
 
 interface SelectFieldProps {
   label?: string;
+  "aria-label"?: string;
   status?: "success" | "error" | "warning" | null;
   helper?: string | null;
   value: any;
@@ -45,6 +46,7 @@ type SelectFieldSelectionProps =
   | { isMulti: true; onChange: (options: readonly Option[]) => void };
 
 const SelectField: React.FC<SelectFieldProps & SelectFieldSelectionProps> = ({
+  "aria-label": ariaLabel,
   onChange,
   isMulti = false,
   value,
@@ -163,7 +165,7 @@ const SelectField: React.FC<SelectFieldProps & SelectFieldSelectionProps> = ({
         closeMenuOnSelect={!isMulti}
         onMenuClose={() => setOptionsIsShown(false)}
         formatOptionLabel={formatOptionLabel}
-        aria-label={label || name || placeholder}
+        aria-label={ariaLabel || label || placeholder || name}
         instanceId={instanceId}
         className={`${
           status === "success"

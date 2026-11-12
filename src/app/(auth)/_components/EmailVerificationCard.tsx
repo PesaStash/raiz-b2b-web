@@ -61,7 +61,7 @@ const EmailVerificationCard = ({ email, value, error, loading, resending, onChan
           <Image src="/images/auth/otp-mail.svg" width={28} height={28} alt="" />
         </div>
         <h1 className="text-[28px] font-bold leading-9">Check your email</h1>
-        <p className="text-[15px] leading-[22px] text-[#6b6b80]">Enter the 6-digit code we sent to confirm it’s really you.</p>
+        <p className="text-[15px] leading-[22px] text-[#6b6b80]">Enter the 6-character code exactly as it appears in your email. Letters are case-sensitive.</p>
         <div className="flex items-center gap-2 rounded-xl bg-[#f4f4f8] px-3.5 py-2.5 text-sm font-semibold">
           <p className="min-w-0 flex-1 break-all">{email}</p>
           <button type="button" onClick={goBack} disabled={loading || resending} className="text-raiz-usd-primary hover:underline disabled:opacity-50">Edit</button>
@@ -73,8 +73,8 @@ const EmailVerificationCard = ({ email, value, error, loading, resending, onChan
           renderSeparator={index => index === 2 ? <span aria-hidden="true" className="h-0.5 w-3 shrink-0 rounded-sm bg-[#c8ccd6]" /> : null}
           renderInput={props => <input {...props} disabled={loading || resending} autoComplete={props['aria-label'] === "Please enter OTP character 1" ? "one-time-code" : "off"} className="email-verification-digit" />}
         />
-        <p role="status" className="text-[13px] leading-[19px] text-[#6b6b80]">{loading ? "Checking your code…" : "We’ll check it as soon as all 6 digits are in."}</p>
-        {error && <div role="alert"><ErrorMessage message={error} />{value.length === 6 && <button type="button" disabled={loading || resending} onClick={() => onComplete(value)} className="mt-2 text-sm font-semibold text-raiz-usd-primary hover:underline">Try again</button>}</div>}
+        <p role="status" className="text-[13px] leading-[19px] text-[#6b6b80]">{loading ? "Checking your code…" : "We’ll check it as soon as all 6 characters are in."}</p>
+        {error && <div role="alert"><ErrorMessage message={error} />{value.length === 6 && <button type="button" disabled={loading || resending} onClick={() => { submittedCode.current = ""; onChange(""); }} className="mt-2 text-sm font-semibold text-raiz-usd-primary hover:underline">Try again</button>}</div>}
       </div>
       <div className="grid grid-cols-2 gap-3">
         {[["Gmail", "https://mail.google.com/"], ["Outlook", "https://outlook.live.com/mail/"]].map(([label, href]) => (

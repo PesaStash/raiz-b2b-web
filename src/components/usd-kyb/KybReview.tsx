@@ -1,5 +1,7 @@
 "use client";
 import { groupFieldErrors } from "@/lib/usd-kyb/corrections";
+import { useQueries, useQuery } from "@tanstack/react-query";
+import { kybApi } from "@/services/usdKyb";
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -21,6 +23,7 @@ import type { KybPerson } from "@/types/usdKyb";
 import type { KybEditor } from "@/lib/hooks/useUsdKyb";
 import {
   ownershipDisplay,
+  options,
   deferredRequirements,
   display,
   getPath,
@@ -178,6 +181,21 @@ export default function KybReview({
 }) {
   const profile = record(editor.draft.business_profile);
   const activity = record(editor.draft.industry_purpose);
+  const tenant = editor.access.user?.business_account?.entity_id;
+  const guide = useQuery({
+    queryKey: ["usd-kyb-reference", tenant, "guide"],
+    queryFn: kybApi.guide,
+    staleTime: Infinity,
+    retry: false,
+  });
+  const industryCodes = Array.isArray(activity.business_industry) ? activity.business_industry.map(String) : [];
+  const industryLabels = useQueries({ queries: industryCodes.map(code => ({
+    queryKey: ["usd-kyb-reference", tenant, "industries", code],
+    queryFn: () => kybApi.industries(code),
+    staleTime: Infinity,
+    retry: false,
+  })) });
+  const industries = industryCodes.map((code, index) => options(industryLabels[index]?.data).find(option => option.value === code)?.label ?? `Industry code ${code}`).join(", ");
   const tinNumber = (() => {
     const identifiers = Array.isArray(editor.draft.identifying_information)
       ? (editor.draft.identifying_information as Record<string, unknown>[])
@@ -223,9 +241,9 @@ export default function KybReview({
       data: {
         "Registered name": profile.business_legal_name,
         "Trading name": profile.business_trade_name,
-        "Business type": profile.business_type,
+        "Business type": options(guide.data?.business_types).find(option => option.value === profile.business_type)?.label ?? label(String(profile.business_type ?? "")),
         TIN: tinNumber,
-        Industry: readable(activity.business_industry),
+        Industry: industries || "Not provided",
         Address: readable(editor.draft.registered_address),
       },
     },
@@ -443,8 +461,8 @@ export function SubmittedCase({ editor }: { editor: KybEditor }) {
   const submittedAt =
     submittedDate && !Number.isNaN(submittedDate.getTime())
       ? submittedDate.toLocaleString(undefined, {
-          dateStyle: "medium",
-          timeStyle: "short",
+          year: "numeric", month: "short", day: "numeric",
+          hour: "2-digit", minute: "2-digit", timeZoneName: "short",
         })
       : "";
   const email =

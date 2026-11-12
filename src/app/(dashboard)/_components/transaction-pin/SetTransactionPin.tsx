@@ -11,6 +11,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { SetTransactionPinApi } from "@/services/auth";
 import { toast } from "sonner";
 import { useUser } from "@/lib/hooks/useUser";
+import type { IUser } from "@/types/user";
 import { canSetTransactionPin } from "@/utils/onboardingBranch";
 import type { AxiosError } from "axios";
 
@@ -21,7 +22,7 @@ interface Props {
 const SetTransactionPin = ({ close }: Props) => {
   const [formState, setFormState] = useState<"pin" | "confirmPin">("pin");
   const qc = useQueryClient();
-  const { user, refetch } = useUser();
+  const { user, refetch, updateUser } = useUser();
   const [pinForbidden, setPinForbidden] = useState(false);
 
   const verificationStatus =
@@ -41,12 +42,13 @@ const SetTransactionPin = ({ close }: Props) => {
   const PinMutation = useMutation({
     mutationFn: (data: { transaction_pin: string }) =>
       SetTransactionPinApi(data, { silent: true }),
-    onSuccess: (response) => {
+    onSuccess: async (response) => {
       toast.success(response?.message);
       setPinForbidden(false);
+      updateUser({ has_transaction_pin: true });
+      qc.setQueryData<IUser>(["user"], current => current ? { ...current, has_transaction_pin: true } : current);
       close();
-      qc.invalidateQueries({ queryKey: ["user"] });
-      refetch();
+      await qc.invalidateQueries({ queryKey: ["user"] });
     },
     onError: (error) => {
       const axiosError = error as AxiosError<{ message?: string }>;
@@ -83,8 +85,8 @@ const SetTransactionPin = ({ close }: Props) => {
     // Mark the field as touched before proceeding
     if (formState === "pin") {
       formik.setTouched({ pin: true });
-      await formik.validateForm();
-      if (!formik.errors.pin) {
+      const errors = await formik.validateForm();
+      if (!errors.pin) {
         setFormState("confirmPin");
       }
     } else {

@@ -25,6 +25,47 @@ function storageKey(entityId: string) {
   return `raiz-company-lookup:${entityId}`;
 }
 
+const LOOKUP_CHANGED = "raiz-company-lookup-changed";
+const manualEntries = new Set<string>();
+const manualKey = (entityId: string) => `raiz-company-manual:${entityId}`;
+
+export function subscribeLookupPrefill(notify: () => void) {
+  window.addEventListener("storage", notify);
+  window.addEventListener(LOOKUP_CHANGED, notify);
+  return () => {
+    window.removeEventListener("storage", notify);
+    window.removeEventListener(LOOKUP_CHANGED, notify);
+  };
+}
+
+function notifyLookupChanged() {
+  if (typeof window !== "undefined") window.dispatchEvent?.(new Event(LOOKUP_CHANGED));
+}
+
+export function isManualBusinessEntry(entityId?: string): boolean {
+  if (!entityId || typeof window === "undefined") return false;
+  try { return localStorage.getItem(manualKey(entityId)) === "true" || manualEntries.has(entityId); }
+  catch { return manualEntries.has(entityId); }
+}
+
+export function selectLookupPrefill(
+  manual: boolean,
+  supplied: LookupPrefill | null | undefined,
+  stored: LookupPrefill | null,
+): LookupPrefill | null {
+  return manual ? null : supplied === undefined ? stored : supplied;
+}
+
+/** A manual-entry decision survives navigation and reauthentication for this business. */
+export function enterBusinessManually(entityId?: string) {
+  if (!entityId || typeof window === "undefined") return;
+  try {
+    localStorage.setItem(manualKey(entityId), "true");
+    manualEntries.delete(entityId);
+  } catch { manualEntries.add(entityId); }
+  clearLookupPrefill(entityId);
+}
+
 /** Human-readable line from a register address string or object. */
 export function formatLookupAddress(value: unknown): string {
   if (typeof value === "string") return value.trim();
@@ -118,25 +159,32 @@ export function buildLookupPrefill(
 
 export function saveLookupPrefill(entityId: string, prefill: LookupPrefill) {
   if (!entityId || typeof window === "undefined") return;
+  manualEntries.delete(entityId);
   try {
+    localStorage.removeItem(manualKey(entityId));
     localStorage.setItem(storageKey(entityId), JSON.stringify(prefill));
   } catch {
     /* Prefill still works in memory for the current navigation. */
   }
+  notifyLookupChanged();
 }
 
 let cachedRaw: string | null = null;
 let cachedPrefill: LookupPrefill | null = null;
 export function readLookupPrefill(entityId?: string): LookupPrefill | null {
   if (!entityId || typeof window === "undefined") return null;
+  if (isManualBusinessEntry(entityId)) return null;
   try {
     const raw = localStorage.getItem(storageKey(entityId));
     if (!raw) return null;
-    if (raw === cachedRaw) return cachedPrefill;
-    const parsed = JSON.parse(raw) as LookupPrefill;
+    const parsed = raw === cachedRaw ? cachedPrefill : JSON.parse(raw) as LookupPrefill;
     if (!parsed || typeof parsed !== "object") return null;
     if (!parsed.registration_number || !parsed.country_code) return null;
     if (!parsed.confirmed_at) return null;
+    if (lookupWasRejected(entityId, {
+      country_code: parsed.country_code, jurisdiction_code: parsed.jurisdiction_code,
+      registration_number: parsed.registration_number,
+    })) return null;
     cachedRaw = raw;
     cachedPrefill = parsed;
     return parsed;
@@ -147,11 +195,14 @@ export function readLookupPrefill(entityId?: string): LookupPrefill | null {
 
 export function clearLookupPrefill(entityId?: string) {
   if (!entityId || typeof window === "undefined") return;
+  cachedRaw = null;
+  cachedPrefill = null;
   try {
     localStorage.removeItem(storageKey(entityId));
   } catch {
     /* Ignore storage failures. */
   }
+  notifyLookupChanged();
 }
 
 /** Confirmation is a UI decision: the inquiry endpoint saves before the user reviews it. */

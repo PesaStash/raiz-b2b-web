@@ -152,23 +152,22 @@ export default function PersonDetailsForm({
     type = "text",
     optional = false,
   ) => (
+    <div key={key}>
     <InputField
-      key={key}
       id={`person-${key}`}
       name={key}
+      aria-label={title}
+      aria-describedby={type === "date" ? `person-${key}-format` : undefined}
       label={
         title +
-        (optional ||
-        (partial &&
-          !corrections.some(
-            (error) => correctionPath(error.field) === correctionPath(key),
-          ))
+        (optional
           ? " (optional)"
           : " *")
       }
       value={value}
       type={type}
       autoComplete="off"
+      step={type === "number" ? "1" : undefined}
       max={type === "date" ? new Date().toISOString().slice(0, 10) : undefined}
       disabled={disabled}
       aria-invalid={!!errors[key] || !!serverError(key)}
@@ -186,6 +185,8 @@ export default function PersonDetailsForm({
         update(event.target.value);
       }}
     />
+    {type === "date" && <p id={`person-${key}-format`} className="mt-1 text-xs text-kyb-muted">Use the calendar or your browser’s date format. The saved date uses YYYY-MM-DD.</p>}
+    </div>
   );
   return (
     <form
@@ -588,7 +589,7 @@ export default function PersonDetailsForm({
                 }),
               "number",
             )}
-          {registryOwnership(person) !== "Unavailable" && <p className="text-sm text-kyb-muted">Registry-calculated ownership: {registryOwnership(person)}. Fractional registry values are read-only; complete any outstanding ownership evidence requested during review.</p>}
+          {registryOwnership(person) !== "Unavailable" && <p className="text-sm text-kyb-muted">Registry-calculated ownership: {registryOwnership(person)}. The writable field accepts whole numbers only. Do not round fractional registry holdings; contact support for guidance.</p>}
           {field(
             "relationship_established_at",
             "Relationship established date",

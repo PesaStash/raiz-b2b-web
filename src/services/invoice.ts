@@ -1,3 +1,4 @@
+import { invoiceEmailPayload } from "@/lib/invoiceEmail";
 import { AuthAxios } from "@/lib/authAxios";
 import {
   ICreateInvoicePayload,
@@ -134,7 +135,7 @@ export const SendInvoiceMailApi = async (
 ) => {
   const response = await AuthAxios.post(
     `/business/invoice/send/mail/?invoice_id=${invoice_id}`,
-    payload
+    invoiceEmailPayload(payload.invoice_pdf_url, payload.payment_link)
   );
   return response?.data;
 };
