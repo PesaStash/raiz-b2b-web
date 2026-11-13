@@ -59,7 +59,7 @@ const ZelleTopupInfo = ({ goBack, goNext, type }: Props) => {
           />
           <div className="rounded-md text-xs p-2 bg-zinc-100">
             <p className="font-semibold mb-1 ">
-              If verification is required, you'll need to provide:
+              If verification is required, you&apos;ll need to provide:
             </p>
             <div className="flex flex-col gap-1">
               <li className="list-disc ml-4">The name on Zelle account</li>

@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
-import Image from "next/image";
-import Slider from "../_components/authSlide/Slider";
+import AuthLayout from "../_components/AuthLayout";
+import EmailVerificationLayout from "../_components/EmailVerificationLayout";
 import InputEmailForm from "./forms/InputEmailForm";
 import ResetOtp from "./forms/ResetOtp";
 import CreateNewPassword from "./forms/CreateNewPassword";
@@ -61,26 +61,19 @@ const ForgotPasswordPage = () => {
         break;
     }
   };
+  if (page === 5) {
+    return <EmailVerificationLayout>{displayPage()}</EmailVerificationLayout>;
+  }
+
   return (
-    <section className="p-6 md:p-12 lg:px-8 xl:px-12 h-[calc(100vh-2rem)] md:h-full min-h-[100vh]">
-      <div className="flex flex-col  md:flex-row h-full gap-12">
-        <Slider />
-        <AnimatedSection
-          key="forgot-password"
-          className="py-4 px-0 md:px-3 xl:px-8 lg:w-[50%] xl:w-[46%] h-full flex flex-col  justify-between gap-[60px]"
-        >
-          {page !== 5 && (
-            <Image
-              src={"/icons/Logo.svg"}
-              width={91.78}
-              height={32}
-              alt="Logo"
-            />
-          )}
-          {displayPage()}
-        </AnimatedSection>
-      </div>
-    </section>
+    <AuthLayout>
+      <AnimatedSection
+        key="forgot-password"
+        className="auth-secondary auth-otp w-full max-w-[440px]"
+      >
+        {displayPage()}
+      </AnimatedSection>
+    </AuthLayout>
   );
 };
 

@@ -11,6 +11,7 @@ import { useSendStore } from "@/store/Send";
 import CryptoPayStatusModal from "./CryptoPayStatusModal";
 import RaizReceipt from "@/components/transactions/RaizReceipt";
 import { useQuery } from "@tanstack/react-query";
+import { useTransactionCategories } from "@/lib/hooks/useTransactionCategories";
 import { GetIntTransactionFeeApi } from "@/services/transactions";
 import SideModalWrapper from "../../SideModalWrapper";
 import Categories from "@/components/transactions/Categories";
@@ -36,6 +37,7 @@ const CryptoSend = ({ close }: Props) => {
   const [paymentError, setPaymentError] = useState("");
   const { actions, amount, status, transactionDetail, currency } =
     useSendStore();
+  useTransactionCategories();
 
   const { data: fee, isLoading } = useQuery({
     queryKey: ["transactions-fee", amount, currency],

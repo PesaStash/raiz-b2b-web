@@ -92,16 +92,6 @@ const CardDetails = ({
     }
   };
 
-  // if (!clientSecret || !stripe || !elements) {
-  //   return (
-  //     <SideModalWrapper close={close}>
-  //       <div className="flex flex-col gap-5 mt-10 justify-center items-center">
-  //         <Spinner />
-  //         <p>Loading stripe...</p>
-  //       </div>
-  //     </SideModalWrapper>
-  //   );
-  // }
 
   return (
     <SideModalWrapper close={close}>
@@ -184,34 +174,7 @@ const CardDetails = ({
               errorMessage={formik.touched.email && formik.errors.email}
             />
 
-            {/* {!paymentElementReady && (
-              <div className="flex flex-col gap-5 mt-10 justify-center items-center w-full">
-                <Spinner />
-                <p>Loading payment form...</p>
-              </div>
-            )} */}
 
-            {/* <div className={!paymentElementReady ? "hidden" : "w-full"}>
-              <PaymentElement
-                options={{
-                  terms: {
-                    card: "auto",
-                  },
-                  fields: {
-                    billingDetails: {
-                      email: "auto",
-                      phone: "auto",
-                      name: "auto",
-                      address: "auto",
-                    },
-                  },
-                }}
-                onReady={() => setPaymentElementReady(true)}
-                onChange={() => {
-                  if (errMsg) setErrMsg("");
-                }}
-              />
-            </div> */}
 
             {errMsg && <ErrorMessage message={errMsg} />}
           </div>

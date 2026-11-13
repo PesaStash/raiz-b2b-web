@@ -43,7 +43,7 @@ export const FetchAPILogs = async (
 ): Promise<IAPIKeyLogsResponse> => {
   const queryParams = Object.fromEntries(
     Object.entries(params).filter(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       ([_, value]) => value !== undefined && value !== null,
     ),
   );

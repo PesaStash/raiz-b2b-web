@@ -1,5 +1,4 @@
 "use client";
-// import { useUser } from "@/lib/hooks/useUser";
 import { useSendStore } from "@/store/Send";
 import React, { useEffect, useState } from "react";
 import SelectUser from "./SelectUser";
@@ -21,7 +20,7 @@ type NGNSendToBankStepType =
   | "status"
   | "receipt";
 
-const NgnBankTransfer = () => {
+const NgnBankTransfer = ({ close }: { close: () => void }) => {
   const { externalUser, actions, amount, currency, status, transactionDetail } =
     useSendStore();
   const [step, setStep] = useState<NGNSendToBankStepType>("select-user");
@@ -43,6 +42,7 @@ const NgnBankTransfer = () => {
   }, [externalUser, step]);
   const goBackToStep1 = () => {
     actions.reset("NGN");
+    actions.selectNGNSendOption("to other bank");
     setStep("select-user");
   };
 
@@ -51,8 +51,6 @@ const NgnBankTransfer = () => {
     actions.selectNGNSendOption("to Raizer");
     close();
   };
-
-  //   const totalPayable = fee ? parseFloat(amount) + fee : 0;
 
   const displayStep = () => {
     switch (step) {

@@ -1,114 +1,61 @@
-import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+import { readSessionToken, verifySession } from "@/lib/server/auth";
+import { isTrustedClientRequest } from "@/lib/server/session";
+import { isAllowedProofUrl, proofFilename } from "@/lib/server/files";
+
+export const dynamic = "force-dynamic";
 
 const MAX_PROOF_BYTES = 15 * 1024 * 1024;
+const PROOF_CONTENT_TYPES = /^(image\/(jpeg|png|webp|gif)|application\/pdf|application\/octet-stream|binary\/octet-stream)/i;
 
-function isPrivateHostname(hostname: string) {
-  const host = hostname.toLowerCase();
-  if (
-    host === "localhost" ||
-    host.endsWith(".localhost") ||
-    host.endsWith(".local") ||
-    host === "0.0.0.0" ||
-    host === "::1"
-  ) {
-    return true;
-  }
+const fail = (status: number, message: string) => NextResponse.json({ message }, { status });
 
-  const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
-  if (!ipv4) return false;
-
-  const octets = ipv4.slice(1).map(Number);
-  if (octets.some((octet) => octet > 255)) return true;
-
-  const [a, b] = octets;
-  return (
-    a === 10 ||
-    a === 127 ||
-    (a === 172 && b >= 16 && b <= 31) ||
-    (a === 192 && b === 168) ||
-    (a === 169 && b === 254)
-  );
-}
-
-function filenameFromProof(url: string, contentType: string | null) {
-  try {
-    const lastSegment = decodeURIComponent(
-      new URL(url).pathname.split("/").pop() || "",
-    );
-    if (lastSegment && lastSegment.includes(".")) return lastSegment;
-  } catch {
-    // Fall through to a generated name.
-  }
-
-  if (contentType?.includes("pdf")) return "payment-proof.pdf";
-  if (contentType?.includes("png")) return "payment-proof.png";
-  if (contentType?.includes("webp")) return "payment-proof.webp";
-  if (contentType?.includes("jpeg") || contentType?.includes("jpg")) {
-    return "payment-proof.jpg";
-  }
-
-  return "payment-proof";
-}
-
+/** Downloads a payment proof from S3 for a signed-in user (the browser cannot due to CORS). */
 export async function POST(request: NextRequest) {
-  const accessToken = (await cookies()).get("access_token")?.value;
-  if (!accessToken) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  if (!isTrustedClientRequest((name) => request.headers.get(name), request.nextUrl.origin)) {
+    return fail(403, "Request blocked.");
   }
+  const token = readSessionToken(request);
+  if (!token || !(await verifySession(token))) return fail(401, "Unauthorized");
 
-  let proofUrl = "";
+  let body: { url?: string };
   try {
-    const body = (await request.json()) as { url?: string };
-    proofUrl = body.url?.trim() || "";
+    body = (await request.json()) as { url?: string };
   } catch {
-    return NextResponse.json({ message: "Invalid request" }, { status: 400 });
+    return fail(400, "Invalid request");
   }
 
-  let parsed: URL;
+  const extraHosts = (process.env.PAYMENT_PROOF_ALLOWED_HOSTS ?? "").split(",");
+  const proofUrl = isAllowedProofUrl(body.url?.trim() ?? "", extraHosts);
+  if (!proofUrl) return fail(400, "Invalid proof URL");
+
+  let upstream: Response;
   try {
-    parsed = new URL(proofUrl);
+    upstream = await fetch(proofUrl, {
+      redirect: "error",
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000),
+    });
   } catch {
-    return NextResponse.json({ message: "Invalid proof URL" }, { status: 400 });
+    return fail(502, "Unable to download payment proof");
   }
+  if (!upstream.ok) return fail(502, "Unable to download payment proof");
 
-  if (parsed.protocol !== "https:" || isPrivateHostname(parsed.hostname)) {
-    return NextResponse.json({ message: "Invalid proof URL" }, { status: 400 });
-  }
+  const contentType = upstream.headers.get("content-type") || "application/octet-stream";
+  if (!PROOF_CONTENT_TYPES.test(contentType)) return fail(415, "Unsupported payment proof type");
 
-  const upstream = await fetch(proofUrl, { redirect: "follow" });
-  if (!upstream.ok) {
-    return NextResponse.json(
-      { message: "Unable to download payment proof" },
-      { status: 502 },
-    );
-  }
-
-  const contentLength = Number(upstream.headers.get("content-length") || 0);
-  if (contentLength > MAX_PROOF_BYTES) {
-    return NextResponse.json(
-      { message: "Payment proof is too large" },
-      { status: 413 },
-    );
-  }
+  const declaredLength = Number(upstream.headers.get("content-length") || 0);
+  if (declaredLength > MAX_PROOF_BYTES) return fail(413, "Payment proof is too large");
 
   const buffer = await upstream.arrayBuffer();
-  if (buffer.byteLength > MAX_PROOF_BYTES) {
-    return NextResponse.json(
-      { message: "Payment proof is too large" },
-      { status: 413 },
-    );
-  }
-
-  const contentType =
-    upstream.headers.get("content-type") || "application/octet-stream";
-  const filename = filenameFromProof(proofUrl, contentType);
+  if (buffer.byteLength > MAX_PROOF_BYTES) return fail(413, "Payment proof is too large");
 
   return new NextResponse(buffer, {
     headers: {
       "Content-Type": contentType,
-      "Content-Disposition": `attachment; filename="${filename.replace(/"/g, "")}"`,
+      "Content-Disposition": `attachment; filename="${proofFilename(proofUrl, contentType)}"`,
       "Cache-Control": "no-store",
+      "X-Content-Type-Options": "nosniff",
     },
   });
 }

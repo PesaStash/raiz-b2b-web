@@ -6,11 +6,12 @@ import { useFormik } from "formik";
 import { toFormikValidationSchema } from "zod-formik-adapter";
 import { pinSchema } from "@/app/(auth)/register/_components/validation";
 import Button from "@/components/ui/Button";
-import OtpInput from "@/components/ui/OtpInput";
+import { FlowCard } from "@/components/transactions/send-flow/Flow";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { SetTransactionPinApi } from "@/services/auth";
 import { toast } from "sonner";
 import { useUser } from "@/lib/hooks/useUser";
+import type { IUser } from "@/types/user";
 import { canSetTransactionPin } from "@/utils/onboardingBranch";
 import type { AxiosError } from "axios";
 
@@ -21,7 +22,7 @@ interface Props {
 const SetTransactionPin = ({ close }: Props) => {
   const [formState, setFormState] = useState<"pin" | "confirmPin">("pin");
   const qc = useQueryClient();
-  const { user, refetch } = useUser();
+  const { user, refetch, updateUser } = useUser();
   const [pinForbidden, setPinForbidden] = useState(false);
 
   const verificationStatus =
@@ -41,12 +42,13 @@ const SetTransactionPin = ({ close }: Props) => {
   const PinMutation = useMutation({
     mutationFn: (data: { transaction_pin: string }) =>
       SetTransactionPinApi(data, { silent: true }),
-    onSuccess: (response) => {
+    onSuccess: async (response) => {
       toast.success(response?.message);
       setPinForbidden(false);
+      updateUser({ has_transaction_pin: true });
+      qc.setQueryData<IUser>(["user"], current => current ? { ...current, has_transaction_pin: true } : current);
       close();
-      qc.invalidateQueries({ queryKey: ["user"] });
-      refetch();
+      await qc.invalidateQueries({ queryKey: ["user"] });
     },
     onError: (error) => {
       const axiosError = error as AxiosError<{ message?: string }>;
@@ -66,7 +68,7 @@ const SetTransactionPin = ({ close }: Props) => {
     initialValues: { pin: "", confirmPin: "" },
     validationSchema: toFormikValidationSchema(pinSchema),
     onSubmit: (values) => {
-      if (!canSubmit) return;
+      if (!canSubmit || PinMutation.isPending) return;
       PinMutation.mutate({ transaction_pin: values.pin });
     },
   });
@@ -79,12 +81,12 @@ const SetTransactionPin = ({ close }: Props) => {
   };
 
   const handleSubmitButton = async () => {
-    if (!canSubmit) return;
+    if (!canSubmit || PinMutation.isPending) return;
     // Mark the field as touched before proceeding
     if (formState === "pin") {
       formik.setTouched({ pin: true });
-      await formik.validateForm();
-      if (!formik.errors.pin) {
+      const errors = await formik.validateForm();
+      if (!errors.pin) {
         setFormState("confirmPin");
       }
     } else {
@@ -92,105 +94,105 @@ const SetTransactionPin = ({ close }: Props) => {
       formik.handleSubmit();
     }
   };
+  const activeField = formState === "pin" ? "pin" : "confirmPin";
+  const value = formik.values[activeField];
+  const error = formik.touched[activeField] ? formik.errors[activeField] : undefined;
+  const title = formState === "pin" ? "Set up transaction PIN" : "Confirm transaction PIN";
+
   return (
-    <div className=" h-full flex justify-between flex-col mt-5">
-      <button onClick={handleBackButton}>
-        <Image
-          src={"/icons/arrow-left.svg"}
-          alt="go back"
-          width={18.48}
-          height={18.48}
-        />
-      </button>
-      <div className="flex justify-between mt-4 mb-11">
-        <div className="">
-          <h5 className="text-raiz-gray-950 md:text-[23px] text-xl font-semibold leading-10">
-            {formState === "pin" ? "Secure your account" : "Confirm PIN"}
-          </h5>
-          <p className="text-raiz-gray-700 text-sm font-normal leading-snug">
-            Create your 4-digit PIN for transactions. For your security
-            don&#39;t share your PIN with anyone.
+    <section className="flex min-h-0 w-full flex-col gap-5 py-5 font-monzo text-[#19151e]">
+      <header className="flex flex-col gap-5">
+        <div className="flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={handleBackButton}
+            disabled={PinMutation.isPending}
+            className="flex min-h-11 items-center gap-2 text-left text-[13px] text-[#79708d] disabled:opacity-50"
+          >
+            <Image src="/images/send/back.svg" width={22} height={22} alt="" />
+            {formState === "pin" ? "Back" : "Set up PIN"}
+          </button>
+          <span className="text-xs font-medium text-[#79708d]">
+            Step {formState === "pin" ? "1" : "2"} of 2
+          </span>
+        </div>
+        <h1 className="text-2xl font-semibold leading-[1.4]">{title}</h1>
+      </header>
+      <FlowCard>
+        <p className="text-sm leading-relaxed text-[#79708d]">
+          {formState === "pin"
+            ? "Create a 4-digit PIN to approve transfers and other sensitive actions."
+            : "Enter your 4-digit PIN again to confirm it."}
+        </p>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            void handleSubmitButton();
+          }}
+          className="flex flex-col gap-5"
+        >
+          <fieldset disabled={!canSubmit || PinMutation.isPending} className="min-w-0 disabled:opacity-60">
+            <label className="relative block">
+              <span className="sr-only">{title}</span>
+              <input
+                key={activeField}
+                id={`transaction-${activeField}`}
+                name={activeField}
+                autoFocus
+                type="password"
+                inputMode="numeric"
+                autoComplete="new-password"
+                maxLength={4}
+                value={value}
+                onChange={(event) => {
+                  const next = event.target.value.replace(/\D/g, "").slice(0, 4);
+                  void formik.setFieldValue(activeField, next);
+                  if (activeField === "pin") {
+                    void formik.setFieldValue("confirmPin", "", false);
+                    void formik.setFieldTouched("confirmPin", false, false);
+                  }
+                }}
+                onBlur={formik.handleBlur}
+                aria-invalid={!!error}
+                aria-describedby={error ? "transaction-pin-error" : "transaction-pin-help"}
+                className="peer absolute inset-0 h-full w-full cursor-text opacity-0"
+              />
+              <span className="pointer-events-none grid grid-cols-4 gap-3 rounded-xl peer-focus-visible:ring-2 peer-focus-visible:ring-primary2 peer-focus-visible:ring-offset-2 sm:gap-4" aria-hidden="true">
+                {[0, 1, 2, 3].map((index) => (
+                  <span
+                    key={index}
+                    className={`flex h-[72px] items-center justify-center rounded-xl bg-[#f4f4f8] text-3xl text-primary2 sm:h-[82px] ${value.length === index ? "ring-1 ring-primary2" : ""}`}
+                  >
+                    {value[index] ? "•" : ""}
+                  </span>
+                ))}
+              </span>
+            </label>
+          </fieldset>
+          {error && (
+            <p id="transaction-pin-error" role="alert" className="text-sm font-medium text-[#d92d20]">
+              {error}
+            </p>
+          )}
+          <p id="transaction-pin-help" className="text-xs leading-relaxed text-[#79708d]">
+            For your security, never share your PIN with anyone.
           </p>
           {!canSubmit && (
-            <p className="mt-3 text-sm font-normal leading-snug text-raiz-gray-700">
+            <p role="alert" className="text-sm leading-relaxed text-[#79708d]">
               Complete business verification before setting a transaction PIN.
             </p>
           )}
-        </div>
-        <div className="w-10  h-10">
-          <svg
-            width="40"
-            height="41"
-            viewBox="0 0 40 41"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
+          <Button
+            type="submit"
+            disabled={value.length !== 4 || PinMutation.isPending || !canSubmit}
+            loading={PinMutation.isPending}
+            className="!min-h-12 !rounded-xl !text-sm !font-semibold enabled:!bg-[#0d6494] enabled:hover:!bg-[#0b567f]"
           >
-            <path
-              opacity="0.55"
-              d="M30 35.4798H10C7.23833 35.4798 5 33.2415 5 30.4798V17.1465C5 14.3848 7.23833 12.1465 10 12.1465H30C32.7617 12.1465 35 14.3848 35 17.1465V30.4798C35 33.2415 32.7617 35.4798 30 35.4798Z"
-              fill="#F7A900"
-            />
-            <path
-              d="M13.3333 12.1465C13.3333 8.46482 16.3183 5.47982 20 5.47982C23.6817 5.47982 26.6667 8.46482 26.6667 12.1465H30C30 6.62315 25.5233 2.14648 20 2.14648C14.4767 2.14648 10 6.62315 10 12.1465H13.3333Z"
-              fill="#292D32"
-            />
-            <path
-              d="M20 26.3145C21.3807 26.3145 22.5 25.1952 22.5 23.8145C22.5 22.4337 21.3807 21.3145 20 21.3145C18.6193 21.3145 17.5 22.4337 17.5 23.8145C17.5 25.1952 18.6193 26.3145 20 26.3145Z"
-              fill="#6C265B"
-            />
-            <path
-              d="M28.3335 26.3145C29.7142 26.3145 30.8335 25.1952 30.8335 23.8145C30.8335 22.4337 29.7142 21.3145 28.3335 21.3145C26.9528 21.3145 25.8335 22.4337 25.8335 23.8145C25.8335 25.1952 26.9528 26.3145 28.3335 26.3145Z"
-              fill="#6C265B"
-            />
-            <path
-              d="M11.6665 26.3145C13.0472 26.3145 14.1665 25.1952 14.1665 23.8145C14.1665 22.4337 13.0472 21.3145 11.6665 21.3145C10.2858 21.3145 9.1665 22.4337 9.1665 23.8145C9.1665 25.1952 10.2858 26.3145 11.6665 26.3145Z"
-              fill="#6C265B"
-            />
-          </svg>
-        </div>
-      </div>
-      <form
-        onSubmit={formik.handleSubmit}
-        className="flex flex-col h-full gap-5 justify-between"
-      >
-        <div
-          className={`bg-white rounded-[20px] p-6 ${
-            canSubmit ? "" : "opacity-60 pointer-events-none"
-          }`}
-        >
-        {formState === "pin" ? (
-          <OtpInput
-            value={formik.values.pin}
-            onChange={(val) => formik.setFieldValue("pin", val)}
-            error={formik.errors.pin}
-            touched={formik.touched.pin}
-          />
-        ) : (
-          <OtpInput
-            value={formik.values.confirmPin}
-            onChange={(val) => formik.setFieldValue("confirmPin", val)}
-            error={formik.errors.confirmPin}
-            touched={formik.touched.confirmPin}
-          />
-        )}
-        </div>
-        <Button
-          disabled={
-            (formState === "pin"
-              ? !formik.values.pin || formik.values.pin.length < 4
-              : !formik.values.confirmPin ||
-                formik.values.confirmPin.length < 4) ||
-            PinMutation.isPending ||
-            !canSubmit
-          }
-          loading={PinMutation.isPending}
-          onClick={handleSubmitButton}
-          className="bg-raiz-usd-primary hover:bg-raiz-usd-primary disabled:bg-raiz-gray-200"
-        >
-          {formState === "pin" ? "Continue" : "Confirm"}
-        </Button>
-      </form>
-    </div>
+            {formState === "pin" ? "Continue" : "Confirm PIN"}
+          </Button>
+        </form>
+      </FlowCard>
+    </section>
   );
 };
 

@@ -14,15 +14,11 @@ import {
 } from "@/types/services";
 import {
   convertField,
-  // getReadablePatternMessage,
-  // removeUndefinedValues,
 } from "@/utils/helpers";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { FormikConfig, useFormik } from "formik";
 import React, { useState } from "react";
 import { toast } from "sonner";
-// import { z } from "zod";
-// import { toFormikValidationSchema } from "zod-formik-adapter";
 import CnTypeModal from "./CnTypeModal";
 import { Bank } from "./BeneficiaryForm";
 import BankSelectModal, { IBeneficiaryBank } from "./BankSelectModal";
@@ -68,9 +64,6 @@ const CNBeneficiaryForm = ({
     | null
   >(null);
   const [type, setType] = useState<cnBenType>(null);
-  // const [benType, setBenType] = useState<string>("");
-  // const [sendType, setSendType] = useState<string>("");
-  // const [remittancePurpose, setRemittancePurpose] = useState<string>("");
   const [idType, setIdType] = useState<string>("");
   const [selectedBank, setSelectedBank] = useState<IBeneficiaryBank>({
     id: 0,
@@ -87,80 +80,7 @@ const CNBeneficiaryForm = ({
   };
   const formDetail = type !== null ? fieldsMap[type] || [] : [];
   const bankDetailsFieldNames = bankDetailsFields.map((field) => field.name);
-  // console.log("bbb", bankDetailsFieldNames);
-  // const createValidationSchema = () => {
-  //   const schemaShape: Record<string, z.ZodTypeAny> = {
-  //     country: z.any().refine((val) => val !== "", "Country is required"),
-  //   };
 
-  //   formDetail.forEach((field) => {
-  //     let fieldSchema = z.string();
-
-  //     if (field.required) {
-  //       fieldSchema = fieldSchema.min(1, `${field.name} is required`);
-  //     }
-
-  //     if (field.pattern) {
-  //       try {
-  //         const regex = new RegExp(field.pattern);
-  //         const readableMessage = getReadablePatternMessage(
-  //           field.pattern,
-  //           field.name
-  //         );
-  //         fieldSchema = fieldSchema.regex(regex, readableMessage);
-  //       } catch (error) {
-  //         console.log(
-  //           `Invalid regex pattern for ${field.name}: ${field.pattern}`,
-  //           error
-  //         );
-  //       }
-  //     }
-
-  //     let finalSchema: z.ZodType<string> = fieldSchema;
-
-  //     if (field.enum) {
-  //       finalSchema = fieldSchema.refine((val) => field.enum!.includes(val), {
-  //         message: `Must be one of: ${field.enum!.join(", ")}`,
-  //       });
-  //     }
-
-  //     schemaShape[field.name] = finalSchema;
-
-  //     // Handle nested fields
-  //     if (
-  //       field.fields &&
-  //       (field.name === "sender" || field.name === "beneficiary")
-  //     ) {
-  //       field.fields.forEach((subField) => {
-  //         let subFieldSchema = z.string();
-  //         if (subField.required) {
-  //           subFieldSchema = subFieldSchema.min(
-  //             1,
-  //             `${subField.name} is required`
-  //           );
-  //         }
-  //         if (subField.pattern) {
-  //           try {
-  //             const regex = new RegExp(subField.pattern);
-  //             const readableMessage = getReadablePatternMessage(
-  //               subField.pattern,
-  //               subField.name
-  //             );
-  //             subFieldSchema = subFieldSchema.regex(regex, readableMessage);
-  //           } catch (error) {
-  //             console.log(
-  //               `Invalid regex pattern for ${subField.name}: ${subField.pattern}`,
-  //               error
-  //             );
-  //           }
-  //         }
-  //         schemaShape[`${field.name}_${subField.name}`] = subFieldSchema;
-  //       });
-  //     }
-  //   });
-
-  //   return z.object(schemaShape);
-  // };
   const qc = useQueryClient();
   const AddBeneficiaryMutation = useMutation({
     mutationFn: (data: IIntBeneficiaryPayload) => CreateIntBeneficiary(data),
@@ -261,8 +181,7 @@ const CNBeneficiaryForm = ({
 
         await AddBeneficiaryMutation.mutateAsync(finalPayload);
         resetForm();
-      } catch (error) {
-        console.log("Submission error:", error);
+      } catch {
       } finally {
         setSubmitting(false);
       }
@@ -270,17 +189,11 @@ const CNBeneficiaryForm = ({
     validateOnMount: true,
   };
   const formik = useFormik<FormValues>(formikConfig);
-  // console.log("errr", formik.errors);
-  // console.log("vals", formik.values);
 
   const idTypeFields =
     fieldsMap?.ALIPAY?.find((i) => i.name === "sender")?.fields?.find(
       (i) => i.name === "id_type"
     )?.enum || [];
-
-  // const idTypesFields = fields.find(
-  //   (item) => item
-  // );
 
   const handleOpenModal = (
     value: string[] | Bank[] | undefined,
@@ -320,26 +233,6 @@ const CNBeneficiaryForm = ({
             close={closeModal}
           />
         );
-      // case "purpose":
-      //   return (
-      //     <PurposeModal
-      //       data={remittanceFields?.enum || []}
-      //       close={closeModal}
-      //       setRemittancePurpose={setRemittancePurpose}
-      //       remittancePurpose={remittancePurpose}
-      //       formik={formik}
-      //     />
-      //   );
-      // case "send":
-      //   return (
-      //     <SendTypeModal
-      //       data={benFields}
-      //       close={closeModal}
-      //       setSendType={setSendType}
-      //       sendType={sendType}
-      //       formik={formik}
-      //     />
-      //   );
       case "bank":
         return (
           <BankSelectModal

@@ -2,17 +2,13 @@
 import SideWrapperHeader from "@/components/SideWrapperHeader";
 import ErrorMessage from "@/components/ui/ErrorMessage";
 import { useCryptoSwapStore } from "@/store/CryptoSwap";
-import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { getCurrencySymbol } from "@/utils/helpers";
 import React, { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import Image from "next/image";
 import Button from "@/components/ui/Button";
-import SideModalWrapper from "../../SideModalWrapper";
 import SelectSwapCurrencyModal from "./SelectSwapCurrencyModal";
-import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 import CenterModalHeader from "@/components/layouts/CenterModalHeader";
-import { useSwapStore } from "@/store/Swap";
 import { useUser } from "@/lib/hooks/useUser";
 
 interface Props {
@@ -194,18 +190,6 @@ const CryptoSwapDetail = ({
                 </span>
               </div>
             </div>
-            {/* <div className="p-5 mb-3 bg-indigo-100 bg-opacity-60 rounded-[20px] inline-flex justify-start items-start gap-2 w-full">
-              <Image
-                src={"/icons/timer.svg"}
-                width={20}
-                height={20}
-                alt="timer"
-              />
-              <p className="text-zinc-900 text-xs leading-tight">
-                Confirm swap in the next{" "}
-                <span className=" font-semibold"> {formatTime(timeLeft)}</span>
-              </p>
-            </div> */}
             <Button disabled={!!error || !amount || loading} onClick={goNext}>
               Continue
             </Button>

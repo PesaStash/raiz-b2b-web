@@ -23,7 +23,6 @@ import PaySuccess from "./_components/PaySuccess";
 export type CardSteps = "amount" | "confirm" | "payment" | "success";
 
 interface Props {
-  //   setScreen: Dispatch<SetStateAction<GuestPaymentType | "detail" | null>>;
   data: IBusinessPaymentData;
   amountFromLink?: string;
 }
@@ -110,9 +109,7 @@ const GuestPayWithCard = ({ data, amountFromLink }: Props) => {
       payment_intent_id,
     }: // payment_method_id,
     {
-      // client_secret: string;
       payment_intent_id: string;
-      // payment_method_id: string;
     }) => {
       if (!stripe) {
         throw new Error("Stripe not initialized");

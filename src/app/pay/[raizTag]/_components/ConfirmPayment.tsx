@@ -8,7 +8,6 @@ import React from "react";
 interface Props {
   close: () => void;
   goNext: () => void;
-  // handlePay: () => void;
   loading: boolean;
   dollarRate: number;
 }
@@ -16,11 +15,9 @@ interface Props {
 const ConfirmPayment = ({ close, goNext, loading, dollarRate }: Props) => {
   const { amount, guestLocalCurrency } = useGuestSendStore();
   const handleSend = () => {
-    // handlePay();
     goNext();
   };
   const parsedAmount = Number(amount);
-  // + (Number(stripeDetail?.fee) / 100 || 0);
   const totalAmount = dollarRate;
   return (
     <Overlay close={close} width="400px">
@@ -93,12 +90,6 @@ const ConfirmPayment = ({ close, goNext, loading, dollarRate }: Props) => {
         </div>
         <div className="flex flex-col h-full justify-between items-center w-full">
           <div className="w-full flex flex-col gap-[15px]">
-            {/* <ListDetailItem
-              title="You Sent"
-              value={`$
-              ${amount.toLocaleString()}`}
-              border
-            /> */}
             <ListDetailItem
               title={`Entered Amount (${
                 guestLocalCurrency?.currency || "USD"
@@ -113,13 +104,6 @@ const ConfirmPayment = ({ close, goNext, loading, dollarRate }: Props) => {
               value={`$
               ${formatAmount(dollarRate)}`}
             />
-            {/* <ListDetailItem
-              title="Transaction fee"
-              // value={`$
-              // ${((stripeDetail?.fee || 0) / 100).toLocaleString()}`}
-              // border
-              value={"0"}
-            /> */}
           </div>
           <div className="w-full flex flex-col mt-2 gap-3">
             <Button onClick={handleSend} loading={loading}>

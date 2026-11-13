@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import RouteSectionInfo from "../_components/RouteSectionInfo";
 import SettingsMobileBack from "../_components/SettingsMobileBack";
 import NotificationRecipientsTable from "./_components/NotificationRecipientsTable";
 import { useUser } from "@/lib/hooks/useUser";
@@ -36,11 +35,6 @@ const NotificationRecipientsPage = () => {
     <section className="w-full min-w-0">
       <SettingsMobileBack />
       <div className="hidden lg:flex gap-10 items-start w-full">
-        {/* <RouteSectionInfo
-          title="Notification Recipients"
-          subtitle="Manage email addresses that receive transactions notifications"
-          icon={<NotificationRecipientsIcon />}
-        /> */}
         <div className="flex-1 min-w-0">
           <NotificationRecipientsTable />
         </div>

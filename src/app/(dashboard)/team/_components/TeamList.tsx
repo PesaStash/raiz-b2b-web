@@ -3,8 +3,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { LiaTimesSolid } from "react-icons/lia";
-import DateRange from "../../transactions/_components/DateRange";
 import { useTeam } from "@/lib/hooks/useTeam";
 import {
   TeamButton,
@@ -90,56 +88,6 @@ function FiltersPanel({
   return (
     <>
       <div className="hidden md:flex gap-3 items-center">
-        {/* <div className="relative">
-          <button
-            type="button"
-            className={filterButton}
-            aria-expanded={showDates}
-            onClick={() => {
-              setShowFilters(false);
-              setShowDates((open) => !open);
-            }}
-          >
-            <TeamIcon name="calendar" />
-            {datesLabel}
-          </button>
-          {showDates && (
-            <DateRange
-              onApply={(range) =>
-                change({
-                  ...value,
-                  from: range.startDate
-                    ? format(range.startDate, "yyyy-MM-dd")
-                    : "",
-                  to: range.endDate ? format(range.endDate, "yyyy-MM-dd") : "",
-                })
-              }
-              onClose={() => setShowDates(false)}
-            />
-          )}
-        </div> */}
-        {/* {value.from && (
-          <button
-            type="button"
-            aria-label="Clear dates"
-            onClick={() => change({ ...value, from: "", to: "" })}
-            className="flex items-center justify-center size-10 rounded-lg border border-raiz-gray-200 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.05)]"
-          >
-            <LiaTimesSolid />
-          </button>
-        )} */}
-        {/* <button
-          type="button"
-          className={filterButton}
-          aria-expanded={showFilters}
-          onClick={() => {
-            setShowDates(false);
-            setShowFilters((open) => !open);
-          }}
-        >
-          <TeamIcon name="filter" />
-          Apply filter{value.role || value.status ? " •" : ""}
-        </button> */}
       </div>
       {showFilters && (
         <div className="flex flex-wrap items-end gap-4 w-full p-4 mb-5 bg-[#f8f7fa] rounded-xl">

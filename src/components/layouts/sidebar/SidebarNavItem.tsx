@@ -27,6 +27,14 @@ export function SidebarNavItem({
     ? "cursor-not-allowed pointer-events-none opacity-60"
     : "";
 
+  const expandedActive = isActive && !isLocked;
+  const expandedClasses = expandedActive
+    ? "bg-kyb-selected"
+    : "bg-white hover:bg-kyb-selected/50";
+  const expandedLabelClasses = expandedActive
+    ? "font-semibold text-primary2"
+    : "font-medium text-kyb-muted";
+
   if (item.action === "feedback") {
     if (collapsed) {
       return (
@@ -57,21 +65,10 @@ export function SidebarNavItem({
         type="button"
         onClick={onFeedbackClick}
         title={item.name}
-        className={`relative flex h-11 w-full items-center gap-3 rounded-xl px-3 text-left outline-none ${
-          isActive ? "bg-[#EAECFF]/60" : "hover:bg-[#EAECFF]/30"
-        } ${sharedClasses}`}
+        className={`relative flex w-full items-center gap-3 rounded-md px-3 py-2 text-left font-monzo outline-none ${expandedClasses} ${sharedClasses}`}
       >
-        <span
-          className={`h-5 w-[3px] shrink-0 rounded-full ${
-            isActive ? "bg-primary" : "bg-transparent"
-          }`}
-        />
-        <span className="relative size-5 shrink-0">{item.icon(isActive)}</span>
-        <span
-          className={`min-w-0 flex-1 text-sm ${
-            isActive ? "font-semibold text-primary" : "text-raiz-gray-600"
-          }`}
-        >
+        <span className="relative size-6 shrink-0">{item.icon(isActive)}</span>
+        <span className={`min-w-0 flex-1 text-sm leading-6 ${expandedLabelClasses}`}>
           {label}
         </span>
       </button>
@@ -119,41 +116,24 @@ export function SidebarNavItem({
       href={isLocked ? "#" : item.link}
       tabIndex={isLocked ? -1 : 0}
       title={item.name}
-      className={`relative flex h-11 w-full items-center gap-3 rounded-xl px-3 outline-none ${
-        isActive && !isLocked
-          ? "bg-[#EAECFF]/60"
-          : "hover:bg-[#EAECFF]/30"
-      } ${sharedClasses}`}
+      className={`relative flex w-full items-center gap-3 rounded-md px-3 py-2 font-monzo outline-none ${expandedClasses} ${sharedClasses}`}
     >
-      <span
-        className={`h-5 w-[3px] shrink-0 rounded-full ${
-          isActive && !isLocked ? "bg-primary" : "bg-transparent"
-        }`}
-      />
-      <span className="relative size-5 shrink-0">
-        {item.icon(isActive && !isLocked)}
+      <span className="relative size-6 shrink-0">
+        {item.icon(expandedActive)}
       </span>
-      <span
-        className={`min-w-0 flex-1 text-sm ${
-          isActive && !isLocked
-            ? "font-semibold text-primary"
-            : "text-raiz-gray-600"
-        }`}
-      >
+      <span className={`min-w-0 flex-1 text-sm leading-6 ${expandedLabelClasses}`}>
         {label}
       </span>
       {showBadge && (
-        <span className="shrink-0 rounded-full bg-raiz-error px-[7px] py-[3px] text-[11px] font-bold leading-none text-white">
-          {badgeCount > 9 ? "9+" : badgeCount}
-        </span>
+        <span className="size-2 shrink-0 rounded-full bg-raiz-error" aria-label={`${badgeCount} pending`} />
       )}
       {isLocked && (
         <Image
           src="/icons/sidebar/lock.svg"
           alt="Locked"
-          width={14}
-          height={14}
-          className="shrink-0"
+          width={20}
+          height={20}
+          className="size-5 shrink-0"
         />
       )}
     </Link>

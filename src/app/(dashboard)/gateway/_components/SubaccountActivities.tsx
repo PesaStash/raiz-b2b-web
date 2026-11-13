@@ -318,13 +318,6 @@ const SubaccountActivities = ({ subaccountId }: Props) => {
               ? `${dayjs(appliedRange.startDate).format("MMM D")} – ${dayjs(appliedRange.endDate).format("MMM D")}`
               : "Select dates"}</span>
           </Button>
-          {/* <Button
-            variant="secondary"
-            className="!w-auto h-9 px-3 py-1.5 rounded-lg text-xs"
-            onClick={handleApplyFilter}
-          >
-            Apply filter
-          </Button> */}
           {showDateRange ? (
             <div className="absolute right-0 top-11 z-20">
               <DateRange

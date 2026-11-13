@@ -23,8 +23,7 @@ const useShare = (referralCode: string) => {
           text: `Check out Raiz App: I use it to get a USD bank account, virtual card and send money around the world. Get it at https://raizapp.onelink.me/RiOx/webdirect. Use my referral code ${referralCode} and get reward points you can redeem when you transfer`,
           url: window.location.href,
         });
-      } catch (err) {
-        console.log("Error sharing:", err);
+      } catch {
       }
     } else {
       alert("Sharing not supported on this browser.");

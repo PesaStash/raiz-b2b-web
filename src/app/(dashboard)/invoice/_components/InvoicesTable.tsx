@@ -29,7 +29,6 @@ import Skeleton from "react-loading-skeleton";
 import InvoiceTableMoreOpts from "./InvoiceTableMoreOpts";
 import { useRouter } from "next/navigation";
 import { AnimatePresence } from "motion/react";
-import SideModalWrapper from "../../_components/SideModalWrapper";
 import AddNewCustomer from "../../customers/_components/AddNewCustomer";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { IFectchInvoiceParams } from "@/types/services";
@@ -81,8 +80,6 @@ const InvoicesTable = () => {
     { value: "", label: "All" },
     { value: "paid", label: "Paid" },
     { value: "pending", label: "Pending" },
-    // { value: "overdue", label: "Overdue" },
-    // { value: "cancelled", label: "Cancelled" },
     { value: "draft", label: "Draft" },
     { value: "awaiting_payment", label: "Awaiting payment" },
   ];
@@ -227,14 +224,6 @@ const InvoicesTable = () => {
         </span>
       ),
     }),
-    // columnHelper.accessor("customer.full_name", {
-    //   header: "Contact Person",
-    //   cell: (info) => (
-    //     <span className="text-sm font-brSonoma text-raiz-gray-700">
-    //       {info.getValue()}
-    //     </span>
-    //   ),
-    // }),
     columnHelper.accessor("due_date", {
       header: "Due Date",
       cell: (info) => (
@@ -392,7 +381,7 @@ const InvoicesTable = () => {
   const { data, isLoading } = useQuery({
     queryKey: ["invoices-list", params],
     queryFn: ({ queryKey }) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       const [_, params] = queryKey as [string, IFectchInvoiceParams];
       return FetchInvoicesApi(params);
     },
@@ -483,7 +472,6 @@ const InvoicesTable = () => {
       </svg>
     );
 
-  // const customerBtnRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useOutsideClick(() => closeCalendar());
   return (
     <section className="w-full h-full min-w-0">

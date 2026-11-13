@@ -4,12 +4,13 @@ import Button from "@/components/ui/Button";
 import InputField from "@/components/ui/InputField";
 import { useFormik } from "formik";
 import React from "react";
-import AddressAutocomplete from "@/components/ui/AddressAutocomplete";
+import CustomerAddressFields from "./CustomerAddressFields";
+import CustomerValidationSummary from "./CustomerValidationSummary";
+import { validateCustomer } from "@/lib/customerValidation";
 
 import PhoneNumberInput from "@/components/ui/PhoneNumberInput";
-import z from "zod";
-import { toFormikValidationSchema } from "zod-formik-adapter";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { ICustomer } from "@/types/invoice";
 import { IAddCustomerPayload } from "@/types/services";
 import { AddCustomerApi } from "@/services/invoice";
 import SelectField from "@/components/ui/SelectField";
@@ -21,55 +22,17 @@ import { useUser } from "@/lib/hooks/useUser";
 
 interface Props {
   close: () => void;
+  onCreated?: (customer: ICustomer) => void;
 }
 
-// Base schema with conditional validation
-const AddCustomerSchema = z
-  .object({
-    customerType: z.string().min(1, "Please select a customer type"),
-    fullname: z.string().optional(),
-    companyName: z.string().optional(),
-    email: z
-      .string()
-      .email("Invalid email address")
-      .min(1, "Email is required"),
-    phone: z
-      .string()
-      .min(10, "Invalid phone number")
-      .regex(/^\+?[1-9]\d{6,14}$/, "Enter a valid phone number"),
-    address: z.string().min(3, "Address is required"),
-  })
-  .refine(
-    (data) => {
-      if (data.customerType === "individual") {
-        return data.fullname && data.fullname.length >= 2;
-      }
-      return true;
-    },
-    {
-      message: "Full name is required",
-      path: ["fullname"],
-    },
-  )
-  .refine(
-    (data) => {
-      if (data.customerType === "business") {
-        return data.companyName && data.companyName.length >= 2;
-      }
-      return true;
-    },
-    {
-      message: "Business name is required",
-      path: ["companyName"],
-    },
-  );
-
-const AddNewCustomer = ({ close }: Props) => {
+const AddNewCustomer = ({ close, onCreated }: Props) => {
   const qc = useQueryClient();
   const { user } = useUser();
   const AddMutation = useMutation({
     mutationFn: (payload: IAddCustomerPayload) => AddCustomerApi(payload),
-    onSuccess: () => {
+    onSuccess: (response) => {
+      const customer = response?.data ?? response;
+      if (customer?.customer_id) onCreated?.(customer);
       qc.invalidateQueries({ queryKey: ["customers"] });
       const userId = getAnalyticsUserId(user);
       if (userId) {
@@ -93,18 +56,18 @@ const AddNewCustomer = ({ close }: Props) => {
       country_code: "",
       customerType: "",
     },
-    validationSchema: toFormikValidationSchema(AddCustomerSchema),
+    validate: validateCustomer,
     onSubmit: (values) => {
       const payload: IAddCustomerPayload = {
-        ...(values.fullname && { full_name: values.fullname }),
+        ...(values.customerType === "individual" && { full_name: values.fullname.trim() }),
         customer_type: values.customerType as "individual" | "business",
-        email: values.email,
+        email: values.email.trim(),
         phone_number: values.phone,
         street_address: sanitizeAddressField(values.address),
         city: sanitizeAddressField(values?.city),
         state: sanitizeAddressField(values?.state),
         country: values?.country_code,
-        ...(values.companyName && { business_name: values?.companyName }),
+        ...(values.customerType === "business" && { business_name: values.companyName.trim() }),
       };
       AddMutation.mutate(payload);
     },
@@ -122,7 +85,7 @@ const AddNewCustomer = ({ close }: Props) => {
   ];
 
   return (
-    <form onSubmit={formik.handleSubmit} className="h-full flex flex-col min-h-0">
+    <form noValidate onSubmit={formik.handleSubmit} className="h-full flex flex-col min-h-0">
       <CenterModalHeader close={close} />
 
       <h2 className="text-lg sm:text-xl font-bold text-raiz-gray-950 mb-3 sm:mb-4">
@@ -131,7 +94,10 @@ const AddNewCustomer = ({ close }: Props) => {
       <div className="flex-1 overflow-y-auto flex flex-col justify-between min-h-0 gap-4">
         <div className="flex flex-col gap-4 rounded-2xl bg-raiz-gray-50 p-4 sm:p-6">
           <SelectField
-            placeholder="Customer Type"
+            label="Customer type *"
+            placeholder="Select customer type"
+            status={formik.touched.customerType && formik.errors.customerType ? "error" : null}
+            helper={formik.touched.customerType ? formik.errors.customerType : undefined}
             options={customerTypeOpt}
             value={
               formik.values.customerType
@@ -141,7 +107,7 @@ const AddNewCustomer = ({ close }: Props) => {
                 : null
             }
             onChange={(i) =>
-              formik.setFieldValue("customerType", i?.value as string)
+              formik.setFieldValue("customerType", (i?.value as string) ?? "")
             }
           />
 
@@ -150,7 +116,8 @@ const AddNewCustomer = ({ close }: Props) => {
             <>
               {formik.values.customerType === "individual" && (
                 <InputField
-                  label="Full Name"
+                  label="Full Name *"
+                  aria-label="Full Name"
                   {...formik.getFieldProps("fullname")}
                   status={
                     formik.touched.fullname && formik.errors.fullname
@@ -164,7 +131,8 @@ const AddNewCustomer = ({ close }: Props) => {
               )}
               {formik.values.customerType === "business" && (
                 <InputField
-                  label="Business Name"
+                  label="Business Name *"
+                  aria-label="Business Name"
                   {...formik.getFieldProps("companyName")}
                   status={
                     formik.touched.companyName && formik.errors.companyName
@@ -177,7 +145,8 @@ const AddNewCustomer = ({ close }: Props) => {
                 />
               )}
               <InputField
-                label="Email"
+                label="Email *"
+                  aria-label="Email"
                 type="email"
                 {...formik.getFieldProps("email")}
                 status={
@@ -187,36 +156,22 @@ const AddNewCustomer = ({ close }: Props) => {
               />
               <div className="">
                 <PhoneNumberInput
-                  label="Phone Number"
+                  label="Phone Number *"
                   value={formik.values.phone}
-                  onChange={(value) => formik.setFieldValue("phone", value)}
+                  onChange={(value) => formik.setFieldValue("phone", value ?? "")}
                   error={formik.errors.phone}
                   touched={formik.touched.phone}
                 />
               </div>
-              <AddressAutocomplete
-                label="Business Address"
-                value={formik.values.address}
-                onChange={(value) => formik.setFieldValue("address", value)}
-                onAddressSelect={(components) => {
-                  formik.setValues({
-                    ...formik.values,
-                    ...components,
-                  });
-                }}
-                touched={formik.touched.address}
-                error={formik.errors.address}
-              />
+              <CustomerAddressFields formik={formik} />
             </>
           )}
         </div>
+        <CustomerValidationSummary errors={formik.errors} submitted={formik.submitCount > 0} />
         <div className="flex flex-col gap-3 pt-2 shrink-0">
           <Button
             disabled={
-              !formik.dirty ||
-              AddMutation.isPending ||
-              !formik.values.city ||
-              !formik.values.state
+              AddMutation.isPending
             }
             loading={AddMutation.isPending}
             type="submit"

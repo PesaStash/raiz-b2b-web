@@ -210,40 +210,6 @@ const InvoiceTableMoreOpts = ({
                 </button>
               </li>
             )}
-            {/* <li>
-              <button
-                onClick={() => {
-                  onCopyLink(invoice);
-                  setIsOpen(false);
-                }}
-                className="flex items-center gap-2 w-full px-4 py-2 hover:bg-[#EAECFF99] transition"
-              >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path
-                    d="M9.99341 11.6667H11.0001C13.0134 11.6667 14.6667 10.02 14.6667 8.00001C14.6667 5.98668 13.0201 4.33334 11.0001 4.33334H9.99341"
-                    stroke="#6F5B86"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M5.99992 4.33334H4.99992C2.97992 4.33334 1.33325 5.98001 1.33325 8.00001C1.33325 10.0133 2.97992 11.6667 4.99992 11.6667H5.99992"
-                    stroke="#6F5B86"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M5.33325 8H10.6666"
-                    stroke="#6F5B86"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                <span>Copy Invoice Link</span>
-              </button>
-            </li> */}
           </ul>
         </div>
       )}

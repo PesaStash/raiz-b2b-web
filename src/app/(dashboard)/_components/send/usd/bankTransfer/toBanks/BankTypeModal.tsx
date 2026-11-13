@@ -87,32 +87,6 @@ const BankTypeModal = ({ close, bankType, setBankType }: Props) => {
             </p>
           </button>
           {/* int */}
-          {/* <button
-            onClick={() => setBankType("int")}
-            className={`border ${
-              bankType === "int" ? "border-indigo-900" : "border-zinc-200"
-            } rounded-[20px] flex flex-col justify-center items-center w-full pt-[19px] pb-[21px]`}
-          >
-            <div className="flex justify-between w-full px-[30px] mb-5">
-              <span />
-              <Image
-                width={30}
-                height={30}
-                src={"/icons/int-bank.svg"}
-                alt="international banks"
-              />
-              <Radio
-                checked={bankType === "int"}
-                onChange={() => setBankType("int")}
-              />
-            </div>
-            <p className="text-zinc-900 text-sm font-bold leading-none">
-              International Bank
-            </p>
-            <p className="text-center  text-zinc-900 text-xs font-normal  leading-tight">
-              Send to an International bank for free
-            </p>
-          </button> */}
         </div>
       </div>
     </Overlay>

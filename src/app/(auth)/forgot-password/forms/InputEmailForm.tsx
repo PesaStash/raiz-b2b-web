@@ -40,7 +40,7 @@ const InputEmailForm = ({ setEmail, setPage }: Props) => {
   return (
     <form
       onSubmit={formik.handleSubmit}
-      className="h-full flex flex-col -mt-2 justify-between"
+      className="flex flex-col gap-6"
     >
       <div>
         <button onClick={() => router.back()} type="button">
@@ -52,7 +52,7 @@ const InputEmailForm = ({ setEmail, setPage }: Props) => {
           />
         </button>
         <header className="flex items-center justify-between mt-2">
-          <h2 className="text-raiz-gray-950 text-[23px] font-semibold  leading-10">
+          <h2 className="text-raiz-gray-950 text-[28px] font-bold  leading-10">
             Reset your password
           </h2>
           <svg width="40" height="41" viewBox="0 0 40 41" fill="none">
@@ -75,7 +75,7 @@ const InputEmailForm = ({ setEmail, setPage }: Props) => {
             />
           </svg>
         </header>
-        <p className="text-raiz-gray-700 text-[15px] font-normal  leading-snug mb-[44px]">
+        <p className="text-raiz-gray-700 text-[15px] font-normal  leading-snug mb-6">
           Enter the email registered with your account to reset your password
         </p>
         <InputField
@@ -93,6 +93,7 @@ const InputEmailForm = ({ setEmail, setPage }: Props) => {
         />
       </div>
       <Button
+        className="auth-submit"
         loading={forgotPasswordMutation.isPending}
         type="submit"
         disabled={!formik.isValid || !formik.dirty}

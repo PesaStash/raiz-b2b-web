@@ -75,7 +75,7 @@ const CreateNewPassword = ({ setPage, otp, setUser, email }: Props) => {
   return (
     <form
       onSubmit={formik.handleSubmit}
-      className="h-full flex flex-col -mt-2 justify-between"
+      className="flex flex-col gap-6"
     >
       <div>
         <button onClick={() => setPage(2)} type="button">
@@ -88,10 +88,10 @@ const CreateNewPassword = ({ setPage, otp, setUser, email }: Props) => {
         </button>
         <header className="flex  justify-between mt-2">
           <div>
-            <h2 className="text-raiz-gray-950 text-[23px] font-semibold  leading-10">
+            <h2 className="text-raiz-gray-950 text-[28px] font-bold  leading-10">
               Create a new password
             </h2>
-            <p className="text-raiz-gray-700 text-[15px] font-normal  leading-snug mb-[44px]">
+            <p className="text-raiz-gray-700 text-[15px] font-normal  leading-snug mb-6">
               Create a new password
             </p>
           </div>
@@ -121,7 +121,7 @@ const CreateNewPassword = ({ setPage, otp, setUser, email }: Props) => {
             />
           </svg>
         </header>
-        <div className="mt-[44px] flex flex-col gap-5">
+        <div className="mt-6 flex flex-col gap-5">
           <InputField
             label="Password"
             type={showPassword1 ? "text" : "password"}
@@ -232,6 +232,7 @@ const CreateNewPassword = ({ setPage, otp, setUser, email }: Props) => {
         </div>
       </div>
       <Button
+        className="auth-submit"
         loading={resetPasswordMutation.isPending}
         type="submit"
         disabled={!formik.isValid || !formik.dirty}

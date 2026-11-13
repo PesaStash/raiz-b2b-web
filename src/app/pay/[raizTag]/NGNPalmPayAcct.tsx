@@ -16,6 +16,8 @@ import { INgnTempPaymentLinkPayload } from "@/types/transactions";
 import { formatAmount } from "@/utils/helpers";
 import { useDebounce } from "@/lib/hooks/useDebounce";
 import { ImSpinner3 } from "react-icons/im";
+import { safeHttpsUrl } from "@/lib/safeUrl";
+import { toast } from "sonner";
 
 const NGNPalmPayAcct = ({
   walletId,
@@ -85,7 +87,12 @@ const NGNPalmPayAcct = ({
     mutationFn: (data: INgnTempPaymentLinkPayload) =>
       CreateNgnTempPaymentLink(data),
     onSuccess: (data) => {
-      window.location.href = data.checkout_url;
+      const checkoutUrl = safeHttpsUrl(data.checkout_url);
+      if (!checkoutUrl) {
+        toast.error("Payment link is unavailable. Please try again.");
+        return;
+      }
+      window.location.assign(checkoutUrl);
       formik.resetForm();
       actions.reset();
       setRawAmount("");

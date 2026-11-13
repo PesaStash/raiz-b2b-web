@@ -13,10 +13,6 @@ interface Props {
 }
 
 const SelectSwapCurrencyModal = ({ close }: Props) => {
-  //   const [search, setSearch] = useState("");
-  //   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-  //     setSearch(e.target.value);
-  //   };
   const { actions } = useCryptoSwapStore();
   const { user } = useUser();
   const wallets = useMemo(

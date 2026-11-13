@@ -1,0 +1,5 @@
+# Security: config and tooling changes need review (see security runbook)
+*.config.*      @Oyedele-Sg
+/package.json   @Oyedele-Sg
+/.vscode/       @Oyedele-Sg
+/.github/       @Oyedele-Sg

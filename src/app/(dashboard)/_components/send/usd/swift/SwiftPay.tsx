@@ -4,12 +4,13 @@ import EnterPin from "@/components/transactions/EnterPin";
 import React, { useEffect, useState } from "react";
 
 interface Props {
+  transfer: React.ComponentProps<typeof EnterPin>["transfer"];
   submitting: boolean;
   onSubmit: (pin: string) => void;
   onClose: () => void;
 }
 
-const SwiftPay = ({ submitting, onSubmit, onClose }: Props) => {
+const SwiftPay = ({ submitting, onSubmit, onClose, transfer }: Props) => {
   const [pin, setPin] = useState("");
 
   useEffect(() => {
@@ -21,6 +22,7 @@ const SwiftPay = ({ submitting, onSubmit, onClose }: Props) => {
 
   return (
     <EnterPin
+      transfer={transfer}
       pin={submitting ? "----" : pin}
       setPin={(value) => {
         if (!submitting) setPin(value);

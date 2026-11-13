@@ -16,7 +16,7 @@ import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { AnimatePresence } from "motion/react";
 import * as motion from "motion/react-client";
 
-const NgnToRaizers = () => {
+const NgnToRaizers = ({ close }: { close?: () => void }) => {
   const {
     actions,
     user: selectedUser,
@@ -68,6 +68,7 @@ const NgnToRaizers = () => {
     actions.reset("NGN");
     actions.selectNGNSendOption("to Raizer");
     setStep("select-user");
+    close?.();
   };
 
   const displayStep = () => {
@@ -75,6 +76,8 @@ const NgnToRaizers = () => {
       case "select-user":
         return (
           <FindRecipients
+            header
+            goBack={close}
             recentUsers={recents || []}
             beneficiaries={favourites || []}
             setSelectedUser={actions.selectUser}

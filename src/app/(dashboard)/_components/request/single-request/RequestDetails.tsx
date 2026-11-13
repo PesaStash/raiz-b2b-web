@@ -1,6 +1,5 @@
 "use client";
 import CenterModalHeader from "@/components/layouts/CenterModalHeader";
-import SideWrapperHeader from "@/components/SideWrapperHeader";
 import Button from "@/components/ui/Button";
 import ErrorMessage from "@/components/ui/ErrorMessage";
 import { useCurrencyStore } from "@/store/useCurrencyStore";

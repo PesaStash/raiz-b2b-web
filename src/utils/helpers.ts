@@ -1,25 +1,14 @@
-import { months, tiers } from "@/constants/misc";
+import { tiers } from "@/constants/misc";
 import { toast } from "sonner";
 import { ICurrencyName, SwapPairResult } from "@/types/misc";
 import { IUser, IWallet } from "@/types/user";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
-import axios from "axios";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { CurrencyTypeKey } from "@/store/Swap/swapSlice.types";
 
 dayjs.extend(utc);
-
-export const getLastThreeMonths = () => {
-  const currentMonth = new Date().getMonth();
-  return [
-    months[(currentMonth + 11) % 12], // Previous month
-    months[currentMonth], // Current month
-    months[(currentMonth + 1) % 12], // Next month
-  ];
-};
-
 // Format time as "MM:SS", or "HH:MM:SS" when 60+ minutes remain.
 export const formatTime = (seconds: number) => {
   const total = Math.max(0, Math.floor(seconds));
@@ -175,12 +164,6 @@ export const getInitials = (firstName: string, lastName: string): string => {
   const lastInitial = lastName.charAt(0).toUpperCase();
   return `${firstInitial}${lastInitial}`;
 };
-
-export function extractObjectUrlFromSignedUrl(signedUrl: string): string {
-  const url = new URL(signedUrl);
-  return url.origin + url.pathname;
-}
-
 /** Strip S3 signing query params so avatars load via Next/Image and don't expire. */
 export function normalizeS3ObjectUrl(url: string | null | undefined): string {
   if (!url) return "";
@@ -243,10 +226,6 @@ export const findWalletByCurrency = (
       acct.wallet_type.currency === currency
   );
 };
-
-export const getDaysBetween = (startDate: dayjs.Dayjs, endDate: dayjs.Dayjs) =>
-  endDate.diff(startDate, "day") + 1;
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const groupByDate = <T extends Record<string, any>>(
   items: T[],
@@ -406,15 +385,6 @@ export const getReadablePatternMessage = (
 
   return patternMessages[pattern] || `${fieldLabel} format is invalid`;
 };
-
-export const formatCardNumber = (value: string): string => {
-  // Remove all non-digit characters
-  const digits = value.replace(/\D/g, "");
-  // Split into groups of 4 and join with spaces
-  const groups = digits.match(/.{1,4}/g) || [];
-  return groups.join(" ").slice(0, 19); // Limit to 19 chars (16 digits + 3 spaces)
-};
-
 // Utility function to remove undefined values from an object
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const removeUndefinedValues = <T extends Record<string, any>>(
@@ -446,16 +416,6 @@ export const removeUndefinedValues = <T extends Record<string, any>>(
   }
 
   return cleaned as T;
-};
-
-export const fetchPublicIP = async (): Promise<string | null> => {
-  try {
-    const response = await axios.get("https://api.ipify.org?format=json");
-    return response.data.ip;
-  } catch (err) {
-    console.log("ip ERRRROR IP", err);
-    return null;
-  }
 };
 
 export const formatDisplayRate = (rate: number): string => {
@@ -590,47 +550,6 @@ export const generateInvoicePDFBlob = async (
   return blob;
 };
 
-export const uploadFileToS3 = async (
-  file: Blob,
-  fileName?: string,
-): Promise<{ objectUrl: string; signedUrl: string; key: string }> => {
-  const formData = new FormData();
-  formData.append("file", file, fileName);
-
-  const response = await fetch("/api/upload", {
-    method: "POST",
-    body: formData,
-    credentials: "include",
-  });
-
-  const data = (await response.json().catch(() => ({}))) as {
-    objectUrl?: string;
-    signedUrl?: string;
-    key?: string;
-  };
-
-  if (!response.ok) {
-    throw new Error(
-      getApiErrorMessage({ status: response.status, data }, "Upload failed"),
-    );
-  }
-
-  if (!data.objectUrl || !data.signedUrl || !data.key) {
-    throw new Error("Upload failed");
-  }
-
-  return {
-    objectUrl: data.objectUrl,
-    signedUrl: data.signedUrl,
-    key: data.key,
-  };
-};
-
-export const uploadPDF = async (file: Blob, fileName: string) => {
-  const { signedUrl } = await uploadFileToS3(file, fileName);
-  return signedUrl;
-};
-
 export const blobToBase64 = (blob: Blob): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -679,9 +598,6 @@ export const toMinorUnitByCurrency = (
   const dec = currencyMinorUnits[currency?.toUpperCase()] ?? fallbackDecimals;
   return toMinorUnitWithDecimals(value, dec);
 };
-
-export const toMinorUnit = (value: number) => toMinorUnitWithDecimals(value, 2);
-
 export const determineSwapPair = (
   currentCurrency: CurrencyTypeKey,
   wallets: IWallet[]
@@ -802,49 +718,6 @@ export const determineSwapPair = (
       };
   }
 };
-
-export const getAvailableSwapDestinations = (
-  fromCurrency: CurrencyTypeKey,
-  wallets: IWallet[]
-): CurrencyTypeKey[] => {
-  const availableCurrencies = wallets.map(
-    (w) => w.wallet_type.currency as CurrencyTypeKey
-  );
-
-  switch (fromCurrency) {
-    case "USD":
-      return availableCurrencies.filter(
-        (c): c is CurrencyTypeKey =>
-          c === "NGN" || c === "GBP" || c === "EUR" || c === "SBC"
-      );
-
-    case "NGN":
-      // NGN can only swap to USD
-      return availableCurrencies.filter(
-        (c): c is CurrencyTypeKey => c === "USD"
-      );
-
-    case "GBP":
-      return availableCurrencies.filter(
-        (c): c is CurrencyTypeKey => c === "USD"
-      );
-
-    case "EUR":
-      return availableCurrencies.filter(
-        (c): c is CurrencyTypeKey => c === "USD"
-      );
-
-    case "SBC":
-      // SBC can only swap to USD (not NGN)
-      return availableCurrencies.filter(
-        (c): c is CurrencyTypeKey => c === "USD"
-      );
-
-    default:
-      return [];
-  }
-};
-
 
 export const maskAccountNumber = (accountNumber: string) => {
   const compact = accountNumber.replace(/\s/g, "");

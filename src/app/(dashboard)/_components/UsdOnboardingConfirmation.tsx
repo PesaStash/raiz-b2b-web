@@ -55,7 +55,7 @@ const UsdOnboardingConfirmation = ({
     ? "Your USD verification has been declined. Please contact support."
     : needsTos
       ? "Your USD request was recorded, but Bridge Terms of Service still need to be accepted before operations can proceed."
-      : "Our operations team will contact your business to complete USD verification.";
+      : "Open your USD setup to complete any outstanding details or view your review status.";
 
   const title = rejected
     ? "USD Account Request Declined"
@@ -168,6 +168,10 @@ const UsdOnboardingConfirmation = ({
             : `Stage: ${getUsdOnboardingStatusLabel(usdCase.status, true)}`}
         </span>
       </div>
+
+      <Link href="/onboarding/usd" className="mt-4 inline-block text-sm font-semibold text-primary2 underline">
+        Open USD verification
+      </Link>
 
       {displayTimeline ? (
         <UsdOnboardingProgressTimeline

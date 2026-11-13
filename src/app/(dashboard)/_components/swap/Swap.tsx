@@ -19,7 +19,9 @@ import { formatAmount } from "@/utils/helpers";
 import { useDebounce } from "@/lib/hooks/useDebounce";
 import { isCrossCurrencyNgnGbpEurSwap } from "@/store/Swap/swapSlice.types";
 import { ICrossCurrencies } from "@/types/misc";
-// import RaizReceipt from "@/components/transactions/RaizReceipt";
+import { isGlobalBalance } from "@/lib/globalBalance";
+import GlobalSwap from "./GlobalSwap";
+import type { SwapPairCurrency } from "@/types/swap";
 
 export type SwapStep = "detail" | "confirmation" | "pay" | "status" | "receipt";
 
@@ -30,7 +32,7 @@ interface Props {
 const CROSS_CURRENCY_QUOTE_MAX_AGE_MS = 30_000;
 const CROSS_CURRENCY_TIMER_SECONDS = 119
 
-const Swap = ({ close }: Props) => {
+const LegacySwap = ({ close }: Props) => {
   const { user } = useUser();
   const [step, setStep] = useState<SwapStep>("detail");
   const [timeLeft, setTimeLeft] = useState<number>(119);
@@ -393,6 +395,25 @@ const Swap = ({ close }: Props) => {
   };
 
   return <div>{displayScreen()}</div>;
+};
+
+const Swap = ({ close }: Props) => {
+  const { user } = useUser();
+  const { amount, swapFromCurrency } = useSwapStore();
+
+  if (isGlobalBalance(user?.business_account)) {
+    const initialSource: SwapPairCurrency =
+      swapFromCurrency === "NGN" ? "NGN" : "USD";
+    return (
+      <GlobalSwap
+        close={close}
+        initialAmount={amount || undefined}
+        initialSource={initialSource}
+      />
+    );
+  }
+
+  return <LegacySwap close={close} />;
 };
 
 export default withBusinessWrite(Swap);

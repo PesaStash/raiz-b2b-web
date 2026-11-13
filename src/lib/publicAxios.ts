@@ -1,15 +1,7 @@
 "use client";
-import axios, {
-  AxiosError,
-  AxiosInstance,
-  AxiosRequestConfig,
-  AxiosResponse,
-  CancelTokenSource,
-} from "axios";
+import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 import { toast } from "sonner";
-import { fetchPublicIP } from "@/utils/helpers";
-
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
+import { routeThroughProxy } from "@/lib/apiClient";
 
 interface ErrorResponseData {
   message?: string;
@@ -41,37 +33,9 @@ const handleError = async (error: CustomAxiosError) => {
   return Promise.reject(error.response ?? error);
 };
 
-export const PublicAxios = axios.create({
-  baseURL: BASE_URL,
-});
+/** Unauthenticated RaizServer client (sign-up, login, public pay pages). Uses the same proxy. */
+export const PublicAxios = axios.create();
 
-// Cache IP to avoid multiple fetches
-let cachedIP: string | null = null;
-
-const addNetworkCheckInterceptor = (axiosInstance: AxiosInstance) => {
-  axiosInstance.interceptors.request.use(
-    async (requestConfig) => {
-      try {
-        const cancelTokenSource: CancelTokenSource = axios.CancelToken.source();
-        if (!requestConfig.signal) requestConfig.cancelToken = cancelTokenSource.token;
-
-        if (!cachedIP) {
-          cachedIP = await fetchPublicIP();
-        }
-
-        if (cachedIP) {
-          requestConfig.headers["ip-address"] = cachedIP;
-        }
-
-        return requestConfig;
-      } catch (error) {
-        return Promise.reject(error);
-      }
-    },
-    (error: AxiosError) => Promise.reject(error),
-  );
-};
-
-addNetworkCheckInterceptor(PublicAxios);
+PublicAxios.interceptors.request.use((config) => routeThroughProxy(config, { anonymous: true }));
 
 PublicAxios.interceptors.response.use(handleResponse, handleError);

@@ -13,7 +13,6 @@ import {
   getUsdAccountBalance,
   hasSufficientUsdForForeignAccount,
 } from "@/utils/foreignAccount";
-import { getApiErrorMessage } from "@/utils/helpers";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { toast } from "sonner";
@@ -108,11 +107,6 @@ const CreateForeignAcct = ({
       setSelectedCurrency(currency, refreshedUser.data || user);
       close();
     },
-    // onError: (error) => {
-    //   toast.error(
-    //     getApiErrorMessage(error, `Unable to create your ${currency} account`),
-    //   );
-    // },
   });
 
   const handleCreate = () => {

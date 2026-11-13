@@ -32,7 +32,7 @@ const Button: React.FC<ButtonProps> = ({
   iconClassName,
 }) => {
   const { selectedCurrency } = useCurrencyStore();
-  const baseStyles = `relative px-4 md:px-6 py-3.5 rounded-[100px] focus:outline-none transition ease-in-out duration-300 text-[13px] md:text-sm`;
+  const baseStyles = `relative px-4 md:px-6 py-3.5 rounded-[100px] focus:outline-none text-[13px] md:text-sm transition-[background-color,color,border-color,box-shadow,opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.97] active:duration-150 disabled:active:scale-100`;
   const disabledStyles = `bg-raiz-gray-200 hover:cursor-not-allowed  text-raiz-gray-400`;
 
   const getPrimaryStyles = () => {

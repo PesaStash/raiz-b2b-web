@@ -19,7 +19,7 @@ interface Props {
   fee: number;
 }
 
-const ExternalPayout = ({ close, goNext, setPaymentError }: Props) => {
+const ExternalPayout = ({ close, goNext, setPaymentError, fee }: Props) => {
   const [pin, setPin] = useState<string>("");
   const { externalUser, purpose, category, amount, actions } = useSendStore();
   const qc = useQueryClient();
@@ -85,7 +85,6 @@ const ExternalPayout = ({ close, goNext, setPaymentError }: Props) => {
     },
   });
 
-  //   const totalPayable = fee ? parseFloat(amount) + fee : amount;
   const handleSend = () => {
     const payload: IExternalTransferPayload = {
       wallet_id: currentWallet?.wallet_id || "",
@@ -109,7 +108,20 @@ const ExternalPayout = ({ close, goNext, setPaymentError }: Props) => {
       handleSend();
     }
   }, [pin]);
-  return <EnterPin pin={pin} setPin={setPin} close={close} />;
+  return (
+    <EnterPin
+      transfer={{
+        recipient: externalUser?.bank_account_name || "",
+        amount: Number(amount),
+        currency: selectedCurrency.name,
+        sourceCurrency: selectedCurrency.name,
+        debit: Number(amount) + fee,
+      }}
+      pin={pin}
+      setPin={setPin}
+      close={close}
+    />
+  );
 };
 
 export default ExternalPayout;

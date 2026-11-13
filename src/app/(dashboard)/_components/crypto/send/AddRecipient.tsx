@@ -1,6 +1,4 @@
 import React, { useState } from "react";
-import SideModalWrapper from "../../SideModalWrapper";
-import SideWrapperHeader from "@/components/SideWrapperHeader";
 import Button from "@/components/ui/Button";
 import InputField from "@/components/ui/InputField";
 import { useFormik } from "formik";

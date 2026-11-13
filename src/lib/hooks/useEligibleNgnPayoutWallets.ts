@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import { IUser, IWallet } from "@/types/user";
-import { findWalletByCurrency } from "@/utils/helpers";
 
 export function isEligibleNgnPayoutWallet(wallet: IWallet): boolean {
   return (

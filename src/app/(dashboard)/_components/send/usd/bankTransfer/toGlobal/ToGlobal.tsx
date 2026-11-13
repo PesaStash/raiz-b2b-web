@@ -1,4 +1,5 @@
 "use client";
+import { IIntCountry } from "@/constants/send";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ToUsdBanksStepsType } from "../toBanks/ToUsdBanks";
 import { bankTypeProp } from "../BankTransfer";
@@ -23,13 +24,21 @@ import { toast } from "sonner";
 interface Props {
   close: () => void;
   bankType: bankTypeProp;
+  initialCountry?: IIntCountry;
+  allowedCountryCodes?: string[];
 }
 
-const ToGlobal = ({ close, bankType }: Props) => {
+const ToGlobal = ({
+  close,
+  bankType,
+  initialCountry,
+  allowedCountryCodes,
+}: Props) => {
   const [step, setStep] = useState<ToUsdBanksStepsType>("add-beneficiary");
   const [paymentError, setPaymentError] = useState("");
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [isRequoting, setIsRequoting] = useState(false);
+  const [acceptedUpdatedQuote, setAcceptedUpdatedQuote] = useState(false);
   const [paymentInitiationData, setPaymentInitiationData] =
     useState<IInitialPayoutResponse | null>(null);
   const hasRequotedRef = useRef(false);
@@ -81,6 +90,9 @@ const ToGlobal = ({ close, bankType }: Props) => {
       setTimeLeft(120);
       hasRequotedRef.current = false;
       setPaymentInitiationData(response);
+      if (!isFirstInitiateRef.current) {
+        setAcceptedUpdatedQuote(true);
+      }
       if (isFirstInitiateRef.current) {
         setStep("category");
       }
@@ -154,16 +166,12 @@ const ToGlobal = ({ close, bankType }: Props) => {
       !hasRequotedRef.current
     ) {
       hasRequotedRef.current = true;
+      // A refreshed quote requires a fresh review and PIN confirmation.
+      if (step === "pay") setStep("summary");
       toast.info("Quote expired. Refreshing rate...");
       void requotePayout();
     }
-  }, [
-    timeLeft,
-    paymentInitiationData,
-    intBeneficiary,
-    step,
-    requotePayout,
-  ]);
+  }, [timeLeft, paymentInitiationData, intBeneficiary, step, requotePayout]);
 
   useEffect(() => {
     if (intBeneficiary) {
@@ -196,13 +204,23 @@ const ToGlobal = ({ close, bankType }: Props) => {
     paymentData: paymentInitiationData || undefined,
     timeLeft,
     isRequoting,
+    onRefresh: () => void requotePayout(),
     isExpired: timeLeft <= 0 && !isRequoting,
   };
 
   const displayStep = () => {
     switch (step) {
       case "add-beneficiary":
-        return bankType && <AddBeneficiary type={bankType} close={close} />;
+        return (
+          bankType && (
+            <AddBeneficiary
+              type={bankType}
+              close={close}
+              initialCountry={initialCountry}
+              allowedCountryCodes={allowedCountryCodes}
+            />
+          )
+        );
       case "details":
         return (
           <InternationalSendMoney
@@ -242,6 +260,29 @@ const ToGlobal = ({ close, bankType }: Props) => {
               />
             )}
             <InternationPayout
+              transfer={
+                paymentInitiationData
+                  ? {
+                      recipient:
+                        paymentInitiationData.foreign_payout_beneficiary
+                          ?.beneficiary_name ||
+                        intBeneficiary?.foreign_payout_beneficiary
+                          ?.beneficiary_name ||
+                        "",
+                      amount:
+                        paymentInitiationData.payout_amount ?? Number(amount),
+                      currency:
+                        paymentInitiationData.payout_currency ||
+                        intBeneficiary?.foreign_payout_beneficiary
+                          ?.beneficiary_currency ||
+                        "",
+                      sourceCurrency: "USD",
+                      debit:
+                        paymentInitiationData.amount +
+                        (paymentInitiationData.fees ?? 0),
+                    }
+                  : undefined
+              }
               paymentInitiationId={
                 paymentInitiationData?.payout_initiation_id || ""
               }
@@ -278,6 +319,11 @@ const ToGlobal = ({ close, bankType }: Props) => {
                 tryAgain={() => setStep("summary")}
                 viewReceipt={() => setStep("receipt")}
                 type="external"
+                processingSubtitle={
+                  acceptedUpdatedQuote
+                    ? "Using your accepted updated quote"
+                    : undefined
+                }
               />
             </>
           )

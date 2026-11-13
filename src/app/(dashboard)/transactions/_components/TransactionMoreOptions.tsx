@@ -51,17 +51,6 @@ const TransactionMoreOptions: React.FC<Props> = ({
                 View Details
               </button>
             </li>
-            {/* <li>
-              <button
-                onClick={() => {
-                  alert("Downloading receipt...");
-                  setIsOpen(false);
-                }}
-                className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-              >
-                Download Receipt
-              </button>
-            </li> */}
           </ul>
         </div>
       )}

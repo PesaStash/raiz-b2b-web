@@ -19,11 +19,7 @@ dayjs.extend(relativeTime);
 export const categoryIcons = [
   { code: 1, icon: "/icons/notif-debit.svg" },
   { code: 2, icon: "/icons/notif-credit.svg" },
-  // { code: 3, icon: <SavingsIcon width={20} height={20} /> },
-  // { code: 4, icon: <LeadershipIcon width={20} height={20} /> },
   { code: 5, icon: "/icons/notif-split.svg" },
-  // { code: 6, icon: <BillRequestIcon /> },
-  // { code: 7, icon: <LoanNotificationIcon /> }
 ];
 
 const NotificationItem = ({

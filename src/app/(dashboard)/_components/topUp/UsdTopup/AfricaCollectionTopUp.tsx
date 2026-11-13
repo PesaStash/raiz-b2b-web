@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import Overlay from "@/components/ui/Overlay";
 import Image from "next/image";
 import Button from "@/components/ui/Button";
 import InputField from "@/components/ui/InputField";
@@ -10,6 +9,8 @@ import ErrorMessage from "@/components/ui/ErrorMessage";
 import PhoneNumberInput from "@/components/ui/PhoneNumberInput";
 import AfricaPaymentInstructions from "@/components/transactions/AfricaPaymentInstructions";
 import GuestSendStatusModal from "@/app/pay/[raizTag]/_components/GuestSendStatusModal";
+import SideModalWrapper from "@/app/(dashboard)/_components/SideModalWrapper";
+import { DesignIcon } from "@/app/(dashboard)/_components/global/GlobalUI";
 import {
   filterAfricaPayinCountries,
   getAfricaCountryFlagUrl,
@@ -60,9 +61,10 @@ type AfricaTopupStep =
 interface Props {
   close: () => void;
   onDone: () => void;
+  goBack?: () => void;
 }
 
-const AfricaCollectionTopUp = ({ close, onDone }: Props) => {
+const AfricaCollectionTopUp = ({ close, onDone, goBack }: Props) => {
   const { user } = useUser();
   const { amount: storedAmount, actions: topupActions } = useTopupStore();
   const qc = useQueryClient();
@@ -212,8 +214,6 @@ const AfricaCollectionTopUp = ({ close, onDone }: Props) => {
     //   localMin != null &&
     //   localMax != null &&
     //   localMin > 0 &&
-    //   localMax > 0,
-    // staleTime: 60_000,
   });
 
   const limitsReady = !!channelId && !!usdLimits && !usdLimitsError;
@@ -493,33 +493,89 @@ const AfricaCollectionTopUp = ({ close, onDone }: Props) => {
     close();
   };
 
+  const header = (title: string, subtitle: string, onBack?: () => void) => (
+    <div className="mb-6 flex shrink-0 items-start gap-3">
+      {onBack ? (
+        <button
+          aria-label="Back"
+          onClick={onBack}
+          className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full hover:bg-raiz-gray-100"
+        >
+          <DesignIcon name="32273-13049-imgVuesaxLinearArrowLeft.svg" />
+        </button>
+      ) : (
+        <button
+          aria-label="Close"
+          onClick={handleClose}
+          className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full hover:bg-raiz-gray-100"
+        >
+          <DesignIcon name="32273-13049-imgVuesaxLinearArrowLeft.svg" />
+        </button>
+      )}
+      <div className="min-w-0 flex-1 pt-1">
+        <h3 className="text-center text-base font-semibold text-raiz-gray-950">
+          {title}
+        </h3>
+        <p className="mt-1 text-center text-xs leading-tight text-[#8a78ad]">
+          {subtitle}
+        </p>
+      </div>
+      <button
+        aria-label="Close"
+        onClick={handleClose}
+        className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-raiz-gray-100 text-xl text-raiz-gray-600"
+      >
+        ×
+      </button>
+    </div>
+  );
+
   if (step === "status") {
     return (
-      <GuestSendStatusModal
-        status={status}
-        amount={usdAmount}
-        currency="USD"
-        close={() => {
-          if (isSuccessAfricaPayinStatus(status)) {
-            onDone();
-            return;
-          }
-          handleClose();
-        }}
-        error={paymentError}
-        tryAgain={handleRestart}
-        viewReceipt={() => {
-          if (isSuccessAfricaPayinStatus(status)) onDone();
-        }}
-        merchantName="your USD wallet"
-      />
+      <SideModalWrapper close={handleClose}>
+        <GuestSendStatusModal
+          embedded
+          status={status}
+          amount={usdAmount}
+          currency="USD"
+          close={() => {
+            if (isSuccessAfricaPayinStatus(status)) {
+              onDone();
+              return;
+            }
+            handleClose();
+          }}
+          error={paymentError}
+          tryAgain={handleRestart}
+          viewReceipt={() => {
+            if (isSuccessAfricaPayinStatus(status)) onDone();
+          }}
+          merchantName="your USD wallet"
+        />
+      </SideModalWrapper>
     );
   }
 
   if (step === "instructions") {
     return (
-      <Overlay close={handleClose} width="400px">
-        <div className="flex flex-col h-full py-8 px-5">
+      <SideModalWrapper close={handleClose}>
+        <div className="flex flex-col h-full min-h-[70vh]">
+          <div className="mb-2 flex items-center justify-between">
+            <button
+              aria-label="Close"
+              onClick={handleClose}
+              className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-raiz-gray-100"
+            >
+              <DesignIcon name="32273-13049-imgVuesaxLinearArrowLeft.svg" />
+            </button>
+            <button
+              aria-label="Close"
+              onClick={handleClose}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-raiz-gray-100 text-xl text-raiz-gray-600"
+            >
+              ×
+            </button>
+          </div>
           <AfricaPaymentInstructions
             amount={localAmount}
             usdAmount={usdAmount}
@@ -548,27 +604,19 @@ const AfricaCollectionTopUp = ({ close, onDone }: Props) => {
             title={isMomo ? "Check your phone" : "Pay by transfer"}
           />
         </div>
-      </Overlay>
+      </SideModalWrapper>
     );
   }
 
   if (step === "review") {
     return (
-      <Overlay close={handleClose} width="400px">
-        <div className="flex flex-col h-full py-8 px-5">
-          <div className="flex justify-between items-start mb-8">
-            <div>
-              <h3 className="text-zinc-900 text-xl font-bold leading-normal">
-                Review top-up
-              </h3>
-              <p className="text-zinc-900 text-xs leading-tight">
-                Confirm the details, then continue to get payment instructions.
-              </p>
-            </div>
-            <button onClick={handleClose}>
-              <Image src={"/icons/close.svg"} width={16} height={16} alt="close" />
-            </button>
-          </div>
+      <SideModalWrapper close={handleClose}>
+        <div className="flex flex-col h-full min-h-[70vh]">
+          {header(
+            "Review top-up",
+            "Confirm the details, then continue to get payment instructions.",
+            () => setStep("setup"),
+          )}
           <div className="space-y-4 p-5 rounded-[20px] bg-indigo-50">
             <div>
               <p className="text-xs text-zinc-500">Amount to your wallet</p>
@@ -645,30 +693,21 @@ const AfricaCollectionTopUp = ({ close, onDone }: Props) => {
             </Button>
           </div>
         </div>
-      </Overlay>
+      </SideModalWrapper>
     );
   }
 
-
   return (
-    <Overlay close={handleClose} width="400px">
-      <div className="flex flex-col h-full py-8 px-5 overflow-y-auto">
-        <div className="flex justify-between items-start mb-8">
-          <div>
-            <h3 className="text-zinc-900 text-xl font-bold leading-normal">
-              Pay by transfer
-            </h3>
-            <p className="text-zinc-900 text-xs leading-tight">
-              Fund your USD wallet with bank transfer or mobile money.
-            </p>
-          </div>
-          <button onClick={handleClose}>
-            <Image src={"/icons/close.svg"} width={16} height={16} alt="close" />
-          </button>
-        </div>
+    <SideModalWrapper close={handleClose}>
+      <div className="flex flex-col h-full min-h-[70vh]">
+        {header(
+          "Pay by transfer",
+          "Fund your USD wallet with bank transfer or mobile money.",
+          goBack,
+        )}
 
         <form
-          className="flex flex-col gap-4 max-h-[450px] overflow-y-auto flex-1"
+          className="flex flex-col gap-4 flex-1 overflow-y-auto"
           onSubmit={formik.handleSubmit}
           noValidate
         >
@@ -869,7 +908,7 @@ const AfricaCollectionTopUp = ({ close, onDone }: Props) => {
           </div>
         </form>
       </div>
-    </Overlay>
+    </SideModalWrapper>
   );
 };
 

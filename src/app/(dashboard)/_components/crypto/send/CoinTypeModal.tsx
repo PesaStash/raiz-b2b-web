@@ -1,5 +1,4 @@
 "use client";
-import Overlay from "@/components/ui/Overlay";
 import React from "react";
 import Image from "next/image";
 import { sbcType } from "./CryptoSend";

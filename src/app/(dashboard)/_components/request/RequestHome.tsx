@@ -1,7 +1,6 @@
 "use client";
 import React, { Dispatch, SetStateAction } from "react";
 import Image from "next/image";
-import SideWrapperHeader from "@/components/SideWrapperHeader";
 import Button from "@/components/ui/Button";
 import { RequestStep } from "./Request";
 import CenterModalHeader from "@/components/layouts/CenterModalHeader";
@@ -16,9 +15,6 @@ const RequestHome = ({ close, setStep }: RequestStepsProps) => {
     <>
       <CenterModalHeader close={close} title="Request" />
       <div className="h-full  flex flex-col">
-        {/* <h2 className="text-lg md:text-xl font-bold text-raiz-gray-950 mb-3 md:mb-4">
-          Request
-        </h2> */}
         <div className="flex flex-col justify-between h-full pb-[30px]">
           <div className="flex flex-col justify-center items-center  gap-3">
             <div className="md:my-10 mt-0 mb-5 md:mb-0 md:mt-10 flex  gap-6 flex-col justify-center items-center">
@@ -78,23 +74,6 @@ const RequestHome = ({ close, setStep }: RequestStepsProps) => {
                 </div>
 
                 {/* Multile request */}
-                {/* <button className="flex gap-4 mt-[22px]">
-              <Image
-                src={"/icons/multiple-req.svg"}
-                width={30}
-                height={30}
-                alt=""
-              />
-              <div className="flex flex-col justify-start items-start gap-1">
-                <h6 className="text-neutral-50 text-sm font-bold  leading-none">
-                  Multiple Request (Split Bills)
-                </h6>
-                <p className=" text-neutral-50 text-xs font-normal leading-tight text-left">
-                  Multiple request also known as split bills allows you to ask a
-                  group of users for a payment
-                </p>
-              </div>
-            </button> */}
               </div>
             </div>
           </div>

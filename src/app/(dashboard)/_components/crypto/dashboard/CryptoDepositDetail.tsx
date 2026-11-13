@@ -1,13 +1,10 @@
 "use client";
 import React from "react";
-import SideModalWrapper from "../../SideModalWrapper";
-import SideWrapperHeader from "@/components/SideWrapperHeader";
 import QRCode from "react-qr-code";
 import { ICryptoWallet } from "@/types/user";
 import ListDetailItem from "@/components/ui/ListDetailItem";
 import { copyToClipboard, truncateString } from "@/utils/helpers";
 import Image from "next/image";
-import Button from "@/components/ui/Button";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 
@@ -54,7 +51,6 @@ const CryptoDepositDetail = ({ close, wallet }: Props) => {
               <ListDetailItem title="Chain" value={wallet?.chain} />
             </div>
           </div>
-          {/* <Button onClick={() => copyToClipboard()}>Save or Share Address</Button> */}
         </div>
       </div>
     </CenterModalWrapper>

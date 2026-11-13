@@ -1,11 +1,7 @@
 import React, { useState } from "react";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 import CenterModalHeader from "@/components/layouts/CenterModalHeader";
-import {
-  IDeveloperApiKey,
-  IAPILogsParams,
-  IAPIKeyLogs,
-} from "@/types/services";
+import { IDeveloperApiKey, IAPIKeyLogs } from "@/types/services";
 import { useQuery } from "@tanstack/react-query";
 import { FetchAPILogs } from "@/services/developers";
 import Pagination from "@/components/ui/Pagination";
