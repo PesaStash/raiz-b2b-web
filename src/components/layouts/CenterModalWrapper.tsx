@@ -1,4 +1,5 @@
 "use client";
+import { useBodyScrollLock } from "@/lib/hooks/useBodyScrollLock";
 import Image from "next/image";
 import React, { ReactNode, useEffect, useState } from "react";
 import * as motion from "motion/react-client";
@@ -27,14 +28,7 @@ const CenterModalWrapper = ({
     setIsHydrated(true);
   }, []);
 
-  useEffect(() => {
-    if (!isHydrated) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [isHydrated]);
+  useBodyScrollLock(isHydrated);
 
   if (!isHydrated) return null;
 
