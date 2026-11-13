@@ -1,4 +1,5 @@
 "use client";
+import { useBodyScrollLock } from "@/lib/hooks/useBodyScrollLock";
 import {
   useEffect,
   useId,
@@ -133,15 +134,13 @@ export function TeamDialog({
   wide?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  useBodyScrollLock();
   useEffect(() => {
     const dialog = ref.current;
     const previous = document.activeElement as HTMLElement | null;
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     dialog?.showModal();
     return () => {
       dialog?.close();
-      document.body.style.overflow = overflow;
       previous?.focus();
     };
   }, []);

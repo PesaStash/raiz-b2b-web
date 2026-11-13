@@ -1,4 +1,5 @@
 "use client";
+import { useBodyScrollLock } from "@/lib/hooks/useBodyScrollLock";
 /* eslint-disable @next/next/no-img-element -- Figma SVGs retain their intrinsic geometry. */
 import { ReactNode, useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
@@ -117,11 +118,10 @@ export function GlobalDialog({
 }) {
   const purple = variant === "purple" && drawer;
   const ref = useRef<HTMLDivElement>(null);
+  useBodyScrollLock();
   const titleId = useId();
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     ref.current?.focus();
     const keydown = (event: KeyboardEvent) => {
       if (event.key === "Escape") close();
@@ -147,7 +147,6 @@ export function GlobalDialog({
     };
     document.addEventListener("keydown", keydown);
     return () => {
-      document.body.style.overflow = overflow;
       document.removeEventListener("keydown", keydown);
       previous?.focus();
     };

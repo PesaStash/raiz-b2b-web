@@ -355,6 +355,7 @@ const DashboardSummary = () => {
 
 
   const redesigned = branchState.showDashboard && (isGlobalBalance(user?.business_account) || selectedCurrency.name === "USD" || selectedCurrency.name === "NGN");
+  const hasDedicatedSwap = openModal === "swap" && selectedCurrency.name !== "SBC" && isGlobalBalance(user?.business_account);
 
   return (
     <div className="w-full">
@@ -447,6 +448,7 @@ const DashboardSummary = () => {
       <AnimatePresence>
         {openModal !== null &&
         openModal !== "selectAcct" &&
+        !hasDedicatedSwap &&
         (openModal !== "topUp" || !hasDedicatedTopUp) ? (
           <CenterModalWrapper
             sendFlow={openModal === "send"}
@@ -459,6 +461,7 @@ const DashboardSummary = () => {
           </CenterModalWrapper>
         ) : null}
       </AnimatePresence>
+      {hasDedicatedSwap && <Swap close={closeSwapModal} />}
       {openModal === "selectAcct" && (
         <SelectAccount
           close={() => setOpenModal(null)}
