@@ -14,6 +14,7 @@ import {
   registerFormSchemas,
   createAccountSchema,
   sanitizeOtpInput,
+  stripSpaces,
 } from "./validation";
 import { IRegisterFormValues } from "@/types/misc";
 import { toFormikValidate } from "zod-formik-adapter";
@@ -148,10 +149,10 @@ const RegisterForm = () => {
     if (!isLoading && !disableProgress()) {
       if (currentStep === 1) {
         const payload: IRegisterPayload = {
-          email: formik.values.email,
+          email: stripSpaces(formik.values.email),
           password: formik.values.password,
-          first_name: formik.values.firstName,
-          last_name: formik.values.lastName,
+          first_name: stripSpaces(formik.values.firstName),
+          last_name: stripSpaces(formik.values.lastName),
           country_id: formik.values.country_id,
           referral_code: formik.values.referral_code || null,
         };
@@ -159,7 +160,7 @@ const RegisterForm = () => {
       } else if (currentStep === 2) {
         verifyOtpMutation.mutate({
           otp: formik.values.otp,
-          email: formik.values.email,
+          email: stripSpaces(formik.values.email),
         });
       } else if (currentStep === steps.length) {
         router.push("/login");
@@ -179,7 +180,10 @@ const RegisterForm = () => {
             loading={verifyOtpMutation.isPending}
             onComplete={(otp) => {
               if (!verifyOtpMutation.isPending)
-                verifyOtpMutation.mutate({ otp, email: formik.values.email });
+                verifyOtpMutation.mutate({
+                  otp,
+                  email: stripSpaces(formik.values.email),
+                });
             }}
           />
         );

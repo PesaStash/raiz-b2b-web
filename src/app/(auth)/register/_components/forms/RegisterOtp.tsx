@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { ResendSignupOtpApi } from "@/services/auth";
 import EmailVerificationCard from "../../../_components/EmailVerificationCard";
 import { RegisterFormProps } from "./CreateAccount";
-import { sanitizeOtpInput } from "../validation";
+import { sanitizeOtpInput, stripSpaces } from "../validation";
 
 interface Props extends RegisterFormProps {
   loading: boolean;
@@ -34,7 +34,11 @@ const RegisterOtp = ({ goBack, formik, loading, onComplete }: Props) => {
         formik.setFieldValue("otp", "", false);
         goBack?.();
       }}
-      onResend={() => resendOtpMutation.mutateAsync({ email: formik.values.email })}
+      onResend={() =>
+        resendOtpMutation.mutateAsync({
+          email: stripSpaces(formik.values.email),
+        })
+      }
     />
   );
 };
