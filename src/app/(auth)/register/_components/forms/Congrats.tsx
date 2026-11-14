@@ -285,7 +285,7 @@ const Congrats = () => {
         </h2>
         <p className="text-raiz-gray-700 text-sm md:text-[15px] font-normal leading-snug mt-1">
           Your Raiz account set up is almost complete. Here&#39;s a list of some
-          of what Raiz offers.! 🌟💰
+          of what Raiz offers! 🌟💰
         </p>
       </header>
 

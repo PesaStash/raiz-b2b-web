@@ -1,10 +1,7 @@
 "use client";
-import SideWrapperHeader from "@/components/SideWrapperHeader";
 import React, { Dispatch, SetStateAction } from "react";
-import Image from "next/image";
 import { ISearchedUser } from "@/types/user";
 import FindRecipients from "@/components/transactions/FindRecipients";
-import { useP2PBeneficiaries } from "@/lib/hooks/useP2pBeneficiaries";
 import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 import { useQuery } from "@tanstack/react-query";
 import { IBillRequestParams } from "@/types/services";

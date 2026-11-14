@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import TxnReceiptDetail from "./TxnReceiptDetail";
 import PaymentProofPreview from "./PaymentProofPreview";
 import RaizReceipt from "@/components/transactions/RaizReceipt";
-import SideModalWrapper from "../SideModalWrapper";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 

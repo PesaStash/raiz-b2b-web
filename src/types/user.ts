@@ -131,6 +131,11 @@ export interface IWallet {
 export type GatewayCreditCurrency = "USD" | "NGN";
 
 export interface IBusinessAccount {
+  business_registration_number?: string;
+  balance_model?: string;
+  balances?: import("./globalBalance").SpendableBalance[];
+  legacy_balances?: import("./globalBalance").LegacyBalance[];
+  receiving_accounts?: import("./globalBalance").ReceivingAccount[];
   business_name: string;
   business_email: string;
   business_phone_number: string;
@@ -197,6 +202,9 @@ export interface ISearchedUser {
 }
 
 export type UsdKybCaseStatus =
+  | "awaiting_admin_review"
+  | "requires_correction"
+  | "awaiting_ubo"
   | "not_started"
   | "collecting"
   | "ready_for_review"

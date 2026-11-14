@@ -83,7 +83,7 @@ const EnterNewPinForm = ({ setStep, formik, loading }: Props) => {
           }
           onClick={handleSubmitButton}
           loading={loading}
-          className="mt-2 lg:mt-0"
+          className="!mt-4 lg:mt-0"
         >
           {formState === "pin" ? "Continue" : "Submit Changes"}
         </Button>

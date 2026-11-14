@@ -6,16 +6,15 @@ import {
   useUsdOnboardingStatus,
 } from "@/lib/hooks/useUsdOnboarding";
 import { useUsdOnboardingFlow } from "@/lib/hooks/useUsdOnboardingFlow";
-import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { findWalletByCurrency } from "@/utils/helpers";
 import {
-  canRequestUsdAccount,
   canStartNgnAccountSetup,
   canSetTransactionPin,
   dismissInfosAddAccounts,
   hasCompletedUsdWallet,
   hasUsdOnboardingRequest,
   isInfosAddAccountsDismissed,
+  isNigerianBusiness,
   isUsdOnboardingPending,
   resetInfosAddAccountsDismissed,
   shouldPromptAddUsdAccount,
@@ -23,6 +22,7 @@ import {
 import { ReactNode, useEffect, useState } from "react";
 import { toast } from "sonner";
 import Image from "next/image";
+import Link from "next/link";
 import CreateNgnAcct from "./createNgnAcct/CreateNgnAcct";
 import SetTransactionPin from "./transaction-pin/SetTransactionPin";
 import { AnimatePresence, motion } from "motion/react";
@@ -47,6 +47,7 @@ interface ActionItem {
 
 interface InfosProps {
   isNgnBranch?: boolean;
+  hideAccountPrompts?: boolean;
 }
 
 interface ActionSectionProps {
@@ -222,7 +223,7 @@ const ActionSection = ({
   );
 };
 
-const Infos = ({ isNgnBranch = false }: InfosProps) => {
+const Infos = ({ isNgnBranch = false, hideAccountPrompts = false }: InfosProps) => {
   const [showModal, setShowModal] = useState<ModalKey | null>(null);
   const [selectedAccountKey, setSelectedAccountKey] = useState<string | null>(
     null
@@ -250,6 +251,12 @@ const Infos = ({ isNgnBranch = false }: InfosProps) => {
   const verificationStatus =
     user?.business_account?.business_verifications?.[0]?.verification_status;
   const hasTransactionPin = user?.has_transaction_pin;
+  const showNairaBanner =
+    verificationStatus === "completed" &&
+    !!findWalletByCurrency(user, "USD") &&
+    isNigerianBusiness(user) &&
+    !findWalletByCurrency(user, "NGN") &&
+    !!hasTransactionPin;
 
   const { data: usdCase } = useUsdOnboardingStatus(user);
   const effectiveUsdCase = usdCase ?? null;
@@ -291,20 +298,6 @@ const Infos = ({ isNgnBranch = false }: InfosProps) => {
   };
 
   const handleUsdAction = async () => {
-    if (
-      usdFlow.hasRequestedUsd ||
-      !canRequestUsdAccount(user, verificationStatus, effectiveUsdCase) ||
-      usdFlow.isUsdActionPending
-    ) {
-      if (usdFlow.hasRequestedUsd) {
-        toast.info(
-          "Your USD account request is already pending. Our team will contact you to complete verification."
-        );
-      } else if (!canRequestUsdAccount(user, verificationStatus, effectiveUsdCase)) {
-        toast.info("USD account request is not available in your current state.");
-      }
-      return;
-    }
     await usdFlow.startUsdRequest();
   };
 
@@ -331,7 +324,7 @@ const Infos = ({ isNgnBranch = false }: InfosProps) => {
     },
     {
       key: "getNgn",
-      condition: showAddNgn,
+      condition: showAddNgn && !showNairaBanner,
       icon: (
         <Image
           src="/icons/flag-ng.png"
@@ -389,12 +382,12 @@ const Infos = ({ isNgnBranch = false }: InfosProps) => {
   ];
 
   const visibleAccountItems = accountItems.filter((item) => item.condition);
-  const hasAccountPrompt = visibleAccountItems.length > 0 || showUsdPendingBanner;
+  const hasAccountPrompt = !hideAccountPrompts && (visibleAccountItems.length > 0 || showUsdPendingBanner);
   const showAccountSection = hasAccountPrompt && !isAccountsDismissed;
   const showAccountRestore = hasAccountPrompt && isAccountsDismissed;
 
   if (!verificationStatus) return null;
-  if (!showPinSetup && !showAccountSection && !showAccountRestore) {
+  if (!showPinSetup && !showNairaBanner && !showAccountSection && !showAccountRestore) {
     return null;
   }
 
@@ -421,6 +414,29 @@ const Infos = ({ isNgnBranch = false }: InfosProps) => {
     <>
       {showPinSetup && (
         <PinSetupBanner onSetUpPin={() => setShowModal("set-pin")} />
+      )}
+
+      {showNairaBanner && (
+        <div className="mt-4 flex flex-col gap-3 rounded-2xl bg-[#eaecff]/40 px-3 py-4 sm:mt-5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-4 md:px-5 md:py-5">
+          <div className="flex min-w-0 items-center gap-3 md:gap-4">
+            <Image src="/icons/ngn.svg" width={32} height={32} alt="NGN" />
+            <div className="min-w-0">
+              <h3 className="text-sm font-bold text-raiz-gray-950 md:text-base">
+                Get a Naira (NGN) Account
+              </h3>
+              <p className="mt-1 text-xs leading-relaxed text-[#6F5B86] sm:text-sm">
+                Manage funds and make transactions in Naira, simplifying local payments and daily finances.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/onboarding/ngn"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white"
+          >
+            Get Naira Account
+            <MdArrowRightAlt className="size-4" />
+          </Link>
+        </div>
       )}
 
       {showUsdPendingBanner && effectiveUsdCase && (

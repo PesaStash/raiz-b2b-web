@@ -434,7 +434,6 @@ const AuBeneficiaryForm = ({ fields, countryCode }: Props) => {
         customer_email: user?.business_account?.business_email || "",
         country: countryCode as IntCountryType,
       };
-      console.log(JSON.stringify(data, null, 2));
       AddBeneficiaryMutation.mutate(data);
     },
   });

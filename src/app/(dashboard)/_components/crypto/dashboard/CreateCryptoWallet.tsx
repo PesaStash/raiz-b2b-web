@@ -1,6 +1,5 @@
 "use client";
 import { withBusinessWrite } from "@/components/team/BusinessWrite";
-import SideWrapperHeader from "@/components/SideWrapperHeader";
 import Button from "@/components/ui/Button";
 import Image from "next/image";
 import React, { useState } from "react";

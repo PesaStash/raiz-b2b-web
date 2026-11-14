@@ -37,11 +37,11 @@ const WelcomeBack = ({ setPage, email, user, setPassword }: Props) => {
   return (
     <form
       onSubmit={formik.handleSubmit}
-      className="h-full flex flex-col -mt-2 justify-between "
+      className="flex flex-col gap-6"
     >
       <div>
-        <header className="flex flex-col justify-center items-center mb-[62px]">
-          <span className="bg-primary h-[54px] w-[54px] rounded-full flex justify-center items-center text-center text-[#fcfcfc]  font-semibold ">
+        <header className="flex flex-col justify-center items-center mb-6">
+          <span className="bg-raiz-usd-primary h-[54px] w-[54px] rounded-full flex justify-center items-center text-center text-[#fcfcfc]  font-semibold ">
             {getInitials(user.first_name, user.last_name)}
           </span>
           <h3 className="text-center text-raiz-gray-950 text-xl font-bold ">
@@ -52,7 +52,7 @@ const WelcomeBack = ({ setPage, email, user, setPassword }: Props) => {
         <div className="flex justify-between items-center mb-3">
           <InputLabel content="Password" />
           <button
-            className="text-right text-raiz-purple-90 text-sm font-semibold  leading-[16.80px] hover:underline"
+            className="text-right text-raiz-usd-primary text-sm font-semibold  leading-[16.80px] hover:underline"
             onClick={() => setPage(1)}
           >
             Forgot your password?
@@ -69,7 +69,7 @@ const WelcomeBack = ({ setPage, email, user, setPassword }: Props) => {
         <Button
           type="submit"
           disabled={!formik.values.password}
-          className="my-6"
+          className="auth-submit my-6"
           loading={loginMutation.isPending}
         >
           Login
@@ -78,7 +78,7 @@ const WelcomeBack = ({ setPage, email, user, setPassword }: Props) => {
           Not you?{" "}
           <Link
             href={"/login"}
-            className="font-semibold hover:underline text-raiz-purple-90"
+            className="font-semibold hover:underline text-raiz-usd-primary"
           >
             Sign in as another member
           </Link>

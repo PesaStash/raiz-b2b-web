@@ -13,7 +13,9 @@ export interface ICardDetails {
   billingAddress: string;
 }
 export interface IZelleInfo {
-  expected_amount: 1;
+  expected_amount: number;
+  fee?: number;
+  total_amount?: number;
   memo_code: string;
   wallet_id: string;
   expires_at: string;

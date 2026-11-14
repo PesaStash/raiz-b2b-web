@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { AnimatePresence } from "motion/react";
 import { useMobileNav } from "@/context/MobileNavContext";
 import { useNotifications } from "@/lib/hooks/useNotifications";
@@ -11,17 +10,13 @@ import Notifications from "@/app/(dashboard)/_components/notification/Notificati
 import CenterModalWrapper from "./CenterModalWrapper";
 
 const MobileHeader = () => {
-  const pathName = usePathname();
   const { openDrawer, isDrawerOpen  } = useMobileNav();
   const [showNotifications, setShowNotifications] = useState(false);
-  const { data, refetch } = useNotifications(15);
+  const { data } = useNotifications(15);
 
   const notifications = data?.pages[0]?.notifications || [];
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  useEffect(() => {
-    refetch();
-  }, [pathName, refetch]);
 
   return (
     <>

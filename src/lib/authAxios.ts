@@ -5,15 +5,13 @@ import axios, {
   AxiosResponse,
 } from "axios";
 import { toast } from "sonner";
-import { GetItemFromCookie } from "@/utils/CookiesFunc";
-import { fetchPublicIP, getApiErrorMessage } from "@/utils/helpers";
+import { getApiErrorMessage } from "@/utils/helpers";
 
 import { endSession, refreshSessionProfile } from "@/lib/session";
 import { readApiError } from "@/lib/apiError";
 import { canMakeRequest, isPublicPath } from "@/lib/permissions";
+import { requestPath, routeThroughProxy } from "@/lib/apiClient";
 import { useUserStore } from "@/store/useUserStore";
-
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
 interface ErrorResponseData {
   message?: string;
@@ -35,7 +33,7 @@ const handleError = async (error: CustomAxiosError) => {
   try {
     const isSilent = (error.config as CustomAxiosRequestConfig)?.silent;
 
-    // Check for 401 status and redirect to login
+    // The proxy has already cleared the session cookie on a 401.
     if (error.response?.status === 401) {
       if (typeof window !== "undefined" && !isPublicPath(window.location.pathname)) {
         const { code } = readApiError(error);
@@ -45,7 +43,7 @@ const handleError = async (error: CustomAxiosError) => {
     }
     if (error.response?.status === 403) {
       useUserStore.setState({ sessionVerified: false });
-      if (!error.config?.url?.replace(/\/$/, "").endsWith("/account_user/me")) refreshSessionProfile();
+      if (!requestPath(error.config).replace(/\/$/, "").endsWith("/account_user/me")) refreshSessionProfile();
     }
     if (!isSilent) {
       const message = getApiErrorMessage(error, "An error occurred");
@@ -60,18 +58,13 @@ const handleError = async (error: CustomAxiosError) => {
   return Promise.reject(error.response ?? error);
 };
 
-// Fetch IP and cache it
-let cachedIP: string | null = null;
-
-export const AuthAxios: AxiosInstance = axios.create({
-  baseURL: BASE_URL,
-});
+/** Authenticated RaizServer client. Requests go through the /api/raiz proxy. */
+export const AuthAxios: AxiosInstance = axios.create();
 
 AuthAxios.interceptors.request.use(
-  async (config) => {
-    const token = GetItemFromCookie("access_token");
+  (config) => {
     const method = (config.method ?? "get").toLowerCase();
-    const path = new URL(config.url ?? "/", "https://local.invalid").pathname;
+    const path = requestPath(config);
     const state = useUserStore.getState();
     if (!canMakeRequest(state.sessionVerified ? state.user : null, method, path)) {
       throw new axios.AxiosError("Your role does not allow this action.", "ERR_FORBIDDEN", config, undefined, {
@@ -79,32 +72,15 @@ AuthAxios.interceptors.request.use(
       });
     }
 
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-
-    if (!cachedIP) {
-      cachedIP = await fetchPublicIP();
-    }
-
-    if (cachedIP) {
-      config.headers["ip-address"] = cachedIP;
-    }
-
-    const mutatingMethods = ["post", "patch"];
-    if (
-      config.method &&
-      mutatingMethods.includes(config.method.toLowerCase())
-    ) {
+    if (["post", "patch"].includes(method)) {
       // Retain a caller-supplied key so retries of the same logical request
       // share an idempotency key.
-      const existingKey = config.headers["idempotency-key"];
-      if (!existingKey) {
+      if (!config.headers["idempotency-key"]) {
         config.headers["idempotency-key"] = crypto.randomUUID();
       }
     }
 
-    return config;
+    return routeThroughProxy(config);
   },
   (error) => Promise.reject(error),
 );

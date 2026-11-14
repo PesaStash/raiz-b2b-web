@@ -17,15 +17,13 @@ import {
 import dayjs from "dayjs";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import Skeleton from "react-loading-skeleton";
-import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
 import { FetchTransactionReportChartApi } from "@/services/business";
 import { useUser } from "@/lib/hooks/useUser";
 import { ITxnReportPayload } from "@/types/services";
 import { findWalletByCurrency } from "@/utils/helpers";
 import { useState } from "react";
-import SelectAccount from "../SelectAccount";
-import ActivityTypesChart from "./ActivityTypesChart";
+import type { ScriptableContext } from "chart.js";
 
 ChartJS.register(
   LineElement,
@@ -100,7 +98,7 @@ const InflowOutflow = () => {
         label: "Inflow",
         data: inflow,
         borderColor: "#0496FF",
-        backgroundColor: (context: any) => {
+        backgroundColor: (context: ScriptableContext<"line">) => {
           const ctx = context.chart.ctx;
           const gradient = ctx.createLinearGradient(0, 0, 0, 300);
           gradient.addColorStop(0, "rgba(4, 150, 255, 0.15)");
@@ -119,7 +117,7 @@ const InflowOutflow = () => {
         label: "Outflow",
         data: outflow,
         borderColor: "#5215B6",
-        backgroundColor: (context: any) => {
+        backgroundColor: (context: ScriptableContext<"line">) => {
           const ctx = context.chart.ctx;
           const gradient = ctx.createLinearGradient(0, 0, 0, 300);
           gradient.addColorStop(0, "rgba(82, 21, 182, 0.15)");

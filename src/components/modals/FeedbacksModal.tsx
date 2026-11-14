@@ -42,8 +42,7 @@ const FeedbacksModal = ({ close }: Props) => {
     onSubmit: (val, { resetForm }) => {
       try {
         Mutation.mutate(val);
-      } catch (error) {
-        console.log(error);
+      } catch {
       } finally {
         resetForm();
       }

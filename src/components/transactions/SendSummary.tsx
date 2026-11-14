@@ -3,9 +3,13 @@ import { useSendStore } from "@/store/Send";
 import React, { useMemo } from "react";
 import Image from "next/image";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
-import Button from "../ui/Button";
-import ListDetailItem from "../ui/ListDetailItem";
-import CenterModalHeader from "../layouts/CenterModalHeader";
+import {
+  FlowHeader,
+  FlowCard,
+  FlowRow,
+  FlowActions,
+  FlowCurrency,
+} from "./send-flow/Flow";
 import { convertField, formatAmount, maskAccountNumber } from "@/utils/helpers";
 import { formatUsdPaymentRailLabel } from "@/utils/thirdPartyUsdBeneficiary";
 
@@ -14,8 +18,6 @@ interface Props {
   goNext: () => void;
   fee: number;
 }
-
-
 
 const SendSummary = ({ goBack, goNext, fee }: Props) => {
   const {
@@ -53,13 +55,12 @@ const SendSummary = ({ goBack, goNext, fee }: Props) => {
 
   const recipientAccountNumber = useMemo(() => {
     if (!recipient) return "";
-    // if ("account_number" in recipient) return recipient.account_number || "";
     if ("usd_beneficiary" in recipient)
       return recipient.usd_beneficiary?.account_number || "";
     if ("foreign_currency_beneficiary" in recipient)
       return (
-        recipient.foreign_currency_beneficiary?.account_number ||
-        recipient.foreign_currency_beneficiary?.iban ||
+        recipient.foreign_currency_beneficiary.account_number ||
+        recipient.foreign_currency_beneficiary.iban ||
         ""
       );
     if ("bank_account_number" in recipient)
@@ -68,96 +69,89 @@ const SendSummary = ({ goBack, goNext, fee }: Props) => {
   }, [recipient]);
 
   return (
-    <div className="h-full flex flex-col overflow-auto no-scrollbar pb-5 lg:mb-12 xl:mb-0   ">
-      <CenterModalHeader close={goBack} />
-      <h5 className=" text-raiz-gray-950 md:text-[22px] text-lg font-semibold leading-tight  mb-10">
-        Send Summary
-      </h5>
-      <div className="flex h-full flex-col justify-between pb-5 ">
-        <div className="rounded-[20px] flex flex-col bg-raiz-gray-50 px-3 md:px-6 lg:py-6 xl:py-10 desktop:py-16  mb-6">
-          <div className="flex flex-col items-center justify-center mb-4 text-zinc-900">
-            <div className="w-12 h-12 mb-4 flex mx-auto items-center justify-center bg-violet-100 bg-opacity-60 rounded-3xl">
-              <Image
-                className="w-6 h-6"
-                src={category?.category_emoji || "/icons/notif-general.svg"}
-                alt={category?.transaction_category || ""}
-                width={24}
-                height={24}
-              />
-            </div>
-            <p className="text-center text-xl font-bold leading-normal">
-              {selectedCurrency?.sign}
-              {formatAmount(Number(totalPayable))}
-            </p>
-            <p className="text-center   text-xs font-normal  leading-tight">
-              Send Summary
-            </p>
-          </div>
-          <div className="w-full flex flex-col gap-[15px]">
-            {/* Amount */}
-            <ListDetailItem
-              title="Amount"
-              value={`${selectedCurrency?.sign}
-              ${formatAmount(Number(amount))}`}
-            />
-            <ListDetailItem
-              title="Transaction fee"
-              value={`${selectedCurrency?.sign}
-              ${fee.toLocaleString()}`}
-            />
-            <ListDetailItem title="Beneficiary" value={recipientName} />
-            {!selectedUser && recipientAccountNumber ? (
-              <ListDetailItem
-                title="Account Number"
-                value={maskAccountNumber(recipientAccountNumber)}
-              />
-            ) : null}
-            {usdBeneficiary?.usd_beneficiary?.bank_name ? (
-              <ListDetailItem
-                title="Bank"
-                value={usdBeneficiary.usd_beneficiary.bank_name}
-              />
-            ) : null}
-            {usdBeneficiary && (
-              <ListDetailItem
-                title="Payment Rail"
-                value={formatUsdPaymentRailLabel(
-                  usdBeneficiary?.usd_beneficiary?.payment_rail,
-                )}
-              />
-            )}
-            {foreignBeneficiary && (
-              <ListDetailItem
-                title="Payment Rail"
-                value={convertField(
-                  foreignBeneficiary?.foreign_currency_beneficiary?.payment_rail,
-                )}
-              />
-            )}
-            <ListDetailItem
-              title={usdBeneficiary ? "Reason" : "Purpose"}
-              value={purpose}
-            />
-            <ListDetailItem
-              title="Category"
-              value={category?.transaction_category || ""}
-            />
-          </div>
+    <>
+      <FlowHeader title="Review your transfer" onBack={goBack} />
+      <FlowCard>
+        <div className="flex items-center gap-2.5">
+          <FlowCurrency currency={selectedCurrency.name} size={36} />
+          <Image
+            src="/images/send/chevron.svg"
+            width={18}
+            height={18}
+            alt="to"
+            className="rotate-180"
+          />
+          <Image
+            src={
+              selectedUser ? "/images/send/raizer.svg" : "/images/send/bank.svg"
+            }
+            width={44}
+            height={44}
+            alt=""
+          />
         </div>
-        <div className="w-full flex flex-col gap-3">
-          <Button
-            // disabled={!fee}
-            onClick={goNext}
-          >
-            Send
-          </Button>
-          <Button onClick={goBack} variant="secondary">
-            Cancel
-          </Button>
-        </div>
-      </div>
-    </div>
+        <p className="text-4xl font-semibold">
+          {selectedCurrency.sign}
+          {formatAmount(Number(totalPayable))}
+        </p>
+        <p className="text-sm text-[#79708d]">
+          Total {selectedCurrency.name} deducted from your balance
+        </p>
+        <FlowRow label="To">
+          {recipientName}
+          {selectedUser ? ` · @${selectedUser.username} · Raizer` : ""}
+        </FlowRow>
+        {!selectedUser && recipientAccountNumber && (
+          <FlowRow label="Account number">
+            {maskAccountNumber(recipientAccountNumber)}
+          </FlowRow>
+        )}
+        {usdBeneficiary?.usd_beneficiary?.bank_name && (
+          <FlowRow label="Bank">
+            {usdBeneficiary.usd_beneficiary.bank_name}
+          </FlowRow>
+        )}
+        {usdBeneficiary && (
+          <FlowRow label="Payment rail">
+            {formatUsdPaymentRailLabel(
+              usdBeneficiary.usd_beneficiary.payment_rail,
+            )}
+          </FlowRow>
+        )}
+        {foreignBeneficiary && (
+          <FlowRow label="Payment rail">
+            {convertField(
+              foreignBeneficiary.foreign_currency_beneficiary.payment_rail,
+            )}
+          </FlowRow>
+        )}
+        <FlowRow label="You send">
+          {selectedCurrency.sign}
+          {formatAmount(Number(amount))}
+        </FlowRow>
+        <FlowRow label="Fee">
+          {fee ? `${selectedCurrency.sign}${formatAmount(fee)}` : "Free"}
+        </FlowRow>
+        <FlowRow label={`Total ${selectedCurrency.name} deducted`}>
+          {selectedCurrency.sign}
+          {formatAmount(Number(totalPayable))}
+        </FlowRow>
+        <FlowRow label="Rate">No conversion</FlowRow>
+        {category && (
+          <FlowRow label="Category">{category.transaction_category}</FlowRow>
+        )}
+        <FlowRow label="Purpose">{purpose}</FlowRow>
+        <FlowRow label="Recipient gets">
+          {selectedCurrency.sign}
+          {formatAmount(Number(amount))}
+        </FlowRow>
+        <FlowActions
+          onBack={goBack}
+          onNext={goNext}
+          nextLabel={`Send ${selectedCurrency.sign}${formatAmount(Number(amount))}`}
+        />
+      </FlowCard>
+    </>
   );
 };
-
 export default SendSummary;

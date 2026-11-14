@@ -48,7 +48,6 @@ const GuestCardPayForm = ({ formik, goNext, loading }: Props) => {
   const [isFocused, setIsFocused] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
-  //   const { countries, fetchCountries, loading: isLoading } = useCountryStore();
   const stripe = useStripe();
 
   const amountSchema = z

@@ -47,11 +47,9 @@ const AddNewTax = ({ close }: Props) => {
     },
     validationSchema: toFormikValidationSchema(validationSchema),
     onSubmit: (val, { resetForm }) => {
-      console.log(val);
       try {
         Mutation.mutate({ tax_name: val.taxName, tax_percentage: val.rate });
-      } catch (error) {
-        console.log(error);
+      } catch {
       } finally {
         resetForm();
       }

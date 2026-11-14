@@ -1,0 +1,17 @@
+{
+  "CORSRules": [
+    {
+      "AllowedOrigins": [
+        "http://localhost:3000",
+        "https://raiz-b2b-web-git-dev-oyedelesgs-projects.vercel.app"
+      ],
+      "AllowedMethods": ["PUT"],
+      "AllowedHeaders": [
+        "cache-control",
+        "content-disposition",
+        "content-type"
+      ],
+      "MaxAgeSeconds": 300
+    }
+  ]
+}

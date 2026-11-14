@@ -10,7 +10,6 @@ import RequestSucess from "./single-request/RequestSucess";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { RequestFundsApi } from "@/services/transactions";
 import { useUser } from "@/lib/hooks/useUser";
-import { useCurrentWallet } from "@/lib/hooks/useCurrentWallet";
 import { IRequestFundsPayload } from "@/types/services";
 import { toast } from "sonner";
 import RequestFailed from "./single-request/RequestFailed";
@@ -63,12 +62,6 @@ export const RequestMoney = ({ setStep, close }: RequestStepsProps) => {
     }
   }, [requestMoneyStep, selectedUser]);
 
-  // useEffect(() => {
-  //   if (requestMoneyStep === "success") {
-  //     close();
-  //     setRequestMoneyStep("success");
-  //   }
-  // }, [requestMoneyStep]);
 
   const goBackToStep1 = () => {
     setSelectedUser(undefined);
@@ -116,7 +109,6 @@ export const RequestMoney = ({ setStep, close }: RequestStepsProps) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (response: any) => {
       setRequestMoneyStep("failed");
-      console.log("response", response);
       toast.error(response?.data?.errors[0]);
     },
   });

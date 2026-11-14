@@ -147,6 +147,7 @@ const CustomersTable = () => {
       {
         ...(debouncedSearch && { search: debouncedSearch }),
         page: currentPage,
+        limit: pageSize,
       },
     ],
     queryFn: ({ queryKey }) => {

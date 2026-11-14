@@ -1,7 +1,6 @@
 "use client";
 import Button from "@/components/ui/Button";
 import { getCurrencySymbol } from "@/utils/helpers";
-// import Image from "next/image";
 import { motion } from "motion/react";
 import React, { useEffect, useState } from "react";
 import SideModalWrapper from "../../../(dashboard)/_components/SideModalWrapper";
@@ -257,12 +256,6 @@ const PaySuccess = ({ data, senderName }: Props) => {
               Success! The user has received your payment{" "}
             </p>
           </div>
-          {/* <h3 className="text-raiz-gray-950 text-base font-semibold  leading-[21.6px]">
-            Do more. Get more. Raiz AM.
-          </h3>
-          <p className="text-sm text-raiz-gray-950">
-            Check out everything you unlock with the app. 🌟💰
-          </p> */}
           <div className="flex flex-col mt-4 md:mt-8  gap-4 xl:gap-6 p-5 md:p-[30px] rounded-[20px] border-2 border-[#F3F1F6] bg-white">
             {GetRaizedinfo.map((each, index) => (
               <div key={index} className="flex gap-4">
@@ -280,21 +273,6 @@ const PaySuccess = ({ data, senderName }: Props) => {
           </div>
         </div>
         <div className="flex flex-col gap-3 mt-8">
-          {/* <div className="p-5 bg-indigo-100/60 rounded-[20px] inline-flex justify-start items-center gap-4">
-            <div className="text-zinc-900 text-xs leading-tight flex items-center">
-              Use code <span className="font-semibold mx-1.5">KHADARO12</span>{" "}
-              to get 10% off first transfer, only{" "}
-              <span className="font-semibold mr-1.5">14:59</span> left!
-              <button onClick={() => copyToClipboard("KHADARO12")}>
-                <Image
-                  src={"/icons/copy.svg"}
-                  alt={"copy"}
-                  width={16}
-                  height={16}
-                />
-              </button>
-            </div>
-          </div> */}
           <Link
             href={"https://raizapp.onelink.me/RiOx/webdirect"}
             target="_blank"

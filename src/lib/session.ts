@@ -1,10 +1,11 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { RemoveItemFromCookie } from "@/utils/CookiesFunc";
+import { clearSessionHint } from "@/utils/CookiesFunc";
 import { useUserStore } from "@/store/useUserStore";
 import { useSendStore } from "@/store/Send";
 import { useSwapStore } from "@/store/Swap";
 import { useTopupStore } from "@/store/TopUp";
 import { useCryptoSwapStore } from "@/store/CryptoSwap";
+import { clearPendingCardCheckout } from "@/lib/cardCheckoutSession";
 
 let client: QueryClient | undefined;
 let generation = 0;
@@ -18,11 +19,20 @@ export function refreshSessionProfile() {
 }
 export function clearLocalSession() {
   generation += 1;
-  RemoveItemFromCookie("access_token");
+  clearSessionHint();
+  if (typeof window !== "undefined") {
+    // Clears the httpOnly session cookie, which scripts cannot remove.
+    void fetch("/api/auth/session", {
+      method: "DELETE",
+      headers: { "x-raiz-client": "web" },
+      keepalive: true,
+    }).catch(() => undefined);
+  }
   void client?.cancelQueries();
   client?.clear();
   const entityId = useUserStore.getState().user?.business_account?.entity_id;
   if (typeof window !== "undefined" && entityId) localStorage.removeItem(`usd-onboarding-case:${entityId}`);
+  clearPendingCardCheckout(entityId);
   useUserStore.getState().clearUser();
   useUserStore.persist.clearStorage();
   useSendStore.setState(useSendStore.getInitialState());

@@ -1,11 +1,8 @@
 "use client";
-import SideWrapperHeader from "@/components/SideWrapperHeader";
 import Avatar from "@/components/ui/Avatar";
 import Button from "@/components/ui/Button";
-import EmptyList from "@/components/ui/EmptyList";
 import InputField from "@/components/ui/InputField";
 import ModalTrigger from "@/components/ui/ModalTrigger";
-// import Radio from "@/components/ui/Radio";
 import Spinner from "@/components/ui/Spinner";
 import { useUser } from "@/lib/hooks/useUser";
 import {
@@ -26,7 +23,6 @@ import {
 import {
   // convertField,
   getReadablePatternMessage,
-  truncateString,
 } from "@/utils/helpers";
 import { resolveCountryMethodFields } from "@/utils/remittanceFormFields";
 import {
@@ -59,11 +55,14 @@ import { ImSpinner2 } from "react-icons/im";
 import InputLabel from "@/components/ui/InputLabel";
 import IntBeneficiaryModal from "../toInternational/IntBeneficiaryModal";
 import IntCountriesModal from "../toInternational/IntCountriesModal";
-import Image from "next/image";
 import GbBeneficiaryForm from "./GbBeneficiaryForm";
 import DynamicBeneficiaryForm from "./DynamicBeneficiaryForm";
 import CNBeneficiaryForm from "./CNBeneficiaryForm";
-import CenterModalHeader from "@/components/layouts/CenterModalHeader";
+import {
+  FlowHeader,
+  FlowCard,
+  FlowChoice,
+} from "@/components/transactions/send-flow/Flow";
 
 interface FormValues {
   country: IIntCountry | null;
@@ -73,9 +72,18 @@ interface FormValues {
 
 interface Props {
   close: () => void;
+  initialCountry?: IIntCountry;
+  allowedCountryCodes?: string[];
 }
 
-const GlobalBeneficiary = ({ close }: Props) => {
+const GlobalBeneficiary = ({
+  close,
+  initialCountry,
+  allowedCountryCodes,
+}: Props) => {
+  const [stage, setStage] = useState<"country" | "method" | "recipient">(
+    initialCountry ? "method" : "country",
+  );
   const { actions } = useSendStore();
   const { user } = useUser();
   const [showModal, setShowModal] = useState<
@@ -83,14 +91,18 @@ const GlobalBeneficiary = ({ close }: Props) => {
   >(null);
   const [bank, setBank] = useState<IBank>();
   const [fields, setFields] = useState<FormField[]>([]);
-  const [countryMethods, setCountryMethods] = useState<IntBeneficiaryMethodFields>(
-    {},
-  );
+  const [countryMethods, setCountryMethods] =
+    useState<IntBeneficiaryMethodFields>({});
   const [selectedMethod, setSelectedMethod] = useState<string>("");
   const [isValid, setIsValid] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPollingBeneficiaries, setIsPollingBeneficiaries] = useState(false);
-  const { data: fieldsData, isLoading: fieldLoading } = useQuery({
+  const {
+    data: fieldsData,
+    isLoading: fieldLoading,
+    isError: fieldsError,
+    refetch: refetchFields,
+  } = useQuery({
     queryKey: ["int-bank-benefiary-fields"],
     queryFn: GetIntBeneficiaryFormFields,
     staleTime: 0,
@@ -117,7 +129,11 @@ const GlobalBeneficiary = ({ close }: Props) => {
   const pollBeneficiaryStatus = async (country: string) => {
     setIsPollingBeneficiaries(true);
     try {
-      for (let attempt = 0; attempt < BENEFICIARY_POLL_MAX_ATTEMPTS; attempt++) {
+      for (
+        let attempt = 0;
+        attempt < BENEFICIARY_POLL_MAX_ATTEMPTS;
+        attempt++
+      ) {
         await new Promise((resolve) =>
           setTimeout(resolve, BENEFICIARY_POLL_INTERVAL_MS),
         );
@@ -146,7 +162,9 @@ const GlobalBeneficiary = ({ close }: Props) => {
           return;
         }
         if (status === "failed") {
-          toast.error("Beneficiary creation failed. Please review the details.");
+          toast.error(
+            "Beneficiary creation failed. Please review the details.",
+          );
           return;
         }
       }
@@ -162,7 +180,7 @@ const GlobalBeneficiary = ({ close }: Props) => {
       toast.success(response?.message || "Beneficiary submitted.");
       await qc.invalidateQueries({ queryKey: ["int-bank-beneficiaries"] });
       NgFormik.resetForm();
-      formik.resetForm();
+      formik.resetForm({ values: { country: formik.values.country } });
       setBank(undefined);
       if (variables.country !== "NG") {
         await pollBeneficiaryStatus(variables.country);
@@ -173,10 +191,15 @@ const GlobalBeneficiary = ({ close }: Props) => {
         error,
         "Unable to create beneficiary.",
       );
-      if (remittanceError.kind === "validation" && remittanceError.fieldErrors) {
-        Object.entries(remittanceError.fieldErrors).forEach(([field, message]) => {
-          formik.setFieldError(field, message);
-        });
+      if (
+        remittanceError.kind === "validation" &&
+        remittanceError.fieldErrors
+      ) {
+        Object.entries(remittanceError.fieldErrors).forEach(
+          ([field, message]) => {
+            formik.setFieldError(field, message);
+          },
+        );
         return;
       }
       if (remittanceError.kind === "unsupported_network") {
@@ -188,7 +211,7 @@ const GlobalBeneficiary = ({ close }: Props) => {
   });
 
   const initialValues: FormValues = {
-    country: null,
+    country: initialCountry || null,
   };
 
   const createValidationSchema = (fields: FormField[]) => {
@@ -241,12 +264,7 @@ const GlobalBeneficiary = ({ close }: Props) => {
           );
 
           fieldSchema = fieldSchema.regex(regex, readableMessage);
-        } catch (error) {
-          console.log(
-            `Invalid regex pattern for ${fieldName}: ${field.pattern}`,
-            error,
-          );
-        }
+        } catch {}
       }
 
       let finalSchema: z.ZodType<string> = fieldSchema;
@@ -280,7 +298,10 @@ const GlobalBeneficiary = ({ close }: Props) => {
       }
       const fieldName = parentName ? `${parentName}_${field.name}` : field.name;
       if (field.type === "object" && field.fields?.length) {
-        return { ...acc, ...collectDefaultFieldValues(field.fields, fieldName) };
+        return {
+          ...acc,
+          ...collectDefaultFieldValues(field.fields, fieldName),
+        };
       }
       if (field.const) {
         acc[fieldName] = field.const;
@@ -313,14 +334,14 @@ const GlobalBeneficiary = ({ close }: Props) => {
     values: Record<string, string>,
     objectFields: string[],
   ) => {
-    const transformed = { ...values } as Record<string, any>;
+    const transformed: Record<string, unknown> = { ...values };
     const sortedObjectFields = [...objectFields].sort(
       (left, right) => right.length - left.length,
     );
 
     sortedObjectFields.forEach((objectField) => {
       const prefix = `${objectField}_`;
-      const nestedValues: Record<string, string> = {};
+      const nestedValues: Record<string, unknown> = {};
 
       Object.keys(transformed).forEach((key) => {
         if (key.startsWith(prefix)) {
@@ -340,7 +361,7 @@ const GlobalBeneficiary = ({ close }: Props) => {
   const formikConfig: FormikConfig<FormValues> = {
     initialValues,
     validationSchema: toFormikValidationSchema(createValidationSchema(fields)),
-    onSubmit: async (values, { resetForm, setSubmitting, setErrors }) => {
+    onSubmit: async (values, { setSubmitting, setErrors }) => {
       try {
         const { country, ...restValues } = values;
         const allowedKeys = collectFieldNames(fields);
@@ -359,7 +380,6 @@ const GlobalBeneficiary = ({ close }: Props) => {
           data: { ...transformedValues },
         };
         await AddBeneficiaryMutation.mutateAsync(payload);
-        resetForm();
       } catch (error) {
         const fieldErrors = mapRemittanceFieldErrors(error);
         if (Object.keys(fieldErrors).length) {
@@ -499,7 +519,6 @@ const GlobalBeneficiary = ({ close }: Props) => {
       },
     ],
     queryFn: async ({ queryKey }) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const [_, params] = queryKey as [
         string,
         { account_number: string; bank_code: string },
@@ -514,8 +533,7 @@ const GlobalBeneficiary = ({ close }: Props) => {
     LEGACY_REMITTANCE_FORM_COUNTRIES.has(countryCode);
 
   const handleBeneficiarySelect = (user: EntityForeignPayoutBeneficiary) => {
-    const status =
-      user.foreign_payout_beneficiary?.beneficiary_creation_status;
+    const status = user.foreign_payout_beneficiary?.beneficiary_creation_status;
     if (!isBeneficiaryReady(status)) {
       toast.info(
         status === "failed"
@@ -527,6 +545,24 @@ const GlobalBeneficiary = ({ close }: Props) => {
     actions.selectIntBeneficiary(user);
   };
 
+  const availableCountries = Object.keys(fieldsData ?? {}).filter(
+    (code) => !allowedCountryCodes || allowedCountryCodes.includes(code),
+  );
+  const selectedCountry = formik.values.country;
+  const relevantBeneficiaries = beneficiaries.filter(
+    (item) =>
+      item.foreign_payout_beneficiary?.beneficiary_country === countryCode,
+  );
+  if (fieldsError)
+    return (
+      <>
+        <FlowHeader title="Where are you sending to?" onBack={close} />
+        <FlowCard>
+          <p>Couldn’t load supported countries.</p>
+          <Button onClick={() => refetchFields()}>Try again</Button>
+        </FlowCard>
+      </>
+    );
   if (fieldLoading) {
     return (
       <div className="flex flex-col gap-5 mt-10 justify-center items-center">
@@ -536,171 +572,172 @@ const GlobalBeneficiary = ({ close }: Props) => {
     );
   }
 
-  return (
-    <div className="flex flex-col h-full">
-      <CenterModalHeader close={close} />
-      <h2 className="md:text-xl text-lg font-semibold md:font-bold text-raiz-gray-950 md:mb-10 mb-4">
-        International Remittance
-      </h2>
-      <div className="flex-1  flex flex-col justify-between gap-4 h-[65vh] xl:h-[70vh]">
-        <div className="bg-raiz-gray-50 md:p-6 p-3 overflow-y-auto rounded-[20px]">
-          <div className="mb-11">
-            <h5 className="text-raiz-gray-950 md:text-sm text-xs font-bold  leading-[16.80px] mb-[15px]">
-              Beneficiary
-            </h5>
-            {isLoading || isPollingBeneficiaries ? (
-              <div>
-                {isPollingBeneficiaries
-                  ? "Processing beneficiary..."
-                  : "Loading beneficiaries..."}
-              </div>
-            ) : beneficiaries?.length > 0 ? (
-              <div className="flex gap-2 overflow-x-scroll no-scrollbar">
-                {beneficiaries?.map((user, index) => {
-                  const creationStatus =
-                    user.foreign_payout_beneficiary?.beneficiary_creation_status;
-                  const ready = isBeneficiaryReady(creationStatus);
-                  return (
-                  <button
-                    key={index}
-                    disabled={!ready}
-                    className={`flex flex-col justify-center items-center gap-1 px-2 flex-shrink-0 ${
-                      ready ? "" : "opacity-50 cursor-not-allowed"
-                    }`}
-                    onClick={() => handleBeneficiarySelect(user)}
-                  >
-                    <div className="flex relative">
-                      <Avatar
-                        src={""}
-                        name={
-                          user?.foreign_payout_beneficiary?.beneficiary_name
-                        }
-                      />
-                      {user?.foreign_payout_beneficiary
-                        ?.beneficiary_country && (
-                        <Image
-                          className="absolute bottom-0 -right-3 w-7 h-5"
-                          src={`/icons/flag-${user.foreign_payout_beneficiary.beneficiary_country.toLowerCase()}.png`}
-                          width={30}
-                          height={20}
-                          alt={user.foreign_payout_beneficiary.beneficiary_country.toLowerCase()}
-                        />
-                      )}
-                    </div>
+  if (stage === "country")
+    return (
+      <IntCountriesModal
+        inline
+        countryCodes={availableCountries}
+        close={close}
+        setCountry={(country) => {
+          formik.resetForm({ values: { country } });
+          setBank(undefined);
+          NgFormik.resetForm();
+          setSelectedMethod("");
+          setStage("method");
+        }}
+      />
+    );
+  if (stage === "method")
+    return (
+      <>
+        <FlowHeader
+          title="How should they receive it?"
+          subtitle={selectedCountry?.name}
+          onBack={() => (initialCountry ? close() : setStage("country"))}
+        />
+        <FlowCard>
+          {Object.keys(countryMethods).map((method) => (
+            <FlowChoice
+              key={method}
+              title={
+                /mobile|momo/i.test(method)
+                  ? "Mobile money"
+                  : /bank/i.test(method)
+                    ? "Bank account"
+                    : method === "DEFAULT"
+                      ? "Bank account"
+                      : method.replace(/_/g, " ")
+              }
+              subtitle={selectedCountry?.name}
+              iconSize={40}
+              icon={
+                /mobile|momo/i.test(method)
+                  ? "/images/send/mobile-money.svg"
+                  : "/images/send/payout-bank.svg"
+              }
+              onClick={() => {
+                setSelectedMethod(method);
+                setStage("recipient");
+              }}
+            />
+          ))}
+          {!Object.keys(countryMethods).length && (
+            <p className="text-sm text-[#79708d]">Loading payout methods…</p>
+          )}
+        </FlowCard>
+      </>
+    );
 
-                    <p className="text-center text-raiz-gray-950 md:text-[13px] text-xs font-semibold leading-none">
-                      {truncateString(
-                        user?.foreign_payout_beneficiary?.beneficiary_name ||
-                          "",
-                        15,
-                      )}
-                    </p>
-                    <p className="text-center text-raiz-gray-700 md:text-xs text-xs leading-[18px]">
-                      {truncateString(
-                        user?.foreign_payout_beneficiary
-                          ?.beneficiary_account_number || "",
-                        15,
-                      )}
-                    </p>
-                    {!ready && (
-                      <p className="text-center text-amber-700 text-[10px] capitalize">
-                        {creationStatus || "processing"}
-                      </p>
-                    )}
-                  </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <EmptyList text={"No beneficiary yet"} />
-            )}
-          </div>
-          <div className="flex justify-between w-full mb-[15px]">
-            <h4 className="text-zinc-900 md:text-sm text-xs font-bold leading-none">
-              Add Beneficiary
-            </h4>
-            {beneficiaries?.length > 0 && (
+  return (
+    <div className="flex flex-col">
+      <FlowHeader
+        title={
+          /mobile|momo/i.test(selectedMethod)
+            ? "Mobile money recipient"
+            : "Bank recipient"
+        }
+        subtitle={`Send to ${selectedCountry?.name || countryCode}`}
+        onBack={() => setStage("method")}
+      />
+      <FlowCard>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold">Beneficiaries</h2>
+          {relevantBeneficiaries.length > 0 && (
+            <button
+              type="button"
+              className="text-primary2 text-[13px] font-semibold"
+              onClick={() => setShowModal("beneficiary")}
+            >
+              See all
+            </button>
+          )}
+        </div>
+        {isLoading || isPollingBeneficiaries ? (
+          <p role="status" className="text-sm text-[#79708d]">
+            {isPollingBeneficiaries
+              ? "Processing beneficiary…"
+              : "Loading beneficiaries…"}
+          </p>
+        ) : relevantBeneficiaries.length ? (
+          <div className="flex gap-3 overflow-x-auto">
+            {relevantBeneficiaries.map((item) => (
               <button
                 type="button"
-                onClick={() => setShowModal("beneficiary")}
-                className="text-indigo-900 md:text-xs text-xs font-bold leading-tight"
+                className="flex flex-col items-center gap-1.5 w-[84px] shrink-0 disabled:opacity-50"
+                disabled={
+                  !isBeneficiaryReady(
+                    item.foreign_payout_beneficiary
+                      ?.beneficiary_creation_status,
+                  )
+                }
+                key={item.foreign_payout_beneficiary_id}
+                onClick={() => handleBeneficiarySelect(item)}
               >
-                Choose Beneficiary
-              </button>
-            )}
-          </div>
-          <ModalTrigger
-            onClick={() => setShowModal("country")}
-            placeholder="Enter country"
-            value={
-              typeof formik.values.country === "string"
-                ? formik.values.country
-                : formik.values.country?.name || ""
-            }
-          />
-          {Object.keys(countryMethods).length > 1 &&
-            !isLegacyCountry && (
-              <div className="mt-3 md:mt-4">
-                <InputLabel content="Payout Method" />
-                <select
-                  className="w-full mt-2 rounded-xl border border-raiz-gray-200 px-4 py-3 bg-white text-raiz-gray-900"
-                  value={selectedMethod}
-                  onChange={(event) => setSelectedMethod(event.target.value)}
-                >
-                  {Object.keys(countryMethods).map((method) => (
-                    <option value={method} key={method}>
-                      {method}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-          {fields.length > 0 && formik.values.country?.value === "NG" && (
-            <form
-              onSubmit={NgFormik.handleSubmit}
-              className="flex flex-col gap-[15px] justify-between h-[60vh] lg:h-[65vh] pb-7"
-            >
-              <div className="flex flex-col gap-[15px]">
-                <div className="mt-[15px]">
-                  <InputLabel content={"Bank Name"} />
-                  <ModalTrigger
-                    onClick={() => setShowModal("bank")}
-                    placeholder="Enter bank name"
-                    value={bank?.bankName || ""}
-                  />
-                </div>
-                <InputField
-                  label="Account Number"
-                  {...NgFormik.getFieldProps("account_number")}
-                  placeholder="Enter account number"
-                  errorMessage={error ? error : undefined}
-                  onChange={handleAccountChange}
+                <Avatar
+                  src=""
+                  name={item.foreign_payout_beneficiary.beneficiary_name}
+                  size={52}
                 />
-                <div className="flex gap-2 mt-2 items-center">
-                  {isFetching ? (
-                    <ImSpinner2 className="animate-spin w-4 h-4" />
-                  ) : (
-                    <span>{ngData?.account_name}</span>
-                  )}
-                </div>
+                <span className="text-xs max-w-full truncate">
+                  {item.foreign_payout_beneficiary.beneficiary_name}
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-[#79708d]">
+            Add your first beneficiary below.
+          </p>
+        )}
+        {fields.length > 0 && formik.values.country?.value === "NG" && (
+          <form
+            onSubmit={NgFormik.handleSubmit}
+            className="flex flex-col gap-4"
+          >
+            <div className="flex flex-col gap-[15px]">
+              <div className="mt-[15px]">
+                <InputLabel content={"Bank Name"} />
+                <ModalTrigger
+                  onClick={() => setShowModal("bank")}
+                  placeholder="Enter bank name"
+                  value={bank?.bankName || ""}
+                />
               </div>
-              <Button
-                loading={AddBeneficiaryMutation.isPending}
-                type="submit"
-                disabled={!ngData || isFetching}
-              >
-                Continue
-              </Button>
-            </form>
-          )}
-          {fields.length > 0 && formik.values.country?.value === "GB" && isLegacyCountry && (
+              <InputField
+                label="Account Number"
+                {...NgFormik.getFieldProps("account_number")}
+                placeholder="Enter account number"
+                errorMessage={error ? error : undefined}
+                onChange={handleAccountChange}
+              />
+              <div className="flex gap-2 mt-2 items-center">
+                {isFetching ? (
+                  <ImSpinner2 className="animate-spin w-4 h-4" />
+                ) : (
+                  <span>{ngData?.account_name}</span>
+                )}
+              </div>
+            </div>
+            <Button
+              loading={AddBeneficiaryMutation.isPending}
+              type="submit"
+              disabled={!ngData || isFetching}
+            >
+              Continue
+            </Button>
+          </form>
+        )}
+        {fields.length > 0 &&
+          formik.values.country?.value === "GB" &&
+          isLegacyCountry && (
             <GbBeneficiaryForm
               methods={countryMethods}
               countryCode={formik.values.country.value}
             />
           )}
-          {fields.length > 0 && formik.values.country?.value === "CN" && isLegacyCountry && (
+        {fields.length > 0 &&
+          formik.values.country?.value === "CN" &&
+          isLegacyCountry && (
             <CNBeneficiaryForm
               methods={countryMethods}
               countryCode={formik.values.country.value}
@@ -712,28 +749,24 @@ const GlobalBeneficiary = ({ close }: Props) => {
                   label: "Account Number",
                   pattern: "^\\+86[1][3-9]\\d{9}$",
                 },
-                // {
-                //   name: "account_name",
-                //   label: "Account Name",
-                //   pattern: "[^\\s@]+(\\s+)[^\\s@]+",
-                // },
               ]}
             />
           )}
 
-          {fields.length > 0 &&
-            formik.values.country?.value !== "NG" &&
-            !isLegacyCountry && (
-              <DynamicBeneficiaryForm
-                fields={fields}
-                formik={formik}
-                countryMethods={countryMethods}
-                activeMethod={selectedMethod}
-                reset={() => formik.resetForm()}
-              />
-            )}
-        </div>
-      </div>
+        {fields.length > 0 &&
+          formik.values.country?.value !== "NG" &&
+          !isLegacyCountry && (
+            <DynamicBeneficiaryForm
+              fields={fields}
+              formik={formik}
+              countryMethods={countryMethods}
+              activeMethod={selectedMethod}
+              reset={() =>
+                formik.resetForm({ values: { country: formik.values.country } })
+              }
+            />
+          )}
+      </FlowCard>
       {showModal === "country" && (
         <IntCountriesModal
           countryCodes={Object.keys(fieldsData ?? {})}
@@ -747,7 +780,7 @@ const GlobalBeneficiary = ({ close }: Props) => {
       {showModal === "beneficiary" && (
         <IntBeneficiaryModal
           close={() => setShowModal(null)}
-          users={beneficiaries}
+          users={relevantBeneficiaries}
         />
       )}
     </div>

@@ -38,7 +38,7 @@ export function canRequestScope(role: AccountRole | undefined, scope: string, pr
 }
 
 export function isPublicPath(path: string) {
-  return ["/login", "/register", "/forgot-password", "/verify", "/pay", "/accept-invite"].some(p => path === p || path.startsWith(p + "/"));
+  return ["/login", "/register", "/forgot-password", "/verify", "/pay", "/accept-invite", "/kyb-person-invitation", "/kyb/person-verification"].some(p => path === p || path.startsWith(p + "/"));
 }
 
 /** Defense in depth for legacy forms. Backend authorization remains authoritative. */

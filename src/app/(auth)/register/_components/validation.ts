@@ -69,6 +69,10 @@ export const registerFormSchemas = {
   4: z.object({}),
 };
 
+export const createAccountSchema = registerFormSchemas[1].extend({
+  password: newPasswordSchema,
+});
+
 export const generalOTPFormSchema = z.object({
   otp: otpSchema,
 });

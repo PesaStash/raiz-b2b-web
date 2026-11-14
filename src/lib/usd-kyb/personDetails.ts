@@ -1,0 +1,220 @@
+import type { KybPerson } from "../../types/usdKyb.ts";
+
+export function isEligibleAssociatedPerson(person: Pick<KybPerson, "ownership_percentage">) {
+  return typeof person.ownership_percentage === "number" &&
+    Number.isFinite(person.ownership_percentage) &&
+    person.ownership_percentage >= 25 && person.ownership_percentage <= 100;
+}
+
+export function latestPersonBirthDate(today = new Date()) {
+  const year = today.getUTCFullYear() - 10;
+  const month = today.getUTCMonth();
+  const day = Math.min(today.getUTCDate(), new Date(Date.UTC(year, month + 1, 0)).getUTCDate());
+  return new Date(Date.UTC(year, month, day)).toISOString().slice(0, 10);
+}
+
+export function identityStarted(person: KybPerson) {
+  return (
+    !!person.verification_started_at ||
+    !!person.verified_at ||
+    ["approved", "completed", "pending", "in_progress"].includes(
+      person.verification_status ?? "",
+    ) ||
+    ["sent", "used", "accepted"].includes(person.invitation_status ?? "")
+  );
+}
+
+/** Product-required details for a new person; redacted responses must never be checked as missing input. */
+export function personDetailsErrors(
+  person: KybPerson,
+  step?: number,
+  today = new Date(),
+): Record<string, string> {
+  const errors: Record<string, string> = {};
+  const text = (value: unknown) =>
+    typeof value === "string" ? value.trim() : "";
+  const required = (key: string, value: unknown, title: string) => {
+    if (!text(value)) errors[key] = `${title} is required.`;
+  };
+  const date = (
+    key: string,
+    value: unknown,
+    title: string,
+    requiredDate: boolean,
+  ) => {
+    if (!text(value) && !requiredDate) return;
+    const raw = text(value);
+    const parsed = new Date(raw + "T00:00:00Z");
+    if (
+      !/^\d{4}-\d{2}-\d{2}$/.test(raw) ||
+      Number.isNaN(parsed.getTime()) ||
+      parsed.toISOString().slice(0, 10) !== raw ||
+      raw > new Date().toISOString().slice(0, 10)
+    )
+      errors[key] = `Enter a valid ${title} that is not in the future.`;
+  };
+  if (step === undefined || step === 0) {
+    required("first_name", person.first_name, "First name");
+    required("last_name", person.last_name, "Last name");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text(person.email)))
+      errors.email = "Enter a valid email address.";
+    date("birth_date", person.birth_date, "date of birth", true);
+    if (!errors.birth_date && typeof person.birth_date === "string" && person.birth_date > latestPersonBirthDate(today))
+      errors.birth_date = "Associated persons must be at least 10 years old.";
+    if (person.nationalities?.some((code) => !/^[A-Z]{3}$/.test(code)))
+      errors.nationalities = "Choose a valid country for each nationality.";
+    if (
+      person.place_of_birth?.country &&
+      !/^[A-Z]{3}$/.test(person.place_of_birth.country)
+    )
+      errors.place_of_birth = "Choose a valid country of birth.";
+  }
+  if (step === undefined || step === 1) {
+    const address = person.residential_address ?? {};
+    for (const [key, title] of [
+      ["street_line_1", "Street address"],
+      ["city", "City"],
+      ["postal_code", "Postal code"],
+      ["country", "Country"],
+    ])
+      required(`residential_address.${key}`, address[key], title);
+    if (address.country && !/^[A-Z]{3}$/.test(address.country))
+      errors["residential_address.country"] =
+        "Use a three-letter country code, for example NGA.";
+  }
+  if (step === undefined || step === 2) {
+    if (!isEligibleAssociatedPerson(person))
+      errors.ownership_percentage = "Only persons with at least 25% ownership can be included and invited, regardless of role.";
+    if (
+      ![
+        person.has_ownership,
+        person.has_control,
+        person.is_signer,
+        person.is_director,
+      ].some(Boolean)
+    )
+      errors.roles = "Select at least one role.";
+    if (
+      person.has_ownership &&
+      (person.ownership_percentage == null ||
+        !Number.isInteger(person.ownership_percentage) ||
+        person.ownership_percentage <= 0 ||
+        person.ownership_percentage > 100)
+    )
+      errors.ownership_percentage =
+        "Enter a whole-number ownership percentage greater than 0 and up to 100. Registry decimals are shown separately; do not round them.";
+    date(
+      "relationship_established_at",
+      person.relationship_established_at,
+      "relationship date",
+      false,
+    );
+  }
+  return errors;
+}
+
+/**
+ * A reloaded person can omit birth date and address after they were saved.
+ * Name, email, and a role still have to be present. A blank value that was
+ * returned is still incomplete.
+ */
+export function persistedPersonDetailsErrors(person: KybPerson) {
+  const errors = personDetailsErrors(person);
+  if (person.birth_date == null) delete errors.birth_date;
+  if (person.residential_address == null)
+    for (const key of Object.keys(errors))
+      if (key.startsWith("residential_address.")) delete errors[key];
+  return errors;
+}
+
+export function personDetailsStep(field: string): number {
+  if (field.startsWith("residential_address")) return 1;
+  if (field.startsWith("identifying_information") || ["roles", "has_ownership", "ownership_percentage", "has_control", "is_signer", "is_director", "relationship_established_at", "title"].includes(field)) return 2;
+  return 0;
+}
+
+/** Existing records may redact private fields, but missing visible details still need completion. */
+export function personFormErrors(person: KybPerson, partial: boolean, step?: number) {
+  const errors = partial ? persistedPersonDetailsErrors(person) : personDetailsErrors(person);
+  return Object.fromEntries(Object.entries(errors).filter(([field]) => step === undefined || personDetailsStep(field) === step));
+}
+
+/** Missing ownership is distinct from pending identity verification. */
+export function ownershipNeedsReview(person: KybPerson) {
+  return (
+    !!person.has_ownership &&
+    (person.ownership_percentage == null ||
+      !Number.isInteger(person.ownership_percentage) ||
+      Number(person.ownership_percentage) <= 0 ||
+      Number(person.ownership_percentage) > 100)
+  );
+}
+
+export function ownershipRequirementMessage(key: string, people: KybPerson[]) {
+  if (key === "associated_persons.ownership_percentage") {
+    const names = people
+      .filter(ownershipNeedsReview)
+      .map(
+        (person) =>
+          [person.first_name, person.last_name].filter(Boolean).join(" ") ||
+          "Unnamed person",
+      );
+    return names.length
+      ? `Confirm ownership for ${names.join(", ")}: enter each owner’s percentage, or confirm they are not an owner.`
+      : "Confirm each owner’s percentage. Pending ID verification does not cause this error.";
+  }
+  if (key === "associated_persons.ownership_percentage_total")
+    return "Combined ownership percentages cannot exceed 100%. Review the owners’ shares.";
+  return undefined;
+}
+
+/** Resending an existing invitation is separate from editing the submitted person payload. */
+export function canResendPersonInvitation(person: KybPerson, status: string) {
+  return (
+    isEligibleAssociatedPerson(person) &&
+    [
+      "not_started",
+      "collecting",
+      "requires_correction",
+      "awaiting_admin_review",
+      "submitted_to_bridge",
+      "under_review",
+      "awaiting_ubo",
+    ].includes(status) &&
+    !!(
+      person.associated_person_id ??
+      person.business_usd_kyb_associated_person_id
+    ) &&
+    !!person.email &&
+    ["sent", "expired", "revoked"].includes(person.invitation_status ?? "") &&
+    !["approved", "completed"].includes(person.verification_status ?? "")
+  );
+}
+
+/** Invite delivery, not completed identity, is the business submission prerequisite. */
+export function peopleNeedingInvitation(people: KybPerson[]) {
+  return people.filter((person) => {
+    if (!isEligibleAssociatedPerson(person)) return false;
+    if (["approved", "completed"].includes(person.verification_status ?? ""))
+      return false;
+    if (person.invitation_status !== "sent") return true;
+    const expiry = person.invitation_expires_at
+      ? Date.parse(person.invitation_expires_at)
+      : NaN;
+    return Number.isFinite(expiry) && expiry <= Date.now();
+  });
+}
+
+export function personRequirementMessage(key: string, people: KybPerson[]) {
+  if (key === "associated_persons.invitations") {
+    const names = peopleNeedingInvitation(people).map(
+      (person) =>
+        [person.first_name, person.last_name].filter(Boolean).join(" ") ||
+        "Unnamed person",
+    );
+    return names.length
+      ? `Send or resend invite links to ${names.join(", ")} before submitting. Complete their details first if needed.`
+      : "Send an invite link to every associated person before submitting.";
+  }
+  return ownershipRequirementMessage(key, people);
+}

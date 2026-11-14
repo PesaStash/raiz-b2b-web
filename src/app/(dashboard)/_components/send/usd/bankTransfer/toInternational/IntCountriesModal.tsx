@@ -1,4 +1,9 @@
 "use client";
+import {
+  FlowCard,
+  FlowHeader,
+  FlowChoice,
+} from "@/components/transactions/send-flow/Flow";
 import Overlay from "@/components/ui/Overlay";
 import { IIntCountry } from "@/constants/send";
 import { GetAllRates } from "@/services/transactions";
@@ -10,6 +15,7 @@ import React, { useEffect, useMemo, useState } from "react";
 
 interface Props {
   countryCodes: string[];
+  inline?: boolean;
   setCountry: (arg: IIntCountry) => void;
   close: () => void;
 }
@@ -45,7 +51,12 @@ const formatSellRate = (currencyCode: string, sellRate: number) =>
     maximumFractionDigits: 2,
   })} = $1 USD`;
 
-const IntCountriesModal = ({ countryCodes, close, setCountry }: Props) => {
+const IntCountriesModal = ({
+  countryCodes,
+  close,
+  setCountry,
+  inline = false,
+}: Props) => {
   const [search, setSearch] = useState("");
   const { countries: countryMetadata, fetchCountries } = useCountryStore();
   const { data: rates, isLoading: ratesLoading } = useQuery({
@@ -115,11 +126,55 @@ const IntCountriesModal = ({ countryCodes, close, setCountry }: Props) => {
   }, [countries, search]);
 
   const handleSelect = (country: CountryListItem) => {
-    const { flag: _flag, currencyCode: _currencyCode, sellRate: _sellRate, ...selected } =
-      country;
+    const {
+      flag: _flag,
+      currencyCode: _currencyCode,
+      sellRate: _sellRate,
+      ...selected
+    } = country;
     setCountry(selected);
     close();
   };
+
+  if (inline)
+    return (
+      <>
+        <FlowHeader
+          title="Where are you sending to?"
+          subtitle="Bank and mobile money payouts"
+          onBack={close}
+        />
+        <FlowCard>
+          <label className="flex flex-col gap-3 text-[13px]">
+            Search
+            <input
+              value={search}
+              onChange={handleSearch}
+              placeholder="Search countries"
+              className="h-12 px-3.5 rounded-xl bg-[#f4f4f8] text-sm"
+            />
+          </label>
+          {filteredCountries.map((country) => (
+            <FlowChoice
+              key={country.value}
+              title={country.name}
+              subtitle={
+                country.currencyCode && country.sellRate
+                  ? `1 USD = ${country.sellRate} ${country.currencyCode} · Indicative rate`
+                  : country.currencyCode
+              }
+              icon={country.logo || undefined}
+              onClick={() => setCountry(country)}
+            />
+          ))}
+          {!filteredCountries.length && (
+            <p className="text-sm text-[#79708d] py-6 text-center">
+              No countries found
+            </p>
+          )}
+        </FlowCard>
+      </>
+    );
 
   return (
     <Overlay close={close} width="400px">
@@ -162,10 +217,7 @@ const IntCountriesModal = ({ countryCodes, close, setCountry }: Props) => {
                       ? "Loading rate..."
                       : country.currencyCode &&
                           typeof country.sellRate === "number"
-                        ? formatSellRate(
-                            country.currencyCode,
-                            country.sellRate,
-                          )
+                        ? formatSellRate(country.currencyCode, country.sellRate)
                         : "Rate unavailable"}
                   </p>
                 </div>

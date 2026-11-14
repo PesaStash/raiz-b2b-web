@@ -4,7 +4,7 @@ import { usePermissions } from "@/lib/hooks/usePermissions";
 
 import Image from "next/image";
 import Link from "next/link";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Notifications from "../../app/(dashboard)/_components/notification/Notifications";
 import { AnimatePresence } from "motion/react";
 import Rewards from "../../app/(dashboard)/_components/rewards/Rewards";
@@ -36,10 +36,12 @@ import { useSwapStore } from "@/store/Swap";
 import { useTopupStore } from "@/store/TopUp";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import UsdTopUp from "@/app/(dashboard)/_components/topUp/UsdTopup/UsdTopUp";
+import NgnTopUp from "@/app/(dashboard)/_components/topUp/NgnTopup/NgnTopUp";
 import { useUser } from "@/lib/hooks/useUser";
 import { toast } from "sonner";
 import { CurrencyTypeKey } from "@/store/Swap/swapSlice.types";
 import CryptoSwap from "@/app/(dashboard)/_components/crypto/swap/CryptoSwap";
+import { isGlobalBalance, spendableBalances } from "@/lib/globalBalance";
 
 type ModalKeys =
   | "notifications"
@@ -54,8 +56,11 @@ type ModalKeys =
 
 const searchItems = [
   { name: "Dashboard", type: "route", path: "/" },
-  // { name: "Top Up", type: "modal" },
-  // { name: "Send", type: "modal" },
+  { name: "Transactions", type: "route", path: "/transactions" },
+  { name: "Invoices", type: "route", path: "/invoice" },
+  { name: "Customers", type: "route", path: "/customers" },
+  { name: "Analytics", type: "route", path: "/analytics" },
+  { name: "Gateway", type: "route", path: "/gateway" },
   { name: "Create NGN Account", type: "modal" },
   { name: "Rewards", type: "modal" },
   { name: "Notifications", type: "modal" },
@@ -70,7 +75,9 @@ const searchItems = [
   { name: "Account", type: "modal" },
 ];
 
+const subscribePlatform = () => () => {};
 const Header = () => {
+  const isMac = useSyncExternalStore(subscribePlatform, () => /Mac|iPhone|iPad/.test(navigator.userAgent), () => false);
   const pathName = usePathname();
   const { data: pointsData } = useQuery({
     queryKey: ["reward-points"],
@@ -175,15 +182,15 @@ const Header = () => {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "ArrowDown") {
+    if (e.key === "ArrowDown" && searchResults.length) {
       e.preventDefault();
       setFocusedIndex((prev) => (prev + 1) % searchResults.length);
-    } else if (e.key === "ArrowUp") {
+    } else if (e.key === "ArrowUp" && searchResults.length) {
       e.preventDefault();
       setFocusedIndex((prev) =>
         prev <= 0 ? searchResults.length - 1 : prev - 1,
       );
-    } else if (e.key === "Enter" && focusedIndex >= 0) {
+    } else if (e.key === "Enter" && focusedIndex >= 0 && searchResults[focusedIndex]) {
       e.preventDefault();
       handleSearchAction(searchResults[focusedIndex]);
     } else if (e.key === "Escape") {
@@ -192,6 +199,9 @@ const Header = () => {
       searchInputRef.current?.blur();
     }
   };
+
+  const hasDedicatedTopUp =
+    selectedCurrency?.name === "USD" || selectedCurrency?.name === "NGN";
 
   const handleCloseModal = () => {
     setShowModal(null);
@@ -206,15 +216,12 @@ const Header = () => {
   const openCryptoModal = () => {
     setShowModal("createCrypto");
   };
-  const { data, refetch } = useNotifications(15);
+  const { data } = useNotifications(15);
   const notifications = data?.pages[0]?.notifications || [];
   const hasUnreadNotif = notifications.some(
     (notification) => !notification.read,
   );
 
-  useEffect(() => {
-    refetch();
-  }, [pathName, refetch]);
 
   const displayModal = () => {
     switch (showModal) {
@@ -248,7 +255,7 @@ const Header = () => {
           <Swap close={handleCloseModal} />
         );
       case "topUp":
-        return selectedCurrency?.name !== "USD" ? (
+        return !hasDedicatedTopUp ? (
           <TopUp close={handleCloseModal} />
         ) : null;
       default:
@@ -270,7 +277,8 @@ const Header = () => {
   const handleSelectAction = (value: ModalKeys) => {
     if (!currentWallet) {
       toast.warning(
-        "You do not have an account for this currency. Create one first!",
+        "This action is available once your account for this currency is approved and opened. View your business verification status to continue.",
+        { action: { label: "View setup", onClick: () => router.push("/onboarding") } },
       );
       return;
     } else {
@@ -281,6 +289,21 @@ const Header = () => {
   };
 
   const handleSwapClick = () => {
+    if (isGlobalBalance(user?.business_account)) {
+      const balances = spendableBalances(user?.business_account);
+      const hasUsd = balances.some((b) => b.currency === "USD");
+      const hasNgn = balances.some((b) => b.currency === "NGN");
+      if (!hasUsd || !hasNgn) {
+        toast.warning("USD and NGN balances are required to swap.");
+        return;
+      }
+      const from = selectedCurrency.name === "NGN" ? "NGN" : "USD";
+      const to = from === "USD" ? "NGN" : "USD";
+      actions.switchSwapWallet(to, walletData ?? [], from);
+      setShowModal("swap");
+      return;
+    }
+
     if (!walletData || walletData.length < 2) {
       toast.warning("You need at least two wallets to use swap");
       return;
@@ -323,20 +346,21 @@ const Header = () => {
           />
           <input
             ref={searchInputRef}
-            placeholder="Search..."
+            aria-label="Search pages and actions"
+            placeholder="Search pages and actions…"
             className="pl-10 pr-14 h-full bg-raiz-gray-50 rounded-[20px] text-sm placeholder:text-raiz-gray-500 justify-start items-center gap-2 inline-flex w-full outline outline-1 outline-offset-[-1px] outline-white"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => { setSearchTerm(e.target.value); setFocusedIndex(-1); }}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setTimeout(() => setIsFocused(false), 200)}
             onKeyDown={handleKeyDown}
           />
           <span className="pointer-events-none absolute right-4 top-1/2 flex -translate-y-1/2 items-center gap-2 text-sm text-raiz-gray-500">
-            <span>⌘</span>
+            <span>{isMac ? "⌘" : "Ctrl"}</span>
             <span>K</span>
           </span>
           <AnimatePresence>
-            {isFocused && searchResults.length > 0 && (
+            {isFocused && (
               <motion.ul
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -344,6 +368,7 @@ const Header = () => {
                 transition={{ duration: 0.2, ease: "easeOut" }}
                 className="absolute top-full mt-2 w-full bg-white border border-gray-200 shadow-xl rounded-2xl z-50 max-h-72 overflow-y-auto"
               >
+                {searchResults.length === 0 && <li role="status" className="px-4 py-3 text-sm text-raiz-gray-600">No matching pages or actions.</li>}
                 {searchResults.map((item, index) => (
                   <motion.li
                     key={index}
@@ -546,8 +571,9 @@ const Header = () => {
       <AnimatePresence>
         {showModal !== null &&
         showModal !== "selectAcct" &&
-        (showModal !== "topUp" || selectedCurrency?.name !== "USD") && (
+        (showModal !== "topUp" || !hasDedicatedTopUp) && (
           <CenterModalWrapper
+            sendFlow={showModal === "send"}
             close={handleCloseModal}
             wrapperStyle={
               showModal === "createCrypto" ? "!bg-raiz-crypto-primary" : ""
@@ -574,6 +600,9 @@ const Header = () => {
       )}
       {showModal === "topUp" && selectedCurrency?.name === "USD" && (
         <UsdTopUp close={handleCloseModal} />
+      )}
+      {showModal === "topUp" && selectedCurrency?.name === "NGN" && (
+        <NgnTopUp close={handleCloseModal} />
       )}
       {successful && <NgnSuccessModal close={() => setSuccessful(false)} />}
     </div>

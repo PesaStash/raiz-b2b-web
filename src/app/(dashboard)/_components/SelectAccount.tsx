@@ -1,3 +1,4 @@
+import { isGlobalBalance } from "@/lib/globalBalance";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import Overlay from "@/components/ui/Overlay";
 import React from "react";
@@ -16,9 +17,7 @@ import {
   truncateString,
 } from "@/utils/helpers";
 import {
-  canRequestUsdAccount,
   hasCompletedUsdWallet,
-  hasUsdOnboardingRequest,
   isNigerianBusiness,
   isUsdOnboardingPending,
 } from "@/utils/onboardingBranch";
@@ -53,9 +52,6 @@ const SelectAccount = ({
   const GBPAcct = findWalletByCurrency(user, "GBP");
   const EURAcct = findWalletByCurrency(user, "EUR");
   const CryptoAcct = findWalletByCurrency(user, "SBC");
-  const verificationStatus =
-    user?.business_account?.business_verifications?.[0]?.verification_status;
-
   const { data: usdCase } = useUsdOnboardingStatus(user);
   const effectiveUsdCase = usdCase ?? null;
   const usdFlow = useUsdOnboardingFlow({
@@ -94,23 +90,12 @@ const SelectAccount = ({
   };
 
   const handleUsd = async () => {
-    if (USDAcct) {
+    if (USDAcct?.wallet_status === "completed") {
       setSelectedCurrency("USD", user);
       actions.selectCurrency("USD");
       close();
-    } else if (
-      usdFlow.hasRequestedUsd ||
-      hasUsdOnboardingRequest(effectiveUsdCase)
-    ) {
-      toast.info(
-        "Your USD account request is pending. Our team will contact you to complete verification."
-      );
-    } else if (
-      !canRequestUsdAccount(user, verificationStatus, effectiveUsdCase) ||
-      usdFlow.isUsdActionPending
-    ) {
-      toast.info("USD account request is not available in your current state.");
     } else {
+      close();
       await usdFlow.startUsdRequest();
     }
   };
@@ -166,9 +151,9 @@ const SelectAccount = ({
 
   const getUsdLabel = () => {
     if (USDAcct) return USDAcct.account_number;
-    if (usdRequestPending) return "USD request pending";
+    if (usdRequestPending) return "Continue USD setup";
     if (usdFlow.isUsdActionPending) return usdFlow.getUsdActionLabel();
-    if (!usdFlow.isTosConfirmed) return "Accept Terms of Use";
+    if (!usdFlow.isTosConfirmed) return "Set up USD account";
     return "Request USD Account";
   };
 
@@ -253,6 +238,7 @@ const SelectAccount = ({
               )}
             </button>
           )}
+        {!isGlobalBalance(user?.business_account) && <>
         {/* GBP */}
           <button
             style={{ display: !canWriteBusiness && !GBPAcct ? "none" : undefined }}
@@ -374,6 +360,7 @@ const SelectAccount = ({
               />
             )}
           </button>
+        </>}
         </div>
       </div>
     </Overlay>

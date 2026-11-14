@@ -44,7 +44,12 @@ import { useSendStore } from "@/store/Send";
 import USBeneficiaryModal from "./USBeneficiaryModal";
 import ThirdPartyPartnerModal from "./ThirdPartyPartnerModal";
 import ThirdPartyPartnerReviewModal from "./ThirdPartyPartnerReviewModal";
-import CenterModalHeader from "@/components/layouts/CenterModalHeader";
+import {
+  FlowHeader,
+  FlowCard,
+  FlowRow,
+  FlowActions,
+} from "@/components/transactions/send-flow/Flow";
 import { GetUsdBankName } from "@/services/utils";
 import SelectField from "@/components/ui/SelectField";
 import { USAstateCodes } from "@/constants/misc";
@@ -141,8 +146,11 @@ const FormContent = ({
   }, []);
 
   useEffect(() => {
-    if (error as any) {
-      toast.error((error as any)?.data[0]?.data?.message);
+    if (error) {
+      const apiError = error as {
+        data?: Array<{ data?: { message?: string } }>;
+      };
+      toast.error(apiError?.data?.[0]?.data?.message);
       return;
     }
     if (routingInfo?.data?.name) {
@@ -408,7 +416,6 @@ const FormContent = ({
 };
 
 const USBankBeneficiary = ({ close, goNext }: Props) => {
-  // const [labelFilter, setLabelFilter] = useState("");
   const { actions } = useSendStore();
   const [showBeneficiary, setShowBeneficiary] = useState(false);
   const [showPartnerModal, setShowPartnerModal] = useState(false);
@@ -426,6 +433,7 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
   const paymentRailOptions = getUsdBankPaymentRails(fieldsData?.bank);
   const submitRef = useRef<HTMLButtonElement>(null);
   const formikRef = useRef<FormikProps<FormValues>>(null);
+  const [preview, setPreview] = useState(false);
   const [isFormValid, setIsFormValid] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -497,6 +505,7 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
     error: unknown,
     options?: { partner?: boolean },
   ) => {
+    setPreview(false);
     const mapped = mapUsdBeneficiaryError(error);
 
     if (mapped.kind === "routing_rail_mismatch") {
@@ -540,7 +549,9 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
 
       try {
         // Bypass QueryClient cache entirely to ensure we get the fresh DB list
-        const updatedData = await FetchUsBeneficiariesApi(queryParams as any);
+        const updatedData = await FetchUsBeneficiariesApi(
+          queryParams as Parameters<typeof FetchUsBeneficiariesApi>[0],
+        );
 
         const oldIds = new Set(beneficiaries.map((b) => b.usd_beneficiary_id));
         const newBen = updatedData?.beneficiaries?.find(
@@ -551,9 +562,7 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
           actions.selectUsdBeneficiary(newBen);
           goNext();
         }
-      } catch (err) {
-        console.log("Failed to fetch latest beneficiaries", err);
-      }
+      } catch {}
 
       qc.invalidateQueries({ queryKey: ["us-bank-beneficiaries"] });
     },
@@ -626,12 +635,38 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
 
   return (
     <div>
-      <CenterModalHeader close={close} />
-      <h2 className="md:text-xl text-lg font-semibold md:font-bold text-raiz-gray-950 md:mb-10 mb-4">
-        US Bank
-      </h2>
-      <div className="flex-1  flex flex-col justify-between gap-4 h-[65vh] xl:h-[70vh]">
-        <div className="bg-raiz-gray-50 md:p-6 p-3 overflow-y-auto rounded-[20px]">
+      <FlowHeader
+        title={preview ? "Preview beneficiary" : "US bank beneficiary"}
+        onBack={preview ? () => setPreview(false) : close}
+      />
+      <div
+        className="flex gap-2 mb-5"
+        aria-label={`Step ${preview ? 2 : 1} of 2`}
+      >
+        <div className="h-1.5 flex-1 rounded bg-primary2" />
+        <div
+          className={`h-1.5 flex-1 rounded ${preview ? "bg-primary2" : "bg-[#e3e3ec]"}`}
+        />
+      </div>
+      {preview && (
+        <FlowCard>
+          {Object.entries(formikRef.current?.values || {})
+            .filter(([, value]) => value)
+            .map(([key, value]) => (
+              <FlowRow key={key} label={key.replace(/_/g, " ")}>
+                {String(value)}
+              </FlowRow>
+            ))}
+          <FlowActions
+            onBack={() => setPreview(false)}
+            onNext={() => submitRef.current?.click()}
+            nextLabel="Save beneficiary and continue"
+            loading={isSubmitting}
+          />
+        </FlowCard>
+      )}
+      <FlowCard className={preview ? "hidden" : ""}>
+        <div>
           <div className="md:mb-11 mb-7">
             <h5 className="text-raiz-gray-950 md:text-sm text-xs font-bold  leading-[16.80px] mb-[15px]">
               Beneficiary
@@ -741,11 +776,11 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
         <Button
           disabled={!isFormValid || isSubmitting}
           loading={isSubmitting}
-          onClick={() => submitRef.current?.click()}
+          onClick={() => setPreview(true)}
         >
-          Add Beneficiary
+          Next: preview
         </Button>
-      </div>
+      </FlowCard>
       {showBeneficiary ? (
         <USBeneficiaryModal
           close={() => setShowBeneficiary(false)}
