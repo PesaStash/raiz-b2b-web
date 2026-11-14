@@ -12,6 +12,19 @@
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
   }
+
+  @keyframes send-progress {
+    0% {
+      left: -6rem;
+    }
+    100% {
+      left: 100%;
+    }
+  }
+
+  .animate-send-progress {
+    animation: send-progress 1.4s ease-in-out infinite;
+  }
 }
 
 @supports (-webkit-touch-callout: none) {
@@ -39,4 +52,10 @@ body {
 
 .StripeElement {
   width: 100%;
+}
+
+/* Places suggestions are moved into an open <dialog>; keep them on the field. */
+dialog .pac-container {
+  position: fixed !important;
+  z-index: 10000;
 }

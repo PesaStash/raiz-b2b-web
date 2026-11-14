@@ -27,6 +27,5 @@ export async function GetUsdBankName({
     } as CustomAxiosRequestConfig,
   );
 
-  // console.log('CALLED GET USD BANK NAME', response.data[0]);
   return response.data[0];
 }

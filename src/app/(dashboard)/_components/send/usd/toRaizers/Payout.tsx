@@ -21,7 +21,7 @@ interface Props {
   fee: number;
 }
 
-const Payout = ({ close, goNext, setPaymentError }: Props) => {
+const Payout = ({ close, goNext, setPaymentError, fee }: Props) => {
   const [pin, setPin] = useState<string>("");
   const {
     user: selectedUser,
@@ -84,8 +84,6 @@ const Payout = ({ close, goNext, setPaymentError }: Props) => {
     },
   });
 
-  // const totalPayable = fee ? parseFloat(amount) + fee : 0;
-
   const handleSend = () => {
     const payload: IP2PTransferPayload = {
       wallet_id: currentWallet?.wallet_id || null,
@@ -106,7 +104,20 @@ const Payout = ({ close, goNext, setPaymentError }: Props) => {
     }
   }, [pin]);
 
-  return <EnterPin pin={pin} setPin={setPin} close={close} />;
+  return (
+    <EnterPin
+      transfer={{
+        recipient: selectedUser?.account_name || "",
+        amount: Number(amount),
+        currency: selectedCurrency.name,
+        sourceCurrency: selectedCurrency.name,
+        debit: Number(amount) + fee,
+      }}
+      pin={pin}
+      setPin={setPin}
+      close={close}
+    />
+  );
 };
 
 export default Payout;

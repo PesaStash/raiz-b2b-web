@@ -116,7 +116,7 @@ const ResetPassword = ({ setPart }: PartChildProps) => {
           />
         </div>
         <Button
-        className="mt-2 lg:mt-0"
+        className="!mt-4 lg:mt-0"
           loading={ChangePasswordMutation.isPending}
           type="submit"
           disabled={

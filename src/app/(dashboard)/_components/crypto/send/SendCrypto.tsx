@@ -1,5 +1,4 @@
 "use client";
-import SideWrapperHeader from "@/components/SideWrapperHeader";
 import ErrorMessage from "@/components/ui/ErrorMessage";
 import InputField from "@/components/ui/InputField";
 import { useUser } from "@/lib/hooks/useUser";
@@ -11,7 +10,6 @@ import { toast } from "sonner";
 import { z } from "zod";
 import Image from "next/image";
 import Button from "@/components/ui/Button";
-import SideModalWrapper from "../../SideModalWrapper";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 import CenterModalHeader from "@/components/layouts/CenterModalHeader";
 

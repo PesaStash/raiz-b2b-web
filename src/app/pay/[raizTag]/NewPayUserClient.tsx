@@ -3,7 +3,11 @@ import React, { JSX, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import Avatar from "@/components/ui/Avatar";
-import GuestPayWithCard from "./GuestPayWithCard";
+import dynamic from "next/dynamic";
+const GuestPayWithCard = dynamic(() => import("./GuestPayWithCard"), {
+  ssr: false,
+  loading: () => <p role="status">Loading secure card payment…</p>,
+});
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { FetchPaymentInfoApi, GetAfricaPayinStatus } from "@/services/business";
@@ -13,7 +17,6 @@ import GuestPayWithTransfer, {
   TransferCurrencyType,
 } from "./GuestPayWithTransfer";
 import * as motion from "motion/react-client";
-import { fetchPublicIP } from "@/utils/helpers";
 import PayLocalAmount from "./_components/PayLocalAmount";
 import GuestPayDetail from "./_components/GuestPayDetail";
 import PayLocalStepper, {
@@ -40,23 +43,6 @@ const paymentMethodsArr: {
   icon: (active: boolean) => JSX.Element;
   subText: string;
 }[] = [
-  // {
-  //   id: "card",
-  //   label: "Pay with card",
-  //   icon: (active: boolean) => (
-  //     <svg width="24" height="24" viewBox="0 0 24 24">
-  //       <path
-  //         d="M22 7.55002C22 8.21002 21.46 8.75002 20.8 8.75002H3.2C2.54 8.75002 2 8.21002 2 7.55002V7.54002C2 5.25002 3.85 3.40002 6.14 3.40002H17.85C20.14 3.40002 22 5.26002 22 7.55002Z"
-  //         fill={active ? "#3C2875" : "#A89AB9"}
-  //       />
-  //       <path
-  //         d="M2 11.45V16.46C2 18.75 3.85 20.6 6.14 20.6H17.85C20.14 20.6 22 18.74 22 16.45V11.45C22 10.79 21.46 10.25 20.8 10.25H3.2C2.54 10.25 2 10.79 2 11.45Z"
-  //         fill={active ? "#3C2875" : "#A89AB9"}
-  //       />
-  //     </svg>
-  //   ),
-  //   subText: "Pay with your credit or debit card",
-  // },
   {
     id: "local",
     label: "Pay locally",
@@ -179,9 +165,8 @@ const RaizPaymentPage = () => {
   useEffect(() => {
     const detectCountry = async () => {
       try {
-        const ip = await fetchPublicIP();
-        if (!ip) return;
-        const res = await fetch(`https://api.country.is/${ip}`);
+        // Looks up the visitor's own address; no IP is sent from here.
+        const res = await fetch("https://api.country.is/");
         if (res.ok) {
           const data = await res.json();
           if (data?.country === "US") {
@@ -195,8 +180,9 @@ const RaizPaymentPage = () => {
     detectCountry();
   }, []);
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["business-payment-info"],
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["business-payment-info", username],
+    retry: false,
     queryFn: () => FetchPaymentInfoApi(username),
     enabled: !!username,
   });
@@ -540,7 +526,7 @@ const RaizPaymentPage = () => {
         return null;
     }
   };
-  if ((error || !data) && !isLoading) {
+  if ((error || !data || !data.wallets?.length) && !isLoading) {
     return (
       <section className="p-6 md:p-12 lg:px-8 xl:px-12 h-[calc(100vh-2rem)] md:h-full min-h-[100vh] flex justify-center items-center">
         <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-6 w-full max-w-md text-center shadow-md">
@@ -566,11 +552,11 @@ const RaizPaymentPage = () => {
                 fill="#0C160E"
               />
             </svg>
-            <h2 className="text-lg font-semibold">Something went wrong</h2>
+            <h2 className="text-lg font-semibold">Payments are not available right now</h2>
             <p className="text-sm text-red-700">
-              We couldn&#39;t fetch the payment information. Please try again
-              later.
+              This business may still be setting up its receiving account. Contact the business or try again later.
             </p>
+            <button type="button" className="text-sm font-semibold underline" onClick={() => void refetch()}>Try again</button>
           </div>
         </div>
       </section>

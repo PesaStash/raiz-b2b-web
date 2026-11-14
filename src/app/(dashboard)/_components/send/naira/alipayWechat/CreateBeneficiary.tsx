@@ -24,7 +24,6 @@ const CreateBeneficiary = ({
 }: Props) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
   const [qrFile, setQrFile] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
   const [fileError, setFileError] = useState("");
@@ -62,7 +61,6 @@ const CreateBeneficiary = ({
       form.append("name", name.trim());
       form.append("email", email.trim());
       form.append("qr_code", qrFile);
-      // phone is UI-only for design parity; API does not accept it yet
 
       const beneficiary = await CreateAlipayWechatBeneficiaryApi(form);
       onCreated(beneficiary);
@@ -77,13 +75,10 @@ const CreateBeneficiary = ({
   };
 
   const isValid =
-    name.trim().length > 0 &&
-    email.trim().length > 0 &&
-    !!qrFile &&
-    !fileError;
+    name.trim().length > 0 && email.trim().length > 0 && !!qrFile && !fileError;
 
   const inputClassName =
-    "w-full bg-[#f4f2f7] rounded-2xl px-4 py-3.5 text-raiz-gray-950 text-sm outline-none placeholder:text-raiz-gray-400 focus:ring-2 focus:ring-primary2/15";
+    "w-full bg-[#f4f4f8] rounded-xl px-4 py-3.5 text-raiz-gray-950 text-sm outline-none placeholder:text-raiz-gray-400 focus:ring-2 focus:ring-primary2/15";
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -107,6 +102,8 @@ const CreateBeneficiary = ({
           Recipient Name
         </label>
         <input
+          required
+          aria-label="Recipient name"
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -120,23 +117,12 @@ const CreateBeneficiary = ({
           Email Address
         </label>
         <input
+          required
+          aria-label="Recipient email"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Enter email address"
-          className={inputClassName}
-        />
-      </div>
-
-      <div>
-        <label className="text-raiz-gray-950 text-xs font-medium mb-1.5 block">
-          Phone Number (Optional)
-        </label>
-        <input
-          type="tel"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          placeholder="Enter a china number"
           className={inputClassName}
         />
       </div>
@@ -156,7 +142,9 @@ const CreateBeneficiary = ({
                 height={80}
                 className="rounded-lg object-cover"
               />
-              <span className="text-[#0f8c8c] text-[13px] underline">Change</span>
+              <span className="text-[#0f8c8c] text-[13px] underline">
+                Change
+              </span>
             </>
           ) : (
             <>
@@ -172,7 +160,9 @@ const CreateBeneficiary = ({
               <p className="text-raiz-gray-700 text-sm text-center">
                 Upload a QR Code Image
               </p>
-              <span className="text-[#0f8c8c] text-[13px] underline">Browse</span>
+              <span className="text-[#0f8c8c] text-[13px] underline">
+                Browse
+              </span>
             </>
           )}
         </button>

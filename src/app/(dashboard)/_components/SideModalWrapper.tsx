@@ -1,4 +1,5 @@
 "use client";
+import { useBodyScrollLock } from "@/lib/hooks/useBodyScrollLock";
 import Overlay from "@/components/ui/Overlay";
 import React, { ReactNode, useEffect, useState } from "react";
 import * as motion from "motion/react-client";
@@ -26,14 +27,7 @@ const SideModalWrapper = ({ children, close, wrapperStyle }: Props) => {
     setIsHydrated(true);
   }, []);
 
-  useEffect(() => {
-    if (!isHydrated || !isMobile) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [isHydrated, isMobile]);
+  useBodyScrollLock(isHydrated && isMobile);
 
   if (!isHydrated) return null;
 

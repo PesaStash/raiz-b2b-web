@@ -1,4 +1,5 @@
 "use client";
+import { useBodyScrollLock } from "@/lib/hooks/useBodyScrollLock";
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { DateRange as ReactDateRange, RangeKeyDict } from "react-date-range";
@@ -28,14 +29,7 @@ const DateRange: React.FC<DateRangeProps> = ({ onApply, onClose }) => {
     setMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (!isMobile) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [isMobile]);
+  useBodyScrollLock(mounted && isMobile);
 
   const handleSelect = (ranges: RangeKeyDict) => {
     const { selection } = ranges;

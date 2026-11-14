@@ -1,6 +1,5 @@
 import React from "react";
 import { sbcType } from "../send/CryptoSend";
-import Overlay from "@/components/ui/Overlay";
 import Image from "next/image";
 import Radio from "@/components/ui/Radio";
 import { useCryptoSwapStore } from "@/store/CryptoSwap";

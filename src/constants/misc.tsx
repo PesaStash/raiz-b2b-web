@@ -14,47 +14,6 @@ export const months = [
   "Nov",
   "Dec",
 ];
-
-export const nigeriaStates = [
-  { value: "abia", label: "Abia" },
-  { value: "adamawa", label: "Adamawa" },
-  { value: "akwa_ibom", label: "Akwa Ibom" },
-  { value: "anambra", label: "Anambra" },
-  { value: "bauchi", label: "Bauchi" },
-  { value: "bayelsa", label: "Bayelsa" },
-  { value: "benue", label: "Benue" },
-  { value: "borno", label: "Borno" },
-  { value: "cross_river", label: "Cross River" },
-  { value: "delta", label: "Delta" },
-  { value: "ebonyi", label: "Ebonyi" },
-  { value: "edo", label: "Edo" },
-  { value: "ekiti", label: "Ekiti" },
-  { value: "enugu", label: "Enugu" },
-  { value: "gombe", label: "Gombe" },
-  { value: "imo", label: "Imo" },
-  { value: "jigawa", label: "Jigawa" },
-  { value: "kaduna", label: "Kaduna" },
-  { value: "kano", label: "Kano" },
-  { value: "katsina", label: "Katsina" },
-  { value: "kebbi", label: "Kebbi" },
-  { value: "kogi", label: "Kogi" },
-  { value: "kwara", label: "Kwara" },
-  { value: "lagos", label: "Lagos" },
-  { value: "nasarawa", label: "Nasarawa" },
-  { value: "niger", label: "Niger" },
-  { value: "ogun", label: "Ogun" },
-  { value: "ondo", label: "Ondo" },
-  { value: "osun", label: "Osun" },
-  { value: "oyo", label: "Oyo" },
-  { value: "plateau", label: "Plateau" },
-  { value: "rivers", label: "Rivers" },
-  { value: "sokoto", label: "Sokoto" },
-  { value: "taraba", label: "Taraba" },
-  { value: "yobe", label: "Yobe" },
-  { value: "zamfara", label: "Zamfara" },
-  { value: "fct", label: "Federal Capital Territory" },
-];
-
 export const FOREIGN_ACCOUNT_ACTIVATION_FEE_USD = 3;
 export const FOREIGN_MIN_SEND_AMOUNT = 3;
 
@@ -65,12 +24,6 @@ export const ACCOUNT_CURRENCIES = {
   EUR: { name: "EUR", sign: "€", logo: "/icons/flag-fr.png" } as const,
   SBC: { name: "SBC", sign: "$", logo: "/icons/sbc.svg" } as const,
 } as const;
-
-export const SWAP_ACCOUNT_CURRENCIES = {
-  USD: { name: "USD", sign: "$" } as const,
-  NGN: { name: "NGN", sign: "₦" } as const,
-} as const;
-
 export const CRYPTO_SWAP_ACCOUNT_CURRENCIES = {
   USD: { name: "USD", sign: "$" } as const,
   SBC: { name: "SBC", sign: "$" } as const,
@@ -123,17 +76,6 @@ export const CHAINS: { name: string; value: IChain; icon: string }[] = [
     icon: "/icons/eth.svg",
   },
 ];
-
-export const WALLET_TYPES = {
-  1: "USD Holding Account",
-  2: "NGN Holding Account",
-  3: "Crypto Holding Wallet",
-  4: "Naira virtual wallet",
-  5: "USD Holding Wallet",
-  6: "Pound Wallet",
-  7: "Euro Wallet",
-};
-
 export const USAstateCodes = [
   { name: "Alabama", abbreviation: "AL" },
   { name: "Alaska", abbreviation: "AK" },

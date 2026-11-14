@@ -6,6 +6,7 @@ import SideWrapperHeader from "@/components/SideWrapperHeader";
 import MobileSheetHeader from "@/components/mobile/MobileSheetHeader";
 import Tabs from "@/components/ui/Tabs";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
+import { useTransactionCategories } from "@/lib/hooks/useTransactionCategories";
 import { useSendStore } from "@/store/Send";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { IForeignSendOptions } from "@/types/misc";
@@ -19,6 +20,7 @@ interface Props {
 
 const ForeignSend = ({ close }: Props) => {
   const { actions, user, foreignBeneficiary, foreignSendType } = useSendStore();
+  useTransactionCategories();
   const { selectedCurrency } = useCurrencyStore();
   const isMobile = useMediaQuery("(max-width: 768px)");
 

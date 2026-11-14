@@ -95,11 +95,6 @@ const WalletTierModal = ({ close, tierName, tierCode }: Props) => {
             width={48}
             height={48}
           />
-          {/* {tierName && (
-            <p className="uppercase text-center text-[#4F33C4] text-xs font-semibold leading-none mt-[11px]">
-              {tierName}
-            </p>
-          )} */}
           {tierCode !== undefined && (
             <p className="text-center text-raiz-gray-950 text-[23px] font-bold leading-7">
               {tierCode}

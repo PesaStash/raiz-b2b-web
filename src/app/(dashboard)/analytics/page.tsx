@@ -1,5 +1,4 @@
 "use client";
-import { useCurrentWallet } from "@/lib/hooks/useCurrentWallet";
 import { useUser } from "@/lib/hooks/useUser";
 import {
   FetchTransactionReportCategoryApi,
@@ -78,12 +77,6 @@ const AnalyticsPage = () => {
           .format("DD MMM YYYY")} - ${today.format("DD MMM YYYY")}`,
         days: 365,
       },
-      // {
-      //   label: "Custom",
-      //   value: "custom",
-      //   dateRange: "Pick a specific period of time to date",
-      //   days: null,
-      // },
     ];
   };
 
@@ -240,13 +233,6 @@ const AnalyticsPage = () => {
             </p>
           </div>
         </div>
-        {/* <InflowOutflow
-        type="income-expense"
-        opened={showRange}
-        open={handleOpenRange}
-        close={handleCloseRange}
-        selectedRange={selectedRange}
-      /> */}
         <AnalyticsChart
           opened={showRange}
           open={handleOpenRange}

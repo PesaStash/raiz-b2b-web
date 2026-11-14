@@ -4,7 +4,7 @@ import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 import Spinner from "@/components/ui/Spinner";
 import { parseBridgeTosMessage } from "@/utils/bridgeTos";
 import Image from "next/image";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 
 interface BridgeToSWebviewProps {
   bridgeUrl: string;
@@ -20,15 +20,18 @@ const BridgeToSWebview = ({
   onError,
 }: BridgeToSWebviewProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const frame = useRef<HTMLIFrameElement>(null);
+  const pending = useRef(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
   const handleMessage = useCallback(
     async (event: MessageEvent) => {
-      if (isProcessing) return;
+      if (pending.current || !frame.current || event.source !== frame.current.contentWindow) return;
 
       const signedAgreementId = parseBridgeTosMessage(event, bridgeUrl);
       if (!signedAgreementId) return;
 
+      pending.current = true;
       setIsProcessing(true);
       setLocalError(null);
 
@@ -41,10 +44,11 @@ const BridgeToSWebview = ({
             : "Unable to complete Bridge Terms acceptance.";
         setLocalError(message);
         onError?.(message);
+        pending.current = false;
         setIsProcessing(false);
       }
     },
-    [bridgeUrl, isProcessing, onAccepted, onError]
+    [bridgeUrl, onAccepted, onError]
   );
 
   useEffect(() => {
@@ -83,7 +87,9 @@ const BridgeToSWebview = ({
 
         <div className="relative min-h-[60vh] flex-1 overflow-hidden rounded-xl border border-raiz-gray-100 bg-white">
           <iframe
+            ref={frame}
             src={bridgeUrl}
+            referrerPolicy="no-referrer"
             title="Bridge Terms of Service"
             className="h-full min-h-[60vh] w-full"
             allow="clipboard-read; clipboard-write"

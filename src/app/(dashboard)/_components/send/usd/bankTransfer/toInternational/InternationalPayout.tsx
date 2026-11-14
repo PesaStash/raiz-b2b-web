@@ -10,7 +10,13 @@ import {
   trackTransactionFailed,
 } from "@/utils/analytics/dataLayer";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import React, { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
+import React, {
+  Dispatch,
+  SetStateAction,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { toast } from "sonner";
 
 interface Props {
@@ -20,6 +26,7 @@ interface Props {
   fee: number;
   paymentInitiationId: string;
   disabled?: boolean;
+  transfer?: React.ComponentProps<typeof EnterPin>["transfer"];
 }
 const InternationPayout = ({
   close,
@@ -27,6 +34,7 @@ const InternationPayout = ({
   setPaymentError,
   paymentInitiationId,
   disabled = false,
+  transfer,
 }: Props) => {
   const [pin, setPin] = useState<string>("");
   const { purpose, category, actions, amount } = useSendStore();
@@ -117,7 +125,15 @@ const InternationPayout = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pin, disabled]);
 
-  return <EnterPin pin={pin} setPin={setPin} close={close} />;
+  return (
+    <EnterPin
+      transfer={transfer}
+      pin={pin}
+      setPin={setPin}
+      close={close}
+      disabled={disabled}
+    />
+  );
 };
 
 export default InternationPayout;

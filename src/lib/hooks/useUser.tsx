@@ -4,7 +4,7 @@ import { isInactiveFlag, isPublicPath } from "@/lib/permissions";
 import { FetchUserApi } from "@/services/user";
 import { useUserStore } from "@/store/useUserStore";
 import { IUser } from "@/types/user";
-import { GetItemFromCookie } from "@/utils/CookiesFunc";
+import { hasSession } from "@/utils/CookiesFunc";
 import { trackUserDataOnce } from "@/utils/analytics/userProps";
 import { useQuery } from "@tanstack/react-query";
 import { AxiosError } from "axios";
@@ -15,11 +15,11 @@ export const useUser = (options?: { enabled?: boolean }) => {
   const { user, setUser, clearUser, updateUser, showBalance, setShowBalance } =
     useUserStore();
   const pathname = usePathname();
-  const token = GetItemFromCookie("access_token");
+  const signedIn = hasSession();
   // Never fetch the authenticated profile on public payment-link pages.
   const isPaymentLink = isPublicPath(pathname ?? "");
   const shouldFetch =
-    (options?.enabled ?? true) && !!token && !isPaymentLink;
+    (options?.enabled ?? true) && signedIn && !isPaymentLink;
 
   const {
     data: userData,
@@ -48,7 +48,7 @@ export const useUser = (options?: { enabled?: boolean }) => {
   });
 
   useEffect(() => {
-    if (isSuccess && userData && shouldFetch && GetItemFromCookie("access_token")) {
+    if (isSuccess && userData && shouldFetch && hasSession()) {
       setUser(userData);
       trackUserDataOnce(userData);
     }

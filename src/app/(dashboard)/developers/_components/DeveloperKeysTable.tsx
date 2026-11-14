@@ -17,8 +17,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Button from "@/components/ui/Button";
 import Pagination from "@/components/ui/Pagination";
-// import DateRange from "../../transactions/_components/DateRange";
-// import { format } from "date-fns";
 import { LiaTimesSolid } from "react-icons/lia";
 import APIKeyTableOptions from "./APIKeyTableOptions";
 import APIKeyLogsModal from "./APIKeyLogsModal";
@@ -51,7 +49,7 @@ const DeveloperKeysTable = ({ onGenerateKey }: DeveloperKeysTableProps) => {
       queryClient.invalidateQueries({ queryKey: ["developer-keys"] });
       setKeyToRevoke(null);
     },
-    onError: (err: any) => {
+    onError: () => {
       setKeyToRevoke(null);
     },
   });
@@ -78,6 +76,8 @@ const DeveloperKeysTable = ({ onGenerateKey }: DeveloperKeysTableProps) => {
     [keys, currentPage, pageSize],
   );
 
+  // TanStack column arrays mix value types; `any` is the library-recommended type here.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const columns = useMemo<ColumnDef<IDeveloperApiKey, any>[]>(
     () => [
       columnHelper.accessor("name", {
@@ -206,44 +206,6 @@ const DeveloperKeysTable = ({ onGenerateKey }: DeveloperKeysTableProps) => {
     <div className="w-full flex flex-col flex-1 bg-white rounded-[20px] shadow-[0px_4px_30px_0px_rgba(0,0,0,0.03)] border border-gray-50 mt-6 p-6">
       <div className="flex flex-wrap justify-between items-center gap-2 mb-6">
         <h3 className="text-[18px] font-bold text-zinc-900">Your Keys</h3>
-        {/* <div className="flex gap-3">
-          <div className="relative">
-            <button
-              onClick={() => setShowDateRange(!showDateRange)}
-              className="flex gap-1.5 items-center px-3.5 py-2.5 rounded-lg border border-gray-200 shadow-sm transition-colors hover:bg-gray-50"
-            >
-              <Image
-                src={"/icons/calendar.svg"}
-                alt="calendar"
-                width={20}
-                height={20}
-              />
-              <span className="text-zinc-800 text-sm font-semibold leading-none">
-                {dateRange.startDate && dateRange.endDate
-                  ? `${format(dateRange.startDate, "dd MMM")} - ${format(
-                      dateRange.endDate,
-                      "dd MMM",
-                    )}`
-                  : "Select dates"}
-              </span>
-            </button>
-            {showDateRange && (
-              <DateRange
-                onApply={setDateRange}
-                onClose={() => setShowDateRange(false)}
-              />
-            )}
-          </div>
-          {dateRange.startDate && (
-            <button
-              onClick={() => setDateRange({})}
-              className="flex items-center justify-center w-10 h-10 rounded-lg shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)] outline outline-1 outline-offset-[-1px] outline-zinc-200"
-            >
-              <LiaTimesSolid />
-            </button>
-          )}
-          
-        </div> */}
       </div>
 
       {isLoading ? (

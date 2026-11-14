@@ -21,9 +21,11 @@ import {
 interface Props {
   goBack: () => void;
   goNext: () => void;
+  embedded?: boolean;
+  onBusyChange?: (busy: boolean) => void;
 }
 
-const StripePayment = ({ goBack, goNext }: Props) => {
+const StripePayment = ({ goBack, goNext, embedded = false, onBusyChange }: Props) => {
   const stripe = useStripe();
   const elements = useElements();
   const { stripeDetail, amount } = useTopupStore();
@@ -31,17 +33,21 @@ const StripePayment = ({ goBack, goNext }: Props) => {
   const [errMsg, setErrMsg] = useState("");
   const [paymentElementReady, setPaymentElementReady] = useState(false);
 
+  const setPaymentLoading = (value: boolean) => { setLoading(value); onBusyChange?.(value); };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoading(true);
+    setPaymentLoading(true);
+    try {
     if (!stripe || !elements) {
+      setPaymentLoading(false);
       toast.error("Stripe or elements not initialized");
       return;
     }
     const { error: submitError } = await elements.submit();
     if (submitError) {
       setErrMsg(submitError.message || "");
-      setLoading(false);
+      setPaymentLoading(false);
       return;
     }
 
@@ -91,7 +97,11 @@ const StripePayment = ({ goBack, goNext }: Props) => {
     } else {
       toast.info(`Payment status: ${paymentIntent?.status}`);
     }
-    setLoading(false);
+    } catch (error) {
+      setErrMsg(error instanceof Error ? error.message : "Payment could not be completed. Please try again.");
+    } finally {
+      setPaymentLoading(false);
+    }
   };
 
   if (!stripeDetail?.client_secret || !stripe || !elements) {
@@ -103,13 +113,13 @@ const StripePayment = ({ goBack, goNext }: Props) => {
     );
   }
 
-  return (
-    <SideModalWrapper close={goBack}>
-      <SideWrapperHeader
+  const content = (
+    <>
+      {!embedded && <SideWrapperHeader
         close={goBack}
         title="Enter your card detail"
         titleColor="text-zinc-900"
-      />
+      />}
       <form
         onSubmit={handleSubmit}
         className="flex flex-col h-full justify-between items-center w-full"
@@ -152,13 +162,14 @@ const StripePayment = ({ goBack, goNext }: Props) => {
           >
             Proceed to pay
           </Button>
-          <Button type="button" variant="secondary" onClick={goBack}>
+          <Button type="button" variant="secondary" disabled={loading} onClick={goBack}>
             Cancel
           </Button>
         </div>
       </form>
-    </SideModalWrapper>
+    </>
   );
+  return embedded ? content : <SideModalWrapper close={goBack}>{content}</SideModalWrapper>;
 };
 
 export default StripePayment;

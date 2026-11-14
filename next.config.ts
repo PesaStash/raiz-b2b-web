@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
   images: {
     remotePatterns: [
       {
@@ -44,7 +45,12 @@ const nextConfig: NextConfig = {
           },
           {
             key: "Content-Security-Policy",
-            value: "object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
+            value:
+              "object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'",
+          },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains",
           },
           {
             key: "X-Content-Type-Options",
@@ -61,6 +67,7 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      { source: "/kyb-person-invitation", headers: [{ key: "Referrer-Policy", value: "no-referrer" }, { key: "Cache-Control", value: "no-store" }, { key: "X-Robots-Tag", value: "noindex, nofollow" }] },
     ];
   },
 };

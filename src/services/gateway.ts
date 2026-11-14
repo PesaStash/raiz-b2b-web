@@ -23,7 +23,7 @@ export const FetchGatewaySubaccountsApi = async (
 ): Promise<IGatewaySubaccountsListResponse> => {
   const queryParams = Object.fromEntries(
     Object.entries(params).filter(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       ([_, value]) => value !== undefined && value !== null && value !== "",
     ),
   );
@@ -48,7 +48,7 @@ export const FetchGatewaySubaccountActivitiesApi = async (
 ): Promise<IGatewaySubaccountActivitiesResponse> => {
   const queryParams = Object.fromEntries(
     Object.entries(params).filter(
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       ([_, value]) => value !== undefined && value !== null && value !== "",
     ),
   );

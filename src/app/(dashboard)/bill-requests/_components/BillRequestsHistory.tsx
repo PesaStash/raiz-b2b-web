@@ -389,15 +389,6 @@ const TableRow = ({
       </td>
 
       {/* Category */}
-      {/* <td className="py-4 px-3">
-        <span className="inline-flex items-center font-brSonoma font-medium gap-1.5 text-xs border border-raiz-gray-200 rounded-md px-2 py-1 text-raiz-gray-700 shadow-[0px_1px_2px_0px_rgba(16,24,40,0.05)]">
-          <span className="w-2 h-2 rounded-full bg-blue-400" />
-          {data?.find(
-            (item) =>
-              item.transaction_category_id === request.transaction_category_id,
-          )?.transaction_category || "General"}
-        </span>
-      </td> */}
 
       {/* Date */}
       <td className="py-4 px-3 text-raiz-gray-600 text-sm">
@@ -423,21 +414,6 @@ const TableRow = ({
       </td>
 
       {/* Three-dot */}
-      {/* <td className="py-4 px-4">
-        <button className="text-raiz-gray-400 hover:text-raiz-gray-700 transition-colors">
-          <svg
-            width="4"
-            height="16"
-            viewBox="0 0 4 16"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <circle cx="2" cy="2" r="2" fill="currentColor" />
-            <circle cx="2" cy="8" r="2" fill="currentColor" />
-            <circle cx="2" cy="14" r="2" fill="currentColor" />
-          </svg>
-        </button>
-      </td> */}
     </tr>
   );
 };
@@ -476,7 +452,6 @@ const TableSkeleton = () => (
       <div key={i} className="flex items-center gap-4">
         <Skeleton circle width={40} height={40} />
         <Skeleton width={120} height={14} />
-        {/* <Skeleton width={80} height={14} className="ml-auto" /> */}
         <Skeleton width={80} height={24} borderRadius={6} />
         <Skeleton width={120} height={14} />
         <Skeleton width={80} height={14} />
@@ -1048,16 +1023,12 @@ const BillRequestsHistory = () => {
                 <th className="text-left py-3 px-3 text-[13px] font-medium text-raiz-gray-700">
                   Amount
                 </th>
-                {/* <th className="text-left py-3 px-3 text-[13px] font-medium text-raiz-gray-700">
-                  Category
-                </th> */}
                 <th className="text-left py-3 px-3 text-[13px] font-medium text-raiz-gray-700">
                   Date
                 </th>
                 <th className="text-left py-3 px-3 text-[13px] font-medium text-raiz-gray-700">
                   Status
                 </th>
-                {/*  <th className="py-3 px-4" /> */}
               </tr>
             </thead>
             <tbody>

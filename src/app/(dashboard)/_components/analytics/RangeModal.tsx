@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import Overlay from "@/components/ui/Overlay";
-import { DateOption } from "./page";
+import type { DateOption } from "@/types/analytics";
 
 interface Props {
   close: () => void;
