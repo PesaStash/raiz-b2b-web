@@ -14,7 +14,7 @@ interface Props {
 const PaymentLinkModal = ({ close }: Props) => {
   const { user } = useUser();
   const username = user?.business_account?.username;
-  const link = process.env.NEXT_PUBLIC_APP_PAYMENT_LINK_URL;
+  const link = `${process.env.NEXT_PUBLIC_APP_PAYMENT_LINK_URL}/${username}`;
   if (!link) {
     return null;
   }
