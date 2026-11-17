@@ -14,10 +14,10 @@ interface Props {
 const PaymentLinkModal = ({ close }: Props) => {
   const { user } = useUser();
   const username = user?.business_account?.username;
-  const link =
-    typeof window !== "undefined" && username
-      ? `${window.location.origin}/pay/${encodeURIComponent(username)}`
-      : "";
+  const link = process.env.NEXT_PUBLIC_APP_PAYMENT_LINK_URL;
+  if (!link) {
+    return null;
+  }
 
   return (
     <Overlay width="375px" close={close}>
