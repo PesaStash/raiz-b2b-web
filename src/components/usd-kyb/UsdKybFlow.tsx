@@ -37,6 +37,10 @@ import PeopleStage from "./PeopleStage";
 import DocumentsStage from "./DocumentsStage";
 import KybTerms from "./KybTerms";
 import { signedAgreementId } from "@/lib/usd-kyb/agreement";
+import {
+  companyDocumentRequirementMessage,
+  missingCompanyDocuments,
+} from "@/lib/usd-kyb/documents";
 import KybReview, { SubmittedCase } from "./KybReview";
 import SetupGuide, { GroupProgress, KybIcon } from "./KybGuide";
 import KybSkeleton from "./KybSkeleton";
@@ -92,6 +96,7 @@ export function KybWorkspace({
         description: keys
           .map(
             (key) =>
+              companyDocumentRequirementMessage(key) ??
               personRequirementMessage(key, editor.people) ??
               label(key.replaceAll(".", " · ")),
           )
@@ -153,14 +158,22 @@ export function KybWorkspace({
   };
   const next = async () => {
     editor.revealRequiredErrors();
-    const result = await editor.command(async () => {
+    const result = await editor.command(async (current) => {
       if (step === 2) await editor.prepareAssociatedPersons();
-      return kybApi.validate();
+      const validation = await kybApi.validate();
+      return {
+        validation,
+        missingDocuments:
+          step === 4
+            ? missingCompanyDocuments(current.documents, editor.draft)
+            : [],
+      };
     });
     if (!result) return;
     const errors = [...new Set([
-      ...result.validation.missing_requirements,
-      ...(result.validation.field_errors ?? []).map(error => error.field),
+      ...result.missingDocuments,
+      ...result.validation.validation.missing_requirements,
+      ...(result.validation.validation.field_errors ?? []).map(error => error.field),
       ...editor.inputErrors.map(error => error.field),
     ])].filter(k => !deferredRequirements.has(k) && requirementStage(k) === step);
     if (errors.length) {
@@ -176,6 +189,7 @@ export function KybWorkspace({
       await editor.prepareAssociatedPersons();
       const validation = await kybApi.validate();
       const hard = [...new Set([
+        ...missingCompanyDocuments(current.documents, editor.draft),
         ...validation.validation.missing_requirements,
         ...(validation.validation.field_errors ?? []).map(error => error.field),
         ...editor.inputErrors.map(error => error.field),
@@ -194,6 +208,14 @@ export function KybWorkspace({
       }
       if (!signedAgreementId(fresh)) {
         setIssues(["signed_agreement_id"]);
+        return fresh;
+      }
+      const missingDocuments = missingCompanyDocuments(
+        fresh.documents,
+        editor.draft,
+      );
+      if (missingDocuments.length) {
+        setIssues(missingDocuments);
         return fresh;
       }
       return kybApi.submit(
@@ -360,7 +382,8 @@ export function KybWorkspace({
                             void navigate(requirementStage(key), key)
                           }
                         >
-                          {personRequirementMessage(key, editor.people) ??
+                          {companyDocumentRequirementMessage(key) ??
+                            personRequirementMessage(key, editor.people) ??
                             label(key.replaceAll(".", " · "))}
                         </button>
                       </li>

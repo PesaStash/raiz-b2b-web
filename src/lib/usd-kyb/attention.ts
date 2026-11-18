@@ -31,6 +31,7 @@ export function focusAttention(root: HTMLElement, key: string) {
   );
   const target =
     sections.find((el) => el.dataset.kybRequirement === section) ??
+    sections.find((el) => el.dataset.kybDocument === section) ??
     sections.find(
       (el) => el.dataset.kybRequirement?.split(".").at(-1) === key,
     ) ??

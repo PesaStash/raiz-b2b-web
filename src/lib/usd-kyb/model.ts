@@ -1,4 +1,5 @@
 import type { KybPerson } from "../../types/usdKyb.ts";
+import { isCompanyDocumentRequirement } from "./documents.ts";
 export const stages = [
   {
     key: "identity",
@@ -159,6 +160,8 @@ export const deferredRequirements = new Set([
 export function requirementStage(key: string): number {
   if (key === "signed_agreement_id" || key.endsWith(".signed_agreement_id"))
     return 5;
+  // Slot titles contain words like "ownership" and "address" that belong to earlier stages.
+  if (isCompanyDocumentRequirement(key)) return 4;
   // Ownership evidence is supplied later, not a missing person/percentage.
   if (key === "ownership_structure_attestation_or_document") return 4;
   if (/business_industry/.test(key)) return 1;

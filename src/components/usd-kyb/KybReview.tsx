@@ -19,6 +19,10 @@ import {
   peopleNeedingInvitation,
   personRequirementMessage,
 } from "@/lib/usd-kyb/personDetails";
+import {
+  companyDocumentRequirementMessage,
+  missingCompanyDocuments,
+} from "@/lib/usd-kyb/documents";
 import type { KybPerson } from "@/types/usdKyb";
 import type { KybEditor } from "@/lib/hooks/useUsdKyb";
 import {
@@ -43,8 +47,16 @@ export function Requirements({
     groupFieldErrors(editor.fieldErrors ?? []).find(
       (error) => error.field === key,
     );
+  const requirementLabel = (key: string) =>
+    key === "signed_agreement_id"
+      ? "Account terms"
+      : (correctionFor(key)?.message ??
+        companyDocumentRequirementMessage(key) ??
+        personRequirementMessage(key, editor.people) ??
+        label(key.replaceAll(".", " · ")));
   const hard = [
     ...new Set([
+      ...missingCompanyDocuments(editor.bundle?.documents, editor.draft),
       ...editor.missing.filter((key) => !deferredRequirements.has(key)),
       ...(editor.fieldErrors ?? []).map((error) => error.field),
       ...(peopleNeedingInvitation(editor.people).length
@@ -72,18 +84,10 @@ export function Requirements({
                     className="text-left underline"
                     onClick={() => navigate?.(requirementStage(key), key)}
                   >
-                    {key === "signed_agreement_id"
-                      ? "Account terms"
-                      : (correctionFor(key)?.message ??
-                        personRequirementMessage(key, editor.people) ??
-                        label(key.replaceAll(".", " · ")))}
+                    {requirementLabel(key)}
                   </button>
-                ) : key === "signed_agreement_id" ? (
-                  "Account terms"
                 ) : (
-                  (correctionFor(key)?.message ??
-                  personRequirementMessage(key, editor.people) ??
-                  label(key.replaceAll(".", " · ")))
+                  requirementLabel(key)
                 )}
               </li>
             ))}
