@@ -1,5 +1,6 @@
 "use client";
 import { withBusinessWrite } from "@/components/team/BusinessWrite";
+import { hasBankDetails } from "@/lib/businessWallets";
 import Image from "next/image";
 import { copyToClipboard, findWalletByCurrency } from "@/utils/helpers";
 import { useUser } from "@/lib/hooks/useUser";
@@ -46,6 +47,13 @@ const TopUp = ({ close }: Props) => {
     currentWallet?.sort_code ||
     currentWallet?.routing?.find((route) => route.routing_type_name === "FASTER_PAYMENTS")
       ?.routing;
+
+  if (!hasBankDetails(currentWallet)) return (
+    <div className="space-y-4 p-5">
+      <CenterModalHeader close={close} title="Add funds" />
+      <p className="text-sm">Dedicated bank details are unavailable for this wallet.</p>
+    </div>
+  );
 
   return (
     <div className="pb-8 flex flex-col justify-between xl:h-[95vh]">

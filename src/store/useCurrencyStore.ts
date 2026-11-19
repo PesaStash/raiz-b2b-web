@@ -10,7 +10,8 @@ interface AccountCurrencyState {
   selectedCurrency: AccountCurrencyType;
   setSelectedCurrency: (
     currency: keyof typeof ACCOUNT_CURRENCIES,
-    user: IUser | undefined
+    user: IUser | undefined,
+    walletId?: string
   ) => void;
   syncWithUser: (user: IUser | undefined) => void;
   selectedWallet: IWallet | undefined;
@@ -21,10 +22,12 @@ export const useCurrencyStore = create<AccountCurrencyState>()(
     (set, get) => ({
       selectedCurrency: ACCOUNT_CURRENCIES.USD,
       selectedWallet: undefined,
-      setSelectedCurrency: (currency, user) =>
+      setSelectedCurrency: (currency, user, walletId) =>
         set(() => {
           const selectedCurrency = ACCOUNT_CURRENCIES[currency];
-          const selectedWallet = findWalletByCurrency(
+          const selectedWallet = user?.business_account?.wallets.find(
+            (wallet) => wallet.wallet_id === walletId && wallet.wallet_type.currency === currency,
+          ) ?? findWalletByCurrency(
             user,
             selectedCurrency.name
           );
@@ -38,12 +41,12 @@ export const useCurrencyStore = create<AccountCurrencyState>()(
           get().selectedCurrency.name as ICurrencyName
         );
 
-        if (resolved === get().selectedCurrency.name && get().selectedWallet) {
-          return;
-        }
-
         const selectedCurrency = ACCOUNT_CURRENCIES[resolved];
-        const selectedWallet = findWalletByCurrency(user, selectedCurrency.name);
+        const currentWalletId = get().selectedWallet?.wallet_id;
+        const selectedWallet = user.business_account?.wallets.find(
+          (wallet) => wallet.wallet_id === currentWalletId && wallet.wallet_type.currency === resolved,
+        ) ?? findWalletByCurrency(user, selectedCurrency.name);
+        if (selectedWallet === get().selectedWallet && selectedCurrency === get().selectedCurrency) return;
         set({ selectedCurrency, selectedWallet });
       },
     }),

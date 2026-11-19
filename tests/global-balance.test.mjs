@@ -11,6 +11,12 @@ test("legacy profiles retain NGN/USD compatibility", () => {
   const result = spendableBalances({ wallets: [{ wallet_id: "usd", wallet_type: { currency: "USD" }, account_balance: 12.5 }, { wallet_type: { currency: "GBP" }, account_balance: 80 }] });
   assert.equal(result.length, 1); assert.equal(result[0].available_balance, "12.5");
 });
+test("v2 balance reads normalize numeric money without rounding decimal strings", () => {
+  const balance = { currency: "NGN", available_balance: 17.05, pending_debits: "3.005" };
+  assert.deepEqual(spendableBalances({ balance_model: "ngn_usd_v2", balances: [balance] }), [
+    { ...balance, available_balance: "17.05" },
+  ]);
+});
 test("money formatting preserves decimal precision beyond Number safe range", () => {
   assert.equal(formatMoney("9007199254740993.01", "USD"), "$9,007,199,254,740,993.01");
   assert.equal(formatMoney("0.000001", "USDT"), "0.000001 USDT");

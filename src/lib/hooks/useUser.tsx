@@ -2,6 +2,8 @@
 import { endSession, sessionGeneration } from "@/lib/session";
 import { isInactiveFlag, isPublicPath } from "@/lib/permissions";
 import { FetchUserApi } from "@/services/user";
+import { FetchTreasuryBalancesApi } from "@/services/globalBalance";
+import { isWalletOnly } from "@/lib/businessWallets";
 import { useUserStore } from "@/store/useUserStore";
 import { IUser } from "@/types/user";
 import { hasSession } from "@/utils/CookiesFunc";
@@ -37,10 +39,18 @@ export const useUser = (options?: { enabled?: boolean }) => {
       const result = await FetchUserApi();
       if (generation !== sessionGeneration()) throw new Error("Session ended");
       if (isInactiveFlag(result.active)) { endSession(true); throw new Error("Access deactivated"); }
+      const account = result.business_account;
+      if (account?.balance_model === "ngn_usd_v2" || account?.wallets?.some(isWalletOnly)) {
+        const treasury = await FetchTreasuryBalancesApi().catch(() => null);
+        if (generation !== sessionGeneration()) throw new Error("Session ended");
+        if (treasury?.balance_model === "ngn_usd_v2" && Array.isArray(treasury.balances)) {
+          return { ...result, business_account: { ...account, ...treasury } };
+        }
+      }
       return result;
     },
     staleTime: 30000,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: "always",
     refetchOnReconnect: true,
     refetchInterval: 60000,
     retry: false,

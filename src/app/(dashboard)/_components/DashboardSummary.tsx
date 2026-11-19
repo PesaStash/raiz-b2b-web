@@ -4,6 +4,8 @@ import { usePermissions } from "@/lib/hooks/usePermissions";
 
 import React, { useEffect, useState } from "react";
 import GlobalDashboard from "./global/GlobalDashboard";
+import { isEntityRestricted, isWalletOnly, ngnHeadroom } from "@/lib/businessWallets";
+import { useCurrentWallet } from "@/lib/hooks/useCurrentWallet";
 import { isGlobalBalance, spendableBalances } from "@/lib/globalBalance";
 import { AnimatePresence } from "motion/react";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
@@ -73,11 +75,7 @@ const DashboardSummary = () => {
     | null
   >(null);
   const [showAcctInfo, setShowAcctInfo] = useState(false);
-  const NGNAcct = findWalletByCurrency(user, "NGN");
   const USDAcct = findWalletByCurrency(user, "USD");
-  const GBPAcct = findWalletByCurrency(user, "GBP");
-  const EURAcct = findWalletByCurrency(user, "EUR");
-  const SBCAcct = findWalletByCurrency(user, "SBC");
   const verificationStatus =
     user?.business_account?.business_verifications?.[0]?.verification_status;
   const { data: usdCase } = useUsdOnboardingStatus(user);
@@ -101,21 +99,7 @@ const DashboardSummary = () => {
   }, [branchState.showDashboard, user]);
 
 
-  const getCurrentWallet = () => {
-    if (selectedCurrency.name === "NGN") {
-      return NGNAcct;
-    } else if (selectedCurrency.name === "USD") {
-      return USDAcct;
-    } else if (selectedCurrency.name === "GBP") {
-      return GBPAcct;
-    } else if (selectedCurrency.name === "EUR") {
-      return EURAcct;
-    } else if (selectedCurrency.name === "SBC") {
-      return SBCAcct;
-    }
-  };
-
-  const currentWallet = getCurrentWallet();
+  const currentWallet = useCurrentWallet(user);
   const hasDedicatedTopUp =
     selectedCurrency?.name === "USD" || selectedCurrency?.name === "NGN";
 
@@ -134,11 +118,22 @@ const DashboardSummary = () => {
     if (
       branchState.isNgnBranch &&
       !branchState.isVerificationComplete &&
+      USDAcct?.wallet_status !== "completed" &&
       selectedCurrency.name !== "NGN"
     ) {
       toast.warning(
         "Complete account verification to access other currency accounts.",
       );
+      return;
+    }
+    if ((action === "topUp" || action === "request") && selectedCurrency.name === "NGN" &&
+      ngnHeadroom(currentWallet?.account_balance) === "0") {
+      toast.warning("You’ve reached your ₦300,000 NGN balance limit.");
+      return;
+    }
+    if (action !== "details" && (currentWallet?.is_pnd || isEntityRestricted(user?.business_account?.entity) ||
+      (isWalletOnly(currentWallet) && currentWallet?.wallet_status !== "completed"))) {
+      toast.warning("Wallet activity is restricted.");
       return;
     }
     if (!currentWallet) {
@@ -160,7 +155,8 @@ const DashboardSummary = () => {
   const handleSwapClick = (amount?: string, sourceCurrency?: "USD" | "NGN") => {
     if (
       branchState.isNgnBranch &&
-      !branchState.isVerificationComplete
+      !branchState.isVerificationComplete &&
+      USDAcct?.wallet_status !== "completed"
     ) {
       toast.warning(
         "Complete account verification to access swap and other currency features.",

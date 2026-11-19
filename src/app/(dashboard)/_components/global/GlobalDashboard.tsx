@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
+import Image from "next/image";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@/lib/hooks/useUser";
 import { usePermissions } from "@/lib/hooks/usePermissions";
@@ -19,7 +20,12 @@ import {
 } from "@/lib/globalBalance";
 import { BalanceCurrency, ReceivingAccount } from "@/types/globalBalance";
 import { FetchReceivingAccountsApi } from "@/services/globalBalance";
-import { isNigerianBusiness } from "@/utils/onboardingBranch";
+import { canCreateNgnWallet, isNigerianBusiness } from "@/utils/onboardingBranch";
+import { NGN_HOLDING_LIMIT, hasBankDetails, isEntityRestricted, isWalletOnly, ngnHeadroom } from "@/lib/businessWallets";
+import { useKybNavigation } from "@/lib/hooks/useKybNavigation";
+import { useNgnOnboarding } from "@/lib/hooks/useNgnOnboarding";
+import { getCombinedNgnKybUiState } from "@/utils/ngnKyb";
+import WalletDialog from "@/components/onboarding/WalletDialog";
 import {
   AccountDetails,
   ShareAccounts,
@@ -44,18 +50,42 @@ export default function GlobalDashboard({
   const reduceMotion = useReducedMotion();
   const { user, showBalance, setShowBalance } = useUser();
   const { canWriteBusiness } = usePermissions();
-  const { selectedCurrency, setSelectedCurrency } = useCurrencyStore();
+  const { selectedCurrency, selectedWallet, setSelectedCurrency } = useCurrencyStore();
   const account = user?.business_account;
   const global = isGlobalBalance(account);
   const isNigerian = isNigerianBusiness(user);
+  const wallets = account?.wallets ?? [];
+  const ngnWallet = wallets.find((wallet) => wallet.wallet_type.currency === "NGN");
+  const usdWallet = wallets.find((wallet) => wallet.wallet_type.currency === "USD");
+  const canUseNgn = isNigerian || !!ngnWallet;
+  const canCreateNgn = canCreateNgnWallet(user, account?.business_verifications?.[0]?.verification_status);
+  const canOfferNgn = canWriteBusiness && !isEntityRestricted(account?.entity) && !ngnWallet;
   const balances = spendableBalances(account);
   const currency: BalanceCurrency =
-    !isNigerian || selectedCurrency.name !== "NGN" ? "USD" : "NGN";
-  const balance = balances.find((b) => b.currency === currency);
+    canUseNgn && selectedCurrency.name === "NGN" ? "NGN" : "USD";
+  const balance = balances.find((b) => b.currency === currency && b.wallet_id === selectedWallet?.wallet_id)
+    ?? balances.find((b) => b.currency === currency);
+  const wallet = wallets.find((item) => item.wallet_id === balance?.wallet_id);
+  const walletOnly = isWalletOnly(wallet);
+  const showNgnLimit = currency === "NGN";
+  const headroom = showNgnLimit ? ngnHeadroom(wallet?.account_balance) : undefined;
+  const atLimit = headroom === "0";
+  const kyb = useKybNavigation(user);
+  const usdStatus = kyb.data?.case.status;
+  const usdBankReview = usdWallet?.wallet_status === "completed" && isWalletOnly(usdWallet) &&
+    (usdStatus === "submitted_to_bridge" || usdStatus === "under_review");
+  const usdBankRejected = usdWallet?.wallet_status === "completed" && isWalletOnly(usdWallet) &&
+    usdStatus === "rejected" && !!(kyb.data?.case.bridge_customer_id || kyb.data?.case.bridge_application_id ||
+      account?.business_verifications?.[0]?.case_stage === "bridge_rejected");
+  const ngnSetup = useNgnOnboarding({ enabled: isNigerian && !!ngnWallet && !hasBankDetails(ngnWallet) });
+  const ngnProgress = getCombinedNgnKybUiState(ngnSetup.requirements);
+  const ngnBankReview = !!ngnWallet && !hasBankDetails(ngnWallet) &&
+    (ngnProgress === "review" || ngnProgress === "processing" ||
+      (!isWalletOnly(ngnWallet) && ngnWallet.wallet_status === "pending"));
   const otherCurrency = currency === "USD" ? "NGN" : "USD";
   const otherBalance = balances.find((b) => b.currency === otherCurrency);
   const [modal, setModal] = useState<
-    "share" | "switch" | "EUR" | "GBP" | "SBC" | null
+    "share" | "switch" | "EUR" | "GBP" | "SBC" | "create-ngn" | null
   >(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [accountsOpen, setAccountsOpen] = useState(false);
@@ -81,16 +111,10 @@ export default function GlobalDashboard({
   const receiving = global
     ? (receivingQuery.data?.accounts ?? account?.receiving_accounts ?? [])
     : [];
-  const wallets = account?.wallets ?? [];
   const bankInstructions = wallets
-    .filter(
-      (w) =>
-        w.wallet_type.currency === "USD" ||
-        w.wallet_type.currency === "NGN" ||
-        (!global &&
-          (w.wallet_type.currency === "EUR" ||
-            w.wallet_type.currency === "GBP")),
-    )
+    .filter((w) => hasBankDetails(w) &&
+      (w.wallet_type.currency === "USD" || w.wallet_type.currency === "NGN" ||
+        (!global && (w.wallet_type.currency === "EUR" || w.wallet_type.currency === "GBP"))))
     .map((w) => walletInstructions(w, account?.business_name ?? ""));
   const instructions = [
     ...bankInstructions,
@@ -113,15 +137,19 @@ export default function GlobalDashboard({
       : new Date().getHours() < 17
         ? "Good afternoon"
         : "Good evening";
-  const hasWallet = wallets.some((w) => w.wallet_id === balance?.wallet_id);
+  const restricted = !!wallet?.is_pnd || isEntityRestricted(account?.entity);
   const writable =
-    canWriteBusiness &&
-    hasWallet &&
-    !!balance &&
-    (isAccountReady(balance.status) || balance.status.toLowerCase() === "approved");
+    canWriteBusiness && !restricted && !!wallet && !!balance &&
+    (isAccountReady(wallet.wallet_status ?? undefined) || (!walletOnly && !wallet.wallet_status)) &&
+    (isAccountReady(balance.status) || balance.status?.toLowerCase() === "approved");
+  const canReceive = writable && !atLimit;
+  const reviewBanner = currency === "USD" && (usdBankReview || usdBankRejected);
+  const detailsAvailable = currentAccounts.some((item) => isAccountReady(item.status) && item.fields.length > 0);
+  const usdReceiveAssets = balances.find((item) => item.currency === "USD")?.supported_receive_assets;
+  const supportsStablecoins = !usdReceiveAssets || usdReceiveAssets.some((item) => item === "USDT" || item === "USDC");
   useEffect(() => {
     if (!user) return;
-    if (!isNigerian && selectedCurrency.name !== "USD") {
+    if (!canUseNgn && selectedCurrency.name === "NGN") {
       setSelectedCurrency("USD", user);
       return;
     }
@@ -133,7 +161,7 @@ export default function GlobalDashboard({
       return;
     const first = spendableBalances(user.business_account)[0];
     if (first) setSelectedCurrency(first.currency, user);
-  }, [global, isNigerian, user, selectedCurrency.name, setSelectedCurrency]);
+  }, [global, canUseNgn, user, selectedCurrency.name, setSelectedCurrency]);
   const onCreated = (created: ReceivingAccount[]) => {
     qc.setQueryData<{ accounts: ReceivingAccount[] }>(
       ["receiving-accounts", account?.entity_id],
@@ -167,7 +195,7 @@ export default function GlobalDashboard({
           ? "Get paid from the UK"
           : type === "SBC"
             ? "Receive USDT and USDC"
-            : "Set up your USD account"
+            : usdBankReview ? "Account in review" : usdWallet ? "Dedicated bank details" : "Set up your USD wallet"
       : !ready
         ? `Account ${item.status}`
         : `${item.network ?? (type === "EUR" ? "SEPA, Europe" : type === "GBP" ? "Faster Payments, UK" : "ACH and wire, US")}${identifier ? ` · •• ${identifier.slice(-4)}` : ""}`;
@@ -211,12 +239,8 @@ export default function GlobalDashboard({
             </button>
           </>
         ) : type === "USD" ? (
-          <Link
-            href="/onboarding/usd"
-            className="text-xs font-semibold text-primary2"
-          >
-            Set up
-          </Link>
+          usdBankReview ? <span className="rounded-full bg-amber-100 px-2 py-1 text-xs text-amber-900">In review</span> :
+            !usdWallet && canWriteBusiness ? <Link href="/onboarding/usd" className="text-xs font-semibold text-primary2">Set up</Link> : null
         ) : (
           canWriteBusiness &&
           global && (
@@ -225,6 +249,7 @@ export default function GlobalDashboard({
                 !balances.some(
                   (b) => b.currency === "USD" && isAccountReady(b.status),
                 ) ||
+                restricted || (type === "SBC" && !supportsStablecoins) ||
                 receivingQuery.isLoading ||
                 receivingQuery.isError
               }
@@ -248,12 +273,35 @@ export default function GlobalDashboard({
             {empty ? "🎉" : "👋🏾"}
           </h1>
           <p className="mt-2 text-sm text-kyb-muted">
-            {empty
-              ? "Your accounts are ready. Add money or share your details to get paid."
+            {restricted ? "View your wallet balance and restrictions."
+              : atLimit ? "You’ve reached your NGN balance limit."
+              : walletOnly && wallet?.wallet_status === "completed" ? `Your ${currency === "NGN" ? "naira" : "USD"} wallet is ready.`
+              : empty ? "Add money or share your available details to get paid."
               : `${account?.business_name ?? ""} · ${new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}`}
           </p>
         </header>
-        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_308px] desktop:grid-cols-[minmax(0,1fr)_360px]">
+        {restricted ? (
+          <p role="status" className="mb-5 rounded-xl bg-amber-50 p-4 text-sm text-amber-900">
+            Wallet activity is restricted. Contact support for help.
+          </p>
+        ) : atLimit ? (
+          <p role="status" className="mb-5 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <DesignIcon name="wallet-cap-banner.svg" />
+            You’ve reached your ₦300,000 NGN balance limit. Spend or transfer funds before receiving more.
+          </p>
+        ) : currency === "USD" && (usdBankReview || usdBankRejected) ? (
+          <div className="mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#fdf5e1]">
+              <Image src="/images/kyb/review-status.svg" alt="" width={28} height={28} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold">{usdBankReview ? "We’re reviewing your USD bank account" : "Your USD bank account application was declined"}</p>
+              <p className="text-kyb-muted">Your USD wallet remains available. {usdBankReview ? "Bank details appear after provisioning." : "Contact support about the application."}</p>
+            </div>
+            <Link href="/onboarding/usd" className="shrink-0 font-semibold text-primary2">View progress →</Link>
+          </div>
+        ) : null}
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_308px] desktop:grid-cols-[minmax(0,1fr)_360px]">
           <div className="relative isolate min-w-0 pb-[14px]">
             <motion.div
               key={currency}
@@ -289,7 +337,19 @@ export default function GlobalDashboard({
                   <DesignIcon name="32310-11118-imgVuesaxLinearEye.svg" />
                 </button>
               </div>
-              {isNigerian &&
+              {currency === "USD" && canOfferNgn ? (
+                canCreateNgn ? (
+                  <button type="button" onClick={() => setModal("create-ngn")} className="flex items-center gap-2 rounded-2xl border border-white/20 bg-white/10 p-2 text-left">
+                    <CurrencyFlag currency="NGN" />
+                    <span><span className="block text-[11px] text-white/75">Naira wallet</span> <span className="block text-xs font-semibold">Not created yet</span></span>
+                    <span className="rounded-lg bg-white px-3 py-2 text-xs font-semibold text-raiz-usd-primary">+ Create</span>
+                  </button>
+                ) : (
+                  <Link href="/onboarding/business" className="text-xs font-semibold underline">
+                    {account?.entity?.entity_address?.length ? "View business verification" : "Add business address"}
+                  </Link>
+                )
+              ) : (canUseNgn && !!otherBalance) &&
                 (currency === "NGN" ? (
                   <button
                     onClick={() => setModal("switch")}
@@ -352,7 +412,9 @@ export default function GlobalDashboard({
                 )}
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-3">
-                {currency === "USD" && (
+                {walletOnly ? (
+                  <CurrencyFlag currency={currency} compact />
+                ) : currency === "USD" && (
                   <div className="flex -space-x-2">
                     {["USD", "EUR", "GBP", "USDT", "USDC"].map((c) => (
                       <CurrencyFlag key={c} currency={c} small />
@@ -360,7 +422,9 @@ export default function GlobalDashboard({
                   </div>
                 )}
                 <p className="text-xs text-white/80">
-                  {currency === "USD"
+                  {showNgnLimit ? "NGN wallet · maximum balance ₦300,000"
+                    : walletOnly && currency === "USD" ? (supportsStablecoins ? "USD wallet · receive supported stablecoins" : "USD wallet")
+                    : currency === "USD"
                     ? global
                       ? "USD, EUR, GBP and stablecoins, all in USD"
                       : "Your available US Dollar balance"
@@ -368,7 +432,7 @@ export default function GlobalDashboard({
                 </p>
               </div>
             </div>
-            <div className="relative mt-auto grid grid-cols-2 divide-x divide-white/20 rounded-2xl bg-white/10 py-3">
+            <div className="relative mt-auto grid grid-cols-2 divide-x divide-white/20 rounded-2xl bg-white/10 py-3 sm:grid-cols-3">
               {[
                 {
                   label: "Money in (30 days)",
@@ -397,14 +461,23 @@ export default function GlobalDashboard({
                   </p>
                 </div>
               ))}
+              <div className="hidden px-3 sm:block sm:px-[18px]">
+                <p className="flex items-center gap-1.5 text-xs text-white/80">
+                  <CurrencyFlag currency={otherCurrency} mini />
+                  {otherCurrency === "NGN" ? "Naira" : "USD"} balance
+                </p>
+                <p className="mt-1 break-words text-base font-semibold">
+                  {showBalance ? formatMoney(otherBalance?.available_balance, otherCurrency) : "••••••"}
+                </p>
+              </div>
             </div>
             <div
-              className={`relative mt-[14px] grid gap-2.5 ${isNigerian ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"}`}
+              className={`relative mt-[14px] grid gap-2.5 ${canUseNgn ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"}`}
             >
               {[
                 { name: "Add money", key: "topUp", icon: "Add" },
                 { name: "Send", key: "send", icon: "Send2" },
-                ...(isNigerian
+                ...(canUseNgn
                   ? [
                       {
                         name: "Convert",
@@ -414,23 +487,32 @@ export default function GlobalDashboard({
                     ]
                   : []),
                 { name: "Request", key: "request", icon: "ReceiveSquare" },
-              ].map((action) => (
-                <button
-                  key={action.key}
-                  disabled={!writable}
-                  onClick={() =>
-                    action.key === "convert"
-                      ? onConvert()
-                      : onAction(action.key as "topUp" | "send" | "request")
-                  }
-                  className={`flex items-center justify-center gap-2 rounded-xl px-2 py-3 text-sm font-semibold transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 ${action.key === "topUp" ? (currency === "NGN" ? "bg-white text-primary2" : "bg-white text-raiz-usd-primary") : "bg-white/15"}`}
-                >
-                  <DesignIcon
-                    name={`${currency === "NGN" && action.key === "topUp" ? "32285-13423" : "32310-11118"}-imgVuesaxLinear${action.icon}.svg`}
-                  />
-                  {action.name}
-                </button>
-              ))}
+              ].map((action) => {
+                const capIcon = atLimit && (action.key === "send" || action.key === "convert")
+                  ? `wallet-cap-${action.key}.svg`
+                  : undefined;
+                const tone = capIcon ? "bg-white text-primary2"
+                  : action.key === "topUp" && !atLimit ? (currency === "NGN" ? "bg-white text-primary2" : "bg-white text-raiz-usd-primary")
+                  : "bg-white/15";
+                return (
+                  <button
+                    key={action.key}
+                    disabled={action.key === "topUp" || action.key === "request" ? !canReceive :
+                      action.key === "convert" ? !writable || !otherBalance : !writable}
+                    onClick={() =>
+                      action.key === "convert"
+                        ? onConvert()
+                        : onAction(action.key as "topUp" | "send" | "request")
+                    }
+                    className={`flex items-center justify-center gap-2 rounded-xl px-2 py-3 text-sm font-semibold transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 ${tone}`}
+                  >
+                    <DesignIcon
+                      name={capIcon ?? `${currency === "NGN" && action.key === "topUp" && !atLimit ? "32285-13423" : "32310-11118"}-imgVuesaxLinear${action.icon}.svg`}
+                    />
+                    {action.name}
+                  </button>
+                );
+              })}
             </div>
           </section>
           </div>
@@ -447,7 +529,7 @@ export default function GlobalDashboard({
               >
                 <span className="flex items-center gap-2">
                   <h2 className="font-semibold leading-[19px]">
-                    Your account details
+                    {currency === "NGN" && wallet ? "Your naira wallet" : "Your account details"}
                   </h2>
                   <span
                     className={`xl:hidden ${accountsOpen ? "-rotate-90" : "rotate-90"}`}
@@ -459,32 +541,43 @@ export default function GlobalDashboard({
                   In the name {account?.business_name}
                 </p>
               </button>
-              <button
+              {detailsAvailable && <button
                 onClick={() => setModal("share")}
                 className="flex items-center gap-1.5 rounded-lg border border-kyb-border px-2.5 py-1.5 text-xs font-semibold text-primary2"
               >
                 <DesignIcon name="32258-15724-imgVuesaxLinearSend2.svg" />
                 Share
-              </button>
+              </button>}
             </header>
             <div
               id="account-details-panel"
               className={accountsOpen ? undefined : "hidden xl:block"}
             >
+            {showNgnLimit && wallet && (
+              <div className="mb-4 rounded-2xl border border-kyb-border p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold">
+                  <span className="flex items-center gap-1">Balance limit <DesignIcon name="wallet-limit-info.svg" /></span>
+                  <span className="rounded-full bg-kyb-selected px-2 py-1 text-primary2">Max ₦300,000</span>
+                </div>
+                {headroom !== undefined && showBalance && (
+                  <>
+                    <progress aria-label="NGN holding limit used" max={NGN_HOLDING_LIMIT} value={Math.max(0, NGN_HOLDING_LIMIT - Number(headroom))} className={`my-3 block h-2 w-full overflow-hidden rounded-full bg-kyb-selected [&::-webkit-progress-bar]:bg-kyb-selected [&::-webkit-progress-value]:rounded-full ${atLimit ? "[&::-webkit-progress-value]:bg-amber-500 [&::-moz-progress-bar]:bg-amber-500" : "[&::-webkit-progress-value]:bg-primary2 [&::-moz-progress-bar]:bg-primary2"}`} />
+                    <div className="flex flex-wrap justify-between gap-2 text-xs">
+                      <span className="font-semibold">{formatMoney(wallet.account_balance, "NGN")} held</span>
+                      <span className="text-kyb-muted">{atLimit ? "No room left" : `${formatMoney(headroom, "NGN")} room left`}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
             {currency === "USD" ? (
               <div className="space-y-2">
                 {row(
                   usdAccounts.find((a) => a.asset === "USD"),
                   "USD",
                 )}
-                {row(
-                  usdAccounts.find((a) => a.asset === "EUR"),
-                  "EUR",
-                )}
-                {row(
-                  usdAccounts.find((a) => a.asset === "GBP"),
-                  "GBP",
-                )}
+                {(!walletOnly || usdAccounts.some((a) => a.asset === "EUR")) && row(usdAccounts.find((a) => a.asset === "EUR"), "EUR")}
+                {(!walletOnly || usdAccounts.some((a) => a.asset === "GBP")) && row(usdAccounts.find((a) => a.asset === "GBP"), "GBP")}
                 {row(
                   usdAccounts.find(
                     (a) => a.asset === "USDT" || a.asset === "USDC",
@@ -532,13 +625,17 @@ export default function GlobalDashboard({
                 </dl>
               </div>
             ) : (
-              <button
-                disabled={!canWriteBusiness}
-                onClick={onCreateNgn}
-                className="my-10 text-sm font-semibold text-primary2"
-              >
-                Set up your Naira account →
-              </button>
+              <div className="flex items-center gap-3 rounded-xl border border-kyb-border p-3">
+                <CurrencyFlag currency="NGN" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold">NGN bank details</p>
+                  <p className="text-xs text-kyb-muted">{ngnBankReview ? "Shows here once approved" : "Available after additional verification"}</p>
+                </div>
+                {ngnBankReview ? <Link href="/onboarding/ngn" className="rounded-full bg-amber-100 px-2 py-1 text-xs text-amber-900">In review</Link> :
+                  isNigerian && canWriteBusiness && !restricted && (wallet
+                    ? <Link href="/onboarding/ngn" className="text-xs font-semibold text-primary2">Set up</Link>
+                    : <button type="button" onClick={onCreateNgn} className="text-xs font-semibold text-primary2">Set up</button>)}
+              </div>
             )}
             {receivingQuery.isError && global && (
               <button
@@ -550,10 +647,14 @@ export default function GlobalDashboard({
             )}
             <p className="mt-4 rounded-xl bg-[#f3f1fd] px-3 py-2.5 text-xs font-semibold leading-4">
               {currency === "USD"
-                ? global
+                ? walletOnly
+                  ? (reviewBanner ? "Dedicated bank details appear after provisioning." : "Contact your account manager for dedicated USD bank details.")
+                  : global
                   ? "All of these arrive in your USD balance"
                   : "Share your details to receive a payment"
-                : "Receive local transfers into your Naira balance"}
+                : atLimit ? "Spend or send to make room for more money."
+                : showNgnLimit ? "Maximum balance applies even after bank details are added."
+                : "Receive local transfers into your naira balance"}
             </p>
             </div>
           </section>
@@ -591,10 +692,12 @@ export default function GlobalDashboard({
         </section>
       )}
       <div
-        className={`grid grid-cols-1 gap-5 ${isNigerian ? "lg:grid-cols-[minmax(280px,360px)_minmax(0,1fr)]" : ""}`}
+        className={`grid grid-cols-1 gap-5 ${canUseNgn ? "lg:grid-cols-[minmax(280px,360px)_minmax(0,1fr)]" : ""}`}
       >
-        {isNigerian && (
+        {canUseNgn && (
           <ConvertCard
+            key={currency}
+            initialCurrency={currency}
             balances={Object.fromEntries(
               balances.map((b) => [b.currency, b.available_balance]),
             )}
@@ -602,10 +705,11 @@ export default function GlobalDashboard({
             enabled={Object.fromEntries(
               balances.map((b) => [
                 b.currency,
-                canWriteBusiness &&
+                canWriteBusiness && !isEntityRestricted(account?.entity) &&
                   isAccountReady(b.status) &&
                   balances.length > 1 &&
-                  wallets.some((w) => w.wallet_id === b.wallet_id),
+                  wallets.some((w) => w.wallet_id === b.wallet_id && !w.is_pnd &&
+                    (isAccountReady(w.wallet_status ?? undefined) || (!isWalletOnly(w) && !w.wallet_status))),
               ]),
             )}
             entityId={account?.entity_id}
@@ -629,11 +733,14 @@ export default function GlobalDashboard({
         walletId={balance?.wallet_id}
         currency={currency}
         global={global}
-        onShare={() => setModal("share")}
+        onShare={detailsAvailable ? () => setModal("share") : undefined}
         onAddMoney={() => onAction("topUp")}
-        canWrite={writable}
+        canWrite={canReceive}
+        atLimit={atLimit}
+        onSend={writable ? () => onAction("send") : undefined}
       />
-      {isNigerian && modal === "switch" && (
+      {modal === "create-ngn" && <WalletDialog currency="NGN" create bankInReview={ngnBankReview} close={close} />}
+      {canUseNgn && modal === "switch" && (
         <GlobalDialog title="Switch account" close={close} compact>
           <div className="space-y-4">
             {(["NGN", "USD"] as const).map((c) => {
@@ -700,6 +807,7 @@ export default function GlobalDashboard({
           asset={modal}
           close={close}
           existingAccounts={receiving}
+          supportedAssets={usdReceiveAssets}
           onCreated={onCreated}
         />
       )}

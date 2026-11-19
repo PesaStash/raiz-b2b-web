@@ -1,4 +1,5 @@
 "use client";
+import { hasBankDetails } from "@/lib/businessWallets";
 import { BusinessWrite } from "@/components/team/BusinessWrite";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 
@@ -173,7 +174,7 @@ const NgnPayoutSettings = ({ onManageApiKeys, onManageWebhooks }: Props) => {
     () =>
       eligibleWallets.map((wallet) => ({
         value: wallet.wallet_id,
-        label: `${wallet.wallet_name || "NGN Wallet"} · ${wallet.account_number}`,
+        label: `${wallet.wallet_name || "NGN wallet"}${hasBankDetails(wallet) ? ` · ${wallet.account_number}` : ""}`,
       })),
     [eligibleWallets],
   );
@@ -555,7 +556,7 @@ const NgnPayoutSettings = ({ onManageApiKeys, onManageWebhooks }: Props) => {
                       <StatusBadge label="Active" tone="success" />
                     </div>
                     <p className="text-[13px] text-raiz-gray-600">
-                      Account Number: {selectedWallet?.account_number || "—"}
+                      Account Number: {hasBankDetails(selectedWallet) ? selectedWallet?.account_number : "—"}
                     </p>
                   </div>
                 </div>
@@ -710,7 +711,7 @@ const NgnPayoutSettings = ({ onManageApiKeys, onManageWebhooks }: Props) => {
                         />
                       </div>
                       <p className="text-[13px] text-raiz-gray-700">
-                        Account Number: {selectedWallet.account_number}
+                        Account Number: {hasBankDetails(selectedWallet) ? selectedWallet.account_number : "—"}
                       </p>
                     </div>
                   </div>

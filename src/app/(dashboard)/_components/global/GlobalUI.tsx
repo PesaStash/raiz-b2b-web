@@ -113,7 +113,7 @@ export function GlobalDialog({
   compact?: boolean;
   hero?: boolean;
   /** Purple drawer used by the redesigned transaction details panel. */
-  variant?: "default" | "purple";
+  variant?: "default" | "purple" | "wallet";
   children: ReactNode;
 }) {
   const purple = variant === "purple" && drawer;
@@ -170,7 +170,7 @@ export function GlobalDialog({
             : drawer
               ? `h-dvh max-w-[480px] bg-[#fbfaff] p-5 text-raiz-gray-950 sm:p-7 ${onBack ? "sm:pt-4 sm:pb-6 shadow-[-12px_0_40px_rgba(26,20,51,0.18)]" : ""}`
               : hero
-                ? "max-h-[90dvh] max-w-[480px] overflow-hidden rounded-3xl bg-white text-raiz-gray-950 drop-shadow-[0px_24px_32px_rgba(13,13,38,0.25)]"
+                ? `max-h-[90dvh] overflow-hidden rounded-3xl bg-white text-raiz-gray-950 drop-shadow-[0px_24px_32px_rgba(13,13,38,0.25)] ${variant === "wallet" ? "max-w-[520px]" : "max-w-[480px]"}`
                 : compact
                   ? "max-h-[90dvh] max-w-[440px] rounded-3xl bg-white p-6 text-raiz-gray-950 shadow-[0px_24px_64px_0px_rgba(13,13,38,0.25)]"
                   : "max-h-[90dvh] max-w-[480px] rounded-3xl bg-white p-6 text-raiz-gray-950 sm:p-7"

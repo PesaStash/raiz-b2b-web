@@ -23,6 +23,9 @@ interface Props {
   timeLeft: number;
   loading: boolean;
   insufficient: boolean;
+  unavailable?: boolean;
+  holdingLimitNotice?: string;
+  exceedsHoldingLimit?: boolean;
   onAmountChange: (raw: string) => void;
   onUseMax: () => void;
   onFlip: () => void;
@@ -73,6 +76,9 @@ export default function GlobalSwapAmount({
   timeLeft,
   loading,
   insufficient,
+  unavailable,
+  holdingLimitNotice,
+  exceedsHoldingLimit,
   onAmountChange,
   onUseMax,
   onFlip,
@@ -84,6 +90,8 @@ export default function GlobalSwapAmount({
   const continueLabel = insufficient ? "Enter a smaller amount" : "Continue";
   const canContinue =
     !insufficient &&
+    !unavailable &&
+    !exceedsHoldingLimit &&
     !loading &&
     !!preview &&
     Number(amount) > 0 &&
@@ -291,6 +299,12 @@ export default function GlobalSwapAmount({
           </p>
         </div>
 
+        {holdingLimitNotice && (
+          <p role={exceedsHoldingLimit ? "alert" : undefined} className={`text-sm ${exceedsHoldingLimit ? "text-red-700" : "text-kyb-muted"}`}>
+            {holdingLimitNotice}
+          </p>
+        )}
+        {unavailable && <p role="status" className="text-sm text-kyb-muted">This wallet pair is unavailable for conversion.</p>}
         <button
           type="button"
           disabled={!canContinue}

@@ -9,7 +9,7 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import { FetchTransactionReportApi } from "@/services/transactions";
 import { ITransaction } from "@/types/transactions";
 import { formatMoney } from "@/lib/globalBalance";
-import { GlobalDialog, primaryButton, secondaryButton } from "./GlobalUI";
+import { DesignIcon, GlobalDialog, primaryButton, secondaryButton } from "./GlobalUI";
 import TxnReceipt from "../transaction-history/TxnReceipt";
 import { truncateString } from "@/utils/helpers";
 
@@ -21,14 +21,18 @@ export default function RecentTransactions({
   onShare,
   onAddMoney,
   canWrite,
+  atLimit,
+  onSend,
 }: {
   entityId?: string;
   walletId?: string;
   currency: string;
   global: boolean;
-  onShare: () => void;
+  onShare?: () => void;
   onAddMoney: () => void;
   canWrite: boolean;
+  atLimit?: boolean;
+  onSend?: () => void;
 }) {
   const [filter, setFilter] = useState("");
   const [selected, setSelected] = useState<ITransaction | null>(null);
@@ -101,16 +105,20 @@ export default function RecentTransactions({
           </button>
         </div>
       ) : !rows.length ? (
-        <div className="flex flex-col items-center py-16 text-center">
-          <h3 className="font-semibold">No transactions yet</h3>
+        <div className="flex flex-col items-center rounded-xl bg-kyb-soft px-4 py-16 text-center">
+          <span className="mb-4 flex size-16 items-center justify-center rounded-full bg-[#e8f7ef]">
+            <DesignIcon name="wallet-empty-transactions.svg" />
+          </span>
+          <h3 className="font-semibold">{atLimit ? "Make room to receive more" : "No transactions yet"}</h3>
           <p className="mt-2 max-w-sm text-sm text-kyb-muted">
-            When you receive or send money, it shows up here. Share your account
-            details to get your first payment.
+            {atLimit ? "Spend or send money to make room for incoming payments."
+              : "When you receive or send money, it shows up here."}
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <button onClick={onShare} className={secondaryButton}>
+            {atLimit && onSend && <button onClick={onSend} className={`${primaryButton} !bg-primary2`}>Send money</button>}
+            {!atLimit && onShare && <button onClick={onShare} className={secondaryButton}>
               Share account details
-            </button>
+            </button>}
             {canWrite && (
               <button onClick={onAddMoney} className={primaryButton}>
                 Add money

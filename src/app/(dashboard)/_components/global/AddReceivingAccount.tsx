@@ -52,8 +52,10 @@ export default function AddReceivingAccount({
   close,
   onCreated,
   existingAccounts = [],
+  supportedAssets,
 }: {
   existingAccounts?: ReceivingAccount[];
+  supportedAssets?: string[] | null;
   asset: "EUR" | "GBP" | "SBC";
   close: () => void;
   onCreated: (accounts: ReceivingAccount[]) => void;
@@ -64,7 +66,9 @@ export default function AddReceivingAccount({
   const entityId = user?.business_account.entity_id;
   const [step, setStep] = useState<"intro" | "confirm" | "done">("intro");
   const [selectedNetwork, setSelectedNetwork] = useState("");
-  const [token, setToken] = useState<"USDT" | "USDC">("USDT");
+  const [token, setToken] = useState<"USDT" | "USDC">(
+    supportedAssets && !supportedAssets.includes("USDT") && supportedAssets.includes("USDC") ? "USDC" : "USDT",
+  );
   const [created, setCreated] = useState<ReceivingAccount[]>([]);
   // Reuse the same idempotency key when retrying a token/network pair.
   const attempts = useRef(
@@ -98,6 +102,8 @@ export default function AddReceivingAccount({
     mutationFn: async () => {
       if (!canWriteBusiness)
         throw new Error("You do not have permission to create accounts.");
+      if (supportedAssets && !supportedAssets.includes(asset === "SBC" ? token : asset))
+        throw new Error("This receiving asset is unavailable.");
       if (asset === "SBC" && (!selectedNetwork || hasAccount(selectedNetwork)))
         throw new Error(
           "Choose a network that has not already been added for this token.",
@@ -398,8 +404,9 @@ export default function AddReceivingAccount({
               }}
               className="mt-2 w-full rounded-xl border border-kyb-border bg-white p-3 text-sm text-raiz-gray-950"
             >
-              <option>USDT</option>
-              <option>USDC</option>
+              {(["USDT", "USDC"] as const)
+                .filter((item) => !supportedAssets || supportedAssets.includes(item))
+                .map((item) => <option key={item}>{item}</option>)}
             </select>
           </label>
           <div className="space-y-3">

@@ -36,7 +36,8 @@ import {
 import PeopleStage from "./PeopleStage";
 import DocumentsStage from "./DocumentsStage";
 import KybTerms from "./KybTerms";
-import { signedAgreementId } from "@/lib/usd-kyb/agreement";
+import { isBridgeAgreementRequirement, needsBridgeAgreement, signedAgreementId } from "@/lib/usd-kyb/agreement";
+import { RequestUsdOnboardingApi } from "@/services/business";
 import {
   companyDocumentRequirementMessage,
   missingCompanyDocuments,
@@ -87,6 +88,12 @@ export function KybWorkspace({
   const step = stages.findIndex((s) => s.key === requested);
   const [declaration, setDeclaration] = useState(false);
   const [termsBusy, setTermsBusy] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const startingRef = useRef(false);
+  const legacyBankSetup = needsBridgeAgreement(editor.bundle?.case);
+  const blocksLocalReview = (key: string) =>
+    !deferredRequirements.has(key) &&
+    (legacyBankSetup || !isBridgeAgreementRequirement(key));
   const [issues, setIssueState] = useState<string[]>([]);
   const setIssues = (keys: string[]) => {
     setIssueState(keys);
@@ -140,9 +147,27 @@ export function KybWorkspace({
     editor.change("business_profile.business_type", "");
   }, [editor, guide.data]);
   const navigate = async (next: number, requirement?: string) => {
-    if (termsBusy) return;
+    if (termsBusy || startingRef.current) return;
     try {
       if (editor.editable) await editor.flush();
+      if (next >= 0 && basePath === "/onboarding/usd" &&
+        editor.editable && editor.bundle?.case.status === "not_started") {
+        if (startingRef.current) return;
+        startingRef.current = true;
+        setStarting(true);
+        try {
+          const request = await RequestUsdOnboardingApi({ silent: true });
+          if (!request?.success) throw new Error("Onboarding request was not accepted.");
+          const refreshed = await editor.reload(false);
+          if (!refreshed) return;
+        } catch {
+          toast.error("Couldn’t start USD wallet setup. Try again.");
+          return;
+        } finally {
+          startingRef.current = false;
+          setStarting(false);
+        }
+      }
       router.replace(
         next < 0
           ? basePath
@@ -175,7 +200,7 @@ export function KybWorkspace({
       ...result.validation.validation.missing_requirements,
       ...(result.validation.validation.field_errors ?? []).map(error => error.field),
       ...editor.inputErrors.map(error => error.field),
-    ])].filter(k => !deferredRequirements.has(k) && requirementStage(k) === step);
+    ])].filter(k => blocksLocalReview(k) && requirementStage(k) === step);
     if (errors.length) {
       setIssues(errors);
       return;
@@ -183,7 +208,7 @@ export function KybWorkspace({
     await navigate(step + 1);
   };
   const submit = async () => {
-    if (!declaration || termsBusy || !signedAgreementId(editor.bundle)) return;
+    if (!declaration || termsBusy || (legacyBankSetup && !signedAgreementId(editor.bundle))) return;
     editor.revealRequiredErrors();
     await editor.command(async (current) => {
       await editor.prepareAssociatedPersons();
@@ -193,7 +218,7 @@ export function KybWorkspace({
         ...validation.validation.missing_requirements,
         ...(validation.validation.field_errors ?? []).map(error => error.field),
         ...editor.inputErrors.map(error => error.field),
-      ])].filter(k => !deferredRequirements.has(k));
+      ])].filter(blocksLocalReview);
       if (hard.length) {
         setIssues(hard);
         editor.setMissing(validation.validation.missing_requirements);
@@ -206,7 +231,7 @@ export function KybWorkspace({
         setIssues(["associated_persons.invitations"]);
         return fresh;
       }
-      if (!signedAgreementId(fresh)) {
+      if (legacyBankSetup && !signedAgreementId(fresh)) {
         setIssues(["signed_agreement_id"]);
         return fresh;
       }
@@ -351,7 +376,10 @@ export function KybWorkspace({
       {locked ? (
         <SubmittedCase editor={editor} />
       ) : step < 0 ? (
-        <SetupGuide editor={editor} navigate={(n) => void navigate(n)} />
+        <>
+          {starting && <p role="status" className="mb-4 text-sm text-kyb-muted">Starting USD wallet setup…</p>}
+          <SetupGuide editor={editor} navigate={(n) => void navigate(n)} />
+        </>
       ) : (
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(260px,30.3%)]">
           <section className="min-w-0 rounded-2xl border border-kyb-border p-5 md:p-8">
@@ -417,7 +445,7 @@ export function KybWorkspace({
                   editor={editor}
                   navigate={(n, key) => void navigate(n, key)}
                 />
-                <KybTerms editor={editor} onBusyChange={setTermsBusy} />
+                {legacyBankSetup && <KybTerms editor={editor} onBusyChange={setTermsBusy} />}
                 <div
                   className={`mt-6 rounded-xl border border-kyb-outline bg-kyb-selected p-4 ${!editor.editable || editor.busy || termsBusy ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
                   onClick={(event) => {
@@ -476,7 +504,7 @@ export function KybWorkspace({
                       !editor.editable ||
                       !declaration ||
                       termsBusy ||
-                      !signedAgreementId(editor.bundle)
+                      (legacyBankSetup && !signedAgreementId(editor.bundle))
                     }
                     loading={editor.busy}
                     onClick={() => void submit()}
