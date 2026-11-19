@@ -30,3 +30,8 @@ export function saveAccountChoice(entityId: string, choice: AccountChoice) {
     /* Navigation still works if storage is unavailable. */
   }
 }
+
+/** Submitted and reopened cases stay in the USD flow even when local preferences have been cleared. */
+export function hasSubmittedKyb(caseInfo?: { status?: string; submitted_for_review_at?: string | null }) {
+  return !!caseInfo && (!!caseInfo.submitted_for_review_at || !!caseInfo.status && !["not_started", "collecting"].includes(caseInfo.status));
+}

@@ -1,9 +1,10 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 
 import React, { useEffect, useState } from "react";
 import GlobalDashboard from "./global/GlobalDashboard";
-import { isGlobalBalance } from "@/lib/globalBalance";
+import { isGlobalBalance, spendableBalances } from "@/lib/globalBalance";
 import { AnimatePresence } from "motion/react";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import NgnSend from "./send/naira/NgnSend";
@@ -16,7 +17,6 @@ import { useSendStore } from "@/store/Send";
 import { toast } from "sonner";
 import Swap from "./swap/Swap";
 import { useSwapStore } from "@/store/Swap";
-import { usePathname } from "next/navigation";
 import SelectAccount from "./SelectAccount";
 import CreateNgnAcct from "./createNgnAcct/CreateNgnAcct";
 import CreateCryptoWallet from "./crypto/dashboard/CreateCryptoWallet";
@@ -56,7 +56,8 @@ type actionBtnKeytype = "send" | "request" | "topUp" | "details";
 const PROFILE_COMPLETED_KEY = "raiz_profile_completed_fired";
 
 const DashboardSummary = () => {
-  const { user, refetch, isLoading } = useUser();
+  const { user, isLoading } = useUser();
+  const router = useRouter();
   const { canWriteBusiness } = usePermissions();
   const walletData = user?.business_account?.wallets;
   const { actions: sendActions } = useSendStore();
@@ -72,7 +73,6 @@ const DashboardSummary = () => {
     | null
   >(null);
   const [showAcctInfo, setShowAcctInfo] = useState(false);
-  const pathName = usePathname();
   const NGNAcct = findWalletByCurrency(user, "NGN");
   const USDAcct = findWalletByCurrency(user, "USD");
   const GBPAcct = findWalletByCurrency(user, "GBP");
@@ -143,7 +143,8 @@ const DashboardSummary = () => {
     }
     if (!currentWallet) {
       toast.warning(
-        "You do not have an account for this currency. Create one first!",
+        "This action is available once your account for this currency is approved and opened. View your business verification status to continue.",
+        { action: { label: "View setup", onClick: () => router.push("/onboarding") } },
       );
     } else if (action === "details") {
       if (selectedCurrency.name === "SBC") {
@@ -166,6 +167,28 @@ const DashboardSummary = () => {
       );
       return;
     }
+
+    if (isGlobalBalance(user?.business_account)) {
+      const balances = spendableBalances(user?.business_account);
+      const hasUsd = balances.some((b) => b.currency === "USD");
+      const hasNgn = balances.some((b) => b.currency === "NGN");
+      if (!hasUsd || !hasNgn) {
+        toast.warning("USD and NGN balances are required to swap.");
+        return;
+      }
+      const from =
+        sourceCurrency === "NGN" || sourceCurrency === "USD"
+          ? sourceCurrency
+          : selectedCurrency.name === "NGN"
+            ? "NGN"
+            : "USD";
+      const to = from === "USD" ? "NGN" : "USD";
+      actions.switchSwapWallet(to, walletData ?? [], from);
+      if (amount !== undefined) actions.setAmount(amount);
+      setOpenModal("swap");
+      return;
+    }
+
     if (!walletData || walletData.length < 2) {
       toast.warning("You need at least two wallets to use swap");
       return;
@@ -330,18 +353,16 @@ const DashboardSummary = () => {
     },
   ];
 
-  useEffect(() => {
-    refetch();
-  }, [pathName, refetch]);
 
   const redesigned = branchState.showDashboard && (isGlobalBalance(user?.business_account) || selectedCurrency.name === "USD" || selectedCurrency.name === "NGN");
+  const hasDedicatedSwap = openModal === "swap" && selectedCurrency.name !== "SBC" && isGlobalBalance(user?.business_account);
 
   return (
     <div className="w-full">
-      {redesigned ? <>
-        <GlobalDashboard onAction={handleActionButton} onConvert={handleSwapClick} onCreateNgn={openNGNModal} />
+      {redesigned ? <div className="flex flex-col gap-5">
         <Infos isNgnBranch={branchState.isNgnBranch} hideAccountPrompts={isGlobalBalance(user?.business_account)} />
-      </> : <>
+        <GlobalDashboard onAction={handleActionButton} onConvert={handleSwapClick} onCreateNgn={openNGNModal} />
+      </div> : <>
       {/* Accts */}
       {/* Mobile: wallets + quick actions */}
       {branchState.showDashboard && (
@@ -427,8 +448,10 @@ const DashboardSummary = () => {
       <AnimatePresence>
         {openModal !== null &&
         openModal !== "selectAcct" &&
+        !hasDedicatedSwap &&
         (openModal !== "topUp" || !hasDedicatedTopUp) ? (
           <CenterModalWrapper
+            sendFlow={openModal === "send"}
             close={closeModal}
             wrapperStyle={
               openModal === "createCrypto" ? "!bg-raiz-crypto-primary" : ""
@@ -438,6 +461,7 @@ const DashboardSummary = () => {
           </CenterModalWrapper>
         ) : null}
       </AnimatePresence>
+      {hasDedicatedSwap && <Swap close={closeSwapModal} />}
       {openModal === "selectAcct" && (
         <SelectAccount
           close={() => setOpenModal(null)}

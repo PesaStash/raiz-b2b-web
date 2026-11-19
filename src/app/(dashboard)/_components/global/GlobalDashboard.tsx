@@ -229,8 +229,9 @@ export default function GlobalDashboard({
                 receivingQuery.isError
               }
               onClick={() => setModal(type)}
-              className="rounded-lg bg-[#f3f1fd] px-3 py-2 text-xs font-semibold text-primary2 disabled:opacity-40"
+              className="flex shrink-0 items-center gap-1 rounded-lg bg-raiz-usd-primary py-1.5 pl-2.5 pr-3 text-xs font-semibold leading-normal text-[#fcfcfd] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
             >
+              <DesignIcon name="32266-20311-imgVuesaxLinearAdd.svg" />
               Add
             </button>
           )

@@ -1,4 +1,5 @@
 "use client";
+import { invoiceLineItemSchema } from "@/lib/invoiceLineItem";
 import { withBusinessWrite } from "@/components/team/BusinessWrite";
 import React, { useRef, useState } from "react";
 import { Formik, FormikProps } from "formik";
@@ -51,11 +52,7 @@ const invoiceSchema = z
       .optional(),
     items: z
       .array(
-        z.object({
-          description: z.string().min(1, "Item description is required"),
-          quantity: z.number().min(1, "Quantity must be at least 1"),
-          unitPrice: z.number().min(0, "Unit price cannot be negative"),
-        }),
+        invoiceLineItemSchema,
       )
       .min(1, "At least one item is required"),
     terms: z
@@ -88,6 +85,7 @@ const CreateInvoicePage = () => {
   const { selectedCurrency } = useCurrencyStore();
   const { user } = useUser();
   const router = useRouter();
+  const [validationSummary, setValidationSummary] = useState<string[]>([]);
   const formikRef = useRef<FormikProps<InvoiceFormValues>>(null);
   const customerBtnRef = useRef<HTMLButtonElement>(null);
   const currencyBtnRef = useRef<HTMLButtonElement>(null);
@@ -221,15 +219,19 @@ const CreateInvoicePage = () => {
 
   const handleSubmit = (values: InvoiceFormValues) => {
     const { totalDiscount, totalTax, total } = calculateTotals(values);
+    if (!Number.isFinite(total) || total < 0) {
+      setValidationSummary(["Invoice total must be a finite amount of zero or more. Check item amounts, tax and discounts."]);
+      return;
+    }
 
     const payload: ICreateInvoicePayload = {
       invoice_number: values.invoiceNumber || null,
       issue_date: values.dateIssued || null,
       due_date: values.dueDate || null,
-      total_amount: total || null,
-      tax_amount: totalTax || null,
+      total_amount: total,
+      tax_amount: totalTax,
       ...(values.tax_rate_id && { tax_rate_id: values.tax_rate_id || null }),
-      discount_amount: totalDiscount || null,
+      discount_amount: totalDiscount,
       currency: values.currency || null,
       customer_id: values.customerName || null,
       terms_and_conditions: values.terms || null,
@@ -254,7 +256,10 @@ const CreateInvoicePage = () => {
   const displayModal = () => {
     switch (showSideModal) {
       case "customer":
-        return <AddNewCustomer close={closeSideModal} />;
+        return <AddNewCustomer close={closeSideModal} onCreated={customer => {
+          setSelectedCustomer(customer);
+          void formikRef.current?.setFieldValue("customerName", customer.customer_id);
+        }} />;
       case "settings":
         return <InvoiceSettings close={closeSideModal} />;
       default:
@@ -336,7 +341,11 @@ const CreateInvoicePage = () => {
           const { subtotal, totalTax, total } = calculateTotals(formik.values);
 
           return (
-            <form onSubmit={formik.handleSubmit} className="space-y-5">
+            <form noValidate onSubmit={event => {
+              const validation = invoiceSchema.safeParse(formik.values);
+              setValidationSummary(validation.success ? [] : validation.error.issues.map(issue => issue.message));
+              formik.handleSubmit(event);
+            }} className="space-y-5">
               {/* Customer Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4">
                 <div>
@@ -502,6 +511,9 @@ const CreateInvoicePage = () => {
                 </div>
                 {formik.values.items.map((item, index) => {
                   const itemAmount = item.unitPrice * item.quantity;
+                  const itemErrors = formik.errors.items?.[index];
+                  const quantityError = typeof itemErrors === "object" ? itemErrors.quantity : undefined;
+                  const priceError = typeof itemErrors === "object" ? itemErrors.unitPrice : undefined;
 
                   return (
                     <div
@@ -572,6 +584,8 @@ const CreateInvoicePage = () => {
                               className="!bg-white"
                               type="number"
                               min="1"
+                              aria-label={`Item ${index + 1} quantity`}
+                              errorMessage={formik.touched.items?.[index]?.quantity && quantityError}
                               {...formik.getFieldProps(
                                 `items[${index}].quantity`,
                               )}
@@ -584,7 +598,10 @@ const CreateInvoicePage = () => {
                             <InputField
                               className="!bg-white"
                               type="number"
-                              min="0"
+                              min="1"
+                              step="0.01"
+                              aria-label={`Item ${index + 1} unit price`}
+                              errorMessage={formik.touched.items?.[index]?.unitPrice && priceError}
                               {...formik.getFieldProps(
                                 `items[${index}].unitPrice`,
                               )}
@@ -757,6 +774,7 @@ const CreateInvoicePage = () => {
 
               {/* File attachment */}
 
+              {validationSummary.length > 0 && <div role="alert" className="mb-4 rounded-xl bg-red-50 p-4 text-sm text-red-800"><p className="font-semibold">Check these invoice details:</p><ul className="list-disc pl-5">{[...new Set(validationSummary)].map(message => <li key={message}>{message}</li>)}</ul></div>}
               {/* Buttons */}
               <div className="flex flex-col-reverse lg:flex-row lg:justify-between border-t border-gray-100 py-6 lg:py-[30px] gap-5 lg:gap-8 items-stretch lg:items-center">
                 <div className="flex gap-2 font-brSonoma text-zinc-700 flex-col">
@@ -785,6 +803,10 @@ const CreateInvoicePage = () => {
                     disabled={CreateMutation.isPending || indexLoading}
                     onClick={() => {
                       setSubmitType("draft");
+                      const validation = invoiceSchema.safeParse(formik.values);
+                      if (!validation.success) {
+                        setValidationSummary(validation.error.issues.map(issue => issue.message));
+                      } else setValidationSummary([]);
                       formik.handleSubmit();
                     }}
                     variant="secondary"
@@ -795,6 +817,10 @@ const CreateInvoicePage = () => {
                     type="button"
                     onClick={() => {
                       setSubmitType("preview");
+                      const validation = invoiceSchema.safeParse(formik.values);
+                      if (!validation.success) {
+                        setValidationSummary(validation.error.issues.map(issue => issue.message));
+                      } else setValidationSummary([]);
                       formik.handleSubmit();
                     }}
                     loading={

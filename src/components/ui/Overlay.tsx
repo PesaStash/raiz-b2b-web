@@ -1,4 +1,5 @@
 "use client";
+import { useBodyScrollLock } from "@/lib/hooks/useBodyScrollLock";
 
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import * as motion from "motion/react-client";
@@ -34,6 +35,8 @@ const Overlay = ({
     return () => window.clearTimeout(id);
   }, [hydrated]);
 
+  useBodyScrollLock(hydrated);
+
   if (!hydrated) return null;
 
   const overlay = (
@@ -57,7 +60,7 @@ const Overlay = ({
           width: isMobile ? "90%" : width || "auto",
           height: height || "auto",
         }}
-        className="bg-white rounded-[36px] overflow-y-auto no-scrollbar w-full max-w-[95vw] md:max-w-none min-w-0"
+        className="min-h-0 max-h-[calc(100dvh-2rem)] bg-white rounded-[36px] overflow-y-auto no-scrollbar w-full max-w-[95vw] md:max-w-none min-w-0"
       >
         {children}
       </motion.section>

@@ -127,6 +127,12 @@ const LoginForm = ({
               loading={loginMutation.isPending}
             >Log in</Button>
           </form>
+          <p className="mt-7 text-center text-sm leading-[21px] text-[#6b6b80]">
+            Don’t have an account?{"  "}
+            <Link className="font-semibold text-raiz-usd-primary hover:underline" href="/register">
+              Sign up
+            </Link>
+          </p>
         </div>
 
       </div>

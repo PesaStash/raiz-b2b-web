@@ -131,6 +131,7 @@ export interface IWallet {
 export type GatewayCreditCurrency = "USD" | "NGN";
 
 export interface IBusinessAccount {
+  business_registration_number?: string;
   balance_model?: string;
   balances?: import("./globalBalance").SpendableBalance[];
   legacy_balances?: import("./globalBalance").LegacyBalance[];

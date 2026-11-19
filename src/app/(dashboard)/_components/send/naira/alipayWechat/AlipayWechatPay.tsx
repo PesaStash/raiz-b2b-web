@@ -3,12 +3,18 @@ import React, { useEffect, useState } from "react";
 import EnterPin from "@/components/transactions/EnterPin";
 
 interface Props {
+  transfer?: React.ComponentProps<typeof EnterPin>["transfer"];
   submitting: boolean;
   onSubmit: (pin: string) => void;
   onClose: () => void;
 }
 
-const AlipayWechatPay = ({ submitting, onSubmit, onClose }: Props) => {
+const AlipayWechatPay = ({
+  submitting,
+  onSubmit,
+  onClose,
+  transfer,
+}: Props) => {
   const [pin, setPin] = useState("");
 
   useEffect(() => {
@@ -20,6 +26,7 @@ const AlipayWechatPay = ({ submitting, onSubmit, onClose }: Props) => {
 
   return (
     <EnterPin
+      transfer={transfer}
       pin={submitting ? "----" : pin}
       setPin={(value) => {
         if (!submitting) setPin(value);

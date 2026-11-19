@@ -200,7 +200,8 @@ export const FetchPaymentInfoApi = async (
   userName: string
 ): Promise<IBusinessPaymentData> => {
   const response = await PublicAxios.get(
-    `/util/account_user/payment-information/${encodeURIComponent(userName)}/`
+    `/util/account_user/payment-information/${encodeURIComponent(userName)}/`,
+    { silent: true, timeout: 15_000 } as CustomAxiosRequestConfig,
   );
   return response?.data;
 };

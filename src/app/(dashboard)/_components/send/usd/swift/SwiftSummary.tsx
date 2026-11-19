@@ -1,6 +1,12 @@
 "use client";
 
-import Button from "@/components/ui/Button";
+import {
+  FlowHeader,
+  FlowCard,
+  FlowRow,
+  FlowActions,
+  FlowCurrency,
+} from "@/components/transactions/send-flow/Flow";
 import { ISwiftBeneficiary } from "@/types/services";
 import { formatAmount, maskAccountNumber } from "@/utils/helpers";
 import Image from "next/image";
@@ -47,43 +53,47 @@ const SwiftSummary = ({
   ];
 
   return (
-    <div className="p-0 md:p-6 h-full flex flex-col overflow-y-auto no-scrollbar">
-      <button type="button" onClick={onBack} className="mb-6 self-start">
-        <Image src="/icons/arrow-left.svg" width={18} height={18} alt="back" />
-      </button>
-      <h3 className="text-raiz-gray-950 text-base font-bold mb-2">
-        Review SWIFT payout
-      </h3>
-      <p className="text-raiz-gray-500 text-xs mb-6">
-        This request stays pending until our team processes it. Delivery is not
-        instant.
-      </p>
-
-      <div className="rounded-2xl border border-raiz-gray-100 bg-white overflow-y-auto no-scrollbar mb-4">
-        {rows.map((row, index) => (
-          <div
-            key={row.label}
-            className={`flex items-start justify-between gap-4 px-4 py-3 ${
-              index !== rows.length - 1 ? "border-b border-raiz-gray-100" : ""
-            }`}
-          >
-            <span className="text-raiz-gray-500 text-sm">{row.label}</span>
-            <span className="text-raiz-gray-950 text-sm text-right">
-              {row.value}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      {error && (
-        <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200">
-          <p className="text-red-600 text-xs">{error}</p>
+    <>
+      <FlowHeader title="Review SWIFT request" onBack={onBack} />
+      <FlowCard>
+        <div className="flex items-center gap-2.5">
+          <FlowCurrency currency="USD" size={36} />
+          <Image
+            src="/images/send/chevron.svg"
+            width={18}
+            height={18}
+            alt="to"
+            className="rotate-180"
+          />
+          <Image src="/images/send/swift.svg" width={44} height={44} alt="" />
         </div>
-      )}
-
-      <Button onClick={onConfirm}>Continue to PIN</Button>
-    </div>
+        <p className="text-4xl font-semibold">${formatAmount(totalDebit)}</p>
+        <p className="text-sm text-[#79708d]">
+          Total USD deducted from your balance
+        </p>
+        {rows.map((row) => (
+          <FlowRow key={row.label} label={row.label}>
+            {row.value}
+          </FlowRow>
+        ))}
+        <div className="p-4 rounded-xl bg-[#f3f1fd] text-[13px]">
+          <strong>Reviewed by Raiz before sending</strong>
+          <p className="text-xs text-[#79708d] mt-1.5">
+            This request stays pending until our team processes it.
+          </p>
+        </div>
+        {error && (
+          <p className="text-red-600 text-sm" role="alert">
+            {error}
+          </p>
+        )}
+        <FlowActions
+          onBack={onBack}
+          onNext={onConfirm}
+          nextLabel="Submit request"
+        />
+      </FlowCard>
+    </>
   );
 };
-
 export default SwiftSummary;

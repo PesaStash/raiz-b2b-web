@@ -1,4 +1,18 @@
 import type { KybFieldError, KybPerson } from "../../types/usdKyb.ts";
+import { ownershipFlag } from "./model.ts";
+
+/** Early PATCH errors index the submitted subset, not the full displayed person list. */
+export function personWriteErrors(errors: KybFieldError[], submitted: KybPerson[], people: KybPerson[]): KybFieldError[] {
+  return errors.map(error => {
+    const match = error.field.match(/^associated_persons(?:\[(\d+)\]|\.(\d+))\.(.*)$/);
+    if (!match || error.associated_person_id) return error;
+    const person = submitted[Number(match[1] ?? match[2])];
+    const index = people.findIndex(row => row.person_key === person?.person_key);
+    if (index < 0) return error;
+    const id = people[index].associated_person_id ?? people[index].business_usd_kyb_associated_person_id;
+    return { ...error, field: `associated_persons[${index}].${match[3]}`, ...(id ? { associated_person_id: id } : {}) };
+  });
+}
 export const correctionPath = (field: string) =>
   field.replace(/\[(\d+)\]/g, ".$1").replace(/^\./, "");
 export function valueAt(source: unknown, path: string): unknown {
@@ -83,7 +97,10 @@ export function errorsForPerson(
   );
 }
 export function cleanPerson(person: KybPerson, errors: KybFieldError[]) {
-  return cleanDraft(person, errors) as KybPerson;
+  const cleaned = cleanDraft(person, errors) as KybPerson;
+  if ("has_ownership" in person && typeof person.has_ownership !== "boolean")
+    return { ...cleaned, has_ownership: ownershipFlag(person) };
+  return cleaned;
 }
 /** Only changed write fields are sent. Omitted nested fields remain owned by the server. */
 export function changedFields(

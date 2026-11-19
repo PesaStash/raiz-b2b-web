@@ -2,7 +2,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { IoIosArrowDown, IoIosArrowUp } from "react-icons/io";
 import Select, { StylesConfig } from "react-select";
 import InputLabel from "./InputLabel";
@@ -14,7 +14,7 @@ export interface Option {
 
 interface SelectFieldProps {
   label?: string;
-  onChange: (selectedOption: Option | null) => void;
+  "aria-label"?: string;
   status?: "success" | "error" | "warning" | null;
   helper?: string | null;
   value: any;
@@ -35,11 +35,20 @@ interface SelectFieldProps {
   placeholderStyle?: React.CSSProperties;
   labelClass?: string;
   instanceId?: string;
+  isClearable?: boolean;
+  menuPlacement?: "auto" | "bottom" | "top";
   formatOptionLabel?: (option: Option) => React.ReactNode;
+  isOptionDisabled?: (option: Option) => boolean;
 }
 
-const SelectField: React.FC<SelectFieldProps> = ({
+type SelectFieldSelectionProps =
+  | { isMulti?: false; onChange: (option: Option | null) => void }
+  | { isMulti: true; onChange: (options: readonly Option[]) => void };
+
+const SelectField: React.FC<SelectFieldProps & SelectFieldSelectionProps> = ({
+  "aria-label": ariaLabel,
   onChange,
+  isMulti = false,
   value,
   options,
   label,
@@ -60,10 +69,12 @@ const SelectField: React.FC<SelectFieldProps> = ({
   placeholderStyle,
   labelClass,
   instanceId,
+  isClearable = false,
+  menuPlacement = "bottom",
   formatOptionLabel,
+  isOptionDisabled,
 }) => {
   const [optionsIsShown, setOptionsIsShown] = useState<boolean>(false);
-  const [selectedOption, setSelectedOption] = useState<Option | null>(value);
 
   const customStyles: StylesConfig<Option, boolean> = {
     control: (provided: any, state: any) => ({
@@ -76,7 +87,7 @@ const SelectField: React.FC<SelectFieldProps> = ({
       borderWidth: "1px",
       backgroundColor: state.isFocused ? "#fff" : bgColor,
       borderRadius: "8px",
-      height: height ? height : "44px",
+      height: isMulti ? "auto" : height ? height : "44px",
       minHeight: minHeight,
       "&:hover": {
         cursor: "pointer",
@@ -122,17 +133,12 @@ const SelectField: React.FC<SelectFieldProps> = ({
     }),
   };
 
-  useEffect(() => {
-    setSelectedOption(value); // Sync selectedOption with value prop
-  }, [value]);
-
   const toggleOptions = () => {
     setOptionsIsShown((prevState) => !prevState);
   };
 
   const handleInputChange = (selectedOption: any) => {
-    setSelectedOption(selectedOption);
-    setOptionsIsShown(false);
+    setOptionsIsShown(!!isMulti);
     onChange(selectedOption);
   };
 
@@ -155,8 +161,11 @@ const SelectField: React.FC<SelectFieldProps> = ({
     >
       {label && <InputLabel content={label} labelClass={labelClass} />}
       <Select
+        isMulti={isMulti}
+        closeMenuOnSelect={!isMulti}
+        onMenuClose={() => setOptionsIsShown(false)}
         formatOptionLabel={formatOptionLabel}
-        aria-label={label || name || placeholder}
+        aria-label={ariaLabel || label || placeholder || name}
         instanceId={instanceId}
         className={`${
           status === "success"
@@ -185,13 +194,16 @@ const SelectField: React.FC<SelectFieldProps> = ({
         onChange={handleInputChange}
         onBlur={handleBlur}
         onFocus={handleInputClick}
-        value={selectedOption}
+        value={value}
         options={options}
+        isOptionDisabled={isOptionDisabled}
         placeholder={placeholder}
         menuIsOpen={optionsIsShown}
         name={name}
         isDisabled={disabled || isLoading}
         isSearchable={isSearchable}
+        isClearable={isClearable}
+        menuPlacement={menuPlacement}
         isLoading={isLoading}
       />
       <p

@@ -4,44 +4,17 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { kybApi } from "@/services/usdKyb";
 import { fileError, getPath, options, label } from "@/lib/usd-kyb/model";
+import {
+  companyDocumentFor,
+  companyDocumentSlots,
+  slotIsRequired,
+} from "@/lib/usd-kyb/documents";
 import type { KybEditor } from "@/lib/hooks/useUsdKyb";
 import type { KybDocument } from "@/types/usdKyb";
 import { Notice, Guidance } from "./KybUI";
 import { KybIcon } from "./KybGuide";
+import { truncateString } from "@/utils/helpers";
 
-const slots = [
-  {
-    title: "Certificate of incorporation",
-    helper: "From the CAC",
-    purpose: "business_formation",
-  },
-  {
-    title: "Status report (Form CAC 1.1)",
-    helper: "Shows directors and shareholders",
-    purpose: "directors_registry",
-  },
-  {
-    title: "Memorandum and articles",
-    helper: "The MEMART filed with the CAC",
-    purpose: "business_formation",
-  },
-  {
-    title: "Proof of business address",
-    helper: "Utility bill or bank statement",
-    purpose: "proof_of_address",
-  },
-  {
-    title: "Ownership structure chart",
-    helper: "Show who owns the business and each owner’s percentage",
-    purpose: "ownership_chart",
-  },
-  {
-    title: "Proof of nature of business",
-    helper:
-      "Evidence of what your business does. Required if you don’t provide a business website.",
-    purpose: "proof_of_nature_of_business",
-  },
-];
 export default function DocumentsStage({ editor }: { editor: KybEditor }) {
   const [purpose, setPurpose] = useState("");
   const [person, setPerson] = useState("");
@@ -75,11 +48,10 @@ export default function DocumentsStage({ editor }: { editor: KybEditor }) {
   const choices = options(purposes.data);
   const documents = editor.bundle?.documents ?? [];
   // Slot labels are persisted as documented descriptions. Never infer content from a filename.
-  const documentFor = (title: string) =>
-    documents.find((d) => d.description === title && !d.associated_person_id);
+  const documentFor = (title: string) => companyDocumentFor(documents, title);
   const remaining = documents.filter(
     (d) =>
-      !slots.some(
+      !companyDocumentSlots.some(
         (s) =>
           documentFor(s.title)?.business_usd_kyb_document_id ===
           d.business_usd_kyb_document_id,
@@ -121,7 +93,7 @@ export default function DocumentsStage({ editor }: { editor: KybEditor }) {
     <input
       aria-label={`${previous ? "Replace" : "Upload"} ${title}`}
       type="file"
-      accept="application/pdf,image/jpeg,image/png,image/webp,image/heic,image/heif"
+
       className="sr-only"
       disabled={
         !editor.editable ||
@@ -174,15 +146,18 @@ export default function DocumentsStage({ editor }: { editor: KybEditor }) {
           Loading document requirements…
         </p>
       )}
-      {slots.map((slot) => {
+      {companyDocumentSlots.map((slot) => {
         const doc = documentFor(slot.title);
+        const required = slotIsRequired(slot, editor.draft);
+        const needsFile = required && !doc;
         const active = uploading?.title === slot.title;
         const available = choices.some((o) => o.value === slot.purpose);
         return (
           <section
             key={slot.title}
             data-kyb-requirement={slot.purpose}
-            className="space-y-3 rounded-2xl border border-kyb-border p-[18px]"
+            data-kyb-document={slot.title}
+            className={`space-y-3 rounded-2xl border p-[18px] ${editor.validationAttempted && needsFile ? "border-raiz-error" : "border-kyb-border"}`}
           >
             <div className="flex items-center gap-3">
               <span
@@ -191,7 +166,14 @@ export default function DocumentsStage({ editor }: { editor: KybEditor }) {
                 <KybIcon name={doc ? "check" : "upload"} />
               </span>
               <div>
-                <h3 className="text-[15px] font-semibold">{slot.title}</h3>
+                <h3 className="text-[15px] font-semibold">
+                  {slot.title}
+                  {required && (
+                    <span className="ml-2 text-xs font-semibold uppercase tracking-wide text-kyb-muted">
+                      Required
+                    </span>
+                  )}
+                </h3>
                 <p className="mt-1 text-[13px] text-kyb-muted">{slot.helper}</p>
               </div>
             </div>
@@ -216,7 +198,7 @@ export default function DocumentsStage({ editor }: { editor: KybEditor }) {
                   className="min-w-0 flex-1 truncate font-semibold"
                   title={doc.file_name ?? ""}
                 >
-                  {doc.file_name}
+                  {truncateString(doc?.file_name ?? "", 30)}
                 </span>
                 <span className="text-kyb-muted">
                   {doc.file_size

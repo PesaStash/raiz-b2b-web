@@ -1,9 +1,11 @@
+import type { KybPerson } from "../../types/usdKyb.ts";
+import { isCompanyDocumentRequirement } from "./documents.ts";
 export const stages = [
   {
     key: "identity",
-    title: "Find your business",
+    title: "Your business",
     group: "About the business",
-    description: "Look up your Nigerian business on the CAC register.",
+    description: "Confirm the business you added in your basic details.",
   },
   {
     key: "business_details",
@@ -16,7 +18,7 @@ export const stages = [
     title: "Owners and directors",
     group: "About the business",
     description:
-      "Everyone who owns 25% or more, every director, and anyone who controls or signs for the business.",
+      "Everyone who owns 25% or more, every director, and anyone who controls or signs for the business. Review each person’s details, then invite them to verify their identity.",
   },
   {
     key: "activity",
@@ -62,6 +64,14 @@ export function getPath(value: unknown, path: string): unknown {
   return path
     .split(".")
     .reduce<unknown>((current, key) => record(current)[key], value);
+}
+/** Missing or null means this business is not a DAO. Explicit true and false stay as saved. */
+export function withDaoDefault(
+  draft: Record<string, unknown>,
+): Record<string, unknown> {
+  if (typeof getPath(draft, "business_profile.is_dao") === "boolean")
+    return draft;
+  return setPath(draft, "business_profile.is_dao", false);
 }
 export function setPath(
   value: Record<string, unknown>,
@@ -150,6 +160,8 @@ export const deferredRequirements = new Set([
 export function requirementStage(key: string): number {
   if (key === "signed_agreement_id" || key.endsWith(".signed_agreement_id"))
     return 5;
+  // Slot titles contain words like "ownership" and "address" that belong to earlier stages.
+  if (isCompanyDocumentRequirement(key)) return 4;
   // Ownership evidence is supplied later, not a missing person/percentage.
   if (key === "ownership_structure_attestation_or_document") return 4;
   if (/business_industry/.test(key)) return 1;
@@ -205,6 +217,55 @@ export function fileError(file: { type: string; size: number }): string | null {
   if (file.size > 10 * 1024 * 1024) return "Files must be 10 MiB or smaller.";
   return null;
 }
+/** A positive share owns the business. Anything other than boolean true does not. */
+export function ownershipFlag(person: {
+  has_ownership?: unknown;
+  ownership_percentage?: unknown;
+}): boolean {
+  const percentage = person.ownership_percentage;
+  return (
+    (typeof percentage === "number" &&
+      Number.isFinite(percentage) &&
+      percentage > 0) ||
+    person.has_ownership === true
+  );
+}
+
+/**
+ * The API rejects a positive percentage unless has_ownership is boolean true,
+ * and stores its validation placeholder if another value is sent.
+ */
+export function ensureOwnershipFlag(
+  write: Record<string, unknown>,
+  input: { has_ownership?: unknown; ownership_percentage?: unknown },
+  stored?: { has_ownership?: unknown },
+): Record<string, unknown> {
+  const percentage = Object.hasOwn(write, "ownership_percentage")
+    ? write.ownership_percentage
+    : input.ownership_percentage;
+  const positive =
+    typeof percentage === "number" &&
+    Number.isFinite(percentage) &&
+    percentage > 0;
+  const storedFlag = stored?.has_ownership;
+  const storedIsInvalid =
+    !!stored &&
+    Object.hasOwn(stored, "has_ownership") &&
+    typeof storedFlag !== "boolean";
+  if (
+    positive &&
+    (Object.hasOwn(write, "ownership_percentage") || storedIsInvalid)
+  )
+    return { ...write, has_ownership: true };
+  if (storedIsInvalid) return { ...write, has_ownership: ownershipFlag(input) };
+  if (
+    Object.hasOwn(write, "has_ownership") &&
+    typeof write.has_ownership !== "boolean"
+  )
+    return { ...write, has_ownership: positive };
+  return write;
+}
+
 /** PATCH accepts person-edit fields only, never invitation/provider state. */
 export function personPatch(
   person: Record<string, unknown>,
@@ -227,11 +288,19 @@ export function personPatch(
     "is_signer",
     "is_director",
   ];
-  return Object.fromEntries(
+  const result = Object.fromEntries(
     fields
       .filter((key) => person[key] !== undefined)
       .map((key) => [key, person[key]]),
   );
+  if (typeof result.has_ownership === "string") result.has_ownership = false;
+  if (
+    typeof result.ownership_percentage === "number" &&
+    Number.isFinite(result.ownership_percentage) &&
+    result.ownership_percentage > 0
+  )
+    result.has_ownership = true;
+  return result;
 }
 
 /** Reapply only edited person fields, preserving another tab's unrelated changes. */
@@ -350,4 +419,57 @@ export function personRemovalReason(
   return person.can_remove === true
     ? undefined
     : "Removal is unavailable for this person.";
+}
+
+/** Registry percentages are decimal strings; never round them into writable integers. */
+export function registryOwnership(person: Record<string, unknown>): string {
+  const value = person.calculated_ownership_percentage ?? record(person.registry_information).calculated_ownership_percentage;
+  return typeof value === "string" && /^\d+(?:\.\d+)?$/.test(value) ? `${value}%` : "Unavailable";
+}
+export function ownershipDisplay(person: Record<string, unknown>): string {
+  const calculated = registryOwnership(person);
+  return calculated !== "Unavailable" ? calculated :
+    typeof person.ownership_percentage === "number" ? `${person.ownership_percentage}%` : "Unavailable";
+}
+
+/** Registry values are defaults only; saved values and explicit role decisions win. */
+export function registryBusinessPrefill(snapshot: unknown) {
+  const lookup = record(snapshot);
+  const fields: Record<string, string> = {
+    legal_name: "business_legal_name", trade_name: "business_trade_name",
+    business_type: "business_type", business_description: "business_description",
+    email: "email", phone: "phone", primary_website: "primary_website",
+  };
+  const profile = Object.fromEntries(Object.entries(fields)
+    .filter(([key]) => typeof lookup[key] === "string" && String(lookup[key]).trim())
+    .map(([key, field]) => [field, lookup[key]]));
+  return {
+    business_profile: profile,
+    ...Object.fromEntries(["registered_address", "physical_address"]
+      .filter(key => Object.keys(record(lookup[key])).length)
+      .map(key => [key, lookup[key]])),
+  };
+}
+
+/** Fill missing public details by stable key, without creating people or guessing roles. */
+export function registryPersonPrefill<T extends { person_key: string; [key: string]: unknown }>(person: T, snapshot: unknown): T {
+  const directors = record(snapshot).directors;
+  const lookup = Array.isArray(directors)
+    ? directors.map(record).find(row => row.person_key === person.person_key) : undefined;
+  if (!lookup) return person;
+  const metadata = record(record(lookup.payload).registry_information);
+  const defaults = personPatch(lookup);
+  const appointment = metadata.appointedOn;
+  if (typeof appointment === "string" && /^\d{4}-\d{2}-\d{2}$/.test(appointment))
+    defaults.relationship_established_at = appointment;
+  const result: Record<string, unknown> = { ...person };
+  for (const [key, value] of Object.entries(defaults)) {
+    if ((result[key] === undefined || result[key] === null || result[key] === "") && value != null && value !== "") result[key] = value;
+  }
+  return result as T;
+}
+
+/** Preserve omitted fields in partial mutation responses; explicit null/blank values remain authoritative. */
+export function mergePersonResponse(previous: KybPerson | undefined, input: KybPerson | undefined, response: KybPerson): KybPerson {
+  return mergeDraft(mergeDraft(previous ?? {}, input ?? {}), response) as KybPerson;
 }

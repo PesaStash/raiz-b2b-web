@@ -20,7 +20,7 @@ type NGNSendToBankStepType =
   | "status"
   | "receipt";
 
-const NgnBankTransfer = () => {
+const NgnBankTransfer = ({ close }: { close: () => void }) => {
   const { externalUser, actions, amount, currency, status, transactionDetail } =
     useSendStore();
   const [step, setStep] = useState<NGNSendToBankStepType>("select-user");
@@ -42,6 +42,7 @@ const NgnBankTransfer = () => {
   }, [externalUser, step]);
   const goBackToStep1 = () => {
     actions.reset("NGN");
+    actions.selectNGNSendOption("to other bank");
     setStep("select-user");
   };
 

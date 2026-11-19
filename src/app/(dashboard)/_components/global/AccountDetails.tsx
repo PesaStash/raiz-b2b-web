@@ -28,7 +28,7 @@ export async function copyInstructions(text: string) {
   }
 }
 
-async function accountPdf(
+export async function accountPdf(
   accounts: AccountInstructions[],
   businessName: string,
   preview = false,

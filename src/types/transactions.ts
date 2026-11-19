@@ -62,6 +62,11 @@ export interface ITransactionReportAlipayWechatDetails {
   payment_proof_url: string | null;
   initiated_at: string;
   liquidated_at: string | null;
+  /** v2 dual-funding fields; older rows may only have ngn_amount. */
+  funding_currency?: "NGN" | "USD" | string | null;
+  funding_amount?: string | null;
+  destination_currency?: string | null;
+  destination_amount?: string | null;
 }
 
 export type SwiftReportStatus = "pending" | "completed" | "failed";

@@ -4,30 +4,31 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useUser } from "@/lib/hooks/useUser";
-import { consumePaystackCallbackReference, resolvePaystackCheckout } from "@/lib/paystackCallback";
-import type { PendingPaystackCheckout } from "@/types/paystackCardCollection";
-import PaystackFundingStatus from "@/app/(dashboard)/_components/topUp/NgnTopup/PaystackFundingStatus";
-import PaystackStatusPanel from "@/app/(dashboard)/_components/topUp/NgnTopup/PaystackStatusPanel";
-import PaystackCardTopUp from "@/app/(dashboard)/_components/topUp/NgnTopup/PaystackCardTopUp";
-import PaystackAppReturn from "@/app/(dashboard)/_components/topUp/NgnTopup/PaystackAppReturn";
+import { consumeCardCallbackReference, resolveCardCheckout } from "@/lib/cardCheckoutCallback";
+import type { PendingCardCheckout } from "@/types/cardCollection";
+import CardFundingStatus from "@/app/(dashboard)/_components/topUp/NgnTopup/CardFundingStatus";
+import CardStatusPanel from "@/app/(dashboard)/_components/topUp/NgnTopup/CardStatusPanel";
+import NgnCardTopUp from "@/app/(dashboard)/_components/topUp/NgnTopup/NgnCardTopUp";
+import CardAppReturn from "@/app/(dashboard)/_components/topUp/NgnTopup/CardAppReturn";
 import { hasSession as hasWebSession } from "@/utils/CookiesFunc";
 
 /**
- * Paystack redirect target shared by web and mobile. Without a web session the
+ * Card-provider redirect target shared by web and mobile. Without a web session the
  * visitor is a mobile checkout and is handed back to the app; signed-in web
  * users get status polling. The redirect itself never confirms payment.
+ * Path stays under /fund-wallet/paystack/callback for backend redirect compatibility.
  */
-const PaystackCallbackPage = () => {
+const CardCallbackPage = () => {
   const router = useRouter();
   const { user } = useUser();
   const entityId = user?.business_account?.entity_id;
-  const [checkout, setCheckout] = useState<PendingPaystackCheckout | null | undefined>(undefined);
+  const [checkout, setCheckout] = useState<PendingCardCheckout | null | undefined>(undefined);
   const [startNew, setStartNew] = useState(false);
   const [hasSession, setHasSession] = useState<boolean | undefined>(undefined);
   const callbackReferenceRef = useRef<string | null>(null);
 
   useEffect(() => {
-    callbackReferenceRef.current = consumePaystackCallbackReference();
+    callbackReferenceRef.current = consumeCardCallbackReference();
     setHasSession(hasWebSession());
   }, []);
 
@@ -35,7 +36,7 @@ const PaystackCallbackPage = () => {
     // Without a web session any API call would 401 and force a login redirect.
     if (!hasSession || !entityId) return;
     let active = true;
-    void resolvePaystackCheckout(entityId, callbackReferenceRef.current).then((record) => {
+    void resolveCardCheckout(entityId, callbackReferenceRef.current).then((record) => {
       if (active) setCheckout(record);
     });
     return () => {
@@ -46,14 +47,14 @@ const PaystackCallbackPage = () => {
   const goHome = () => router.replace("/");
 
   const renderContent = () => {
-    if (hasSession === false) return <PaystackAppReturn />;
-    if (startNew) return <PaystackCardTopUp close={goHome} />;
+    if (hasSession === false) return <CardAppReturn />;
+    if (startNew) return <NgnCardTopUp close={goHome} />;
     if (hasSession === undefined || !entityId || checkout === undefined) {
       return (
         <div className="flex flex-col min-h-[440px] w-full max-w-[400px]">
-          <PaystackStatusPanel
+          <CardStatusPanel
             icon="pending"
-            title="Returning from Paystack"
+            title="Returning from checkout"
             message="Loading your payment details…"
             busy
             primary={{ label: "Go to dashboard", onClick: goHome }}
@@ -64,7 +65,7 @@ const PaystackCallbackPage = () => {
     if (!checkout) {
       return (
         <div className="flex flex-col min-h-[440px] w-full max-w-[400px]">
-          <PaystackStatusPanel
+          <CardStatusPanel
             icon="pending"
             title="No payment in progress"
             message="We couldn't find a card payment started on this browser. Check your wallet activity for recent payments."
@@ -75,7 +76,7 @@ const PaystackCallbackPage = () => {
       );
     }
     return (
-      <PaystackFundingStatus
+      <CardFundingStatus
         checkout={checkout}
         entityId={entityId}
         variant="page"
@@ -93,4 +94,4 @@ const PaystackCallbackPage = () => {
   );
 };
 
-export default PaystackCallbackPage;
+export default CardCallbackPage;

@@ -45,6 +45,29 @@ test("person corrections follow stable IDs after the active list is reordered", 
   const local = errorsForPerson([error], person, 0);
   assert.equal(local[0].field, "identifying_information.0.type");
   assert.equal(cleanPerson(person, local).identifying_information[0].type, "");
+  const owner = {
+    person_key: "owner",
+    ownership_percentage: 50,
+    has_ownership: "Invalid has ownership (re-enter a valid has ownership)",
+  };
+  assert.equal(
+    cleanPerson(
+      owner,
+      errorsForPerson(
+        [
+          {
+            field: "associated_persons[0].has_ownership",
+            message:
+              "Set has_ownership to true for a positive ownership percentage, or correct the ownership percentage",
+            placeholder: owner.has_ownership,
+          },
+        ],
+        owner,
+        0,
+      ),
+    ).has_ownership,
+    true,
+  );
   assert.equal(
     currentFieldErrors([error], [person])[0].field,
     "associated_persons[0].identifying_information[0].type",

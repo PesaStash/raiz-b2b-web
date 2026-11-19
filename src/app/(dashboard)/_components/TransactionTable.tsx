@@ -611,15 +611,15 @@ const TransactionTable = ({ pagination, topRightOpts }: Props) => {
         )}
         {showSend ? (
           selectedCurrency.name === "NGN" ? (
-            <CenterModalWrapper close={() => setShowSend(false)}>
+            <CenterModalWrapper sendFlow close={() => setShowSend(false)}>
               <NgnSend close={() => setShowSend(false)} />
             </CenterModalWrapper>
           ) : selectedCurrency.name === "USD" ? (
-            <CenterModalWrapper close={() => setShowSend(false)}>
+            <CenterModalWrapper sendFlow close={() => setShowSend(false)}>
               <UsdSend close={() => setShowSend(false)} />
             </CenterModalWrapper>
           ) : (
-            <CenterModalWrapper close={() => setShowSend(false)}>
+            <CenterModalWrapper sendFlow close={() => setShowSend(false)}>
               <ForeignSend close={() => setShowSend(false)} />
             </CenterModalWrapper>
           )

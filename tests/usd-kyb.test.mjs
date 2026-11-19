@@ -8,12 +8,14 @@ import {
   deferredRequirements,
   mergeDraft,
   normalizeDraft,
+  withDaoDefault,
   registryPeople,
   setPath,
   getPath,
   options,
   fileError,
   personPatch,
+  ensureOwnershipFlag,
   reconcilePeople,
 } from "../src/lib/usd-kyb/model.ts";
 import { canMakeRequest, isPublicPath } from "../src/lib/permissions.ts";
@@ -157,6 +159,56 @@ test("reference options tolerate new values and public person state never goes b
     { person_key: "stable", first_name: "Ada", is_director: true },
   );
 });
+test("a positive ownership percentage is written with boolean has_ownership", () => {
+  const placeholder = "Invalid has ownership (re-enter a valid has ownership)";
+  assert.equal(
+    personPatch({
+      person_key: "owner",
+      ownership_percentage: 50,
+      has_ownership: placeholder,
+    }).has_ownership,
+    true,
+  );
+  assert.equal(
+    personPatch({ person_key: "owner", ownership_percentage: 50 }).has_ownership,
+    true,
+  );
+  assert.equal(
+    personPatch({
+      person_key: "director",
+      has_ownership: false,
+      is_director: true,
+    }).has_ownership,
+    false,
+  );
+  assert.equal(
+    ensureOwnershipFlag(
+      { person_key: "owner", email: "jane@example.com" },
+      { has_ownership: true, ownership_percentage: 50 },
+      { has_ownership: placeholder },
+    ).has_ownership,
+    true,
+  );
+  assert.equal(
+    ensureOwnershipFlag(
+      { person_key: "owner", ownership_percentage: 50 },
+      { has_ownership: true, ownership_percentage: 50 },
+      { has_ownership: true },
+    ).has_ownership,
+    true,
+  );
+  assert.equal(
+    Object.hasOwn(
+      ensureOwnershipFlag(
+        { person_key: "owner", email: "ada@example.com" },
+        { has_ownership: true, ownership_percentage: 60 },
+        { has_ownership: true },
+      ),
+      "has_ownership",
+    ),
+    false,
+  );
+});
 
 test("person conflict reconciliation applies only locally edited fields and retains remote roles/status", () => {
   const baseline = [
@@ -238,6 +290,24 @@ test("lookup root fields populate canonical sections without losing other saved 
   assert.equal(input.business_legal_name, "Example Limited");
   assert.equal(
     Object.hasOwn(input.business_profile, "business_legal_name"),
+    false,
+  );
+});
+test("an unset DAO answer defaults to false and an explicit answer stays", () => {
+  const missing = withDaoDefault({ business_profile: { email: "a@b.co" } });
+  assert.equal(getPath(missing, "business_profile.is_dao"), false);
+  assert.equal(getPath(missing, "business_profile.email"), "a@b.co");
+  assert.equal(
+    getPath(withDaoDefault({ business_profile: { is_dao: null } }), "business_profile.is_dao"),
+    false,
+  );
+  const explicit = { business_profile: { is_dao: true } };
+  assert.equal(withDaoDefault(explicit), explicit);
+  assert.equal(
+    getPath(
+      withDaoDefault({ business_profile: { is_dao: false } }),
+      "business_profile.is_dao",
+    ),
     false,
   );
 });

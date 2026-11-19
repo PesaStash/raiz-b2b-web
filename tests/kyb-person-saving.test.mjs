@@ -3,19 +3,24 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import ts from "typescript";
-import { readApiError } from "../src/lib/apiError.ts";
+import { apiFieldCorrections, readApiError } from "../src/lib/apiError.ts";
 import * as corrections from "../src/lib/usd-kyb/corrections.ts";
 import * as model from "../src/lib/usd-kyb/model.ts";
 import {
   identityStarted,
   personDetailsErrors,
+  persistedPersonDetailsErrors,
   canResendPersonInvitation,
+  isEligibleAssociatedPerson,
 } from "../src/lib/usd-kyb/personDetails.ts";
+import { draftInputErrors } from "../src/lib/usd-kyb/inputValidation.ts";
 import { SaveQueue } from "../src/lib/usd-kyb/saveQueue.ts";
 function editorHarness({
   status = "collecting",
   canWrite = true,
   existingPerson = {},
+  additionalPeople = [],
+  prefilled = {},
 } = {}) {
   const slots = [];
   let cursor = 0;
@@ -56,6 +61,7 @@ function editorHarness({
         is_director: true,
         ...existingPerson,
       },
+      ...additionalPeople,
     ],
     documents: [
       {
@@ -68,8 +74,11 @@ function editorHarness({
       },
     ],
     validation: { missing_requirements: [] },
+    prefilled_draft: prefilled,
   };
   const calls = [];
+  const cachedWrites = [];
+  const profileRefreshes = [];
   const invitations = [];
   const removals = [];
   const toasts = [];
@@ -193,8 +202,8 @@ function editorHarness({
         return {
           useQuery: () => ({ data: bundle }),
           useQueryClient: () => ({
-            setQueryData() {},
-            invalidateQueries: async () => {},
+            setQueryData(key, value) { cachedWrites.push({key, value}); },
+            invalidateQueries: async (options) => { profileRefreshes.push(options.queryKey); },
           }),
         };
       if (name === "@/services/usdKyb") return { kybApi: api };
@@ -206,15 +215,18 @@ function editorHarness({
             user: { business_account: { entity_id: "test" } },
           }),
         };
-      if (name === "@/lib/apiError") return { readApiError };
+      if (name === "@/lib/apiError") return { readApiError, apiFieldCorrections };
       if (name === "@/lib/session") return { sessionGeneration: () => 1 };
+      if (name === "@/lib/usd-kyb/inputValidation") return { draftInputErrors };
       if (name === "@/lib/usd-kyb/model") return model;
       if (name === "@/lib/usd-kyb/corrections") return corrections;
       if (name === "@/lib/usd-kyb/personDetails")
         return {
           identityStarted,
           personDetailsErrors,
+          persistedPersonDetailsErrors,
           canResendPersonInvitation,
+          isEligibleAssociatedPerson,
         };
       if (name === "@/lib/usd-kyb/saveQueue") return { SaveQueue };
       throw Error(name);
@@ -231,6 +243,8 @@ function editorHarness({
   return {
     render,
     calls,
+    cachedWrites,
+    profileRefreshes,
     invitations,
     removals,
     toasts,
@@ -266,10 +280,32 @@ const person = (key) => ({
   last_name: "Person",
   email: "sample@example.com",
   birth_date: "1985-02-20",
-  has_ownership: false,
+  ownership_percentage: 25,
+  has_ownership: true,
   has_control: false,
   is_signer: false,
   is_director: true,
+});
+test("an unchanged field and lookup prefill do not schedule another save", async () => {
+  const h = editorHarness({
+    prefilled: {
+      business_profile: {
+        business_type: "PRIVATE COMPANY LIMITED BY SHARES",
+        email: "prefill@example.com",
+      },
+    },
+  });
+  let e = h.render();
+  e.change("business_profile.business_type", "");
+  await e.flush();
+  e = h.render();
+  assert.equal(h.calls.length, 1);
+  assert.equal(e.draft.business_profile.business_type, "");
+  assert.equal(e.draft.business_profile.email, "prefill@example.com");
+  e.change("business_profile.business_type", "");
+  await e.flush();
+  e = h.render();
+  assert.equal(h.calls.length, 1);
 });
 test("only changed complete people are written and business-only saves omit all people", async () => {
   const h = editorHarness();
@@ -446,7 +482,83 @@ test("backend response messages toast on every failed submission, including repe
   assert.equal(h.toasts.filter((item) => item.message === message).length, 2);
 });
 
-test("confirming a lookup director has no ownership preserves their roles and does not unlock invitations", async () => {
+test("saving or continuing repairs a non-boolean has_ownership before validation", async () => {
+  const h = editorHarness({
+    existingPerson: {
+      ownership_percentage: 50,
+      has_ownership: "Invalid has ownership (re-enter a valid has ownership)",
+    },
+  });
+  const e = h.render();
+  await e.flush();
+  assert.equal(h.calls.length, 1);
+  assert.equal(h.calls[0].associated_persons[0].has_ownership, true);
+  assert.equal(typeof h.calls[0].associated_persons[0].has_ownership, "boolean");
+});
+
+test("a positive ownership percentage is saved with boolean has_ownership", async () => {
+  const placeholder = "Invalid has ownership (re-enter a valid has ownership)";
+  const h = editorHarness({
+    existingPerson: {
+      ownership_percentage: 50,
+      has_ownership: placeholder,
+    },
+  });
+  let e = h.render();
+  const saved = e.people[0];
+  assert.equal(saved.has_ownership, true);
+  e.changePeople(
+    e.people.map((person) =>
+      person.person_key === saved.person_key
+        ? { ...e.personInput(person), title: "Shareholder" }
+        : person,
+    ),
+  );
+  await e.flush();
+  const sent = h.calls[0].associated_persons[0];
+  assert.equal(sent.has_ownership, true);
+  assert.equal(typeof sent.has_ownership, "boolean");
+  assert.equal(sent.title, "Shareholder");
+});
+
+test("a refreshed saved person stays ready to invite when birth date and address are omitted", async () => {
+  const saved = {
+    associated_person_id: "627cfe7a-6938-4b4a-a99d-5524b5ed3a3b",
+    email: "janedoe@yopmail.com",
+    first_name: "Jane",
+    last_name: "Doe",
+    title: "CEO",
+    relationship_established_at: "2026-10-09",
+    has_ownership: true,
+    ownership_percentage: 50,
+    has_control: false,
+    is_signer: false,
+    is_director: false,
+    invitation_status: "not_sent",
+  };
+  const ready = editorHarness({ existingPerson: saved });
+  let editor = ready.render();
+  assert.equal(editor.personDetailsSaved(editor.people[0]), true);
+  await editor.invitePerson(editor.people[0], "send");
+  assert.deepEqual(ready.invitations, [
+    { id: saved.associated_person_id, action: "send" },
+  ]);
+
+  const incomplete = editorHarness({
+    existingPerson: {
+      associated_person_id: "b903f205-5fe4-4643-88e3-20a887c0e582",
+      has_ownership: true,
+      ownership_percentage: 50,
+      email: null,
+      first_name: null,
+      last_name: null,
+    },
+  });
+  editor = incomplete.render();
+  assert.equal(editor.personDetailsSaved(editor.people[0]), false);
+});
+
+test("a director without ownership cannot be saved or invited", async () => {
   const h = editorHarness();
   let e = h.render();
   const saved = e.people[0];
@@ -462,14 +574,7 @@ test("confirming a lookup director has no ownership preserves their roles and do
   );
   await e.flush();
   e = h.render();
-  const sent = h.calls[0].associated_persons[0];
-  assert.equal(sent.first_name, undefined);
-  assert.equal(sent.is_director, undefined);
-  assert.equal(sent.has_ownership, false);
-  assert.equal(sent.ownership_percentage, null);
-  assert.equal(sent.has_control, undefined);
-  assert.equal(sent.is_signer, undefined);
-  assert.equal(e.personDetailsSaved(e.people[0]), false);
+  assert.equal(h.calls.some(call => call.associated_persons?.length), false);
   await e.invitePerson(e.people[0], "send");
   assert.equal(h.invitations.length, 0);
 });
@@ -555,9 +660,10 @@ test("can_remove permits registry/verified people to be removed and the selected
   let e = h.render();
   await e.removePerson(e.people[0]);
   e = h.render();
-  assert.deepEqual(h.removals, [{ id: "registry-person", version: 1 }]);
+  assert.deepEqual(h.removals, [{ id: "registry-person", version: 2 }]);
   assert.equal(e.people.length, 0);
-  assert.equal(e.bundle.case.payload_version, 2);
+  assert.equal(h.calls[0].draft_payload.business_profile.is_dao, false);
+  assert.equal(e.bundle.case.payload_version, 3);
   assert.deepEqual(
     Array.from(
       e.bundle.documents,
@@ -646,4 +752,152 @@ test("one queued save may contain a new person and changed fields for an existin
     JSON.parse(JSON.stringify(h.calls[0].associated_persons[0])),
     { person_key: "existing", title: "CEO" },
   );
+});
+
+test("editing a business field clears its stale server error immediately without waiting for autosave", async () => {
+  const h = editorHarness();
+  h.rejectFields([
+    { field: "business_profile.email", message: "Invalid email" },
+    { field: "business_profile.phone", message: "Invalid phone" },
+  ]);
+  let editor = h.render();
+  await editor.reload(false);
+  editor = h.render();
+  assert.ok(editor.fieldErrors.some(error => error.field === "business_profile.email"));
+  const savesBefore = h.calls.length;
+  editor.change("business_profile.email", "valid@example.com");
+  editor = h.render();
+  assert.equal(editor.fieldErrors.some(error => error.field === "business_profile.email"), false);
+  assert.equal(editor.fieldErrors.some(error => error.field === "business_profile.phone"), true);
+  assert.equal(h.calls.length, savesBefore);
+});
+
+
+test("invalid monthly estimates remain saveable drafts but retain completion corrections", async () => {
+  const h = editorHarness();
+  let editor = h.render();
+  editor.change("industry_purpose.expected_monthly_payments_usd", "-100");
+  await editor.flush();
+  editor = h.render();
+  assert.equal(h.calls.length, 1);
+  assert.equal(h.calls[0].draft_payload.industry_purpose.expected_monthly_payments_usd, "-100");
+  assert.equal(editor.saveState, "Draft saved — needs correction");
+  assert.ok(editor.inputErrors.some(error => error.field === "industry_purpose.expected_monthly_payments_usd"));
+  assert.ok(editor.fieldErrors.some(error => error.field === "industry_purpose.expected_monthly_payments_usd"));
+  editor.change("industry_purpose.expected_monthly_payments_usd", "100");
+  await editor.flush();
+  editor = h.render();
+  assert.equal(h.calls.length, 2);
+  assert.equal(editor.inputErrors.length, 0);
+});
+
+test("partial person saves keep the displayed name and roles alongside saved date of birth", async () => {
+  const h = editorHarness();
+  let editor = h.render();
+  const person = editor.personInput(editor.people[0]);
+  editor.changePeople([{ ...person, birth_date: "1985-02-20" }]);
+  await editor.flush();
+  editor = h.render();
+  assert.equal(editor.people[0].last_name, "Director");
+  assert.equal(editor.people[0].has_ownership, true);
+  assert.equal(editor.people[0].birth_date, "1985-02-20");
+  const cached = h.cachedWrites.at(-1).value;
+  assert.equal(cached.associated_persons[0].last_name, "Director");
+  assert.equal(cached.associated_persons[0].birth_date, "1985-02-20");
+  assert.equal(cached.case.payload_version, editor.bundle.case.payload_version);
+});
+
+
+test("early schema 422 highlights the person field and does not retry unchanged input", async () => {
+  const h = editorHarness();
+  let editor = h.render();
+  editor.changePeople([{ ...editor.people[0], ownership_percentage: 0.1 }]);
+  h.failSave({ status: 422, data: { detail: { message: "Correct the highlighted associated-person fields", field_errors: [{ field: "associated_persons[0].ownership_percentage", message: "Whole numbers only" }] } } });
+  await assert.rejects(editor.flush());
+  editor = h.render();
+  assert.equal(editor.personErrors(editor.people[0])[0].message, "Whole numbers only");
+  const requests = h.calls.length;
+  await assert.rejects(editor.flush(), /Correct the highlighted/);
+  assert.equal(h.calls.length, requests);
+  editor.changePeople([{ ...editor.people[0], ownership_percentage: 25 }]);
+  await editor.flush();
+  assert.equal(h.calls.length, requests + 1);
+});
+
+test("only explicit valid KYB phone edits refresh the invoice profile", async () => {
+  const h = editorHarness();
+  let e = h.render();
+  e.change("business_profile.primary_website", "https://example.com");
+  await e.flush();
+  assert.equal(h.profileRefreshes.length, 0);
+  e = h.render();
+  e.change("business_profile.phone", "invalid");
+  await e.flush();
+  assert.equal(h.profileRefreshes.length, 0);
+  e = h.render();
+  e.change("business_profile.phone", "+2348159263748");
+  await e.flush();
+  assert.equal(h.profileRefreshes.length, 1);
+  assert.equal(h.profileRefreshes[0][0], "user");
+});
+
+test("saving one of two registry people immediately enables their invite without a refresh", async () => {
+  const second = { person_key: "second", associated_person_id: "id-second", first_name: "Second", last_name: "Director", email: "second@example.com", is_director: true, ownership_percentage: 25, has_ownership: true, has_control: false, is_signer: false };
+  const h = editorHarness({ existingPerson: { associated_person_id: "id-existing", email: null }, additionalPeople: [second] });
+  let editor = h.render();
+  const first = editor.people[0];
+  assert.equal(editor.personDetailsSaved(first), false);
+  editor.changePeople(editor.people.map(person => person.person_key === "second" ? { ...editor.personInput(person), email: "updated@example.com" } : person));
+  await editor.flush();
+  // Check the same handler's editor before a render, reload or case refetch.
+  assert.equal(editor.personDetailsSaved(second), true);
+  assert.equal(editor.personDetailsSaved(first), false);
+  editor = h.render();
+  const updated = editor.people.find(person => person.person_key === "second");
+  assert.equal(updated.email, "updated@example.com");
+  assert.equal(updated.last_name, "Director");
+  assert.equal(editor.personDetailsSaved(updated), true);
+});
+
+test("below-threshold people cannot receive first or repeat invitations regardless of roles", async () => {
+  for (const ownership_percentage of [0, 24, 24.99, null, undefined]) {
+    const h = editorHarness({ existingPerson: { associated_person_id: "excluded", ownership_percentage, is_director: true, is_signer: true, has_control: true, invitation_status: "sent" } });
+    const editor = h.render();
+    assert.equal(editor.canResendPerson(editor.people[0]), false);
+    await editor.invitePerson(editor.people[0], "send");
+    await editor.resendPerson(editor.people[0]);
+    assert.equal(h.invitations.length, 0);
+  }
+});
+
+test("submission preparation removes ineligible people but retains a 25 percent owner", async () => {
+  const h = editorHarness({ existingPerson: { associated_person_id: "excluded", ownership_percentage: 24, can_remove: true }, additionalPeople: [{ ...person("eligible"), associated_person_id: "eligible-id", ownership_percentage: 25 }] });
+  const editor = h.render();
+  const result = await editor.command(() => editor.prepareAssociatedPersons());
+  assert.deepEqual(h.removals.map(r => r.id), ["excluded"]);
+  assert.deepEqual(Array.from(result.associated_persons, p => p.person_key), ["eligible"]);
+  assert.equal(h.calls.some(call => call.associated_persons?.some(p => p.person_key === "existing")), false);
+});
+
+test("locked ineligible people block submission preparation without deletion", async () => {
+  const h = editorHarness({ existingPerson: { associated_person_id: "excluded", ownership_percentage: 10, can_remove: false } });
+  const editor = h.render();
+  let submitted = false;
+  await editor.command(async () => { await editor.prepareAssociatedPersons(); submitted = true; });
+  assert.equal(submitted, false);
+  assert.equal(h.removals.length, 0);
+  assert.match(h.render().error, /removal is locked/);
+});
+
+test("new people below 25 percent never enter an associated-person PATCH", async () => {
+  for (const ownership_percentage of [24, 0, null]) {
+    const h = editorHarness();
+    let editor = h.render();
+    editor.changePeople([...editor.people, { ...person("below-threshold"), ownership_percentage, has_control: true, is_signer: true }]);
+    assert.match(h.render().error, /at least 25%/);
+    await editor.flush();
+    editor = h.render();
+    assert.equal(editor.people.some(p => p.person_key === "below-threshold"), false);
+    assert.equal(h.calls.some(call => call.associated_persons?.some(p => p.person_key === "below-threshold")), false);
+  }
 });

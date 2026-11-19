@@ -27,6 +27,8 @@ import {
   canRequestUsdAccount,
   isNigerianBusiness,
 } from "@/utils/onboardingBranch";
+import { useKybNavigation } from "@/lib/hooks/useKybNavigation";
+import { hasSubmittedKyb } from "@/lib/onboarding";
 import { useUsdOnboardingStatus } from "@/lib/hooks/useUsdOnboarding";
 import { useUsdOnboardingFlow } from "@/lib/hooks/useUsdOnboardingFlow";
 import BridgeToSWebview from "@/app/(dashboard)/_components/BridgeToSWebview";
@@ -87,7 +89,8 @@ const Sidebar = () => {
   const { data: billMetrics } = useQuery({
     queryKey: ["bill-requests-metrics", { currency: selectedCurrency.name }],
     queryFn: () => FetchBillRequestMetricsApi({}),
-    refetchOnMount: "always",
+    staleTime: 30_000,
+    refetchOnMount: true,
     refetchOnWindowFocus: true,
   });
 
@@ -107,7 +110,8 @@ const Sidebar = () => {
   const USDAcct = findWalletByCurrency(user, "USD");
   const isNigerian = isNigerianBusiness(user);
   const hasTransactionPin = user?.has_transaction_pin;
-  const canRequestUsd = canRequestUsdAccount(
+  const kybNavigation = useKybNavigation(user);
+  const canRequestUsd = !hasSubmittedKyb(kybNavigation.data?.case) && !kybNavigation.isLoading && !kybNavigation.isError && canRequestUsdAccount(
     user,
     verificationStatus,
     effectiveUsdCase,

@@ -1,5 +1,7 @@
 "use client";
 import { groupFieldErrors } from "@/lib/usd-kyb/corrections";
+import { useQueries, useQuery } from "@tanstack/react-query";
+import { kybApi } from "@/services/usdKyb";
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -17,9 +19,15 @@ import {
   peopleNeedingInvitation,
   personRequirementMessage,
 } from "@/lib/usd-kyb/personDetails";
+import {
+  companyDocumentRequirementMessage,
+  missingCompanyDocuments,
+} from "@/lib/usd-kyb/documents";
 import type { KybPerson } from "@/types/usdKyb";
 import type { KybEditor } from "@/lib/hooks/useUsdKyb";
 import {
+  ownershipDisplay,
+  options,
   deferredRequirements,
   display,
   getPath,
@@ -27,6 +35,7 @@ import {
   record,
   requirementStage,
 } from "@/lib/usd-kyb/model";
+import Button from "../ui/Button";
 export function Requirements({
   editor,
   navigate,
@@ -38,8 +47,16 @@ export function Requirements({
     groupFieldErrors(editor.fieldErrors ?? []).find(
       (error) => error.field === key,
     );
+  const requirementLabel = (key: string) =>
+    key === "signed_agreement_id"
+      ? "Account terms"
+      : (correctionFor(key)?.message ??
+        companyDocumentRequirementMessage(key) ??
+        personRequirementMessage(key, editor.people) ??
+        label(key.replaceAll(".", " · ")));
   const hard = [
     ...new Set([
+      ...missingCompanyDocuments(editor.bundle?.documents, editor.draft),
       ...editor.missing.filter((key) => !deferredRequirements.has(key)),
       ...(editor.fieldErrors ?? []).map((error) => error.field),
       ...(peopleNeedingInvitation(editor.people).length
@@ -67,18 +84,10 @@ export function Requirements({
                     className="text-left underline"
                     onClick={() => navigate?.(requirementStage(key), key)}
                   >
-                    {key === "signed_agreement_id"
-                      ? "Account terms"
-                      : (correctionFor(key)?.message ??
-                        personRequirementMessage(key, editor.people) ??
-                        label(key.replaceAll(".", " · ")))}
+                    {requirementLabel(key)}
                   </button>
-                ) : key === "signed_agreement_id" ? (
-                  "Account terms"
                 ) : (
-                  (correctionFor(key)?.message ??
-                  personRequirementMessage(key, editor.people) ??
-                  label(key.replaceAll(".", " · ")))
+                  requirementLabel(key)
                 )}
               </li>
             ))}
@@ -176,6 +185,21 @@ export default function KybReview({
 }) {
   const profile = record(editor.draft.business_profile);
   const activity = record(editor.draft.industry_purpose);
+  const tenant = editor.access.user?.business_account?.entity_id;
+  const guide = useQuery({
+    queryKey: ["usd-kyb-reference", tenant, "guide"],
+    queryFn: kybApi.guide,
+    staleTime: Infinity,
+    retry: false,
+  });
+  const industryCodes = Array.isArray(activity.business_industry) ? activity.business_industry.map(String) : [];
+  const industryLabels = useQueries({ queries: industryCodes.map(code => ({
+    queryKey: ["usd-kyb-reference", tenant, "industries", code],
+    queryFn: () => kybApi.industries(code),
+    staleTime: Infinity,
+    retry: false,
+  })) });
+  const industries = industryCodes.map((code, index) => options(industryLabels[index]?.data).find(option => option.value === code)?.label ?? `Industry code ${code}`).join(", ");
   const tinNumber = (() => {
     const identifiers = Array.isArray(editor.draft.identifying_information)
       ? (editor.draft.identifying_information as Record<string, unknown>[])
@@ -221,9 +245,9 @@ export default function KybReview({
       data: {
         "Registered name": profile.business_legal_name,
         "Trading name": profile.business_trade_name,
-        "Business type": profile.business_type,
+        "Business type": options(guide.data?.business_types).find(option => option.value === profile.business_type)?.label ?? label(String(profile.business_type ?? "")),
         TIN: tinNumber,
-        Industry: readable(activity.business_industry),
+        Industry: industries || "Not provided",
         Address: readable(editor.draft.registered_address),
       },
     },
@@ -237,7 +261,7 @@ export default function KybReview({
             p.is_director && "Director",
             p.has_control && "Control person",
             p.is_signer && "Signer",
-            p.has_ownership && `${p.ownership_percentage}%`,
+            p.has_ownership && ownershipDisplay(p),
             label(
               p.verification_status ?? p.invitation_status ?? "Not invited",
             ),
@@ -441,8 +465,8 @@ export function SubmittedCase({ editor }: { editor: KybEditor }) {
   const submittedAt =
     submittedDate && !Number.isNaN(submittedDate.getTime())
       ? submittedDate.toLocaleString(undefined, {
-          dateStyle: "medium",
-          timeStyle: "short",
+          year: "numeric", month: "short", day: "numeric",
+          hour: "2-digit", minute: "2-digit", timeZoneName: "short",
         })
       : "";
   const email =
@@ -583,14 +607,16 @@ export function SubmittedCase({ editor }: { editor: KybEditor }) {
               )}
             </div>
           )}
-          <button
+          <Button
             type="button"
-            className="text-xs font-semibold text-primary2"
+            
+            width="fit"
+            className="rounded-xl"
             disabled={editor.busy}
             onClick={() => void editor.reload(false)}
           >
             {editor.busy ? "Refreshing…" : "Refresh status"}
-          </button>
+          </Button>
         </div>
         <aside className="border-t border-kyb-border bg-[#F9F9FB] p-5 sm:p-8 md:border-l md:border-t-0">
           <h3 className="mb-4 text-[13px] font-semibold leading-[19px] text-kyb-muted">

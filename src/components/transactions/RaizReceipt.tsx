@@ -1,14 +1,15 @@
 "use client";
+import { useSendFlow } from "./send-flow/Flow";
+import TransferReceipt from "./send-flow/TransferReceipt";
 import Image from "next/image";
 import React, { useEffect, useRef } from "react";
 import ListDetailItem from "../ui/ListDetailItem";
 import dayjs from "dayjs";
 import { convertTime, formatAmount, getCurrencySymbol } from "@/utils/helpers";
-import html2canvas from "html2canvas";
 import { ITransaction } from "@/types/transactions";
 import { useUser } from "@/lib/hooks/useUser";
 import QRCode from "react-qr-code";
-import jsPDF from "jspdf";
+import { generateReceiptPdf } from "@/lib/generateReceiptPdf";
 export interface IRaizReceipt {
   close: () => void;
   data: ITransaction;
@@ -24,24 +25,15 @@ const RaizReceipt = ({
   senderName,
   beneficiaryName,
 }: IRaizReceipt) => {
+  const flow = useSendFlow();
   const receiptRef = useRef<HTMLDivElement>(null);
   const handleShareReceipt = async () => {
     if (!receiptRef.current) return;
     try {
-      // Convert the receipt component to canvas
-      const canvas = await html2canvas(receiptRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        y: receiptRef.current.offsetTop - 24, // Adjust to capture the logo
-        height: receiptRef.current.offsetHeight + 24, // Include extra space for logo
-      });
-      const dataUrl = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      pdf.addImage(dataUrl, "PNG", 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`receipt-${data?.transaction_reference}.pdf`);
+      await generateReceiptPdf(
+        receiptRef.current,
+        `receipt-${data?.transaction_reference}.pdf`,
+      );
     } catch (error) {
       console.error("Error generating receipt:", error);
       alert("Failed to generate receipt. Please try again.");
@@ -51,6 +43,7 @@ const RaizReceipt = ({
   const { user } = useUser({ enabled: type !== "guest" });
 
   useEffect(() => {
+    if (flow) return;
     const timer = setTimeout(() => {
       handleShareReceipt();
       // Optionally close the modal after download
@@ -92,6 +85,15 @@ const RaizReceipt = ({
 
     return beneficiary;
   };
+
+  if (flow)
+    return (
+      <TransferReceipt
+        data={data}
+        close={close}
+        businessName={user?.business_account?.business_name}
+      />
+    );
 
   return (
     <div>

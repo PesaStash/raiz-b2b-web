@@ -1,15 +1,18 @@
 "use client";
+import { registryOwnership } from "@/lib/usd-kyb/model";
 import { toast } from "sonner";
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { KybPerson, KybFieldError } from "@/types/usdKyb";
 import AddressAutocomplete from "@/components/ui/AddressAutocomplete";
-import SelectField from "@/components/ui/SelectField";
+import SelectField, { type Option } from "@/components/ui/SelectField";
 import { valueAt, replaceAt, correctionPath } from "@/lib/usd-kyb/corrections";
 import { options } from "@/lib/usd-kyb/model";
 import InputField from "@/components/ui/InputField";
 import { toAlpha3Country } from "@/lib/usd-kyb/countryCode";
+import useCountryStore from "@/store/useCountryStore";
 import { Action, Notice } from "./KybUI";
-import { personDetailsErrors } from "@/lib/usd-kyb/personDetails";
+import { personFormErrors, personDetailsStep, latestPersonBirthDate } from "@/lib/usd-kyb/personDetails";
+import { ownershipFlag } from "@/lib/usd-kyb/model";
 
 const steps = [
   "Personal details",
@@ -39,28 +42,43 @@ export default function PersonDetailsForm({
 }) {
   const [person, setPerson] = useState<KybPerson>({
     ...initial,
+    has_ownership: ownershipFlag(initial),
     ...(partial
       ? {}
       : {
-          has_ownership: !!initial.has_ownership,
           is_director: !!initial.is_director,
           has_control: !!initial.has_control,
           is_signer: !!initial.is_signer,
         }),
   });
-  const [nationalityText, setNationalityText] = useState(
-    initial.nationalities?.join(", ") ?? "",
-  );
-  const [step, setStep] = useState(
-    corrections.some((error) => error.field.startsWith("residential_address"))
-      ? 1
-      : corrections.some((error) =>
-            error.field.startsWith("identifying_information"),
-          )
-        ? 2
-        : 0,
-  );
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const {
+    countries,
+    fetchCountries,
+    loading: countriesLoading,
+    error: countriesError,
+  } = useCountryStore();
+  useEffect(() => {
+    void fetchCountries();
+  }, [fetchCountries]);
+  const countryOptions = useMemo(() => {
+    const seen = new Set<string>();
+    return countries
+      .flatMap((country) => {
+        const value = toAlpha3Country(country.country_code);
+        if (!/^[A-Z]{3}$/.test(value) || seen.has(value)) return [];
+        seen.add(value);
+        return [{ value, label: country.country_name }];
+      })
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [countries]);
+  const countryOption = (code: string): Option =>
+    countryOptions.find((option) => option.value === code) ?? {
+      value: code,
+      label: code,
+    };
+  const [step, setStep] = useState(0);
+  const [attemptedErrors, setErrors] = useState<Record<string, string>>({});
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
   const [manualAddress, setManualAddress] = useState(
     () =>
       corrections.some((error) =>
@@ -83,25 +101,13 @@ export default function PersonDetailsForm({
         correctionPath(error.field) === correctionPath(path) && !changed(path),
     );
   const validate = (page?: number) => {
-    const found = personDetailsErrors(person, page);
-    if (partial)
-      for (const key of Object.keys(found))
-        if (
-          !changed(key) &&
-          !(
-            key === "roles" &&
-            ["has_ownership", "has_control", "is_signer", "is_director"].some(
-              changed,
-            )
-          )
-        )
-          delete found[key];
+    const found = personFormErrors(person, partial, page);
     for (const correction of corrections) {
-      const pageFor = correction.field.startsWith("residential_address")
-        ? 1
-        : correction.field.startsWith("identifying_information")
-          ? 2
-          : 0;
+      const pageFor = personDetailsStep(correctionPath(correction.field));
+      const field = correctionPath(correction.field);
+      // Boolean true already answers this correction. Leaving the checkbox
+      // untouched must not block the rest of the form or submission.
+      if (field === "has_ownership" && person.has_ownership === true) continue;
       if (
         (page === undefined || page === pageFor) &&
         (!changed(correction.field) ||
@@ -111,6 +117,9 @@ export default function PersonDetailsForm({
     }
     return found;
   };
+  const errors = Object.fromEntries(
+    Object.entries(validate(step)).filter(([key]) => touchedFields[key] || Object.hasOwn(attemptedErrors, key)),
+  );
   const field = (
     key: string,
     title: string,
@@ -119,24 +128,24 @@ export default function PersonDetailsForm({
     type = "text",
     optional = false,
   ) => (
+    <div key={key}>
     <InputField
-      key={key}
       id={`person-${key}`}
       name={key}
+      aria-label={title}
+      aria-describedby={type === "date" ? `person-${key}-format` : undefined}
       label={
         title +
-        (optional ||
-        (partial &&
-          !corrections.some(
-            (error) => correctionPath(error.field) === correctionPath(key),
-          ))
+        (optional
           ? " (optional)"
           : " *")
       }
       value={value}
       type={type}
       autoComplete="off"
-      max={type === "date" ? new Date().toISOString().slice(0, 10) : undefined}
+      step={type === "number" ? "1" : undefined}
+      min={key === "ownership_percentage" ? 25 : undefined}
+      max={key === "ownership_percentage" ? 100 : type === "date" ? key === "birth_date" ? latestPersonBirthDate() : new Date().toISOString().slice(0, 10) : undefined}
       disabled={disabled}
       aria-invalid={!!errors[key] || !!serverError(key)}
       errorMessage={errors[key] ?? serverError(key)?.message}
@@ -147,8 +156,14 @@ export default function PersonDetailsForm({
       }
       labelClass="!font-monzo !text-sm !font-semibold !text-kyb-ink"
       className="!h-12 !rounded-xl !border-kyb-border !bg-kyb-field !text-kyb-ink"
-      onChange={(event) => update(event.target.value)}
+      onBlur={() => setTouchedFields(current => ({ ...current, [key]: true }))}
+      onChange={(event) => {
+        setTouchedFields(current => ({ ...current, [key]: true }));
+        update(event.target.value);
+      }}
     />
+    {type === "date" && <p id={`person-${key}-format`} className="mt-1 text-xs text-kyb-muted">Use the calendar or your browser’s date format. The saved date uses YYYY-MM-DD.</p>}
+    </div>
   );
   return (
     <form
@@ -169,9 +184,9 @@ export default function PersonDetailsForm({
           if (Object.keys(all).length) {
             setErrors(all);
             toast.error(Object.values(all)[0], { id: "onboarding-error" });
-            const personal = all.first_name || all.email || all.birth_date;
-            setStep(personal ? 0 : 1);
-            if (!personal) setManualAddress(true);
+            const invalidStep = personDetailsStep(Object.keys(all)[0]);
+            setStep(invalidStep);
+            if (invalidStep === 1) setManualAddress(true);
             return;
           }
           void save({
@@ -205,7 +220,7 @@ export default function PersonDetailsForm({
         <p className="mt-2 text-sm leading-relaxed text-kyb-muted">
           {partial
             ? "Update the flagged details. Saved fields that are hidden do not need to be entered again."
-            : "Complete these details before sending their identity verification link. After saving, you’ll be able to send their invite link. Required fields are marked *."}
+            : "Save their details, then send an invite. Required fields are marked *."}
         </p>
       </div>
       <ol
@@ -222,12 +237,6 @@ export default function PersonDetailsForm({
           </li>
         ))}
       </ol>
-      {partial && (
-        <Notice>
-          Correct the flagged details. Hidden saved fields are preserved; you do
-          not need to enter them again.
-        </Notice>
-      )}
       {error && <Notice error>{error}</Notice>}
       {step === 0 && (
         <div className="space-y-4">
@@ -257,39 +266,88 @@ export default function PersonDetailsForm({
             (value) => setPerson({ ...person, birth_date: value }),
             "date",
           )}
-          {field(
-            "nationalities",
-            "Nationalities",
-            nationalityText,
-            (value) => {
-              setNationalityText(value.toUpperCase());
+          <SelectField
+            isMulti
+            label="Nationalities (optional)"
+            instanceId={`person-${initial.person_key}-nationalities`}
+            name="nationalities"
+            placeholder="Select nationalities"
+            options={countryOptions}
+            value={(person.nationalities ?? []).map(countryOption)}
+            onChange={(selected) =>
               setPerson({
                 ...person,
-                nationalities: value
-                  .toUpperCase()
-                  .split(",")
-                  .map((code) => code.trim())
-                  .filter(Boolean),
-              });
-            },
-            "text",
-            true,
-          )}
-          <p className="text-xs text-kyb-muted">
-            Use three-letter country codes separated by commas, e.g. NGA, USA.
-          </p>
-          {field(
-            "place_of_birth",
-            "Country of birth",
-            person.place_of_birth?.country ?? "",
-            (value) =>
+                nationalities: (selected ?? []).map((option) =>
+                  String(option.value),
+                ),
+              })
+            }
+            disabled={disabled}
+            isLoading={countriesLoading}
+            isClearable
+            isSearchable
+            menuPlacement="auto"
+            labelClass="!font-monzo !text-sm !font-semibold !text-kyb-ink"
+            bgColor="#F4F4F8"
+            minHeight="48px"
+            className="!shadow-none"
+            status={
+              errors.nationalities || serverError("nationalities")
+                ? "error"
+                : undefined
+            }
+            helper={
+              errors.nationalities ??
+              serverError("nationalities")?.message ??
+              (countriesError
+                ? "Countries could not be loaded. Refresh and try again."
+                : "Select every nationality.")
+            }
+          />
+          <SelectField
+            label="Country of birth (optional)"
+            instanceId={`person-${initial.person_key}-place-of-birth`}
+            name="place_of_birth"
+            placeholder="Select country of birth"
+            options={countryOptions}
+            value={
+              person.place_of_birth?.country
+                ? countryOption(person.place_of_birth.country)
+                : null
+            }
+            onChange={(option) =>
               setPerson({
                 ...person,
-                place_of_birth: { country: value.toUpperCase() },
-              }),
-            "text",
-            true,
-          )}
+                place_of_birth: option
+                  ? { country: String(option.value) }
+                  : null,
+              })
+            }
+            disabled={disabled}
+            isLoading={countriesLoading}
+            isClearable
+            isSearchable
+            menuPlacement="auto"
+            labelClass="!font-monzo !text-sm !font-semibold !text-kyb-ink"
+            bgColor="#F4F4F8"
+            minHeight="48px"
+            className="!shadow-none"
+            status={
+              errors.place_of_birth ||
+              serverError("place_of_birth") ||
+              serverError("place_of_birth.country")
+                ? "error"
+                : undefined
+            }
+            helper={
+              errors.place_of_birth ??
+              serverError("place_of_birth")?.message ??
+              serverError("place_of_birth.country")?.message ??
+              (countriesError
+                ? "Countries could not be loaded. Refresh and try again."
+                : undefined)
+            }
+          />
         </div>
       )}
       {step === 1 && (
@@ -494,8 +552,7 @@ export default function PersonDetailsForm({
               </p>
             )}
           </fieldset>
-          {person.has_ownership &&
-            field(
+          {field(
               "ownership_percentage",
               "Ownership percentage",
               person.ownership_percentage == null
@@ -508,6 +565,7 @@ export default function PersonDetailsForm({
                 }),
               "number",
             )}
+          {registryOwnership(person) !== "Unavailable" && <p className="text-sm text-kyb-muted">Registry-calculated ownership: {registryOwnership(person)}. The writable field accepts whole numbers only. Do not round fractional registry holdings; contact support for guidance.</p>}
           {field(
             "relationship_established_at",
             "Relationship established date",

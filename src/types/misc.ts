@@ -50,6 +50,8 @@ export interface AccountSetupProps {
 }
 
 export type IUSDSendOptions =
+  | "alipay-wechat"
+  | "crypto"
   | "to Raizer"
   | "usBank"
   | "internationalRemittance"

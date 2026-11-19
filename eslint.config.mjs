@@ -21,5 +21,9 @@ export default defineConfig([
       ],
     },
   },
+  {
+    files: ["tests/**/*.mjs"],
+    rules: { "@next/next/no-assign-module-variable": "off" },
+  },
   globalIgnores([".next/**", "out/**", "build/**", "coverage/**", "next-env.d.ts"]),
 ]);

@@ -1,11 +1,20 @@
 "use client";
+import { spendableBalances } from "@/lib/globalBalance";
 
-import Button from "@/components/ui/Button";
+import {
+  FlowHeader,
+  FlowCard,
+  FlowRecipient,
+  FlowAmount,
+  FlowRow,
+  FlowTotal,
+  FlowActions,
+} from "@/components/transactions/send-flow/Flow";
+import { useUser } from "@/lib/hooks/useUser";
 import { GetTransactionFeeApi } from "@/services/transactions";
 import { ISwiftBeneficiary } from "@/types/services";
 import { formatAmount, getApiErrorMessage } from "@/utils/helpers";
 import { useQuery } from "@tanstack/react-query";
-import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import SwiftInvoiceDropzone, {
   isSwiftInvoiceRequired,
@@ -34,6 +43,7 @@ const SwiftAmountEntry = ({
   onConfirm,
   onBack,
 }: Props) => {
+  const { user } = useUser();
   const [debouncedAmount, setDebouncedAmount] = useState(amount);
   const [invoiceError, setInvoiceError] = useState("");
   const numericAmount = Number(debouncedAmount);
@@ -76,88 +86,101 @@ const SwiftAmountEntry = ({
     canQuote &&
     !isFetching &&
     !isError &&
-    typeof fee === "number";
+    typeof fee === "number" &&
+    totalDebit <=
+      Number(
+        spendableBalances(user?.business_account).find(
+          (balance) => balance.currency === "USD",
+        )?.available_balance ?? 0,
+      );
 
   return (
-    <div className="p-0 md:p-6 h-full flex flex-col overflow-y-auto no-scrollbar">
-      <button type="button" onClick={onBack} className="mb-6 self-start">
-        <Image src="/icons/arrow-left.svg" width={18} height={18} alt="back" />
-      </button>
-      <h3 className="text-raiz-gray-950 text-base font-bold mb-1">
-        SWIFT payout details
-      </h3>
-      <p className="text-raiz-gray-500 text-xs mb-6">
-        Sending to {beneficiary.label}. This request is processed manually and
-        is not instant.
-      </p>
-
-      <label className="text-raiz-gray-500 text-xs mb-1.5 block">USD amount</label>
-      <input
-        value={amount}
-        onChange={(event) => onAmountChange(event.target.value)}
-        inputMode="decimal"
-        placeholder="0.00"
-        className="w-full border border-raiz-gray-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-raiz-purple-500 mb-4"
-      />
-
-      <label className="text-raiz-gray-500 text-xs mb-1.5 block">Narration</label>
-      <textarea
-        value={narration}
-        onChange={(event) => onNarrationChange(event.target.value)}
-        maxLength={500}
-        rows={3}
-        placeholder="Payment purpose"
-        className="w-full border border-raiz-gray-200 min-h-[100px] rounded-2xl px-4 py-3 text-sm outline-none focus:border-raiz-purple-500 mb-1"
-      />
-      {narration.length > 0 && !narrationValid && (
-        <p className="text-red-600 text-xs mb-3">
-          Narration must be 2 to 500 characters.
-        </p>
-      )}
-
-      <div className="mt-4 mb-4">
-        <SwiftInvoiceDropzone
-          file={invoiceFile}
-          error={invoiceError}
-          required={invoiceRequired}
-          onChange={onInvoiceChange}
-          onError={setInvoiceError}
+    <>
+      <FlowHeader title="Send money" onBack={onBack} />
+      <FlowCard>
+        <FlowRecipient
+          name={beneficiary.account_name}
+          detail={`${beneficiary.bank_name} · ${beneficiary.country} · USD`}
+          onChange={onBack}
         />
-        {invoiceRequired && !invoiceFile && !invoiceError ? (
-          <p className="text-raiz-gray-500 text-xs mt-2">
-            An invoice is required when paying a business or sending more than
-            $5,000.
+        <FlowAmount
+          currency="USD"
+          amount={amount}
+          recipient={beneficiary.account_name}
+          onChange={onAmountChange}
+        />
+        <FlowRow label="Rate">No conversion</FlowRow>
+        <FlowRow label="You send">${formatAmount(Number(amount) || 0)}</FlowRow>
+        <FlowRow label="SWIFT fee">
+          {isFetching
+            ? "Quoting…"
+            : isError
+              ? "Unavailable"
+              : `$${formatAmount(quotedFee)}`}
+        </FlowRow>
+        <FlowTotal
+          currency="USD"
+          total={totalDebit}
+          balance={Number(
+            spendableBalances(user?.business_account).find(
+              (balance) => balance.currency === "USD",
+            )?.available_balance ?? 0,
+          )}
+        />
+        {totalDebit >
+          Number(
+            spendableBalances(user?.business_account).find(
+              (balance) => balance.currency === "USD",
+            )?.available_balance ?? 0,
+          ) && (
+          <p role="alert" className="text-red-600 text-sm">
+            Not enough USD for this transfer and its fee.
           </p>
-        ) : null}
-      </div>
+        )}
+        <label className="text-raiz-gray-500 text-xs mb-1.5 block">
+          Narration
+        </label>
+        <textarea
+          value={narration}
+          onChange={(event) => onNarrationChange(event.target.value)}
+          maxLength={500}
+          rows={3}
+          placeholder="Payment purpose"
+          className="w-full border border-raiz-gray-200 min-h-[100px] rounded-2xl px-4 py-3 text-sm outline-none focus:border-raiz-purple-500 mb-1"
+        />
+        {narration.length > 0 && !narrationValid && (
+          <p className="text-red-600 text-xs mb-3">
+            Narration must be 2 to 500 characters.
+          </p>
+        )}
 
-      <div className="rounded-2xl bg-raiz-gray-50 p-4 mt-2 mb-6">
-        <div className="flex justify-between text-sm mb-2">
-          <span className="text-raiz-gray-500">SWIFT fee</span>
-          <span>
-            {isFetching
-              ? "Quoting..."
-              : isError
-                ? "Unavailable"
-                : `$${formatAmount(quotedFee)}`}
-          </span>
+        <div className="mt-4 mb-4">
+          <SwiftInvoiceDropzone
+            file={invoiceFile}
+            error={invoiceError}
+            required={invoiceRequired}
+            onChange={onInvoiceChange}
+            onError={setInvoiceError}
+          />
+          {invoiceRequired && !invoiceFile && !invoiceError ? (
+            <p className="text-raiz-gray-500 text-xs mt-2">
+              An invoice is required when paying a business or sending more than
+              $5,000.
+            </p>
+          ) : null}
         </div>
-        <div className="flex justify-between text-sm font-bold">
-          <span>Total debit</span>
-          <span>${formatAmount(totalDebit)}</span>
-        </div>
+
         {isError && (
-          <p className="text-red-600 text-xs mt-2">
+          <p className="text-red-600 text-xs">
             {getApiErrorMessage(error, "Could not quote the SWIFT fee.")}
           </p>
         )}
-      </div>
-
-      <Button disabled={!canContinue} onClick={() => onConfirm(quotedFee)}>
-        Continue
-      </Button>
-    </div>
+        <FlowActions
+          onNext={() => onConfirm(quotedFee)}
+          disabled={!canContinue}
+        />
+      </FlowCard>
+    </>
   );
 };
-
 export default SwiftAmountEntry;

@@ -7,6 +7,7 @@ interface ToggleSwitchProps {
   onChange: (checked: boolean) => void;
   disabled?: boolean;
   id?: string;
+  labelledBy?: string;
   className?: string;
   checkedColor?: string;
 }
@@ -16,6 +17,7 @@ const ToggleSwitch = ({
   onChange,
   disabled = false,
   id,
+  labelledBy,
   className = "",
   checkedColor = "#7F56D9", 
 }: ToggleSwitchProps) => {
@@ -23,12 +25,13 @@ const ToggleSwitch = ({
     <button
       type="button"
       id={id}
+      aria-labelledby={labelledBy}
       role="switch"
       aria-checked={checked}
       disabled={disabled}
       onClick={() => !disabled && onChange(!checked)}
       style={checked ? { backgroundColor: checkedColor } : undefined}
-      className={`relative inline-flex h-[26px] w-[48px] shrink-0 items-center rounded-full transition-colors ${
+      className={`inline-flex h-[26px] w-[48px] shrink-0 items-center rounded-full transition-colors ${
         disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
       } ${checked ? "" : "bg-[#E4E0EA]"} ${className}`}
     >

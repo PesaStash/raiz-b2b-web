@@ -7,25 +7,32 @@ import {
 } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useKybNavigation } from "@/lib/hooks/useKybNavigation";
 import { useUser } from "@/lib/hooks/useUser";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import {
   accountChoiceRoute,
   basicDetailsComplete,
+  hasSubmittedKyb,
   readAccountChoice,
   saveAccountChoice,
   type AccountChoice,
 } from "@/lib/onboarding";
+import {
+  enterBusinessManually,
+  readLookupPrefill,
+  subscribeLookupPrefill,
+} from "@/lib/companyLookup";
 import { Action, Notice } from "@/components/usd-kyb/KybUI";
 import { KybIcon } from "@/components/usd-kyb/KybGuide";
 import { BasicBusinessForm } from "@/app/(dashboard)/_components/BusinessVerificationModal";
+import CompanyLookupStep from "@/components/onboarding/CompanyLookupStep";
 import {
   Crumbs,
   DoneTask,
   GuideSection,
   OnboardingPanel,
   OpenTask,
-  Tags,
   Welcome,
 } from "./OnboardingUI";
 import OnboardingSkeleton from "./OnboardingSkeleton";
@@ -75,20 +82,32 @@ export function OnboardingAccess({
 }
 export function StartGuide() {
   const { user } = useUser();
-  return <StartGuideView user={user} />;
+  const status = useKybNavigation(user);
+  return <StartGuideView user={user} submitted={hasSubmittedKyb(status.data?.case)} />;
 }
 export function StartGuideView({
   user,
+  submitted = false,
 }: {
   user?: import("@/types/user").IUser;
+  submitted?: boolean;
 }) {
   const router = useRouter();
   const complete = basicDetailsComplete(user);
-  const resume = useSyncExternalStore(
-    subscribeChoice,
-    () => readAccountChoice(user?.business_account?.entity_id),
+  const entityId = user?.business_account?.entity_id ?? "";
+  const countryCode =
+    user?.business_account?.entity?.country?.country_code ?? "";
+  const savedPrefill = useSyncExternalStore(
+    subscribeLookupPrefill,
+    () => readLookupPrefill(entityId),
     () => null,
   );
+  const resume = useSyncExternalStore(
+    subscribeChoice,
+    () => readAccountChoice(entityId),
+    () => null,
+  );
+  const openBusinessForm = () => router.push("/onboarding/business");
   return (
     <OnboardingPanel>
       <Welcome name={user?.first_name} note="Takes about 4 mins">
@@ -98,7 +117,7 @@ export function StartGuideView({
       <GuideSection
         title="Verify your business"
         description="Done once. We reuse these details for every account you open."
-        done={complete ? 2 : 1}
+        done={submitted ? 3 : complete ? 2 : 1}
         secondary
       >
         <DoneTask>Create your Raiz account</DoneTask>
@@ -106,30 +125,29 @@ export function StartGuideView({
           <DoneTask>Basic business details</DoneTask>
         ) : (
           <OpenTask
-            title="Add your basic business details"
-            minutes="About 3 mins"
-            tag="Pre-fills later steps"
-            image="basic"
+            title="Find your business"
+            minutes="About 2 mins"
+            tag={savedPrefill?.business_name ? "Pre-filled from register" : undefined}
+            image="business"
           >
-            <p className="text-sm leading-[21px] text-[#444454]">
-              Your business name, registration number, email and address. We use
-              them to open USD, NGN or both, so you never type them twice.
-            </p>
-            <div>
-              <p className="mb-2 text-xs font-semibold text-kyb-muted">
-                You’ll need
-              </p>
-              <Tags
-                items={[
-                  "Registration number",
-                  "Business email",
-                  "Business address",
-                ]}
-              />
-            </div>
-            <Action onClick={() => router.push("/onboarding/business")}>
-              Add business details
-            </Action>
+            <CompanyLookupStep
+              countryCode={countryCode}
+              entityId={entityId}
+              onConfirmed={() => openBusinessForm()}
+              onManual={() => {
+                enterBusinessManually(entityId);
+                openBusinessForm();
+              }}
+            />
+            {savedPrefill?.business_name && (
+              <button
+                type="button"
+                className="text-sm font-semibold text-primary2"
+                onClick={openBusinessForm}
+              >
+                Continue with {savedPrefill.business_name}
+              </button>
+            )}
           </OpenTask>
         )}
         <div className="flex flex-wrap items-center gap-3 px-3 py-3.5">
@@ -137,9 +155,9 @@ export function StartGuideView({
           <button
             className="flex-1 text-left text-[15px] font-semibold disabled:text-kyb-muted"
             disabled={!complete}
-            onClick={() => router.push("/onboarding/accounts")}
+            onClick={() => router.push(submitted ? "/onboarding/usd" : "/onboarding/accounts")}
           >
-            Choose your accounts
+            {submitted ? "View your verification status" : "Choose your accounts"}
           </button>
           <span className="text-[13px] text-kyb-muted">About 1 min</span>
         </div>
@@ -375,6 +393,13 @@ export function AccountChoices({
 export function AccountsPage() {
   const { user } = useUser();
   const router = useRouter();
+  const status = useKybNavigation(user);
+  const hasRequest = hasSubmittedKyb(status.data?.case);
+  useEffect(() => {
+    if (hasRequest) router.replace("/onboarding/usd");
+  }, [hasRequest, router]);
+  if (status.isError) return <Notice error>Unable to check your account setup. <button className="underline" onClick={() => void status.refetch()}>Try again</button></Notice>;
+  if (status.isLoading || hasRequest) return <OnboardingSkeleton label="Loading your account setup…" />;
   return (
     <OnboardingAccess requireBasic>
       <AccountChoices

@@ -1,5 +1,5 @@
 import { validationForPeople } from "@/lib/usd-kyb/corrections";
-import { personPatch } from "@/lib/usd-kyb/model";
+import { personPatch, registryBusinessPrefill, registryPersonPrefill, mergeDraft, normalizeDraft } from "@/lib/usd-kyb/model";
 import { AuthAxios, type CustomAxiosRequestConfig } from "@/lib/authAxios";
 import { PublicAxios } from "@/lib/publicAxios";
 import type {
@@ -7,6 +7,8 @@ import type {
   KybMutation,
   KybPatch,
   LookupResult,
+  LookupRequirements,
+  InquiryRequest,
   KybDocument,
   UploadTarget,
   PersonInvitation,
@@ -31,7 +33,15 @@ function data<T>(body: { success: boolean; data: T | null }): T {
     : body.data;
 }
 export const kybApi = {
-  get: async () => data<KybBundle>((await AuthAxios.get(base, silent)).data),
+  get: async () => {
+    const bundle = data<KybBundle>((await AuthAxios.get(base, silent)).data);
+    const snapshot = bundle.case.youverify_lookup_snapshot;
+    return {
+      ...bundle,
+      prefilled_draft: mergeDraft(registryBusinessPrefill(snapshot), normalizeDraft(bundle.prefilled_draft ?? {})),
+      associated_persons: bundle.associated_persons.map(person => registryPersonPrefill(person, snapshot)),
+    };
+  },
   patch: async (payload: KybPatch) =>
     data<KybMutation>(
       (
@@ -50,19 +60,13 @@ export const kybApi = {
         )
       ).data,
     ),
-  lookup: async (
-    registration_number: string,
-    registration_type: string,
-    consent: boolean,
-  ) =>
+  lookupRequirements: async () =>
+    data<LookupRequirements>(
+      (await AuthAxios.get(`${base}/company-lookup/requirements`, silent)).data,
+    ),
+  lookup: async (request: InquiryRequest) =>
     data<LookupResult>(
-      (
-        await AuthAxios.post(
-          `${base}/company-lookup`,
-          { registration_number, registration_type, consent },
-          silent,
-        )
-      ).data,
+      (await AuthAxios.post(`${base}/company-lookup`, request, silent)).data,
     ),
   validate: async () =>
     data<KybMutation>(
@@ -95,7 +99,7 @@ export const kybApi = {
         await AuthAxios.get(`${base}/formation-documents`, {
           ...silent,
           params: { business_type },
-        })
+        } as CustomAxiosRequestConfig)
       ).data,
     ),
   industries: async (query: string) =>
@@ -104,7 +108,7 @@ export const kybApi = {
         await AuthAxios.get(`${base}/industry-codes`, {
           ...silent,
           params: { query, limit: 50 },
-        })
+        } as CustomAxiosRequestConfig)
       ).data,
     ),
   purposes: async () =>
@@ -116,7 +120,7 @@ export const kybApi = {
       (
         await AuthAxios.delete(
           `${base}/associated-persons/${encodeURIComponent(id)}`,
-          { ...silent, params: { expected_version } },
+          { ...silent, params: { expected_version } } as CustomAxiosRequestConfig,
         )
       ).data,
     ),

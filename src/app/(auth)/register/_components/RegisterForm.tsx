@@ -1,4 +1,6 @@
 "use client";
+import { readApiError } from "@/lib/apiError";
+import { toast } from "sonner";
 import React, { useMemo, useState } from "react";
 import CreateAccount from "./forms/CreateAccount";
 import Button from "@/components/ui/Button";
@@ -8,7 +10,12 @@ import Congrats from "./forms/Congrats";
 import AuthLayout from "../../_components/AuthLayout";
 import EmailVerificationLayout from "../../_components/EmailVerificationLayout";
 import { useFormik } from "formik";
-import { registerFormSchemas, createAccountSchema, sanitizeOtpInput } from "./validation";
+import {
+  registerFormSchemas,
+  createAccountSchema,
+  sanitizeOtpInput,
+  stripSpaces,
+} from "./validation";
 import { IRegisterFormValues } from "@/types/misc";
 import { toFormikValidate } from "zod-formik-adapter";
 import { useRouter } from "next/navigation";
@@ -25,11 +32,8 @@ import { getAnalyticsUserType } from "@/utils/analytics/userProps";
 const RegisterForm = () => {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
-  const steps = [
-    "createAccount",
-    "otp",
-    "congrats",
-  ];
+  const [duplicateEmail, setDuplicateEmail] = useState(false);
+  const steps = ["createAccount", "otp", "congrats"];
 
   const initialValues: IRegisterFormValues = {
     firstName: "",
@@ -43,7 +47,12 @@ const RegisterForm = () => {
   };
 
   const validateCurrentStep = useMemo(
-    () => toFormikValidate(currentStep === 1 ? createAccountSchema : registerFormSchemas[currentStep === 2 ? 3 : 4]),
+    () =>
+      toFormikValidate(
+        currentStep === 1
+          ? createAccountSchema
+          : registerFormSchemas[currentStep === 2 ? 3 : 4],
+      ),
     [currentStep],
   );
 
@@ -58,7 +67,16 @@ const RegisterForm = () => {
   const signupMutation = useMutation({
     mutationFn: (data: IRegisterPayload) => SignupApi(data),
     onSuccess: () => {
+      setDuplicateEmail(false);
       handleNavigate("next");
+    },
+    onError: error => {
+      const { message, code } = readApiError(error);
+      if (/duplicate|already.*(?:exist|registered)|email.*(?:taken|in use)/i.test(`${code} ${message ?? ""}`)) {
+        setDuplicateEmail(true);
+        formik.setFieldError("email", "We couldn’t create an account with these details. Check your email or try logging in.");
+        formik.setFieldTouched("email", true, false);
+      } else toast.error(message || "We couldn’t create your account. Please try again.");
     },
   });
 
@@ -90,7 +108,9 @@ const RegisterForm = () => {
       formik.setTouched({});
     },
     onError: () => {
-      formik.setErrors({ otp: "We couldn’t verify your code. Check it and try again." });
+      formik.setErrors({
+        otp: "We couldn’t verify your code. Check it and try again.",
+      });
     },
   });
 
@@ -129,10 +149,10 @@ const RegisterForm = () => {
     if (!isLoading && !disableProgress()) {
       if (currentStep === 1) {
         const payload: IRegisterPayload = {
-          email: formik.values.email,
+          email: stripSpaces(formik.values.email),
           password: formik.values.password,
-          first_name: formik.values.firstName,
-          last_name: formik.values.lastName,
+          first_name: stripSpaces(formik.values.firstName),
+          last_name: stripSpaces(formik.values.lastName),
           country_id: formik.values.country_id,
           referral_code: formik.values.referral_code || null,
         };
@@ -140,7 +160,7 @@ const RegisterForm = () => {
       } else if (currentStep === 2) {
         verifyOtpMutation.mutate({
           otp: formik.values.otp,
-          email: formik.values.email,
+          email: stripSpaces(formik.values.email),
         });
       } else if (currentStep === steps.length) {
         router.push("/login");
@@ -151,16 +171,22 @@ const RegisterForm = () => {
   const displayStep = (step: number) => {
     switch (step) {
       case 1:
-        return <CreateAccount formik={formik} />;
+        return <><CreateAccount formik={formik} />{duplicateEmail && <p role="alert" className="text-sm">Already have an account? <Link href="/login" className="font-semibold underline">Log in</Link></p>}</>;
       case 2:
-        return <RegisterOtp
-          goBack={() => handleNavigate("back")}
-          formik={formik}
-          loading={verifyOtpMutation.isPending}
-          onComplete={otp => {
-            if (!verifyOtpMutation.isPending) verifyOtpMutation.mutate({ otp, email: formik.values.email });
-          }}
-        />;
+        return (
+          <RegisterOtp
+            goBack={() => handleNavigate("back")}
+            formik={formik}
+            loading={verifyOtpMutation.isPending}
+            onComplete={(otp) => {
+              if (!verifyOtpMutation.isPending)
+                verifyOtpMutation.mutate({
+                  otp,
+                  email: stripSpaces(formik.values.email),
+                });
+            }}
+          />
+        );
       case 3:
         return <Congrats />;
       default:
@@ -170,35 +196,62 @@ const RegisterForm = () => {
   const isLoading = signupMutation.isPending || verifyOtpMutation.isPending;
 
   const content = (
-    <form onSubmit={formik.handleSubmit} className={`w-full ${currentStep === 2 ? "max-w-[488px]" : "auth-register-form max-w-[440px]"}`}>
+    <form
+      onSubmit={formik.handleSubmit}
+      className={`w-full ${currentStep === 2 ? "max-w-[488px]" : "auth-register-form max-w-[440px]"}`}
+    >
       <AnimatePresence mode="wait">{displayStep(currentStep)}</AnimatePresence>
-      {currentStep !== 2 && <div className="auth-register-actions mt-6 flex flex-col gap-3">
-        <Button
-          className="auth-submit"
-          type="submit"
-          loading={isLoading}
-          disabled={!!disableProgress() || isLoading}
-        >
-          {currentStep === 1 ? "Create account" : "Continue to login"}
-        </Button>
-        {currentStep === 1 && <p className="text-[13px] leading-5 text-[#6b6b80]">By creating an account you agree to our <Link
-          className="font-semibold text-[#14141e] hover:underline"
-          href="https://www.raiz.app/terms"
-          target="_blank"
-          rel="noopener noreferrer"
-        >Terms</Link> and <Link
-          className="font-semibold text-[#14141e] hover:underline"
-          href="https://www.raiz.app/privacy-policy"
-          target="_blank"
-          rel="noopener noreferrer"
-        >Privacy Policy</Link>.</p>}
-      </div>}
+      {currentStep !== 2 && (
+        <div className="auth-register-actions mt-6 flex flex-col gap-4">
+          {currentStep === 1 && (
+            <p className="text-[13px] leading-5 text-[#6b6b80]">
+              By creating an account you agree to our{" "}
+              <Link
+                className="font-semibold text-[#14141e] hover:underline"
+                href="https://www.raiz.app/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Terms
+              </Link>{" "}
+              and{" "}
+              <Link
+                className="font-semibold text-[#14141e] hover:underline"
+                href="https://www.raiz.app/privacy-policy"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Privacy Policy
+              </Link>
+              .
+            </p>
+          )}
+          <Button
+            className="auth-submit"
+            type="submit"
+            loading={isLoading}
+            disabled={!!disableProgress() || isLoading}
+          >
+            {currentStep === 1 ? "Create account" : "Continue to login"}
+          </Button>
+        </div>
+      )}
+      {currentStep === 1 && (
+        <p className="mt-7 text-center text-sm leading-[21px] text-[#6b6b80]">
+          Have an account?{"  "}
+          <Link className="font-semibold text-raiz-usd-primary hover:underline" href="/login">
+            Log in
+          </Link>
+        </p>
+      )}
     </form>
   );
 
-  return currentStep === 2
-    ? <EmailVerificationLayout>{content}</EmailVerificationLayout>
-    : <AuthLayout>{content}</AuthLayout>;
+  return currentStep === 2 ? (
+    <EmailVerificationLayout>{content}</EmailVerificationLayout>
+  ) : (
+    <AuthLayout showAccountLink={currentStep !== 1}>{content}</AuthLayout>
+  );
 };
 
 export default RegisterForm;

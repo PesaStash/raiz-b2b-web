@@ -89,21 +89,31 @@ export default function AddReceivingAccount({
         f.direction === "inbound" &&
         f.service.startsWith("treasury_"),
     ) ?? [];
-  const hasAccount = (network: string) => [...existingAccounts, ...created].some(account => account.asset === token && account.crypto?.network === network);
+  const hasAccount = (network: string) =>
+    [...existingAccounts, ...created].some(
+      (account) =>
+        account.asset === token && account.crypto?.network === network,
+    );
   const mutation = useMutation({
     mutationFn: async () => {
       if (!canWriteBusiness)
         throw new Error("You do not have permission to create accounts.");
       if (asset === "SBC" && (!selectedNetwork || hasAccount(selectedNetwork)))
-        throw new Error("Choose a network that has not already been added for this token.");
-      const body: { asset: ReceivingAsset; network?: string } = asset === "SBC" ? { asset: token, network: selectedNetwork } : { asset };
+        throw new Error(
+          "Choose a network that has not already been added for this token.",
+        );
+      const body: { asset: ReceivingAsset; network?: string } =
+        asset === "SBC"
+          ? { asset: token, network: selectedNetwork }
+          : { asset };
       const signature = JSON.stringify(body);
       let attempt = attempts.current.get(signature);
       if (!attempt) {
         attempt = { key: crypto.randomUUID() };
         attempts.current.set(signature, attempt);
       }
-      if (!attempt.result) attempt.result = await CreateReceivingAccountApi(body, attempt.key);
+      if (!attempt.result)
+        attempt.result = await CreateReceivingAccountApi(body, attempt.key);
       return [attempt.result];
     },
     onSuccess: async (results) => {
@@ -176,6 +186,71 @@ export default function AddReceivingAccount({
             "Competitive exchange rates",
           ],
         };
+  const receivingFees = (
+    <div>
+      <h4 className="text-[13px] font-semibold leading-normal text-[#19151e]">
+        Receiving fees
+      </h4>
+      {isLoading ? (
+        <p className="mt-2.5 text-sm leading-normal text-[#6b6b80]">
+          Loading fees…
+        </p>
+      ) : isError ? (
+        <button
+          onClick={() => refreshFees()}
+          className="mt-2.5 text-sm leading-normal text-primary2 underline"
+        >
+          Could not load fees. Retry
+        </button>
+      ) : fees.length ? (
+        <ul className="mt-2.5">
+          {fees
+            .flatMap((f) => [
+              ...f.components.map((c) => ({
+                key: `${f.service}-${c.code}`,
+                title: c.label,
+                detail: describeFee(c),
+              })),
+              ...f.notes.map((note) => ({
+                key: `${f.service}-${note}`,
+                title: note,
+                detail: "",
+              })),
+            ])
+            .map((item) => (
+              <li
+                key={item.key}
+                className="flex items-start gap-2.5 py-[5px] text-sm leading-normal text-[#19151e]"
+              >
+                <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-[#eaf3f8]">
+                  <DesignIcon name="32269-11653-imgVuesaxBoldTickCircle.svg" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  {item.title}
+                  {item.detail && (
+                    <span className="block text-xs text-[#6b6b80]">
+                      {item.detail}
+                    </span>
+                  )}
+                </span>
+              </li>
+            ))}
+        </ul>
+      ) : (
+        <p className="mt-2.5 text-[13px] leading-normal text-[#6b6b80]">
+          No receiving fee information was supplied. Final settlement fees are
+          determined by the service.
+        </p>
+      )}
+    </div>
+  );
+  const errorAlert = mutation.isError ? (
+    <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">
+      {typeof error === "string"
+        ? error
+        : "Account setup could not be completed. Retry to continue the same request."}
+    </p>
+  ) : null;
   return (
     <GlobalDialog
       title={
@@ -188,7 +263,7 @@ export default function AddReceivingAccount({
             : intro.title
       }
       close={closeDialog}
-      hero={step === "intro"}
+      hero={step === "intro" || (step === "confirm" && !isCrypto)}
     >
       {step === "intro" ? (
         <>
@@ -250,138 +325,136 @@ export default function AddReceivingAccount({
             </button>
           </section>
         </>
+      ) : step === "confirm" && !isCrypto ? (
+        <section className="flex min-h-0 flex-col items-center overflow-y-auto bg-white p-7">
+          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#f5f9fc]">
+            <CurrencyFlag currency={asset} badge />
+          </span>
+          <h3 className="mt-3.5 text-xl font-semibold leading-normal text-[#19151e]">
+            Confirm {asset} account
+          </h3>
+          <p className="mt-1 text-[13px] leading-normal text-[#6b6b80]">
+            Summary
+          </p>
+          <dl className="mt-4 w-full text-sm leading-normal">
+            {[
+              { label: "Account type", value: `${asset} account` },
+              { label: "Activation fee", value: intro.fee },
+            ].map((row) => (
+              <div
+                key={row.label}
+                className="flex items-center border-b border-[#eaecf0] py-3.5"
+              >
+                <dt className="min-w-0 flex-1 text-[#6b6b80]">{row.label}</dt>
+                <dd className="font-semibold text-[#19151e]">{row.value}</dd>
+              </div>
+            ))}
+            <div className="flex items-center py-3.5">
+              <dt className="min-w-0 flex-1 text-[#6b6b80]">Pay from</dt>
+              <dd className="flex items-center gap-1.5 font-semibold text-[#19151e]">
+                <CurrencyFlag currency="USD" mini />
+                USD balance
+              </dd>
+            </div>
+          </dl>
+          <div className="mt-3 w-full">{receivingFees}</div>
+          {errorAlert && <div className="mt-5 w-full">{errorAlert}</div>}
+          <button
+            disabled={
+              !canWriteBusiness || mutation.isPending || isLoading || isError
+            }
+            className="mt-5 flex w-full items-center justify-center rounded-[14px] bg-raiz-usd-primary py-[15px] text-[15px] font-semibold leading-normal text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+            onClick={() => mutation.mutate()}
+          >
+            {mutation.isPending
+              ? "Creating account…"
+              : mutation.isError
+                ? "Retry account setup"
+                : `Pay ${intro.fee}`}
+          </button>
+          <button
+            disabled={mutation.isPending}
+            className="mt-2.5 flex w-full items-center justify-center rounded-[14px] bg-[#eeeef3] py-[15px] text-[15px] font-semibold leading-normal text-[#19151e] disabled:opacity-50"
+            onClick={closeDialog}
+          >
+            Cancel
+          </button>
+        </section>
       ) : step === "confirm" ? (
         <>
-          {isCrypto ? (
-            <>
-              <p className="mb-5 text-sm text-raiz-gray-600">
-                Choose one network for your selected token. Add other networks one at a time.
-              </p>
-              <label className="mb-4 text-xs text-raiz-gray-600">
-                Token
-                <select
-                  disabled={mutation.isPending}
-                  value={token}
-                  onChange={(e) => { setToken(e.target.value as "USDT" | "USDC"); setSelectedNetwork(""); mutation.reset(); }}
-                  className="mt-2 w-full rounded-xl border border-kyb-border bg-white p-3 text-sm text-raiz-gray-950"
-                >
-                  <option>USDT</option>
-                  <option>USDC</option>
-                </select>
-              </label>
-              <div className="space-y-3">
-                {networks.map((network) => (
-                  <label
-                    key={network.id}
-                    className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 ${selectedNetwork === network.id ? "border-[#b7a6ff] bg-[#fbfaff]" : "border-kyb-border"}`}
-                  >
-                    <span
-                      className={`flex h-10 w-10 items-center justify-center rounded-full ${network.color}`}
-                    >
-                      <DesignIcon
-                        name={`32296-2894-imgVuesaxBold${network.icon}.svg`}
-                      />
-                    </span>
-                    <span className="flex-1">
-                      <span className="block text-sm font-semibold">
-                        {network.name}
-                      </span>
-                      <span className="text-xs text-raiz-gray-600">
-                        {network.text}{hasAccount(network.id) ? " · Already added" : ""}
-                      </span>
-                    </span>
-                    <input
-                      disabled={mutation.isPending || hasAccount(network.id)}
-                      type="radio"
-                      name="receiving-network"
-                      className="h-5 w-5 accent-primary2"
-                      checked={selectedNetwork === network.id}
-                      onChange={() => { setSelectedNetwork(network.id); mutation.reset(); }}
-                    />
-                  </label>
-                ))}
-              </div>
-              <p className="my-5 rounded-xl bg-amber-50 p-4 text-xs text-amber-900">
-                Each token and network has its own receiving instructions. Only
-                use a pair after the service confirms it is supported and
-                active.
-              </p>
-            </>
-          ) : (
-            <div className="mb-6 rounded-2xl bg-kyb-soft p-5 text-sm">
-              <h3 className="mb-4 font-semibold">Summary</h3>
-              <div className="flex justify-between">
-                <span>Account type</span>
-                <strong>{asset} account</strong>
-              </div>
-              <div className="mt-4 flex justify-between">
-                <span>Settles to</span>
-                <strong>USD balance</strong>
-              </div>
-            </div>
-          )}
-          <div className="mb-5 text-xs text-raiz-gray-600">
-            <h3 className="mb-2 font-semibold text-raiz-gray-950">
-              Receiving fees
-            </h3>
-            {isLoading ? (
-              <p>Loading fees…</p>
-            ) : isError ? (
-              <button
-                onClick={() => refreshFees()}
-                className="text-primary2 underline"
-              >
-                Could not load fees. Retry
-              </button>
-            ) : fees.length ? (
-              fees.map((f) => (
-                <div
-                  key={`${f.service}-${f.asset}-${f.schedule_version}-${f.payment_rail}`}
-                  className="mb-3"
-                >
-                  {f.components.map((c) => (
-                    <p key={c.code}>
-                      {c.label}: {describeFee(c)}
-                    </p>
-                  ))}
-                  {f.notes.map((note) => (
-                    <p key={note}>{note}</p>
-                  ))}
-                </div>
-              ))
-            ) : (
-              <p>
-                No receiving fee information was supplied. Final settlement fees
-                are determined by the service.
-              </p>
-            )}
-          </div>
-          <p className="mb-5 text-xs text-raiz-gray-600">
-            Incoming payments settle to USD. Review the receiving fees above
-            before sharing your account details.
+          <p className="mb-5 text-sm text-raiz-gray-600">
+            Choose one network for your selected token. Add other networks one
+            at a time.
           </p>
-          {mutation.isError && (
-            <p
-              role="alert"
-              className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700"
+          <label className="mb-4 text-xs text-raiz-gray-600">
+            Token
+            <select
+              disabled={mutation.isPending}
+              value={token}
+              onChange={(e) => {
+                setToken(e.target.value as "USDT" | "USDC");
+                setSelectedNetwork("");
+                mutation.reset();
+              }}
+              className="mt-2 w-full rounded-xl border border-kyb-border bg-white p-3 text-sm text-raiz-gray-950"
             >
-              {typeof error === "string"
-                ? error
-                : "Account setup could not be completed. Retry to continue the same request."}
-            </p>
-          )}
+              <option>USDT</option>
+              <option>USDC</option>
+            </select>
+          </label>
+          <div className="space-y-3">
+            {networks.map((network) => (
+              <label
+                key={network.id}
+                className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 ${selectedNetwork === network.id ? "border-[#b7a6ff] bg-[#fbfaff]" : "border-kyb-border"}`}
+              >
+                <span
+                  className={`flex h-10 w-10 items-center justify-center rounded-full ${network.color}`}
+                >
+                  <DesignIcon
+                    name={`32296-2894-imgVuesaxBold${network.icon}.svg`}
+                  />
+                </span>
+                <span className="flex-1">
+                  <span className="block text-sm font-semibold">
+                    {network.name}
+                  </span>
+                  <span className="text-xs text-raiz-gray-600">
+                    {network.text}
+                    {hasAccount(network.id) ? " · Already added" : ""}
+                  </span>
+                </span>
+                <input
+                  disabled={mutation.isPending || hasAccount(network.id)}
+                  type="radio"
+                  name="receiving-network"
+                  className="h-5 w-5 accent-primary2"
+                  checked={selectedNetwork === network.id}
+                  onChange={() => {
+                    setSelectedNetwork(network.id);
+                    mutation.reset();
+                  }}
+                />
+              </label>
+            ))}
+          </div>
+          <p className="my-5 rounded-xl bg-amber-50 p-4 text-xs text-amber-900">
+            Each token and network has its own receiving instructions. Only use
+            a pair after the service confirms it is supported and active.
+          </p>
+          <div className="mb-5">{receivingFees}</div>
+          {errorAlert && <div className="mb-4">{errorAlert}</div>}
           <button
             disabled={
               !canWriteBusiness ||
               mutation.isPending ||
               isLoading ||
               isError ||
-              (isCrypto && (!selectedNetwork || hasAccount(selectedNetwork)))
+              !selectedNetwork ||
+              hasAccount(selectedNetwork)
             }
             className={primaryButton}
-            onClick={() => {
-              mutation.mutate();
-            }}
+            onClick={() => mutation.mutate()}
           >
             {mutation.isPending
               ? "Creating account…"
@@ -429,7 +502,18 @@ export default function AddReceivingAccount({
               </div>
             ))}
           </div>
-          {isCrypto && <button className={`${primaryButton} mb-3`} onClick={() => { setSelectedNetwork(""); mutation.reset(); setStep("confirm"); }}>Add another network</button>}
+          {isCrypto && (
+            <button
+              className={`${primaryButton} mb-3`}
+              onClick={() => {
+                setSelectedNetwork("");
+                mutation.reset();
+                setStep("confirm");
+              }}
+            >
+              Add another network
+            </button>
+          )}
           <button onClick={close} className={primaryButton}>
             Done
           </button>
