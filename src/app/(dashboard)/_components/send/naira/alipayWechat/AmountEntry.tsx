@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Image from "next/image";
-import { useQueries } from "@tanstack/react-query";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import { QuoteChinaPayApi } from "@/services/chinaPay";
 import type { ChinaPayChannel, ChinaPayQuote } from "@/types/chinaPay";
 import type { BalanceCurrency } from "@/types/globalBalance";
@@ -39,6 +39,13 @@ interface Props {
 // this list also prevents useQueries from speculatively calling the proposed
 // `/v2/alipay-wechat/quotes/` route and disabling the valid NGN flow.
 const currencies: BalanceCurrency[] = ["NGN", "USD"];
+
+function formatChinaPayRate(rate: ChinaPayQuote["rate"] | undefined) {
+  const value = Number(rate?.value);
+  if (!rate || !Number.isFinite(value)) return "";
+  return `1 ${rate.base_currency} = ${value.toFixed(2)} ${rate.quote_currency}`;
+}
+
 export default function AmountEntry({
   channel,
   beneficiary,
@@ -85,6 +92,26 @@ export default function AmountEntry({
       staleTime: Infinity,
     })),
   });
+  // Quote 1 CNY as soon as this screen opens so the rate is visible before an amount is typed.
+  const rateRequest = {
+    channel,
+    destination_amount: "1",
+    funding_currency: fundingCurrency,
+  };
+  const rateQuery = useQuery({
+    queryKey: [
+      "china-pay-quote",
+      beneficiary.alipay_wechat_beneficiary_id,
+      channel,
+      fundingCurrency,
+      "1",
+    ],
+    queryFn: () => QuoteChinaPayApi(rateRequest, crypto.randomUUID()),
+    enabled: balances.some((b) => b.currency === fundingCurrency),
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: Infinity,
+  });
   const query = queries[currencies.indexOf(fundingCurrency)];
   const request = {
     channel,
@@ -96,6 +123,10 @@ export default function AmountEntry({
     amount === debouncedAmount && usableChinaPayQuote(query.data, request)
       ? query.data
       : undefined;
+  const indicative = usableChinaPayQuote(rateQuery.data, rateRequest)
+    ? rateQuery.data
+    : undefined;
+  const rateLabel = formatChinaPayRate(quote?.rate ?? indicative?.rate);
   const balance = balances.find((b) => b.currency === fundingCurrency);
   const insufficient =
     !!quote &&
@@ -125,9 +156,8 @@ export default function AmountEntry({
         />
         <div className="flex flex-col gap-4 [@media(max-height:800px)]:gap-0 max-md:gap-0">
           <FlowRow label="Rate">
-            {quote
-              ? `1 ${quote.rate.base_currency} = ${Number(quote.rate.value)?.toFixed(2)} ${quote.rate.quote_currency}`
-              : "—"}
+            {rateLabel ||
+              (!quote && rateQuery.isFetching ? "Getting rate…" : "—")}
           </FlowRow>
           <FlowRow label="Arrives">After processing</FlowRow>
           <FlowRow label="You send">
@@ -179,6 +209,18 @@ export default function AmountEntry({
           >
             Not enough {fundingCurrency}. Choose another balance, add money, or
             enter a lower amount.
+          </p>
+        )}
+        {!validAmount && rateQuery.isError && (
+          <p role="alert" className="text-sm text-red-600">
+            {chinaPayError(rateQuery.error).message}{" "}
+            <button
+              type="button"
+              className="underline"
+              onClick={() => rateQuery.refetch()}
+            >
+              Try again
+            </button>
           </p>
         )}
         {query.isError && amount === debouncedAmount && (

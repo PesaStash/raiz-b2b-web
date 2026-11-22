@@ -50,7 +50,8 @@ import {
   FlowRow,
   FlowActions,
 } from "@/components/transactions/send-flow/Flow";
-import { GetUsdBankName } from "@/services/utils";
+import { isRoutingNumber } from "@/lib/routingNumber";
+import { getBankForRoutingNumber } from "@/services/utils";
 import SelectField from "@/components/ui/SelectField";
 import { USAstateCodes } from "@/constants/misc";
 import { useDebounce } from "@/lib/hooks/useDebounce";
@@ -104,6 +105,7 @@ const FormContent = ({
     handleChange,
     handleBlur,
     setFieldValue,
+    setValues,
     setFieldError,
     isValid,
     dirty,
@@ -119,47 +121,46 @@ const FormContent = ({
   };
 
   const debouncedRoutingNumber = useDebounce(values.routing_number, 500);
-
-  const qcForm = useQueryClient();
+  const routingSettled = debouncedRoutingNumber === values.routing_number;
+  const routingValid = isRoutingNumber(values.routing_number);
 
   const {
-    data: routingInfo,
+    data: lookedUpBank,
     isFetching: routingFetching,
-    error,
+    isPending: routingPending,
+    isError: routingLookupFailed,
   } = useQuery({
     queryKey: ["usd-bank-routing-info", debouncedRoutingNumber],
-    queryFn: () => GetUsdBankName({ rn: values.routing_number }),
-    enabled: !!values.routing_number && values.routing_number.length === 9,
+    queryFn: () => getBankForRoutingNumber(debouncedRoutingNumber),
+    enabled: isRoutingNumber(debouncedRoutingNumber),
+    retry: false,
+    staleTime: 3_600_000,
   });
+
+  const lookupPending = routingValid && (!routingSettled || routingPending || routingFetching);
+  const foundBank =
+    routingSettled && typeof lookedUpBank === "string" ? lookedUpBank : null;
+  const bankNotFound =
+    routingSettled &&
+    routingValid &&
+    !lookupPending &&
+    (routingLookupFailed || lookedUpBank === null);
+  const routingHelper = !routingValid
+    ? undefined
+    : lookupPending
+      ? "Finding the bank…"
+      : (foundBank ?? "We couldn’t find this bank. Type its name below.");
 
   useEffect(() => {
     setIsFormValid(isValid && dirty);
     setIsSubmitting(formikSubmitting);
   }, [isValid, dirty, formikSubmitting]);
 
-  // Clear bank_name and purge cached routing lookup when navigating away
   useEffect(() => {
-    return () => {
-      setFieldValue("bank_name", "");
-      qcForm.removeQueries({ queryKey: ["usd-bank-routing-info"] });
-    };
-  }, []);
-
-  useEffect(() => {
-    if (error) {
-      const apiError = error as {
-        data?: Array<{ data?: { message?: string } }>;
-      };
-      toast.error(apiError?.data?.[0]?.data?.message);
-      return;
+    if (foundBank && foundBank !== values.bank_name) {
+      setFieldValue("bank_name", foundBank);
     }
-    if (routingInfo?.data?.name) {
-      setFieldValue(
-        "bank_name",
-        routingInfo.data?.name || routingInfo.data?.telegraphicName || "",
-      );
-    }
-  }, [routingInfo, error]);
+  }, [foundBank, values.bank_name, setFieldValue]);
 
   return (
     <Form
@@ -229,38 +230,56 @@ const FormContent = ({
             touched.account_number && errors.account_number ? "error" : null
           }
         />
-        <InputField
-          label="Routing Number"
-          name="routing_number"
-          type="text"
-          value={values.routing_number}
-          onChange={(e) => {
-            clearRoutingRailMismatch();
-            handleChange(e);
-          }}
-          onBlur={handleBlur}
-          errorMessage={
-            touched.routing_number && errors.routing_number
-              ? errors.routing_number
-              : undefined
-          }
-          status={
-            touched.routing_number && errors.routing_number ? "error" : null
-          }
-        />
-        <InputField
-          label="Bank Name"
-          name="bank_name"
-          type="text"
-          value={routingFetching ? "Looking up bank..." : values.bank_name}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          disabled={routingFetching}
-          errorMessage={
-            touched.bank_name && errors.bank_name ? errors.bank_name : undefined
-          }
-          status={touched.bank_name && errors.bank_name ? "error" : null}
-        />
+        <div>
+          <InputField
+            label="Routing Number"
+            name="routing_number"
+            type="text"
+            inputMode="numeric"
+            autoComplete="off"
+            maxLength={9}
+            value={values.routing_number}
+            onChange={(e) => {
+              const routingNumber = e.target.value.replace(/\D/g, "").slice(0, 9);
+              if (routingNumber === values.routing_number) return;
+              clearRoutingRailMismatch();
+              setValues({
+                ...values,
+                routing_number: routingNumber,
+                bank_name: "",
+              });
+            }}
+            onBlur={handleBlur}
+            errorMessage={
+              touched.routing_number && errors.routing_number
+                ? errors.routing_number
+                : undefined
+            }
+            status={
+              touched.routing_number && errors.routing_number ? "error" : null
+            }
+          />
+          {routingHelper ? (
+            <p className="text-raiz-gray-400 text-xs mt-1">{routingHelper}</p>
+          ) : null}
+        </div>
+        {bankNotFound ? (
+          <InputField
+            label="Bank Name"
+            name="bank_name"
+            type="text"
+            placeholder="E.g. Chase"
+            value={values.bank_name}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            errorMessage={
+              touched.bank_name && errors.bank_name
+                ? errors.bank_name
+                : undefined
+            }
+            status={touched.bank_name && errors.bank_name ? "error" : null}
+          />
+        ) : null}
 
         <div className="flex flex-col gap-2">
           <label className="text-sm font-medium text-gray-700">
@@ -473,7 +492,9 @@ const USBankBeneficiary = ({ close, goNext }: Props) => {
     label: stringField("Label", 100),
     bank_name: stringField("Bank name"),
     account_number: stringField("Account number"),
-    routing_number: stringField("Routing number"),
+    routing_number: z
+      .string()
+      .refine(isRoutingNumber, "Enter a valid 9-digit routing number"),
     account_type: z.enum(["checking", "savings"], {
       required_error: "Account type is required",
     }),
