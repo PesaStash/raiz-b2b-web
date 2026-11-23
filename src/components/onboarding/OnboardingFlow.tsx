@@ -36,6 +36,8 @@ import {
   Welcome,
 } from "./OnboardingUI";
 import OnboardingSkeleton from "./OnboardingSkeleton";
+import WalletDialog from "./WalletDialog";
+import { canCreateNgnWallet } from "@/utils/onboardingBranch";
 
 const subscribeChoice = (notify: () => void) => {
   window.addEventListener("storage", notify);
@@ -278,10 +280,12 @@ export function AccountChoices({
   nigerian,
   name,
   onContinue,
+  walletOption,
 }: {
   nigerian: boolean;
   name?: string;
   onContinue: (choice: AccountChoice) => void;
+  walletOption?: ReactNode;
 }) {
   const [selected, setSelected] = useState<AccountChoice>(
     nigerian ? "BOTH" : "USD",
@@ -308,6 +312,7 @@ export function AccountChoices({
       >
         {choices.map((choice) => {
           const disabled = !nigerian && choice.key !== "USD";
+          const usdWalletChoice = choice.key === "USD";
           return (
             <button
               type="button"
@@ -320,7 +325,7 @@ export function AccountChoices({
             >
               <div className="flex w-full items-center justify-between">
                 <div className="flex -space-x-2">
-                  {choice.flags.map((flag) => (
+                  {(usdWalletChoice ? ["us"] : choice.flags).map((flag) => (
                     <span
                       key={flag}
                       className="flex size-11 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-white"
@@ -346,7 +351,7 @@ export function AccountChoices({
               </div>
               <div>
                 <h2 className="flex flex-wrap items-center gap-2 text-xl font-bold">
-                  {choice.title}
+                  {usdWalletChoice ? "USD wallet" : choice.title}
                   {choice.key === "BOTH" && (
                     <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-primary2">
                       Recommended
@@ -354,7 +359,9 @@ export function AccountChoices({
                   )}
                 </h2>
                 <p className="mt-2 text-sm leading-[21px] text-kyb-muted">
-                  {choice.description}
+                  {usdWalletChoice
+                    ? "Submit your business documents for Raiz review. You can add dedicated USD bank details through a separate application."
+                    : choice.description}
                 </p>
               </div>
               <div className="w-full space-y-3 border-t border-kyb-border pt-5">
@@ -375,6 +382,7 @@ export function AccountChoices({
           );
         })}
       </div>
+      {walletOption}
       <Notice>
         {name || "Your business"}’s basic details are saved. We’ll fill them in
         for you.
@@ -394,6 +402,8 @@ export function AccountsPage() {
   const { user } = useUser();
   const router = useRouter();
   const status = useKybNavigation(user);
+  const [createWallet, setCreateWallet] = useState(false);
+  const canCreateWallet = canCreateNgnWallet(user, user?.business_account?.business_verifications?.[0]?.verification_status);
   const hasRequest = hasSubmittedKyb(status.data?.case);
   useEffect(() => {
     if (hasRequest) router.replace("/onboarding/usd");
@@ -407,12 +417,24 @@ export function AccountsPage() {
           user?.business_account?.entity?.country?.country_code === "NG"
         }
         name={user?.business_account?.business_name}
+        walletOption={canCreateWallet ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-kyb-border bg-kyb-selected p-4">
+            <div>
+              <p className="font-semibold">Start with a naira wallet</p>
+              <p className="text-sm text-kyb-muted">Hold and pay in naira with a maximum balance of ₦300,000.</p>
+            </div>
+            <Action onClick={() => setCreateWallet(true)}>Create naira wallet</Action>
+          </div>
+        ) : user && !user.business_account.entity.entity_address?.length ? (
+          <Notice>Save your business address before creating a naira wallet. <button className="underline" onClick={() => router.push("/onboarding/business")}>Add business address</button></Notice>
+        ) : undefined}
         onContinue={(choice) => {
           if (!user) return;
           saveAccountChoice(user.business_account.entity_id, choice);
           router.push(accountChoiceRoute(choice));
         }}
       />
+      {createWallet && <WalletDialog currency="NGN" create close={() => setCreateWallet(false)} />}
     </OnboardingAccess>
   );
 }

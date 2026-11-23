@@ -1,4 +1,10 @@
 "use client";
+import WalletDialog from "@/components/onboarding/WalletDialog";
+import { isEntityRestricted, isWalletOnly } from "@/lib/businessWallets";
+import { isBridgeAgreementRequirement, needsBridgeAgreement } from "@/lib/usd-kyb/agreement";
+import { useUser } from "@/lib/hooks/useUser";
+import { CurrencyFlag } from "@/app/(dashboard)/_components/global/GlobalUI";
+import { canCreateNgnWallet } from "@/utils/onboardingBranch";
 import { groupFieldErrors } from "@/lib/usd-kyb/corrections";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { kybApi } from "@/services/usdKyb";
@@ -30,7 +36,6 @@ import {
   options,
   deferredRequirements,
   display,
-  getPath,
   label,
   record,
   requirementStage,
@@ -43,6 +48,8 @@ export function Requirements({
   editor: KybEditor;
   navigate?: (step: number, requirement?: string) => void;
 }) {
+  const legacyBankSetup = needsBridgeAgreement(editor.bundle?.case);
+  const applies = (key: string) => legacyBankSetup || !isBridgeAgreementRequirement(key);
   const correctionFor = (key: string) =>
     groupFieldErrors(editor.fieldErrors ?? []).find(
       (error) => error.field === key,
@@ -63,13 +70,13 @@ export function Requirements({
         ? ["associated_persons.invitations"]
         : []),
     ]),
-  ];
+  ].filter(applies);
   const pending = [
     ...new Set([
       ...editor.missing.filter((key) => deferredRequirements.has(key)),
       ...(editor.bundle?.review_blockers ?? []),
     ]),
-  ];
+  ].filter(applies);
   return (
     <>
       {hard.length > 0 && (
@@ -111,7 +118,8 @@ export function Requirements({
             ))}
           </ul>
           <p className="mt-2">
-            These items are still required before provider submission.
+            {legacyBankSetup ? "Complete these items before provider submission."
+              : "Complete outstanding identity checks while Raiz reviews your case."}
           </p>
         </Notice>
       )}
@@ -423,16 +431,30 @@ function ResendPersonLink({
 }
 export function SubmittedCase({ editor }: { editor: KybEditor }) {
   const [createPin, setCreatePin] = useState(false);
+  const [walletDialog, setWalletDialog] = useState(false);
+  const [createNgn, setCreateNgn] = useState(false);
+  const { user, refetch } = useUser();
   const hasTransactionPin = editor.access.user?.has_transaction_pin === true;
   const c = editor.bundle!.case;
   const done = c.status === "completed";
   const rejected = c.status === "rejected";
+  const business = user?.business_account;
+  const canCreateNgn = canCreateNgnWallet(user, business?.business_verifications?.[0]?.verification_status);
+  const wallet = business?.wallets.find((item) =>
+    item.wallet_type.currency === "USD" && item.wallet_status === "completed" && isWalletOnly(item),
+  );
+  const walletReady = !!wallet;
+  const walletRestricted = !!wallet?.is_pnd || isEntityRestricted(business?.entity);
+  const bankInReview = c.status === "submitted_to_bridge" || c.status === "under_review";
+  const walletApproved = c.status === "wallet_approved";
+  const inReview = ["awaiting_admin_review", "awaiting_ubo", "submitted_to_bridge", "under_review"].includes(c.status);
   const titles: Record<string, string> = {
     awaiting_admin_review: "We’re reviewing your business",
+    wallet_approved: walletReady ? "Your USD wallet is ready" : "Your USD wallet has been approved",
     submitted_to_bridge: "Your verification has been sent to our provider",
     under_review: "Your verification is under review",
     awaiting_ubo: "Waiting for owner verification",
-    rejected: "Your verification was declined",
+    rejected: walletReady ? "Your USD bank account application was declined" : "Your verification was declined",
     completed: "Your USD verification is complete",
   };
   const requiredPeople = editor.people.filter(
@@ -454,11 +476,12 @@ export function SubmittedCase({ editor }: { editor: KybEditor }) {
     );
   const steps = [
     "Submitted",
+    ...(walletReady ? ["USD wallet ready"] : []),
     "Owners verify their ID",
     "We check your details",
-    "Your accounts open",
+    ...(done || bankInReview || (rejected && !!c.bridge_customer_id) ? ["USD bank account details"] : []),
   ];
-  const current = done ? 4 : identityPending ? 1 : 2;
+  const current = done || walletApproved ? steps.length : (identityPending ? 1 : 2) + Number(walletReady);
   const submittedDate = c.submitted_for_review_at
     ? new Date(c.submitted_for_review_at)
     : null;
@@ -469,16 +492,10 @@ export function SubmittedCase({ editor }: { editor: KybEditor }) {
           hour: "2-digit", minute: "2-digit", timeZoneName: "short",
         })
       : "";
-  const email =
-    getPath(editor.draft, "business_profile.email") ||
-    c.business_email ||
-    editor.access.user?.business_account?.business_email;
-  const details = [
-    submittedAt ? `Submitted ${submittedAt}.` : "Your details are saved.",
-    email
-      ? `We’ll email ${String(email)} when your status changes.`
-      : "We’ll contact you when your status changes.",
-  ].join(" ");
+  const details = c.status === "awaiting_admin_review"
+    ? "Your documents are with our team. Complete any outstanding identity checks while we review them."
+    : walletApproved && !walletReady ? "Refresh to load your approved wallet."
+    : submittedAt ? `Submitted ${submittedAt}.` : "Your details are saved.";
   return (
     <div className="space-y-7">
       <header className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
@@ -495,13 +512,14 @@ export function SubmittedCase({ editor }: { editor: KybEditor }) {
               ? `${businessName(editor)} is verified. View your available account details on your Dashboard.`
               : rejected
                 ? "We’ve reviewed your business verification. See the outcome below."
-                : `Thanks for submitting. We’ll email you when ${businessName(editor)}’s verification status changes.`}
+                : walletApproved ? "Your USD wallet review is complete."
+                : "Track your verification and outstanding tasks here."}
           </p>
         </div>
-        <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-kyb-border px-3 py-2 text-[13px] leading-[19px] text-kyb-muted">
+        {submittedAt && <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-kyb-border px-3 py-2 text-[13px] leading-[19px] text-kyb-muted">
           <KybIcon name="check" />
-          {submittedAt ? `Submitted ${submittedAt}` : "Submitted"}
-        </span>
+          Submitted {submittedAt}
+        </span>}
       </header>
       {done && (
         <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-[#BCEACF] bg-[#F1FAF5] p-6">
@@ -544,7 +562,7 @@ export function SubmittedCase({ editor }: { editor: KybEditor }) {
                   alt=""
                 />
               )}
-              {done ? "Approved" : rejected ? "Declined" : "In review"}
+              {done || walletApproved ? "Approved" : rejected ? "Declined" : inReview ? "In review" : "Status unavailable"}
             </span>
           </div>
           <h2 className="text-2xl font-bold leading-8">
@@ -559,6 +577,18 @@ export function SubmittedCase({ editor }: { editor: KybEditor }) {
                 ? "Your available accounts and balances are on your dashboard."
                 : details}
           </p>
+          {walletReady && (
+            <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#c8e0ee] bg-[#e8f2f8] p-4">
+              <CurrencyFlag currency="USD" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold">{walletRestricted ? "Your USD wallet is restricted" : "Your USD wallet is ready"}</p>
+                <p className="text-xs text-kyb-muted">{walletRestricted ? "View your balance and restrictions." : "Open your wallet to see the actions available to you."}</p>
+              </div>
+              {walletRestricted ? <Link href="/" className="text-sm font-semibold text-raiz-usd-primary">View dashboard</Link> :
+                <button type="button" onClick={() => setWalletDialog(true)} className="rounded-xl bg-raiz-usd-primary px-4 py-3 text-sm font-semibold text-white">Go to USD wallet</button>}
+            </div>
+          )}
+          {walletDialog && <WalletDialog currency="USD" bankInReview={bankInReview} close={() => setWalletDialog(false)} />}
           {pending.length > 0 && (
             <div className="space-y-3 rounded-[14px] bg-kyb-selected p-4">
               <h3 className="text-sm font-semibold">
@@ -613,7 +643,7 @@ export function SubmittedCase({ editor }: { editor: KybEditor }) {
             width="fit"
             className="rounded-xl"
             disabled={editor.busy}
-            onClick={() => void editor.reload(false)}
+            onClick={() => void Promise.all([editor.reload(false), refetch()])}
           >
             {editor.busy ? "Refreshing…" : "Refresh status"}
           </Button>
@@ -657,7 +687,7 @@ export function SubmittedCase({ editor }: { editor: KybEditor }) {
                       {submittedAt}
                     </p>
                   )}
-                  {index === 1 && (
+                  {title === "Owners verify their ID" && (
                     <p className="mt-0.5 text-xs xl:text-[13px] leading-[19px] text-kyb-muted">
                       {requiredPeople.length
                         ? `${requiredPeople.length - pending.length} of ${requiredPeople.length} done`
@@ -666,10 +696,8 @@ export function SubmittedCase({ editor }: { editor: KybEditor }) {
                           : "No outstanding identity checks"}
                     </p>
                   )}
-                  {index === 3 && (
-                    <p className="mt-0.5 text-xs xl:text-[13px] leading-[19px] text-kyb-muted">
-                      USD and NGN accounts
-                    </p>
+                  {title === "USD wallet ready" && (
+                    <p className="mt-0.5 text-xs text-kyb-muted">Your balance is on the dashboard</p>
                   )}
                 </div>
               </li>
@@ -681,6 +709,18 @@ export function SubmittedCase({ editor }: { editor: KybEditor }) {
         <h2 className="mb-3 font-bold">
           {done ? "Next steps" : "While you wait"}
         </h2>
+        {canCreateNgn && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-kyb-border p-4">
+            <div>
+              <p className="font-semibold">Create a naira wallet</p>
+              <p className="text-sm text-kyb-muted">Hold and pay in naira with a maximum balance of ₦300,000.</p>
+            </div>
+            <button type="button" className="rounded-xl bg-primary2 px-4 py-3 text-sm font-semibold text-white" onClick={() => setCreateNgn(true)}>
+              Create naira wallet
+            </button>
+          </div>
+        )}
+        {createNgn && <WalletDialog currency="NGN" create close={() => setCreateNgn(false)} />}
         <div
           className={`grid gap-4 ${hasTransactionPin ? "" : "sm:grid-cols-2"}`}
         >

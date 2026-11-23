@@ -11,12 +11,13 @@ const TransactionsPage = () => {
   const { user } = useUser();
   const { setSelectedCurrency } = useCurrencyStore();
   const [currencyFilter, setCurrencyFilter] = useState("");
+  const [searchFilter, setSearchFilter] = useState("");
 
   useEffect(() => {
     if (!user) return;
-    const currency = new URLSearchParams(window.location.search)
-      .get("currency")
-      ?.toUpperCase();
+    const params = new URLSearchParams(window.location.search);
+    setSearchFilter(params.get("search") ?? "");
+    const currency = params.get("currency")?.toUpperCase();
     if (
       !currency ||
       !["NGN", "USD", "EUR", "GBP", "USDT", "USDC"].includes(currency)
@@ -41,7 +42,10 @@ const TransactionsPage = () => {
   return (
     <section className="mt-0 flex min-w-0 flex-col gap-6 font-monzo md:mt-[14px] md:gap-10 xl:-mx-3">
       <BalanceTabs />
-      <TransactionHistory initialCurrencyFilter={currencyFilter} />
+      <TransactionHistory
+        initialCurrencyFilter={currencyFilter}
+        initialSearch={searchFilter}
+      />
     </section>
   );
 };

@@ -50,6 +50,7 @@ export function useNgnOnboarding(options: UseNgnOnboardingOptions = {}) {
       qc.invalidateQueries({ queryKey: NGN_REQUIREMENTS_QUERY_KEY }),
       qc.invalidateQueries({ queryKey: ["user"] }),
       qc.invalidateQueries({ queryKey: ["ngn-payout-settings"] }),
+      qc.invalidateQueries({ queryKey: ["receiving-accounts"] }),
     ]);
   };
 

@@ -9,6 +9,8 @@ import InputField from "@/components/ui/InputField";
 import ErrorMessage from "@/components/ui/ErrorMessage";
 import { withBusinessWrite } from "@/components/team/BusinessWrite";
 import { useUser } from "@/lib/hooks/useUser";
+import { exceedsNgnHeadroom, isNgnHoldingLimitError } from "@/lib/businessWallets";
+import { readApiError } from "@/lib/apiError";
 import { useEligibleNgnPayoutWallets } from "@/lib/hooks/useEligibleNgnPayoutWallets";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { InitializeCardCollectionApi } from "@/services/transactions";
@@ -76,6 +78,11 @@ const NgnCardTopUp = ({ close, goBack }: Props) => {
     () => eligibleWallets.filter((wallet) => !restrictedWalletIds.includes(wallet.wallet_id)),
     [eligibleWallets, restrictedWalletIds],
   );
+  const exceedsLimit = (id: string, netCredit: string) => {
+    const wallet = availableWallets.find((item) => item.wallet_id === id);
+    return exceedsNgnHeadroom(wallet?.account_balance, netCredit);
+  };
+  const holdingLimitMessage = "This payment would exceed your ₦300,000 NGN balance limit.";
 
   useEffect(() => {
     trackCardFunding("card_funding_opened", { provider: CARD_PAYMENT_PROVIDER });
@@ -122,6 +129,11 @@ const NgnCardTopUp = ({ close, goBack }: Props) => {
       });
     },
     onError: (error, variables) => {
+      if (isNgnHoldingLimitError(readApiError(error).message)) {
+        void qc.invalidateQueries({ queryKey: ["user"] });
+        setAmountError(holdingLimitMessage);
+        return;
+      }
       const mapped = mapCardCollectionError(error);
       console.warn("[card-funding]", {
         error_code: sanitizedErrorCode(mapped),
@@ -167,6 +179,10 @@ const NgnCardTopUp = ({ close, goBack }: Props) => {
       setFormError({ kind: "wallet_reselect", message: "Please select an NGN wallet to fund.", canRetry: false });
       return;
     }
+    if (exceedsLimit(walletId, normalized)) {
+      setAmountError(holdingLimitMessage);
+      return;
+    }
 
     const trimmed = description.trim();
     const data: CardCollectionInitializeRequest = {
@@ -186,6 +202,10 @@ const NgnCardTopUp = ({ close, goBack }: Props) => {
 
   const openCheckout = () => {
     if (!checkout || redirecting) return;
+    if (exceedsLimit(checkoutWalletId, checkout.principal_amount)) {
+      toast.error(holdingLimitMessage);
+      return;
+    }
     let url: URL;
     try {
       url = new URL(checkout.authorization_url);

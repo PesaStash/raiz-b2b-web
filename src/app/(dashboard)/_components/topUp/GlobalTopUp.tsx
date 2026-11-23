@@ -6,6 +6,7 @@ import QRCode from "react-qr-code";
 import Image from "next/image";
 import Link from "next/link";
 import { useUser } from "@/lib/hooks/useUser";
+import { hasBankDetails, isEntityRestricted, isWalletOnly, ngnHeadroom } from "@/lib/businessWallets";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import { readApiError } from "@/lib/apiError";
 import {
@@ -154,6 +155,8 @@ export default function GlobalTopUp({
   const balance = spendableBalances(business).find(
     (b) => b.currency === currency,
   );
+  const wallet = business?.wallets.find((item) => item.wallet_id === balance?.wallet_id);
+  const atNgnLimit = currency === "NGN" && ngnHeadroom(wallet?.account_balance) === "0";
   const [step, setStep] = useState<Step>("methods");
   const [bankAsset, setBankAsset] = useState<string>(currency);
   const [token, setToken] = useState<"USDT" | "USDC">("USDT");
@@ -165,7 +168,9 @@ export default function GlobalTopUp({
   const [africaCollectionOpen, setAfricaCollectionOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const canFund =
-    canWriteBusiness && !!balance?.wallet_id && isAccountReady(balance.status);
+    canWriteBusiness && !!wallet && !!balance && !isEntityRestricted(business?.entity) &&
+    (isAccountReady(wallet.wallet_status ?? undefined) || (!isWalletOnly(wallet) && !wallet.wallet_status)) &&
+    isAccountReady(balance.status) && !atNgnLimit;
   const attempts = useRef(new Map<string, string>());
   const receiving = useQuery({
     queryKey: ["receiving-accounts", entityId],
@@ -184,7 +189,7 @@ export default function GlobalTopUp({
     : [];
   const instructions = [
     ...(business?.wallets ?? [])
-      .filter((w) =>
+      .filter((w) => hasBankDetails(w) &&
         ["USD", "NGN", ...(!global ? ["GBP", "EUR"] : [])].includes(
           w.wallet_type.currency,
         ),
@@ -193,6 +198,9 @@ export default function GlobalTopUp({
     ...accounts.map(receivingInstructions),
   ];
   const bank = instructions.find((a) => a.asset === bankAsset);
+  const bankAssets = (currency === "USD" ? ["USD", "GBP", "EUR"] : ["NGN"]).filter(
+    (asset) => !isWalletOnly(wallet) || instructions.some((item) => item.asset === asset),
+  );
   const addressAccount = accounts.find(
     (a) => a.asset === token && a.crypto?.network === network,
   );
@@ -428,12 +436,13 @@ export default function GlobalTopUp({
                 </p>
               </div>
             </div>
-            <section>
+            {atNgnLimit && <Note title="NGN balance limit reached">Spend or transfer funds to make room for incoming payments.</Note>}
+            {bankAssets.length > 0 && <section>
               <h3 className="mb-2 text-base font-semibold">Bank transfer</h3>
               <div
                 className={`grid gap-3 ${currency === "USD" ? "grid-cols-3" : "grid-cols-1"}`}
               >
-                {(currency === "USD" ? ["USD", "GBP", "EUR"] : ["NGN"]).map(
+                {bankAssets.map(
                   (asset) => (
                     <button
                       key={asset}
@@ -460,7 +469,7 @@ export default function GlobalTopUp({
                   ),
                 )}
               </div>
-            </section>
+            </section>}
             {currency === "USD" && global && (
               <section>
                 <h3 className="mb-2 text-base font-semibold">Stablecoins</h3>

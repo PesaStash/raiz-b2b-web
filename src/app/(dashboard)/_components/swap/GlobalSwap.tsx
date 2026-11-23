@@ -7,7 +7,9 @@ import { toast } from "sonner";
 import CenterModalWrapper from "@/components/layouts/CenterModalWrapper";
 import { useUser } from "@/lib/hooks/useUser";
 import { useDebounce } from "@/lib/hooks/useDebounce";
-import { spendableBalances } from "@/lib/globalBalance";
+import { formatMoney, isAccountReady, spendableBalances } from "@/lib/globalBalance";
+import { exceedsNgnHeadroom, isEntityRestricted, isNgnHoldingLimitError, ngnHeadroom } from "@/lib/businessWallets";
+import { readApiError } from "@/lib/apiError";
 import {
   debitIncreased,
   formatSwapRateLabel,
@@ -31,6 +33,7 @@ import GlobalSwapSuccess from "./GlobalSwapSuccess";
 import GlobalSwapReceipt from "./GlobalSwapReceipt";
 
 type Step = "amount" | "confirm" | "pin" | "success" | "receipt";
+const holdingLimitMessage = "This swap would exceed your ₦300,000 NGN balance limit.";
 
 interface Props {
   close: () => void;
@@ -63,7 +66,7 @@ export default function GlobalSwap({
   initialAmount,
   initialSource,
 }: Props) {
-  const { user } = useUser();
+  const { user, refetch } = useUser();
   const balances = spendableBalances(user?.business_account);
   const [sourceCurrency, setSourceCurrency] = useState<SwapPairCurrency>(
     initialSource === "NGN" || initialSource === "USD" ? initialSource : "USD",
@@ -85,12 +88,21 @@ export default function GlobalSwap({
   const previewRef = useRef<SwapPreview | null>(null);
 
   const debouncedAmount = useDebounce(amount, 400);
-  const sourceBalance =
-    balances.find((b) => b.currency === sourceCurrency)?.available_balance ??
-    "0";
-  const destinationBalance =
-    balances.find((b) => b.currency === destinationCurrency)
-      ?.available_balance ?? "0";
+  const source = balances.find((balance) => balance.currency === sourceCurrency);
+  const destination = balances.find((balance) => balance.currency === destinationCurrency);
+  const sourceBalance = source?.available_balance ?? "0";
+  const destinationBalance = destination?.available_balance ?? "0";
+  const sourceWallet = user?.business_account?.wallets.find((wallet) => wallet.wallet_id === source?.wallet_id);
+  const unavailable = isEntityRestricted(user?.business_account?.entity) || sourceWallet?.is_pnd === true ||
+    !sourceWallet || !isAccountReady(source?.status) || !isAccountReady(destination?.status);
+  const ngnBalanceId = balances.find((balance) => balance.currency === "NGN")?.wallet_id;
+  const ngnWallet = user?.business_account?.wallets.find(
+    (wallet) => wallet.wallet_id === ngnBalanceId,
+  );
+  const showNgnLimit = destinationCurrency === "NGN";
+  const remainingNgn = showNgnLimit ? ngnHeadroom(ngnWallet?.account_balance) : undefined;
+  const exceedsHoldingLimit = showNgnLimit && preview?.mode === "v2" &&
+    exceedsNgnHeadroom(ngnWallet?.account_balance, preview.destinationMoney.amount);
 
   const {
     data: liveRate,
@@ -162,6 +174,13 @@ export default function GlobalSwap({
       const remaining = secondsUntil(next.expiresAt);
       setTimeLeft(remaining > 0 ? remaining : 30);
     } catch (error) {
+      if (isNgnHoldingLimitError(readApiError(error).message)) {
+        setPreview(null);
+        setStep("amount");
+        toast.error(holdingLimitMessage);
+        void refetch();
+        return;
+      }
       if (isSwapApiUnavailable(error)) {
         setV2Available(false);
         applyLivePreview();
@@ -178,6 +197,7 @@ export default function GlobalSwap({
     }
   }, [
     debouncedAmount,
+    refetch,
     sourceCurrency,
     destinationCurrency,
     v2Available,
@@ -303,12 +323,13 @@ export default function GlobalSwap({
   };
 
   const handleContinue = () => {
-    if (!preview || insufficient || timeLeft <= 0 || quoteLoading) return;
+    if (!preview || unavailable || insufficient || exceedsHoldingLimit || timeLeft <= 0 || quoteLoading) return;
     setQuoteNotice(null);
     setStep("confirm");
   };
 
   const handleConfirm = () => {
+    if (unavailable || exceedsHoldingLimit) return;
     if (!preview || timeLeft <= 0 || quoteLoading) {
       refreshExpiredQuote();
       return;
@@ -334,6 +355,11 @@ export default function GlobalSwap({
         timeLeft={timeLeft}
         loading={loading}
         insufficient={insufficient}
+        unavailable={unavailable}
+        exceedsHoldingLimit={exceedsHoldingLimit}
+        holdingLimitNotice={exceedsHoldingLimit ? holdingLimitMessage : remainingNgn !== undefined
+          ? `${formatMoney(remainingNgn, "NGN")} room under the NGN balance limit.`
+          : undefined}
         onAmountChange={handleAmountChange}
         onUseMax={() => {
           const next = normalizeMaxAmount(sourceBalance);
@@ -352,7 +378,8 @@ export default function GlobalSwap({
             preview={preview}
             timeLeft={timeLeft}
             refreshing={quoteLoading}
-            notice={quoteNotice}
+            notice={exceedsHoldingLimit ? holdingLimitMessage : quoteNotice}
+            blocked={unavailable || exceedsHoldingLimit}
             onConfirm={handleConfirm}
             onCancel={() => {
               setQuoteNotice(null);
@@ -373,6 +400,11 @@ export default function GlobalSwap({
             setStep("success");
           }}
           onQuoteExpired={applyReplacement}
+          onHoldingLimit={() => {
+            void refetch();
+            toast.error(holdingLimitMessage);
+            setStep("amount");
+          }}
           onNewQuote={() => {
             refreshingRef.current = false;
             setQuoteNotice(

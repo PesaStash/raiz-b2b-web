@@ -137,6 +137,20 @@ export const CreateNGNVirtualWalletApi = async () => {
   return response?.data;
 };
 
+export const CreateNgnWalletApi = async () => {
+  const { data: result } = await AuthAxios.post<{
+    success: boolean;
+    message: string;
+    data?: { wallet_id: string; currency: "NGN"; wallet_status: "completed"; holding_limit: number };
+  }>("/business/entities/wallets/naira/", undefined, {
+    silent: true,
+  } as CustomAxiosRequestConfig);
+  if (!result.success || !result.data?.wallet_id || result.data.wallet_status !== "completed") {
+    throw new Error("Could not confirm that your naira wallet is ready. Refresh and try again.");
+  }
+  return result.data;
+};
+
 export const UpdateGatewayDefaultWalletApi = async (
   payload: IUpdateGatewayDefaultWalletPayload
 ): Promise<IUpdateGatewayDefaultWalletResponse> => {

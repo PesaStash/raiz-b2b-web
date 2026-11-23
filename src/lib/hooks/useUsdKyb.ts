@@ -96,7 +96,8 @@ export function useUsdKyb() {
     enabled: access.ready && !!tenant,
     retry: false,
     staleTime: Infinity,
-    refetchOnWindowFocus: false,
+    refetchOnMount: (query) => query.state.data && !editableStatus(query.state.data.case.status) ? "always" : false,
+    refetchOnWindowFocus: (query) => query.state.data && !editableStatus(query.state.data.case.status) ? "always" : false,
   });
   const [bundle, setBundle] = useState<KybBundle>();
   const [draft, setDraft] = useState<KybDraft>({});
@@ -194,7 +195,12 @@ export function useUsdKyb() {
     [currentSession, qc, tenant],
   );
   useEffect(() => {
-    if (query.data && !ref.current.bundle) adopt(query.data);
+    const current = ref.current.bundle;
+    if (query.data && (!current ||
+      (query.data !== current && !editableStatus(current.case.status) &&
+        query.data.case.payload_version >= current.case.payload_version))) {
+      adopt(query.data);
+    }
   }, [query.data, adopt]);
   const fail = useCallback(
     async (failure: unknown, corrections = apiFieldCorrections(failure)) => {

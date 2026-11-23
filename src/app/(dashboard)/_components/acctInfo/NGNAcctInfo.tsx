@@ -1,4 +1,5 @@
 "use client";
+import { hasBankDetails } from "@/lib/businessWallets";
 import Overlay from "@/components/ui/Overlay";
 import React from "react";
 import Image from "next/image";
@@ -12,6 +13,11 @@ interface Props {
 const NGNAcctInfo = ({ close }: Props) => {
   const { user } = useUser();
   const NGNAcct = findWalletByCurrency(user, "NGN");
+  if (!hasBankDetails(NGNAcct)) return (
+    <Overlay close={close} width="375px">
+      <p className="p-6 text-sm">Dedicated NGN bank details are unavailable for this wallet.</p>
+    </Overlay>
+  );
   return (
     <Overlay close={close} width="375px">
       <div className="flex flex-col  h-full py-8 px-5  text-raiz-gray-950">

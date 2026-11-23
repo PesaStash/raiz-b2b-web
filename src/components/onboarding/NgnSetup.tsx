@@ -16,6 +16,9 @@ import { Action, Notice } from "@/components/usd-kyb/KybUI";
 import Overlay from "@/components/ui/Overlay";
 import DiditVerificationWebview from "@/app/(dashboard)/_components/createNgnAcct/DiditVerificationWebview";
 import { OnboardingAccess } from "./OnboardingFlow";
+import WalletDialog from "./WalletDialog";
+import { hasBankDetails, isEntityRestricted, isWalletOnly } from "@/lib/businessWallets";
+import { canCreateNgnWallet } from "@/utils/onboardingBranch";
 import {
   DoneTask,
   GuideSection,
@@ -49,9 +52,16 @@ export function NgnSetupView({
     url: string | null;
   } | null>(null);
   const state = getCombinedNgnKybUiState(ngn.requirements);
-  const hasWallet = user?.business_account?.wallets?.some(
+  const [walletDialog, setWalletDialog] = useState<"create" | "ready" | null>(null);
+  const wallet = user?.business_account?.wallets?.find(
     (w) => w.wallet_type.currency === "NGN",
   );
+  const bankReady = hasBankDetails(wallet);
+  const bankProvisioning = !!wallet && !isWalletOnly(wallet) &&
+    ["pending", "processing", "in_progress"].includes(wallet.wallet_status ?? "");
+  const walletReady = wallet?.wallet_status === "completed" && isWalletOnly(wallet);
+  const restricted = !!wallet?.is_pnd || isEntityRestricted(user?.business_account.entity);
+  const canCreateWallet = canCreateNgnWallet(user, user?.business_account.business_verifications?.[0]?.verification_status);
   const start = async (mode: "browser" | "phone") => {
     if (
       ngn.isStartingSession ||
@@ -76,18 +86,33 @@ export function NgnSetupView({
       <Welcome name={user?.first_name}>
         Let’s set up your naira account. One short part, about 3 minutes.
       </Welcome>
+      {(walletReady || canCreateWallet) && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-kyb-border bg-kyb-selected p-4">
+          <div>
+            <p className="font-semibold">{walletReady ? restricted ? "Your naira wallet is restricted" : "Your naira wallet is ready" : "Create a naira wallet"}</p>
+            <p className="text-sm text-kyb-muted">Maximum balance ₦300,000. Dedicated bank details are a separate step.</p>
+          </div>
+          <Action onClick={() => restricted ? router.push("/") : setWalletDialog(walletReady ? "ready" : "create")}>
+            {walletReady ? "Go to naira wallet" : "Create naira wallet"}
+          </Action>
+        </div>
+      )}
       <GuideSection
         title="Get set up"
         description="Verify your identity and CAC document to set up your naira account."
-        done={ngn.canCreateAccount || hasWallet ? 3 : 2}
+        done={ngn.canCreateAccount || bankReady ? 3 : 2}
       >
         <DoneTask>Create your Raiz account</DoneTask>
         <DoneTask>Basic business details</DoneTask>
-        {hasWallet ? (
+        {bankReady ? (
           <>
             <DoneTask>NGN account created</DoneTask>
             <Action onClick={() => router.push("/")}>Go to dashboard</Action>
           </>
+        ) : bankProvisioning ? (
+          <Notice>
+            Your NGN bank account is being set up. Its details will appear when it’s ready.
+          </Notice>
         ) : (
           <>
             <OpenTask
@@ -210,6 +235,12 @@ export function NgnSetupView({
       >
         ← Change account choice
       </Link>
+      {walletDialog && <WalletDialog
+        currency="NGN"
+        create={walletDialog === "create"}
+        bankInReview={state === "review" || state === "processing"}
+        close={() => setWalletDialog(null)}
+      />}
       {session &&
         !ngn.canCreateAccount &&
         (session.mode === "browser" ? (

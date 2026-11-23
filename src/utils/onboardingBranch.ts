@@ -3,6 +3,8 @@ import { ICurrencyName } from "@/types/misc";
 import { IUser, IUsdOnboardingCase, UsdKybCaseStatus } from "@/types/user";
 import { determineSwapPair, findWalletByCurrency } from "@/utils/helpers";
 import { CurrencyTypeKey } from "@/store/Swap/swapSlice.types";
+import { accountAccess } from "@/lib/permissions";
+import { hasBankDetails, isEntityRestricted, isWalletOnly } from "@/lib/businessWallets";
 
 export type OnboardingCurrencyPath = "USD" | "NGN";
 
@@ -71,10 +73,10 @@ export function canStartNgnAccountSetup(
   user: IUser | undefined,
   verificationStatus: VerificationStatus
 ) {
-  const hasNgnWallet = !!findWalletByCurrency(user, "NGN");
+  const ngn = findWalletByCurrency(user, "NGN");
   return (
     isNigerianBusiness(user) &&
-    !hasNgnWallet &&
+    (!ngn || (ngn.wallet_status === "completed" && isWalletOnly(ngn) && !hasBankDetails(ngn))) &&
     (verificationStatus === "kyc_tier_1" ||
       verificationStatus === "completed" ||
       verificationStatus === "pending")
@@ -85,7 +87,12 @@ export function canCreateNgnWallet(
   user: IUser | undefined,
   verificationStatus: VerificationStatus
 ) {
-  return canStartNgnAccountSetup(user, verificationStatus);
+  const entity = user?.business_account?.entity;
+  return accountAccess(user).canWriteBusiness &&
+    !isEntityRestricted(entity) &&
+    (verificationStatus === "kyc_tier_1" || verificationStatus === "completed") &&
+    !!entity?.entity_address?.length &&
+    !findWalletByCurrency(user, "NGN");
 }
 
 export function hasCompletedUsdWallet(user: IUser | undefined) {
@@ -118,7 +125,7 @@ export function isUsdOnboardingPending(
 ): boolean {
   if (!hasUsdOnboardingRequest(usdCase)) return false;
   if (isUsdKybRejected(usdCase?.status)) return false;
-  return usdCase?.status !== "completed";
+  return usdCase?.status !== "completed" && usdCase?.status !== "wallet_approved";
 }
 
 export function canRequestUsdAccount(
@@ -213,6 +220,7 @@ export function resolveActiveAccountCurrency(
   if (
     branchState.isNgnBranch &&
     branchState.hasNgnWallet &&
+    !hasCompletedUsdWallet(user) &&
     !branchState.isVerificationComplete
   ) {
     return "NGN";
@@ -282,6 +290,8 @@ export function getOnboardingBranchState(
 
   const showDashboard =
     isVerificationComplete ||
+    hasCompletedUsdWallet(user) ||
+    (NGNAcct?.wallet_status === "completed" && isWalletOnly(NGNAcct)) ||
     (isNgnBranch && hasNgnWallet) ||
     hasUsdOnboardingRequestState;
 

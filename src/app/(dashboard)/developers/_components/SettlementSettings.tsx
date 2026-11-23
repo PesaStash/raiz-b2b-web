@@ -1,4 +1,5 @@
 "use client";
+import { hasBankDetails } from "@/lib/businessWallets";
 import { BusinessWrite } from "@/components/team/BusinessWrite";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 
@@ -204,7 +205,7 @@ const SettlementSettings = () => {
     mutate({ currency: selectedCurrency });
   };
 
-  if (!isPrimary) return <section className="bg-white rounded-2xl p-6 space-y-3"><h2 className="font-bold text-lg">Settlement settings</h2><p className="text-sm text-raiz-gray-600">An owner or admin can change settlement settings.</p><p className="text-sm">Default settlement currency: <strong>{savedCurrency}</strong></p><p className="text-sm">{selectedWallet?.account_name} {selectedWallet?.bank_name} {selectedWallet?.account_number}</p></section>;
+  if (!isPrimary) return <section className="bg-white rounded-2xl p-6 space-y-3"><h2 className="font-bold text-lg">Settlement settings</h2><p className="text-sm text-raiz-gray-600">An owner or admin can change settlement settings.</p><p className="text-sm">Default settlement currency: <strong>{savedCurrency}</strong></p><p className="text-sm">{selectedWallet?.account_name} {hasBankDetails(selectedWallet) && `${selectedWallet?.bank_name} ${selectedWallet?.account_number}`}</p></section>;
 
   return (
     <div className="flex flex-col gap-4">
@@ -267,7 +268,7 @@ const SettlementSettings = () => {
               <AccountDetail
                 label="Account Number"
                 value={
-                  selectedWallet.account_number || "—"
+                  hasBankDetails(selectedWallet) ? selectedWallet.account_number : "—"
                 }
               />
               <AccountDetail

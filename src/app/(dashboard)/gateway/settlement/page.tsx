@@ -1,4 +1,5 @@
 "use client";
+import { hasBankDetails } from "@/lib/businessWallets";
 import { BusinessWrite } from "@/components/team/BusinessWrite";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 
@@ -37,8 +38,8 @@ const formatUsdWalletLabel = (wallet: IWallet) => {
     accountName && accountName.toLowerCase() !== name.toLowerCase()
       ? accountName
       : null,
-    wallet.bank_name,
-    wallet.account_number,
+    hasBankDetails(wallet) ? wallet.bank_name : null,
+    hasBankDetails(wallet) ? wallet.account_number : null,
     balance,
   ]
     .filter(Boolean)

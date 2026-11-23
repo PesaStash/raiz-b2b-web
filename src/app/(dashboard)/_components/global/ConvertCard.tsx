@@ -11,6 +11,7 @@ export default function ConvertCard({
   visible,
   enabled,
   entityId,
+  initialCurrency = "USD",
   onConvert,
   onAddMoney,
 }: {
@@ -18,10 +19,11 @@ export default function ConvertCard({
   visible: boolean;
   enabled: Partial<Record<BalanceCurrency, boolean>>;
   entityId?: string;
+  initialCurrency?: BalanceCurrency;
   onConvert: (amount: string, currency: BalanceCurrency) => void;
   onAddMoney: (currency: BalanceCurrency) => void;
 }) {
-  const [currency, setCurrency] = useState<BalanceCurrency>("USD");
+  const [currency, setCurrency] = useState<BalanceCurrency>(initialCurrency);
   const balance = balances[currency];
   const [amount, setAmount] = useState("");
   const [switchCount, setSwitchCount] = useState(0);
@@ -148,7 +150,7 @@ export default function ConvertCard({
               {selector(destination, false)}
             </div>
             <p className="text-xs text-kyb-muted">
-              To your {destination} account
+              To your {destination} balance
             </p>
           </div>
         </div>

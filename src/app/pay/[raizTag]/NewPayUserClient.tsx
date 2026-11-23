@@ -1,4 +1,5 @@
 "use client";
+import { hasBankDetails } from "@/lib/businessWallets";
 import React, { JSX, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -283,15 +284,12 @@ const RaizPaymentPage = () => {
     "EUR",
   ];
 
-  const isEmail = (value: string) => /\S+@\S+\.\S+/.test(value);
-
   const availablepaymentOptsArr =
     data?.wallets
       ?.filter((acct) => {
         const currency = acct.wallet_type.currency as TransferCurrencyType;
         const allowed = TRANSFER_CURRENCIES.includes(currency);
-        const notEmail = !isEmail(acct.account_number || "");
-        return allowed && notEmail;
+        return allowed && (currency === "SBC" || hasBankDetails(acct));
       })
       .map((acct) => ({
         label: `${

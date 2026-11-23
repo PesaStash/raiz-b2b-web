@@ -1,5 +1,5 @@
-import { AuthAxios } from "@/lib/authAxios";
-import { FeeCatalogResponse, ReceivingAccount, ReceivingAsset } from "@/types/globalBalance";
+import { AuthAxios, type CustomAxiosRequestConfig } from "@/lib/authAxios";
+import type { FeeCatalogResponse, LegacyBalance, ReceivingAccount, ReceivingAsset, SpendableBalance } from "@/types/globalBalance";
 
 export const FetchFeeCatalogApi = async (): Promise<FeeCatalogResponse> => {
   const response = await AuthAxios.get("/business/transactions/fees/");
@@ -19,4 +19,12 @@ export const CreateReceivingAccountApi = async (
     headers: { "Idempotency-Key": idempotencyKey },
   });
   return response.data;
+};
+export const FetchTreasuryBalancesApi = async () => {
+  const { data } = await AuthAxios.get<{
+    balance_model: "ngn_usd_v2";
+    balances: SpendableBalance[];
+    legacy_balances: LegacyBalance[];
+  }>("/business/entities/v2/balances/", { silent: true } as CustomAxiosRequestConfig);
+  return data;
 };

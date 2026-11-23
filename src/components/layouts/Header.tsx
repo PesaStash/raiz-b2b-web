@@ -1,6 +1,7 @@
 "use client";
 import { BusinessWrite } from "@/components/team/BusinessWrite";
 import { usePermissions } from "@/lib/hooks/usePermissions";
+import { isEntityRestricted, isWalletOnly, ngnHeadroom } from "@/lib/businessWallets";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -275,6 +276,16 @@ const Header = () => {
   });
 
   const handleSelectAction = (value: ModalKeys) => {
+    if ((value === "topUp" || value === "request") && selectedCurrency.name === "NGN" &&
+      ngnHeadroom(currentWallet?.account_balance) === "0") {
+      toast.warning("You’ve reached your ₦300,000 NGN balance limit.");
+      return;
+    }
+    if (currentWallet?.is_pnd || isEntityRestricted(user?.business_account?.entity) ||
+      (isWalletOnly(currentWallet) && currentWallet?.wallet_status !== "completed")) {
+      toast.warning("Wallet activity is restricted.");
+      return;
+    }
     if (!currentWallet) {
       toast.warning(
         "This action is available once your account for this currency is approved and opened. View your business verification status to continue.",
