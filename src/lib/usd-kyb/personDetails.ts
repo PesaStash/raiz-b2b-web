@@ -1,3 +1,4 @@
+import { parseServerTime } from "../swapQuote.ts";
 import type { KybPerson } from "../../types/usdKyb.ts";
 
 export function isEligibleAssociatedPerson(person: Pick<KybPerson, "ownership_percentage">) {
@@ -168,27 +169,49 @@ export function ownershipRequirementMessage(key: string, people: KybPerson[]) {
   return undefined;
 }
 
-/** Resending an existing invitation is separate from editing the submitted person payload. */
-export function canResendPersonInvitation(person: KybPerson, status: string) {
+const editableInvitationStatuses = new Set([
+  "not_started",
+  "collecting",
+  "requires_correction",
+]);
+const reviewInvitationStatuses = new Set([
+  "awaiting_admin_review",
+  "submitted_to_bridge",
+  "under_review",
+]);
+
+function personCanBeReinvited(person: KybPerson) {
   return (
-    isEligibleAssociatedPerson(person) &&
-    [
-      "not_started",
-      "collecting",
-      "requires_correction",
-      "awaiting_admin_review",
-      "submitted_to_bridge",
-      "under_review",
-      "awaiting_ubo",
-    ].includes(status) &&
+    !!person.email &&
+    !person.verified_at &&
+    !["approved", "completed"].includes(person.verification_status ?? "") &&
     !!(
       person.associated_person_id ??
       person.business_usd_kyb_associated_person_id
-    ) &&
-    !!person.email &&
-    ["sent", "expired", "revoked"].includes(person.invitation_status ?? "") &&
-    !["approved", "completed"].includes(person.verification_status ?? "")
+    )
   );
+}
+
+/** Resending an existing invitation is separate from editing the submitted person payload. */
+export function canResendPersonInvitation(person: KybPerson, status: string) {
+  if (!personCanBeReinvited(person)) return false;
+  if (editableInvitationStatuses.has(status)) {
+    return (
+      isEligibleAssociatedPerson(person) &&
+      ["sent", "expired", "revoked"].includes(person.invitation_status ?? "")
+    );
+  }
+  // Review eligibility comes from the server invitation status, not the browser clock or can_remove.
+  return (
+    reviewInvitationStatuses.has(status) && person.invitation_status === "expired"
+  );
+}
+
+/** Naive KYB timestamps are UTC. A zoned value is left unchanged. */
+export function invitationExpiryDate(value?: string | null) {
+  if (!value) return null;
+  const parsed = parseServerTime(value);
+  return Number.isNaN(parsed) ? null : new Date(parsed);
 }
 
 /** Invite delivery, not completed identity, is the business submission prerequisite. */

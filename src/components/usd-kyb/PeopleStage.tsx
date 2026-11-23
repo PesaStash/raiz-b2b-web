@@ -45,6 +45,7 @@ function SendInviteButton({
   const sent = ["sent", "expired", "revoked"].includes(
     person.invitation_status ?? "",
   );
+  const canResend = editor.canResendPerson(person);
   return (
     <button
       type="button"
@@ -52,12 +53,15 @@ function SendInviteButton({
       className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-raiz-usd-primary px-5 text-sm font-semibold text-white disabled:opacity-50"
       disabled={
         pending ||
-        !editor.editable ||
-        editor.busy ||
-        !isEligibleAssociatedPerson(person) ||
-        (!sent && !editor.personDetailsSaved(person))
+        (sent
+          ? !canResend
+          : !editor.editable ||
+            editor.busy ||
+            !isEligibleAssociatedPerson(person) ||
+            !editor.personDetailsSaved(person))
       }
       onClick={() => {
+        if (pending || (sent && !canResend)) return;
         setPending(true);
         void (
           sent
@@ -138,12 +142,10 @@ function PersonActions({
           </button>
           {id && !approved && (
             <>
-              {["sent", "expired", "revoked"].includes(
-                person.invitation_status ?? "",
-              ) && (
+              {editor.canResendPerson(person) && (
                 <button
                   type="button"
-                  disabled={!!pending || !editor.editable || editor.busy || !isEligibleAssociatedPerson(person)}
+                  disabled={!!pending}
                   onClick={() => void invite("resend")}
                   className="inline-flex items-center justify-center gap-2 disabled:opacity-50"
                 >

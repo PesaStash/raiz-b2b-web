@@ -129,6 +129,7 @@ export function useUsdKyb() {
   });
   const queue = useRef(new SaveQueue());
   const commandPending = useRef(false);
+  const resending = useRef(new Set<string>());
   const saving = useRef(false);
   const rejectedWrite = useRef<{ signature: string; message: string } | undefined>(undefined);
   const alive = useRef(true);
@@ -809,25 +810,89 @@ export function useUsdKyb() {
     access.canWriteBusiness &&
     !ref.current.blocked &&
     canResendPersonInvitation(person, ref.current.bundle?.case.status ?? "");
+  const reportResend = (message: string) => {
+    setError(message);
+    toast.error(message, { id: "kyb-resend-error" });
+  };
+  const refreshResendCase = async () => {
+    try {
+      const fresh = await kybApi.get();
+      if (currentSession()) adopt(fresh);
+    } catch {
+      /* The caller can refresh the case explicitly. */
+    }
+  };
+  const recoverResend = async (failure: unknown) => {
+    const api = readApiError(failure);
+    const status = api.status;
+    if (status === 429) {
+      const response = failure as {
+        headers?: Record<string, string>;
+        response?: { headers?: Record<string, string> };
+      };
+      const header = (response.response?.headers ?? response.headers)?.[
+        "retry-after"
+      ];
+      const seconds =
+        header && Number.isFinite(Number(header))
+          ? Number(header)
+          : header
+            ? Math.ceil((Date.parse(header) - Date.now()) / 1000)
+            : 60;
+      const wait = Number.isFinite(seconds) ? Math.max(1, seconds) : 60;
+      retryAt.current = Date.now() + wait * 1000;
+      setCooldown(wait);
+      reportResend(api.message || "Too many requests. Please wait before trying again.");
+      return;
+    }
+    if (status === 401 || status === 403) {
+      if (status === 403)
+        await qc.invalidateQueries({ queryKey: ["user"] });
+      reportResend(
+        api.message || "You don’t have permission to resend this verification link.",
+      );
+      return;
+    }
+    if (status === 404 || status === 409) {
+      await refreshResendCase();
+      reportResend(api.message || "This invitation can no longer be resent.");
+      return;
+    }
+    if (status === 422) {
+      reportResend(api.message || "The verification link could not be resent.");
+      return;
+    }
+    if (!status || status >= 500) {
+      await refreshResendCase();
+      reportResend(
+        "We couldn’t confirm whether a new verification link was queued. The list has been refreshed. Try again only if the invitation is still expired.",
+      );
+      return;
+    }
+    reportResend(api.message || "The verification link could not be resent.");
+  };
   const resendPerson = async (person: KybPerson) => {
+    const key = person.person_key;
     if (
-      commandPending.current ||
+      !key ||
+      resending.current.has(key) ||
       !currentSession() ||
       !canResendPerson(person) ||
       Date.now() < retryAt.current
     )
       return;
-    commandPending.current = true;
-    setBusy(true);
+    resending.current.add(key);
     setError("");
     try {
       return await queue.current.run(async () => {
-        // Flush only while editable. A submitted case must never receive a draft PATCH here.
-        while (
-          Object.keys(ref.current.pending).length ||
-          ref.current.peopleDirty
-        )
-          await save();
+        // A submitted case must never receive a draft PATCH from a resend.
+        if (editableStatus(ref.current.bundle?.case.status ?? "")) {
+          while (
+            Object.keys(ref.current.pending).length ||
+            ref.current.peopleDirty
+          )
+            await save();
+        }
         const current = await kybApi.get();
         if (!currentSession()) return;
         const saved = current.associated_persons.find(
@@ -840,19 +905,31 @@ export function useUsdKyb() {
         const id =
           saved.associated_person_id ??
           saved.business_usd_kyb_associated_person_id;
-        const result = await kybApi.invitation(id!, "resend");
-        if (!currentSession()) return;
-        toast.success(
-          "Verification link resent. The previous link is no longer valid.",
-        );
-        adopt(await kybApi.get());
-        return result;
+        if (!id)
+          throw new Error("Refresh the case to load this person’s saved ID.");
+        try {
+          const result = await kybApi.invitation(id, "resend");
+          if (!currentSession()) return;
+          toast.success(
+            `A new verification link has been queued for ${saved.email}.`,
+          );
+          try {
+            const fresh = await kybApi.get();
+            if (currentSession()) adopt(fresh);
+          } catch {
+            setError(
+              "The link was queued, but the latest status could not be loaded. Refresh the case.",
+            );
+          }
+          return result;
+        } catch (failure) {
+          await recoverResend(failure);
+        }
       });
     } catch (failure) {
       await fail(failure);
     } finally {
-      commandPending.current = false;
-      if (currentSession()) setBusy(false);
+      resending.current.delete(key);
     }
   };
   // Called inside the command queue before validation/submission, never for ordinary reads.

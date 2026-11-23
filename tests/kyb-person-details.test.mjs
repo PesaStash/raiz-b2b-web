@@ -8,6 +8,8 @@ import {
   personDetailsStep,
   latestPersonBirthDate,
   isEligibleAssociatedPerson,
+  canResendPersonInvitation,
+  invitationExpiryDate,
 } from "../src/lib/usd-kyb/personDetails.ts";
 import { personPatch } from "../src/lib/usd-kyb/model.ts";
 const input = () => ({
@@ -229,6 +231,34 @@ test("only people with at least 25 percent ownership require invitations", async
     ),
     [],
   );
+});
+
+test("review resend follows the server invitation status", () => {
+  const person = {
+    associated_person_id: "person",
+    email: "ada@example.com",
+    ownership_percentage: 10,
+    invitation_status: "expired",
+    verification_status: "pending",
+    can_remove: false,
+  };
+  for (const status of ["awaiting_admin_review", "submitted_to_bridge", "under_review"])
+    assert.equal(canResendPersonInvitation(person, status), true);
+  assert.equal(canResendPersonInvitation({ ...person, invitation_status: "sent" }, "under_review"), false);
+  assert.equal(canResendPersonInvitation({ ...person, invitation_status: "revoked" }, "under_review"), false);
+  assert.equal(canResendPersonInvitation({ ...person, invitation_status: "not_sent" }, "under_review"), false);
+  assert.equal(canResendPersonInvitation(person, "awaiting_ubo"), false);
+  assert.equal(canResendPersonInvitation({ ...person, verified_at: "2026-11-01T00:00:00Z" }, "under_review"), false);
+  assert.equal(canResendPersonInvitation({ ...person, verification_status: "approved" }, "under_review"), false);
+  assert.equal(canResendPersonInvitation({ ...person, verification_status: "completed" }, "under_review"), false);
+  assert.equal(canResendPersonInvitation({ ...person, email: "" }, "under_review"), false);
+  assert.equal(
+    canResendPersonInvitation({ ...person, ownership_percentage: 25, invitation_status: "sent" }, "collecting"),
+    true,
+  );
+  assert.equal(canResendPersonInvitation({ ...person, invitation_status: "sent" }, "collecting"), false);
+  assert.equal(invitationExpiryDate("2026-11-22T09:00:00")?.toISOString(), "2026-11-22T09:00:00.000Z");
+  assert.equal(invitationExpiryDate("2026-11-22T09:00:00Z")?.toISOString(), "2026-11-22T09:00:00.000Z");
 });
 
 test("25 percent is inclusive and other roles do not bypass the ownership threshold", () => {

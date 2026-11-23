@@ -22,6 +22,7 @@ import {
   HIGH_RISK_ACTIVITIES,
 } from "@/lib/usd-kyb/bridgeOptions";
 import {
+  invitationExpiryDate,
   peopleNeedingInvitation,
   personRequirementMessage,
 } from "@/lib/usd-kyb/personDetails";
@@ -379,6 +380,37 @@ export default function KybReview({
     </div>
   );
 }
+function personInviteSummary(person: KybPerson) {
+  const expiry = invitationExpiryDate(person.invitation_expires_at);
+  const when = expiry
+    ? expiry.toLocaleString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZoneName: "short",
+      })
+    : "";
+  const invite =
+    person.invitation_status === "sent"
+      ? when
+        ? `Invite link sent · expires ${when}`
+        : "Invite link sent"
+      : person.invitation_status === "expired"
+        ? when
+          ? `Invite link expired · ${when}`
+          : "Invite link expired"
+        : person.invitation_status === "revoked"
+          ? "Invite revoked"
+          : "Not invited yet";
+  const verification = person.verification_status ?? "";
+  const identity =
+    verification === "invited" || verification === "pending"
+      ? label(verification)
+      : "";
+  return identity ? `${invite} · ${identity}` : invite;
+}
 function ResendPersonLink({
   person,
   editor,
@@ -387,10 +419,9 @@ function ResendPersonLink({
   editor: KybEditor;
 }) {
   const [sending, setSending] = useState(false);
-  const previousInvite = ["sent", "expired", "revoked"].includes(
-    person.invitation_status ?? "",
-  );
-  if (!previousInvite)
+  if (!editor.canResendPerson(person)) {
+    if (["sent", "expired", "revoked"].includes(person.invitation_status ?? ""))
+      return null;
     return (
       <a
         href="mailto:support@raiz.app"
@@ -400,13 +431,15 @@ function ResendPersonLink({
         Contact support
       </a>
     );
+  }
   return (
     <button
       type="button"
-      aria-label={`Resend link to ${person.first_name} ${person.last_name}`}
+      aria-label={`Resend verification link to ${person.first_name} ${person.last_name}`}
       aria-busy={sending}
-      disabled={sending || editor.busy || !editor.canResendPerson(person)}
+      disabled={sending || editor.busy}
       onClick={() => {
+        if (sending) return;
         setSending(true);
         void editor.resendPerson(person).finally(() => setSending(false));
       }}
@@ -425,7 +458,7 @@ function ResendPersonLink({
           alt=""
         />
       )}
-      {sending ? "Sending…" : "Resend link"}
+      {sending ? "Sending…" : "Resend verification link"}
     </button>
   );
 }
@@ -610,13 +643,7 @@ export function SubmittedCase({ editor }: { editor: KybEditor }) {
                         {p.first_name} {p.last_name}
                       </p>
                       <p className="text-xs leading-[17px] text-kyb-muted">
-                        {p.invitation_status === "sent"
-                          ? "Invite link sent"
-                          : p.invitation_status === "expired"
-                            ? "Invite link expired"
-                            : p.invitation_status === "revoked"
-                              ? "Invite revoked"
-                              : "Not invited yet"}
+                        {personInviteSummary(p)}
                       </p>
                     </div>
                     <ResendPersonLink person={p} editor={editor} />
