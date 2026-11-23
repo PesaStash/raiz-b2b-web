@@ -178,7 +178,7 @@ export function AccountDetails({
                   : "For UK bank transfers via Faster Payments"}
         </p>
       </div>
-      {isCrypto && onAddCrypto && <button className="mb-5 text-sm font-semibold text-primary2" onClick={onAddCrypto}>Add token or network</button>}
+      {isCrypto && onAddCrypto && <button className="mb-5 text-sm font-semibold text-primary2" onClick={onAddCrypto}>Add another token or network</button>}
       {!active && (
         <p
           role="status"

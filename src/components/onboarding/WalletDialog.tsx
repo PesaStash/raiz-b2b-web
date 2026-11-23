@@ -7,7 +7,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { DesignIcon, GlobalDialog } from "@/app/(dashboard)/_components/global/GlobalUI";
 import { readApiError } from "@/lib/apiError";
 import { useUser } from "@/lib/hooks/useUser";
-import { spendableBalances } from "@/lib/globalBalance";
 import { accountAccess } from "@/lib/permissions";
 import { CreateNgnWalletApi } from "@/services/business";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
@@ -99,9 +98,6 @@ export default function WalletDialog({
     creatingRef.current = true;
     createMutation.mutate();
   };
-  const balances = spendableBalances(business);
-  const supportedUsdAssets = balances.find((balance) => balance.currency === "USD")?.supported_receive_assets;
-  const supportsStablecoins = supportedUsdAssets?.some((asset) => asset === "USDT" || asset === "USDC");
   const canWrite = accountAccess(user).canWriteBusiness;
   const benefits = ngn
     ? [
@@ -110,7 +106,7 @@ export default function WalletDialog({
     ]
     : [
       "Hold a USD balance",
-      ...(supportsStablecoins ? ["Receive supported stablecoins into USD"] : []),
+      "Receive USDT and USDC into USD",
       ...(canWrite ? ["Send or convert using available payment methods"] : []),
     ];
 

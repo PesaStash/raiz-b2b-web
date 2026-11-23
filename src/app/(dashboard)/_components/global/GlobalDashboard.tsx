@@ -146,7 +146,6 @@ export default function GlobalDashboard({
   const reviewBanner = currency === "USD" && (usdBankReview || usdBankRejected);
   const detailsAvailable = currentAccounts.some((item) => isAccountReady(item.status) && item.fields.length > 0);
   const usdReceiveAssets = balances.find((item) => item.currency === "USD")?.supported_receive_assets;
-  const supportsStablecoins = !usdReceiveAssets || usdReceiveAssets.some((item) => item === "USDT" || item === "USDC");
   useEffect(() => {
     if (!user) return;
     if (!canUseNgn && selectedCurrency.name === "NGN") {
@@ -249,7 +248,7 @@ export default function GlobalDashboard({
                 !balances.some(
                   (b) => b.currency === "USD" && isAccountReady(b.status),
                 ) ||
-                restricted || (type === "SBC" && !supportsStablecoins) ||
+                restricted ||
                 receivingQuery.isLoading ||
                 receivingQuery.isError
               }
@@ -423,7 +422,7 @@ export default function GlobalDashboard({
                 )}
                 <p className="text-xs text-white/80">
                   {showNgnLimit ? "NGN wallet · maximum balance ₦300,000"
-                    : walletOnly && currency === "USD" ? (supportsStablecoins ? "USD wallet · receive supported stablecoins" : "USD wallet")
+                    : walletOnly && currency === "USD" ? "USD wallet · receive USDT and USDC"
                     : currency === "USD"
                     ? global
                       ? "USD, EUR, GBP and stablecoins, all in USD"

@@ -171,7 +171,6 @@ export default function GlobalTopUp({
     canWriteBusiness && !!wallet && !!balance && !isEntityRestricted(business?.entity) &&
     (isAccountReady(wallet.wallet_status ?? undefined) || (!isWalletOnly(wallet) && !wallet.wallet_status)) &&
     isAccountReady(balance.status) && !atNgnLimit;
-  const supportedReceiveAssets = balance?.supported_receive_assets;
   const attempts = useRef(new Map<string, string>());
   const receiving = useQuery({
     queryKey: ["receiving-accounts", entityId],
@@ -475,9 +474,7 @@ export default function GlobalTopUp({
               <section>
                 <h3 className="mb-2 text-base font-semibold">Stablecoins</h3>
                 <div className="space-y-2">
-                  {(["USDT", "USDC"] as const).filter((asset) =>
-                    !supportedReceiveAssets || supportedReceiveAssets.includes(asset) || accounts.some((item) => item.asset === asset),
-                  ).map((value) => (
+                  {(["USDT", "USDC"] as const).map((value) => (
                     <div key={value}>
                       {row(
                         value,
