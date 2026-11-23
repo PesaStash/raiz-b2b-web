@@ -1,7 +1,5 @@
-import { AuthAxios, CustomAxiosRequestConfig } from "@/lib/authAxios";
-import { PublicAxios } from "@/lib/publicAxios";
+import { AuthAxios } from "@/lib/authAxios";
 import { ICountry } from "@/types/misc";
-import { RoutingNumberInfoResponse } from "@/types/services";
 
 export const FetchCountriesWithIdApi = async (
   country_id: string | null,
@@ -10,22 +8,25 @@ export const FetchCountriesWithIdApi = async (
   return response?.data;
 };
 
-export async function GetUsdBankName({
-  rn,
-}: {
-  rn: string;
-}): Promise<RoutingNumberInfoResponse> {
-  const response = await PublicAxios.get(
-    `https://routing-number-bank-lookup.p.rapidapi.com/api/v1/${rn}?paymentType=wire&format=json`,
-    {
-      headers: {
-        "X-Rapidapi-Key": "57495f0247msh190d549d1481a5dp1d95a6jsn47144fb0ae66",
-        "X-Rapidapi-Host": "routing-number-bank-lookup.p.rapidapi.com",
-        Host: "routing-number-bank-lookup.p.rapidapi.com",
-      },
-      silent: true,
-    } as CustomAxiosRequestConfig,
-  );
-
-  return response.data[0];
+/** The bank's name, or null when the number isn't known. Throws when the lookup can't run. */
+export async function getBankForRoutingNumber(routingNumber: string): Promise<string | null> {
+  const response = await fetch(`/api/routing-number/${encodeURIComponent(routingNumber)}`, {
+    headers: { "x-raiz-client": "web" },
+  });
+  let body: { name?: unknown; message?: unknown } | null = null;
+  try {
+    body = (await response.json()) as { name?: unknown; message?: unknown };
+  } catch {
+    body = null;
+  }
+  if (!response.ok) {
+    const message = typeof body?.message === "string" ? body.message : `Lookup failed (${response.status})`;
+    throw new Error(message);
+  }
+  if (body?.name === null) return null;
+  if (typeof body?.name === "string") {
+    const name = body.name.trim();
+    return name ? name : null;
+  }
+  throw new Error("Unexpected lookup answer");
 }

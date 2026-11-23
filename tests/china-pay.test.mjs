@@ -32,16 +32,18 @@ test("structured server error codes are preserved",()=>{
 });
 test("China Pay uses v2 funding-aware quotes and idempotent quote-bound sends",async()=>{
  const calls=[]; const module={exports:{}};
+ let quoteResponse = quote;
  const source=ts.transpileModule(readFileSync(new URL("../src/services/chinaPay.ts",import.meta.url),"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText;
  vm.runInNewContext(source,{module,exports:module.exports,require:name=>{
-   if(name==="@/lib/authAxios") return {AuthAxios:{post:async(...args)=>{calls.push(args);return {data:quote};}}};
+   if(name==="@/lib/authAxios") return {AuthAxios:{post:async(...args)=>{calls.push(args);return {data:quoteResponse};}}};
    if(name==="@/services/transactions") return {
      AlipayWechatAmountQuoteApi:async()=>({channel:"alipay",destination_amount:"23.00",rate:"205",naira_amount:"4715.00"}),
      AlipayWechatSendApi:async payload=>({alipay_wechat_transaction_request_id:"legacy-id",entity_id:"entity",wallet_id:"wallet",beneficiary_id:payload.beneficiary_id,channel:payload.channel,destination_amount:payload.amount,rate:"205",naira_amount:"4715.00",status:"pending",initiated_at:"2030-01-01",liquidated_at:null,transaction_report_id:null,original_ledger_transaction_id:null,reversal_ledger_transaction_id:null,created_at:"2030-01-01",updated_at:"2030-01-01"}),
    };
    return {};
  }});
- await module.exports.QuoteChinaPayApi(request,"quote-key");
+ const nested = await module.exports.QuoteChinaPayApi(request,"quote-key");
+ assert.equal(nested.fees[0], quote.fees[0]);
  const body={quote_id:"quote",beneficiary_id:"recipient",transaction_pin:"test-pin"};
  await module.exports.SendChinaPayApi(body,"send-key");
  await module.exports.SendChinaPayApi(body,"send-key");
@@ -52,4 +54,17 @@ test("China Pay uses v2 funding-aware quotes and idempotent quote-bound sends",a
  assert.deepEqual(calls[1][1],body);
  assert.equal(calls[1][2].headers["Idempotency-Key"],calls[2][2].headers["Idempotency-Key"]);
  assert.equal(calls[1][1].amount,undefined);
+
+ const flatFee = { code: "alipay_wechat_fee", label: "Transfer fee", amount: "0.50", currency: "USD" };
+ for (const channel of ["alipay", "wechat"]) {
+   const channelRequest = { ...request, channel };
+   quoteResponse = { ...quote, channel, fees: [flatFee] };
+   const normalized = await module.exports.QuoteChinaPayApi(channelRequest, "quote-key");
+   assert.equal(usableChinaPayQuote(normalized, channelRequest, now), true);
+   assert.equal(normalized.fees[0].amount.amount, flatFee.amount);
+   assert.equal(normalized.fees[0].amount.currency, flatFee.currency);
+   assert.equal(normalized.fees[0].label, flatFee.label);
+   assert.equal(normalized.total_debit, quote.total_debit);
+   assert.equal(normalized.rate, quote.rate);
+ }
 });
