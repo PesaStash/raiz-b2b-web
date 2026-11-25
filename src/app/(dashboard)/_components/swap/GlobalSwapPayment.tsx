@@ -19,6 +19,7 @@ import {
   trackTransactionFailed,
 } from "@/utils/analytics/dataLayer";
 import { getApiErrorMessage } from "@/utils/helpers";
+import { isNgnHoldingLimitError } from "@/lib/businessWallets";
 
 interface Props {
   sourceCurrency: SwapPairCurrency;
@@ -29,6 +30,7 @@ interface Props {
   onSuccess: (result: SwapExecuteResult) => void;
   onQuoteExpired: (error: unknown) => void;
   onNewQuote: () => void;
+  onHoldingLimit: () => void;
 }
 
 function firstMessage(value: unknown, depth = 0): string | undefined {
@@ -74,6 +76,7 @@ export default function GlobalSwapPayment({
   onSuccess,
   onQuoteExpired,
   onNewQuote,
+  onHoldingLimit,
 }: Props) {
   const [pin, setPin] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -145,6 +148,10 @@ export default function GlobalSwapPayment({
       setPin("");
       if (isQuoteExpired(error)) return;
       const message = swapErrorMessage(error);
+      if (isNgnHoldingLimitError(message)) {
+        onHoldingLimit();
+        return;
+      }
       setErrorMessage(message);
       setAttempt((value) => value + 1);
       trackTransactionFailed({

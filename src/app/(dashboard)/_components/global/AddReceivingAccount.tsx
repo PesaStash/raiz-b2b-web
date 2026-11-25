@@ -52,8 +52,10 @@ export default function AddReceivingAccount({
   close,
   onCreated,
   existingAccounts = [],
+  supportedAssets,
 }: {
   existingAccounts?: ReceivingAccount[];
+  supportedAssets?: string[] | null;
   asset: "EUR" | "GBP" | "SBC";
   close: () => void;
   onCreated: (accounts: ReceivingAccount[]) => void;
@@ -98,6 +100,8 @@ export default function AddReceivingAccount({
     mutationFn: async () => {
       if (!canWriteBusiness)
         throw new Error("You do not have permission to create accounts.");
+      if (asset !== "SBC" && supportedAssets && !supportedAssets.includes(asset))
+        throw new Error("This receiving asset is unavailable.");
       if (asset === "SBC" && (!selectedNetwork || hasAccount(selectedNetwork)))
         throw new Error(
           "Choose a network that has not already been added for this token.",
@@ -398,43 +402,44 @@ export default function AddReceivingAccount({
               }}
               className="mt-2 w-full rounded-xl border border-kyb-border bg-white p-3 text-sm text-raiz-gray-950"
             >
-              <option>USDT</option>
-              <option>USDC</option>
+              {(["USDT", "USDC"] as const).map((item) => <option key={item}>{item}</option>)}
             </select>
           </label>
-          <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
             {networks.map((network) => (
               <label
                 key={network.id}
-                className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 ${selectedNetwork === network.id ? "border-[#b7a6ff] bg-[#fbfaff]" : "border-kyb-border"}`}
+                className={`flex min-w-0 cursor-pointer flex-col gap-3 rounded-2xl border p-3 ${selectedNetwork === network.id ? "border-[#b7a6ff] bg-[#fbfaff]" : "border-kyb-border"} ${hasAccount(network.id) ? "cursor-not-allowed opacity-60" : ""}`}
               >
-                <span
-                  className={`flex h-10 w-10 items-center justify-center rounded-full ${network.color}`}
-                >
-                  <DesignIcon
-                    name={`32296-2894-imgVuesaxBold${network.icon}.svg`}
+                <span className="flex items-center justify-between gap-2">
+                  <span
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${network.color}`}
+                  >
+                    <DesignIcon
+                      name={`32296-2894-imgVuesaxBold${network.icon}.svg`}
+                    />
+                  </span>
+                  <input
+                    disabled={mutation.isPending || hasAccount(network.id)}
+                    type="radio"
+                    name="receiving-network"
+                    className="h-5 w-5 shrink-0 accent-primary2"
+                    checked={selectedNetwork === network.id}
+                    onChange={() => {
+                      setSelectedNetwork(network.id);
+                      mutation.reset();
+                    }}
                   />
                 </span>
-                <span className="flex-1">
-                  <span className="block text-sm font-semibold">
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold leading-4">
                     {network.name}
                   </span>
-                  <span className="text-xs text-raiz-gray-600">
+                  <span className="mt-0.5 block text-xs leading-4 text-raiz-gray-600">
                     {network.text}
                     {hasAccount(network.id) ? " · Already added" : ""}
                   </span>
                 </span>
-                <input
-                  disabled={mutation.isPending || hasAccount(network.id)}
-                  type="radio"
-                  name="receiving-network"
-                  className="h-5 w-5 accent-primary2"
-                  checked={selectedNetwork === network.id}
-                  onChange={() => {
-                    setSelectedNetwork(network.id);
-                    mutation.reset();
-                  }}
-                />
               </label>
             ))}
           </div>

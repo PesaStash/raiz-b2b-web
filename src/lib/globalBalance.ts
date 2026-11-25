@@ -21,9 +21,17 @@ export function spendableBalances(
 ): SpendableBalance[] {
   if (!account) return [];
   if (isGlobalBalance(account))
-    return (account.balances ?? []).filter(
-      (b) => b.currency === "USD" || b.currency === "NGN",
-    );
+    return (account.balances ?? [])
+      .filter((b) => b.currency === "USD" || b.currency === "NGN")
+      .map((balance) => {
+        const { available_balance, pending_debits } = balance;
+        if (typeof available_balance !== "number" && typeof pending_debits !== "number") return balance;
+        return {
+          ...balance,
+          available_balance: String(available_balance),
+          pending_debits: String(pending_debits),
+        };
+      });
   return (account.wallets ?? [])
     .filter(
       (w) =>
@@ -34,7 +42,7 @@ export function spendableBalances(
       currency: w.wallet_type.currency as BalanceCurrency,
       available_balance: String(w.account_balance),
       pending_debits: "0",
-      status: w.status ?? "active",
+      status: w.wallet_status ?? w.status ?? "active",
       supported_receive_assets: null,
       supported_send_assets: null,
     }));

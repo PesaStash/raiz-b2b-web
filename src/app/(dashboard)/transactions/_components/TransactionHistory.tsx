@@ -52,8 +52,10 @@ type CustomDate = { day: string; month: string; year: string };
 
 export default function TransactionHistory({
   initialCurrencyFilter = "",
+  initialSearch = "",
 }: {
   initialCurrencyFilter?: string;
+  initialSearch?: string;
 }) {
   const { user } = useUser();
   const account = user?.business_account;
@@ -69,7 +71,7 @@ export default function TransactionHistory({
     : legacyWallet?.wallet_id;
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(initialSearch);
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [showDateRange, setShowDateRange] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
@@ -131,6 +133,10 @@ export default function TransactionHistory({
       setOriginalCurrency(initialCurrencyFilter);
     }
   }, [initialCurrencyFilter]);
+
+  useEffect(() => {
+    if (initialSearch) setSearch(initialSearch);
+  }, [initialSearch]);
 
   const start_date = dateRange.startDate
     ? format(dateRange.startDate, "yyyy-MM-dd")

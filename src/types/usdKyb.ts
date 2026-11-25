@@ -3,6 +3,7 @@ export type KybStatus =
   | "collecting"
   | "requires_correction"
   | "awaiting_admin_review"
+  | "wallet_approved"
   | "submitted_to_bridge"
   | "under_review"
   | "awaiting_ubo"

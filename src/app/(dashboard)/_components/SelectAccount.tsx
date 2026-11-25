@@ -1,3 +1,4 @@
+import { hasBankDetails } from "@/lib/businessWallets";
 import { isGlobalBalance } from "@/lib/globalBalance";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import Overlay from "@/components/ui/Overlay";
@@ -150,7 +151,7 @@ const SelectAccount = ({
   const isNigerian = isNigerianBusiness(user);
 
   const getUsdLabel = () => {
-    if (USDAcct) return USDAcct.account_number;
+    if (USDAcct) return hasBankDetails(USDAcct) ? USDAcct.account_number : "USD wallet";
     if (usdRequestPending) return "Continue USD setup";
     if (usdFlow.isUsdActionPending) return usdFlow.getUsdActionLabel();
     if (!usdFlow.isTosConfirmed) return "Set up USD account";
@@ -201,7 +202,7 @@ const SelectAccount = ({
           </button>
 
           {/* NGN */}
-          {isNigerian && (
+          {(isNigerian || NGNAcct) && (
             <button
               style={{ display: !canWriteBusiness && !NGNAcct ? "none" : undefined }}
             onClick={handleNgn}
@@ -221,7 +222,7 @@ const SelectAccount = ({
                 />
                 <div className="flex flex-col items-start">
                   <p className="text-raiz-gray-900 text-sm md:text-base font-medium font-brSonoma leading-tight">
-                    {NGNAcct ? NGNAcct.account_number : "Get NGN Account"}
+                    {NGNAcct ? (hasBankDetails(NGNAcct) ? NGNAcct.account_number : "Naira wallet") : "Get NGN Account"}
                   </p>
                   <p className="opacity-50 text-raiz-gray-950 text-xs md:text-[13px] font-normal  leading-tight">
                     {NGNAcct?.wallet_type.wallet_type_name || "NGN Account"}

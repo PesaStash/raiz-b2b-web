@@ -15,6 +15,7 @@ export interface UsdTimelineStep {
 const STATUS_LABELS: Record<string, string> = {
   not_started: "Not started",
   awaiting_admin_review: "Operations review",
+  wallet_approved: "Wallet ready",
   requires_correction: "Changes requested",
   awaiting_ubo: "Waiting for owner verification",
   collecting: "Collecting",
@@ -39,6 +40,7 @@ const STATUS_COMPACT_LABELS: Record<string, string> = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
+  wallet_approved: "bg-[#E8F5E9] text-[#2E7D32]",
   collecting: "bg-[#EAECFF99] text-[#0D6494]",
   ready_for_review: "bg-[#EAECFF99] text-[#0D6494]",
   requires_additional_info: "bg-[#FFF3E6] text-[#C76E00]",

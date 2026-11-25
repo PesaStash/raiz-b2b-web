@@ -203,6 +203,7 @@ export interface ISearchedUser {
 
 export type UsdKybCaseStatus =
   | "awaiting_admin_review"
+  | "wallet_approved"
   | "requires_correction"
   | "awaiting_ubo"
   | "not_started"
@@ -217,10 +218,13 @@ export type UsdKybCaseStatus =
   | string;
 
 export interface IUsdOnboardingCase {
-  requested_onboarding: boolean;
-  requested_onboarding_at: string | null;
+  requested_onboarding?: boolean;
+  requested_onboarding_at?: string | null;
   status: UsdKybCaseStatus;
-  case_id: string | null;
+  case_id?: string | null;
+  wallet_id?: string;
+  wallet_status?: string;
+  has_usd_account?: boolean;
 }
 
 export interface IUsdOnboardingResponse {

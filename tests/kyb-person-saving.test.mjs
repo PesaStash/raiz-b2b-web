@@ -80,12 +80,17 @@ function editorHarness({
   const cachedWrites = [];
   const profileRefreshes = [];
   const invitations = [];
+  const gets = [];
   const removals = [];
   const toasts = [];
   let failure;
   let invitationFailure;
+  let invitationGate = null;
   const api = {
-    get: async () => bundle,
+    get: async () => {
+      gets.push(bundle.case.status);
+      return bundle;
+    },
     removePerson: async (id, version) => {
       removals.push({ id, version });
       bundle = {
@@ -106,6 +111,7 @@ function editorHarness({
     },
     invitation: async (id, action) => {
       invitations.push({ id, action });
+      if (invitationGate) await invitationGate;
       if (invitationFailure) throw invitationFailure;
       bundle = {
         ...bundle,
@@ -246,8 +252,20 @@ function editorHarness({
     cachedWrites,
     profileRefreshes,
     invitations,
+    gets,
     removals,
     toasts,
+    pauseInvitations() {
+      let release = () => {};
+      const gate = new Promise((resolve) => {
+        release = resolve;
+      });
+      invitationGate = gate;
+      return () => {
+        if (invitationGate === gate) invitationGate = null;
+        release();
+      };
+    },
     rejectFields: (errors) => {
       bundle = {
         ...bundle,
@@ -584,34 +602,54 @@ const sentPerson = {
   email: "director@example.com",
   invitation_status: "sent",
 };
-test("resending on submitted cases uses only the invitation endpoint without editing person data", async () => {
+const expiredPerson = { ...sentPerson, invitation_status: "expired" };
+test("resending an expired invite during review uses only the invitation endpoint", async () => {
   for (const status of [
     "awaiting_admin_review",
     "submitted_to_bridge",
     "under_review",
-    "awaiting_ubo",
   ]) {
-    const h = editorHarness({ status, existingPerson: sentPerson });
+    const h = editorHarness({ status, existingPerson: expiredPerson });
     let e = h.render();
     assert.equal(e.editable, false);
     assert.equal(e.canResendPerson(e.people[0]), true);
     await e.resendPerson(e.people[0]);
+    e = h.render();
     assert.deepEqual(h.invitations, [{ id: "id-existing", action: "resend" }]);
     assert.equal(h.calls.length, 0);
-    assert.ok(h.toasts.some((item) => item.type === "success"));
+    assert.equal(e.conflict, false);
+    assert.equal(
+      h.toasts.at(-1).message,
+      "A new verification link has been queued for director@example.com.",
+    );
+    assert.equal(e.canResendPerson(e.people[0]), false);
   }
 });
-test("review resend respects roles, completed cases and people who were never invited", async () => {
+test("review resend stays closed for roles, other statuses, and ineligible invitations", async () => {
   for (const options of [
+    { canWrite: false, status: "awaiting_admin_review", existingPerson: expiredPerson },
+    { status: "completed", existingPerson: expiredPerson },
+    { status: "awaiting_ubo", existingPerson: expiredPerson },
+    { status: "under_review", existingPerson: sentPerson },
     {
-      canWrite: false,
       status: "awaiting_admin_review",
-      existingPerson: sentPerson,
+      existingPerson: { ...expiredPerson, invitation_status: "revoked" },
     },
-    { status: "completed", existingPerson: sentPerson },
     {
       status: "awaiting_admin_review",
-      existingPerson: { ...sentPerson, invitation_status: "not_sent" },
+      existingPerson: { ...expiredPerson, invitation_status: "not_sent" },
+    },
+    {
+      status: "under_review",
+      existingPerson: { ...expiredPerson, verified_at: "2026-11-01T00:00:00Z" },
+    },
+    {
+      status: "under_review",
+      existingPerson: { ...expiredPerson, verification_status: "approved" },
+    },
+    {
+      status: "under_review",
+      existingPerson: { ...expiredPerson, verification_status: "completed" },
     },
   ]) {
     const h = editorHarness(options);
@@ -622,10 +660,26 @@ test("review resend respects roles, completed cases and people who were never in
     assert.equal(h.calls.length, 0);
   }
 });
+test("an expired review invite can be resent below the collection ownership threshold", async () => {
+  const h = editorHarness({
+    status: "under_review",
+    existingPerson: {
+      ...expiredPerson,
+      ownership_percentage: 10,
+      can_remove: false,
+      verification_status: "pending",
+    },
+  });
+  const e = h.render();
+  assert.equal(e.canResendPerson(e.people[0]), true);
+  await e.resendPerson(e.people[0]);
+  assert.deepEqual(h.invitations, [{ id: "id-existing", action: "resend" }]);
+  assert.equal(h.calls.length, 0);
+});
 test("resend checks fresh verification and shows backend lock errors without patching a locked case", async () => {
   const stale = editorHarness({
     status: "awaiting_admin_review",
-    existingPerson: sentPerson,
+    existingPerson: expiredPerson,
   });
   const old = stale.render();
   stale.verify("existing");
@@ -633,20 +687,67 @@ test("resend checks fresh verification and shows backend lock errors without pat
   assert.equal(stale.invitations.length, 0);
   const h = editorHarness({
     status: "awaiting_admin_review",
-    existingPerson: { ...sentPerson, invitation_status: "expired" },
+    existingPerson: expiredPerson,
   });
   let e = h.render();
   h.failInvitation({
     response: {
       status: 409,
-      data: { message: "Invitations cannot be changed in this case state." },
+      data: { message: "Only expired identity invitations can be resent during review" },
     },
   });
   await e.resendPerson(e.people[0]);
   e = h.render();
   assert.equal(h.calls.length, 0);
-  assert.equal(e.error, "Invitations cannot be changed in this case state.");
+  assert.equal(h.gets.length, 2);
+  assert.equal(e.conflict, false);
+  assert.equal(e.error, "Only expired identity invitations can be resent during review");
   assert.equal(h.toasts.at(-1).message, e.error);
+  h.failInvitation(undefined);
+  await e.resendPerson(e.people[0]);
+  assert.equal(h.invitations.length, 2);
+});
+test("an uncertain resend refreshes once and does not send a second invitation", async () => {
+  const h = editorHarness({
+    status: "under_review",
+    existingPerson: expiredPerson,
+  });
+  const e = h.render();
+  h.failInvitation({ message: "timeout of 30000ms exceeded", code: "ECONNABORTED" });
+  await e.resendPerson(e.people[0]);
+  const refreshed = h.render();
+  assert.equal(h.invitations.length, 1);
+  assert.equal(h.gets.length, 2);
+  assert.equal(h.calls.length, 0);
+  assert.equal(refreshed.conflict, false);
+  assert.match(refreshed.error, /couldn’t confirm whether a new verification link was queued/i);
+});
+test("one resend does not disable a different person or submit the same person twice", async () => {
+  const h = editorHarness({
+    status: "under_review",
+    existingPerson: expiredPerson,
+    additionalPeople: [{
+      ...expiredPerson,
+      person_key: "second",
+      associated_person_id: "id-second",
+      email: "second@example.com",
+      first_name: "Second",
+    }],
+  });
+  const release = h.pauseInvitations();
+  const e = h.render();
+  const first = e.resendPerson(e.people[0]);
+  const duplicate = e.resendPerson(e.people[0]);
+  const second = e.resendPerson(e.people[1]);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(h.invitations, [{ id: "id-existing", action: "resend" }]);
+  release();
+  await Promise.all([first, duplicate, second]);
+  assert.deepEqual(h.invitations, [
+    { id: "id-existing", action: "resend" },
+    { id: "id-second", action: "resend" },
+  ]);
+  assert.equal(h.calls.length, 0);
 });
 
 test("can_remove permits registry/verified people to be removed and the selected list stays authoritative", async () => {
