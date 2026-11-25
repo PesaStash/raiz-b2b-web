@@ -1,4 +1,5 @@
 "use client";
+import { hasBankDetails } from "@/lib/businessWallets";
 import Button from "@/components/ui/Button";
 import CopyButton from "@/components/ui/CopyButton";
 import { IBusinessPaymentData } from "@/types/services";
@@ -22,10 +23,10 @@ const GuestPayWithTransfer = ({ transferCurrency, data }: Props) => {
   );
 
   const NGNAcct = data?.wallets?.find(
-    (acct) => acct.wallet_type.currency === "NGN",
+    (acct) => acct.wallet_type.currency === "NGN" && hasBankDetails(acct),
   );
   const USDAcct = data?.wallets?.find(
-    (acct) => acct.wallet_type.currency === "USD",
+    (acct) => acct.wallet_type.currency === "USD" && hasBankDetails(acct),
   );
   const SBCAcct = data?.wallets?.find(
     (acct) => acct.wallet_type.currency === "SBC",
@@ -59,6 +60,11 @@ const GuestPayWithTransfer = ({ transferCurrency, data }: Props) => {
       `${data?.account_user?.account_name} will be notified once the payment is successful.`,
     );
   };
+  if ((transferCurrency === "NGN" && !NGNAcct && !hasNgnAcct) ||
+    (transferCurrency === "USD" && !USDAcct)) {
+    return <p className="py-4 text-sm">Bank transfer details are unavailable.</p>;
+  }
+
   return (
     <div className="h-[85%] mb-4 overflow-y-auto no-scrollbar">
       {transferCurrency === "SBC" && (

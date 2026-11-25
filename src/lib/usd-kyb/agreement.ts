@@ -1,14 +1,19 @@
 import { getPath, mergeDraft, normalizeDraft } from "./model";
-import type { KybBundle } from "@/types/usdKyb";
+import type { KybBundle, KybCase } from "@/types/usdKyb";
+
+export function isBridgeAgreementRequirement(field: string) {
+  return field === "signed_agreement_id" || field.endsWith(".signed_agreement_id");
+}
+
+export function needsBridgeAgreement(kybCase?: KybCase) {
+  return !!(kybCase?.bridge_customer_id || kybCase?.bridge_application_id ||
+    kybCase?.status === "submitted_to_bridge" || kybCase?.status === "under_review");
+}
 
 export function signedAgreementId(bundle?: KybBundle): string {
   if (
     !bundle ||
-    bundle.validation?.field_errors?.some(
-      (error) =>
-        error.field === "signed_agreement_id" ||
-        error.field.endsWith(".signed_agreement_id"),
-    )
+    bundle.validation?.field_errors?.some((error) => isBridgeAgreementRequirement(error.field))
   )
     return "";
   const draft = mergeDraft(

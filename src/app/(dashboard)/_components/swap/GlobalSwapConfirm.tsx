@@ -16,6 +16,7 @@ interface Props {
   timeLeft: number;
   refreshing?: boolean;
   notice?: string | null;
+  blocked?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -27,6 +28,7 @@ export default function GlobalSwapConfirm({
   timeLeft,
   refreshing = false,
   notice,
+  blocked = false,
   onConfirm,
   onCancel,
 }: Props) {
@@ -144,7 +146,7 @@ export default function GlobalSwapConfirm({
           <button
             type="button"
             onClick={onConfirm}
-            disabled={timeLeft <= 0 || refreshing}
+            disabled={timeLeft <= 0 || refreshing || blocked}
             className="flex h-12 w-full items-center justify-center rounded-xl bg-[#0d6494] px-6 text-[15px] font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {refreshing ? "Refreshing rate…" : "Confirm swap"}

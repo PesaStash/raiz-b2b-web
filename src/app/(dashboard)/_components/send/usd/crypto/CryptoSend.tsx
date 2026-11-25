@@ -107,6 +107,8 @@ export default function CryptoSend({ close }: { close: () => void }) {
     [quote],
   );
   const amountValid = /^\d+(\.\d{0,6})?$/.test(amount) && Number(amount) > 0;
+  const reason = purpose.trim();
+  const reasonValid = reason.length >= 6;
   const quoteMutation = useMutation({
     mutationFn: () =>
       QuoteCryptoPayoutApi(
@@ -137,7 +139,7 @@ export default function CryptoSend({ close }: { close: () => void }) {
         {
           quote_id: quote!.quote_id,
           transaction_pin: pin,
-          transaction_reason: purpose,
+          transaction_reason: reason,
           transaction_category_id: category?.transaction_category_id,
         },
         sendKey.current,
@@ -466,6 +468,7 @@ export default function CryptoSend({ close }: { close: () => void }) {
           <FlowRow label="Recipient gets">
             {quote.destination_money.amount} {asset}
           </FlowRow>
+          <FlowRow label="Reason">{reason}</FlowRow>
           <p className="rounded-xl bg-[#fff8e8] p-3 text-xs text-[#6f5613]">
             Crypto transfers are irreversible. Check the address and network
             before continuing.
@@ -481,7 +484,9 @@ export default function CryptoSend({ close }: { close: () => void }) {
             onBack={() => setStep("category")}
             onNext={() => setStep("pin")}
             disabled={
-              seconds <= 0 || Number(quote.total_debit.amount) > usdBalance
+              !reasonValid ||
+              seconds <= 0 ||
+              Number(quote.total_debit.amount) > usdBalance
             }
             nextLabel={`Send ${amount} ${asset}`}
           />
@@ -522,6 +527,26 @@ export default function CryptoSend({ close }: { close: () => void }) {
         </FlowRow>
         <FlowRow label="Network fee">Calculated in your live quote</FlowRow>
         <FlowTotal currency="USD" balance={usdBalance} />
+        <label className="text-xs">
+          Transaction reason
+          <input
+            className="mt-2 h-12 w-full rounded-xl border-0 bg-[#f4f4f8] px-4 text-sm text-[#14141e] outline-none ring-1 ring-transparent focus:bg-white focus:ring-primary2"
+            value={purpose}
+            maxLength={255}
+            placeholder="What is this payment for?"
+            onChange={(event) =>
+              actions.setAmountAndRemark({
+                amount,
+                purpose: event.target.value,
+              })
+            }
+          />
+        </label>
+        {reason.length > 0 && !reasonValid && (
+          <p className="text-xs text-[#d92d20]">
+            Transaction reason must be at least 6 characters.
+          </p>
+        )}
         <div className="rounded-xl bg-[#f1edff] p-4">
           <strong className="text-sm">Check before sending</strong>
           <p className="mt-1 text-xs text-[#79708d]">
@@ -536,7 +561,7 @@ export default function CryptoSend({ close }: { close: () => void }) {
         )}
         <FlowActions
           onNext={() => quoteMutation.mutate()}
-          disabled={!amountValid}
+          disabled={!amountValid || !reasonValid}
           loading={quoteMutation.isPending}
         />
       </FlowCard>

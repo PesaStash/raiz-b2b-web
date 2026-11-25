@@ -152,7 +152,7 @@ export function normalizeDraft(
   return result;
 }
 
-// Product policy requires terms before user submission; only identity may follow later.
+// Identity checks can continue after submission for review.
 export const deferredRequirements = new Set([
   "associated_persons.government_id_document",
   "associated_persons.identity_verification",

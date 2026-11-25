@@ -6,17 +6,26 @@ import {
   FlowCard,
   FlowChoice,
 } from "@/components/transactions/send-flow/Flow";
+import { isWalletOnly } from "@/lib/businessWallets";
 import { useCreatedForeignAccounts } from "@/lib/hooks/useCreatedForeignAccounts";
+import { useUser } from "@/lib/hooks/useUser";
 import type { ForeignCurrency } from "@/types/services";
 import ToUsdBanks from "./toBanks/ToUsdBanks";
 import GlobalForeignSend from "./GlobalForeignSend";
 
 export default function BankDestinations({ close }: { close: () => void }) {
+  const { user } = useUser();
   const accounts = useCreatedForeignAccounts();
   const [blocked, setBlocked] = useState<ForeignCurrency | null>(null);
+  const [walletNotice, setWalletNotice] = useState(false);
   const [destination, setDestination] = useState<"us" | "gb" | "eu" | null>(
     null,
   );
+  const usdWallets =
+    user?.business_account?.wallets?.filter(
+      (wallet) => wallet.wallet_type.currency === "USD",
+    ) ?? [];
+  const usdWalletOnly = usdWallets.length > 0 && usdWallets.every(isWalletOnly);
   const openForeign = (currency: ForeignCurrency) => {
     if (accounts.isChecking) return;
     if (!accounts.has(currency)) {
@@ -60,9 +69,19 @@ export default function BankDestinations({ close }: { close: () => void }) {
       <FlowCard>
         <FlowChoice
           title="United States"
-          subtitle="ACH or wire · recipient gets USD"
+          subtitle={
+            usdWalletOnly
+              ? "Needs a USD account, not a wallet"
+              : "ACH or wire · recipient gets USD"
+          }
           icon="/images/send/usd.png"
-          onClick={() => setDestination("us")}
+          onClick={() => {
+            if (usdWalletOnly) {
+              setWalletNotice(true);
+              return;
+            }
+            setDestination("us");
+          }}
         />
         <FlowChoice
           title="United Kingdom"
@@ -76,6 +95,15 @@ export default function BankDestinations({ close }: { close: () => void }) {
           icon="/images/send/eur.png"
           onClick={() => openForeign("EUR")}
         />
+        {walletNotice && (
+          <p role="status" className="rounded-xl bg-[#f1edff] p-4 text-sm">
+            <strong>You need a USD account</strong>
+            <span className="mt-1 block text-xs text-[#79708d]">
+              A USD wallet can’t send a bank transfer. Bank transfers to a US
+              bank are available from a USD account.
+            </span>
+          </p>
+        )}
         {blocked && accounts.isError && !accounts.has(blocked) && (
           <p role="alert" className="text-sm text-[#d92d20]">
             Couldn’t check your {blocked} account.{" "}

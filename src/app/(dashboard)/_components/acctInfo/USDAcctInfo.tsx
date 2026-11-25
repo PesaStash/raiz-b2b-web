@@ -1,3 +1,4 @@
+import { hasBankDetails } from "@/lib/businessWallets";
 import Overlay from "@/components/ui/Overlay";
 import React from "react";
 import Image from "next/image";
@@ -12,6 +13,11 @@ interface Props {
 const USDAcctInfo = ({ close }: Props) => {
   const { user } = useUser();
   const USDAcct = findWalletByCurrency(user, "USD");
+  if (!hasBankDetails(USDAcct)) return (
+    <Overlay close={close} width="375px">
+      <p className="p-6 text-sm">Dedicated USD bank details are unavailable for this wallet.</p>
+    </Overlay>
+  );
   return (
     <Overlay close={close} width="375px">
       <div className="flex flex-col  h-full py-8 px-5  text-raiz-gray-950">

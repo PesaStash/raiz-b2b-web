@@ -12,6 +12,7 @@ export function useKybNavigation(user?: IUser) {
     queryFn: kybApi.get,
     enabled: !!tenant && basicDetailsComplete(user),
     staleTime: 30_000,
+    refetchOnWindowFocus: true,
     retry: false,
   });
 }

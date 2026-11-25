@@ -1,16 +1,28 @@
 "use client";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 import Avatar from "@/components/ui/Avatar";
 import SelectField from "@/components/ui/SelectField";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { FetchTransactionReportApi } from "@/services/transactions";
 import { ITransaction } from "@/types/transactions";
-import { formatMoney } from "@/lib/globalBalance";
-import { GlobalDialog, primaryButton, secondaryButton } from "./GlobalUI";
-import TxnReceipt from "../transaction-history/TxnReceipt";
+import {
+  formatMoney,
+  receivingInstructions,
+  spendableBalances,
+  walletInstructions,
+} from "@/lib/globalBalance";
+import { hasBankDetails } from "@/lib/businessWallets";
+import { useUser } from "@/lib/hooks/useUser";
+import { toTransactionView, type TransactionView } from "@/lib/transactionView";
+import { FetchReceivingAccountsApi } from "@/services/globalBalance";
+import TransactionDetailsPanel from "@/app/(dashboard)/transactions/_components/TransactionDetailsPanel";
+import { DesignIcon, primaryButton, secondaryButton } from "./GlobalUI";
+import { AccountDetails } from "./AccountDetails";
 import { truncateString } from "@/utils/helpers";
 
 export default function RecentTransactions({
@@ -21,17 +33,95 @@ export default function RecentTransactions({
   onShare,
   onAddMoney,
   canWrite,
+  atLimit,
+  onSend,
 }: {
   entityId?: string;
   walletId?: string;
   currency: string;
   global: boolean;
-  onShare: () => void;
+  onShare?: () => void;
   onAddMoney: () => void;
   canWrite: boolean;
+  atLimit?: boolean;
+  onSend?: () => void;
 }) {
+  const router = useRouter();
+  const { user } = useUser();
+  const account = user?.business_account;
   const [filter, setFilter] = useState("");
   const [selected, setSelected] = useState<ITransaction | null>(null);
+  const [accountDetailId, setAccountDetailId] = useState<string | null>(null);
+  const receivingQuery = useQuery({
+    queryKey: ["receiving-accounts", entityId],
+    queryFn: FetchReceivingAccountsApi,
+    enabled: global && !!entityId,
+  });
+  const receiving =
+    receivingQuery.data?.accounts ?? account?.receiving_accounts ?? [];
+  const walletCurrencyById = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const balance of spendableBalances(account)) {
+      map[balance.wallet_id] = balance.currency;
+    }
+    for (const wallet of account?.wallets ?? []) {
+      map[wallet.wallet_id] = wallet.wallet_type.currency;
+    }
+    return map;
+  }, [account]);
+  const instructions = useMemo(() => {
+    const bank = (account?.wallets ?? [])
+      .filter(
+        (wallet) =>
+          hasBankDetails(wallet) &&
+          (wallet.wallet_type.currency === "USD" ||
+            wallet.wallet_type.currency === "NGN" ||
+            (!global &&
+              (wallet.wallet_type.currency === "EUR" ||
+                wallet.wallet_type.currency === "GBP"))),
+      )
+      .map((wallet) =>
+        walletInstructions(wallet, account?.business_name ?? ""),
+      );
+    return [...bank, ...receiving.map(receivingInstructions)];
+  }, [account?.business_name, account?.wallets, global, receiving]);
+  const selectedView = selected
+    ? toTransactionView(selected, {
+        receivingAccounts: receiving,
+        businessName: account?.business_name,
+        walletCurrencyById,
+      })
+    : null;
+  const handlePrimaryAction = (view: TransactionView) => {
+    if (view.primaryAction === "account_details" && view.receiveAsset) {
+      const match = instructions.find((item) => item.asset === view.receiveAsset);
+      if (match) {
+        setAccountDetailId(match.id);
+        return;
+      }
+      toast.info(`${view.receiveAsset} account details are not available yet.`);
+      return;
+    }
+    if (view.primaryAction === "track") {
+      toast.info("Tracking details are shown above for this transfer.");
+      return;
+    }
+    if (view.primaryAction === "send_again") {
+      if (!onSend) {
+        toast.info("Sending isn’t available on this wallet right now.");
+        return;
+      }
+      setSelected(null);
+      onSend();
+    }
+  };
+  const handleSeeHistory = (name: string) => {
+    const params = new URLSearchParams();
+    if (filter) params.set("currency", filter);
+    params.set("search", name);
+    setSelected(null);
+    router.push(`/transactions?${params.toString()}`);
+  };
   const query = {
     ...(filter ? { currency: filter } : { wallet_id: walletId }),
     limit: 6,
@@ -101,16 +191,20 @@ export default function RecentTransactions({
           </button>
         </div>
       ) : !rows.length ? (
-        <div className="flex flex-col items-center py-16 text-center">
-          <h3 className="font-semibold">No transactions yet</h3>
+        <div className="flex flex-col items-center rounded-xl bg-kyb-soft px-4 py-16 text-center">
+          <span className="mb-4 flex size-16 items-center justify-center rounded-full bg-[#e8f7ef]">
+            <DesignIcon name="wallet-empty-transactions.svg" />
+          </span>
+          <h3 className="font-semibold">{atLimit ? "Make room to receive more" : "No transactions yet"}</h3>
           <p className="mt-2 max-w-sm text-sm text-kyb-muted">
-            When you receive or send money, it shows up here. Share your account
-            details to get your first payment.
+            {atLimit ? "Spend or send money to make room for incoming payments."
+              : "When you receive or send money, it shows up here."}
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <button onClick={onShare} className={secondaryButton}>
+            {atLimit && onSend && <button onClick={onSend} className={`${primaryButton} !bg-primary2`}>Send money</button>}
+            {!atLimit && onShare && <button onClick={onShare} className={secondaryButton}>
               Share account details
-            </button>
+            </button>}
             {canWrite && (
               <button onClick={onAddMoney} className={primaryButton}>
                 Add money
@@ -238,63 +332,24 @@ export default function RecentTransactions({
           </table>
         </div>
       )}
-      {selected &&
-        (selected.settlement ? (
-          <GlobalDialog
-            title="Transaction details"
-            close={() => setSelected(null)}
-            drawer
-          >
-            <h3 className="text-2xl font-semibold">
-              {formatMoney(
-                selected.display_money?.amount ??
-                  String(selected.transaction_amount),
-                selected.display_money?.currency ?? selected.currency,
-              )}
-            </h3>
-            <p className="my-4 text-sm text-kyb-muted">
-              {selected.transaction_status?.transaction_status.replaceAll(
-                "_",
-                " ",
-              )}
-            </p>
-            <dl className="space-y-5 rounded-2xl border border-kyb-border bg-white p-5">
-              {[
-                { label: "Reference", value: selected.transaction_reference },
-                {
-                  label: "Gross wallet amount",
-                  value: formatMoney(
-                    selected.settlement.wallet_impact.gross.amount,
-                    selected.settlement.wallet_impact.gross.currency,
-                  ),
-                },
-                ...selected.settlement.wallet_impact.fees.map((f) => ({
-                  label: f.label,
-                  value: formatMoney(f.amount.amount, f.amount.currency),
-                })),
-                {
-                  label:
-                    selected.settlement.wallet_impact.direction === "none"
-                      ? "Pending wallet impact"
-                      : "Net wallet impact",
-                  value: formatMoney(
-                    selected.settlement.wallet_impact.net.amount,
-                    selected.settlement.wallet_impact.net.currency,
-                  ),
-                },
-              ].map((field, index) => (
-                <div key={`${field.label}-${index}`}>
-                  <dt className="text-xs text-kyb-muted">{field.label}</dt>
-                  <dd className="mt-1 break-words text-sm font-semibold">
-                    {field.value}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </GlobalDialog>
-        ) : (
-          <TxnReceipt transaction={selected} close={() => setSelected(null)} />
-        ))}
+      {selectedView && (
+        <TransactionDetailsPanel
+          view={selectedView}
+          close={() => setSelected(null)}
+          onSeeHistory={handleSeeHistory}
+          onPrimaryAction={handlePrimaryAction}
+        />
+      )}
+      {accountDetailId && (
+        <AccountDetails
+          accounts={instructions}
+          initialId={accountDetailId}
+          businessName={account?.business_name ?? ""}
+          entityId={account?.entity_id ?? ""}
+          global={global}
+          close={() => setAccountDetailId(null)}
+        />
+      )}
     </section>
   );
 }
