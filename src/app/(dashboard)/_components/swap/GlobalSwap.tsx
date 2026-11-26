@@ -207,6 +207,7 @@ export default function GlobalSwap({
     setTimeLeft,
     setQuoteLoading,
     setV2Available,
+    setStep,
   ]);
 
   useEffect(() => {
