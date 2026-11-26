@@ -109,6 +109,7 @@ export function useUsdKyb() {
   const [cooldown, setCooldown] = useState(0);
   const retryAt = useRef(0);
   const [dirtyTick, setDirtyTick] = useState(0);
+  const [pending, setPending] = useState<KybDraft>({});
   const [fieldErrors, setFieldErrors] = useState<KybFieldError[]>([]);
   const [missing, setMissing] = useState<string[]>([]);
   const [validationAttempted, setValidationAttempted] = useState(false);
@@ -136,9 +137,12 @@ export function useUsdKyb() {
   const generation = useRef(sessionGeneration());
   const writable = useRef(false);
   const canWriteBusiness = useRef(false);
-  writable.current =
+  const caseWritable =
     access.canWriteBusiness && !!bundle && editableStatus(bundle.case.status);
-  canWriteBusiness.current = access.canWriteBusiness;
+  useEffect(() => {
+    writable.current = caseWritable;
+    canWriteBusiness.current = access.canWriteBusiness;
+  }, [caseWritable, access.canWriteBusiness]);
   useEffect(() => {
     alive.current = true;
     return () => {
@@ -191,6 +195,7 @@ export function useUsdKyb() {
         next.associated_persons,
       );
       setFieldErrors(state.fieldErrors);
+      setPending(state.pending);
       qc.setQueryData(["usd-kyb", tenant], next);
     },
     [currentSession, qc, tenant],
@@ -316,6 +321,7 @@ export function useUsdKyb() {
     state.peopleDirty = false;
     state.dirtyPeople.clear();
     saving.current = true;
+    setPending({});
     setSaveState("Saving…");
     try {
       if (
@@ -412,6 +418,7 @@ export function useUsdKyb() {
         writable.current,
       );
       setDraft(state.draft);
+      setPending(state.pending);
       if (seedDao) setDirtyTick((n) => n + 1);
       setBundle(state.bundle);
       // A later mount must see the saved response rather than the pre-save Infinity-stale query.
@@ -445,6 +452,7 @@ export function useUsdKyb() {
       }
     } catch (failure) {
       state.pending = mergeDraft(patch, state.pending);
+      setPending(state.pending);
       state.peopleDirty ||= sentPeople;
       for (const key of sentKeys) state.dirtyPeople.add(key);
       const corrections = personWriteErrors(apiFieldCorrections(failure), inputs, state.people);
@@ -598,6 +606,7 @@ export function useUsdKyb() {
       return;
     ref.current.draft = setPath(ref.current.draft, path, value);
     ref.current.pending = setPath(ref.current.pending, path, value);
+    setPending(ref.current.pending);
     ref.current.fieldErrors = ref.current.fieldErrors.filter(error => {
       const field = error.field;
       return field !== path && field !== path.split(".").at(-1) && !field.startsWith(path + ".");
@@ -1031,8 +1040,8 @@ export function useUsdKyb() {
     fieldErrors: [...fieldErrors.filter(error => {
       if (error.field.startsWith("associated_persons")) return true;
       const field = error.field;
-      return getPath(ref.current.pending, field) === undefined &&
-        !Object.values(ref.current.pending).some(section => section && typeof section === "object" && Object.hasOwn(section, field));
+      return getPath(pending, field) === undefined &&
+        !Object.values(pending).some(section => section && typeof section === "object" && Object.hasOwn(section, field));
     }), ...draftInputErrors(draft).filter(local => !fieldErrors.some(error => error.field === local.field)).map(error => ({ ...error, source: "local" as const }))],
     personErrors: (person: KybPerson) => {
       const current =
@@ -1051,7 +1060,7 @@ export function useUsdKyb() {
     cooldown,
     query,
     access,
-    editable: writable.current && !conflict,
+    editable: caseWritable && !conflict,
     change,
     changePeople,
     canEditPerson,
